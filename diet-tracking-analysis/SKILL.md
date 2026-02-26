@@ -84,12 +84,42 @@ Checkpoints define cumulative intake targets at key points in the day. A checkpo
 | lunch      | breakfast + snack_am + lunch + snack_pm (everything before dinner) | 70% of day (3-meal) / 100% (2-meal) |
 | dinner     | entire day | 100% |
 
-Evaluation rules:
-- Reviewing breakfast or snack_am → compare cumulative actual vs breakfast checkpoint target
-- Reviewing lunch or snack_pm → compare cumulative actual vs lunch checkpoint target
-- Reviewing dinner → compare cumulative actual vs dinner checkpoint target
+### Checkpoint Range Calculation
 
-Suggestion target: adjust so calories are within ±100 kcal of checkpoint target AND at least 2 of 3 macros are within range.
+Each checkpoint inherits the daily ranges scaled by the checkpoint percentage:
+
+```
+checkpoint_cal_target = totalCal × checkpoint%
+checkpoint_cal_range  = (totalCal - 100) × checkpoint%  to  (totalCal + 100) × checkpoint%
+
+checkpoint_protein_target = protein_target × checkpoint%
+checkpoint_protein_range  = protein_min × checkpoint%  to  protein_max × checkpoint%
+
+checkpoint_fat_target     = fat_target × checkpoint%
+checkpoint_fat_range      = fat_min × checkpoint%  to  fat_max × checkpoint%
+
+checkpoint_carb_target    = carb_target × checkpoint%
+checkpoint_carb_range     = carb_min × checkpoint%  to  carb_max × checkpoint%
+```
+
+**Example** (weight=70kg, totalCal=1800, breakfast checkpoint=30%):
+
+| Macro | Daily target | Daily range | Breakfast target (×30%) | Breakfast range (×30%) |
+|-------|-------------|-------------|------------------------|----------------------|
+| calories | 1800 kcal | 1700–1900 | 540 kcal | 510–570 kcal |
+| protein | 98g | 84–112g | 29.4g | 25.2–33.6g |
+| fat | 55g | 40–70g | 16.5g | 12–21g |
+| carb | 228g | 180.5–276g | 68.4g | 54.2–82.8g |
+
+### Evaluation Rules
+
+- Reviewing breakfast or snack_am → compare cumulative actual vs breakfast checkpoint range
+- Reviewing lunch or snack_pm → compare cumulative actual vs lunch checkpoint range
+- Reviewing dinner → compare cumulative actual vs dinner checkpoint range
+
+### Suggestion Trigger
+
+Adjustment needed (`right_now`) when: calories outside checkpoint cal range OR 2+ macros outside their checkpoint ranges. Suggestion target: adjust so calories fall within checkpoint cal range AND at least 2 of 3 macros are within their checkpoint ranges.
 
 ---
 
@@ -102,7 +132,9 @@ If user describes food without any quantity, ask ONE clarifying question using e
 - Plate: "大概多少？一小碟、半盘，还是一整盘？"
 - Count: "多少个？一个还是两三个？"
 
-If user says they don't know → use standard medium portion, set `confidence: "estimated"`.
+If multiple foods in the same meal all lack quantity, ask about them together in one message — do not split into multiple rounds.
+
+If user says they don't know → use standard medium portion, prefix portion with `~`.
 
 **Exceptions** (record directly without asking): standardized foods like "一罐可乐", "一个鸡蛋", "一片吐司".
 
@@ -121,9 +153,9 @@ Always set `is_food_log: true` immediately. Log the meal AND give suggestions in
 
 ### User accepts a suggestion (Step 2)
 
-Set `is_food_log: true`, log the adjustment:
-- `logged_items` = new foods added (positive) or removed (negative calories/protein/carbs/fat)
-- `meal_totals` = net adjustment (can be negative)
+Set `is_food_log: true`, log the adjusted meal:
+- `logged_items` = the complete list of all foods in this meal after adjustment (original items + added items, or minus removed items)
+- `meal_totals` = the full meal's totals after adjustment
 - `nice_work: null`, `suggestions: null`
 - `message` = brief confirmation like "好的，已记录调整～"
 
@@ -135,8 +167,11 @@ Set `is_food_log: true`, log the adjustment:
 - Foods currently in the bowl/on the plate, or something that can be added right now
 - Cannot split mixed/cooked dishes or adjust pre-cooking ingredient amounts
 - Do NOT list calories or macros per food item
-- Multiple options → list each on its own line: `方案A：xxx\n方案B：xxx\n你倾向于哪个方案？`
-- Single option → full instructions + end with: "调整后本餐累计热量约X kcal，蛋白质Xg，碳水Xg，脂肪Xg。"
+- **Never use for backfilled meals** (meals reported after the fact during missing meal resolution) — use `next_time` instead
+- **Content must be user-facing** — do not expose internal reasoning (e.g. don't say "蛋炒饭本身不好拆开调整"). Just give the actionable suggestion directly.
+- **Single option** → give one clear suggestion, no "or" alternatives. End with: "调整后本餐累计热量约X kcal，蛋白质Xg，碳水Xg，脂肪Xg。"
+- **Multiple options** → list each on its own line: `方案A：xxx\n方案B：xxx\n你倾向于哪个方案？`
+- **Overshoot + may have finished eating** → still give `right_now` with a practical reduction tip (e.g. "汤别喝完"), but append a reassuring fallback: "如果已经吃完了也没关系，一天超标不影响整体，明天注意平衡就好。"
 
 ### `next_time` — only when NO adjustment needed
 - Habit or next-meal pairing suggestion
@@ -152,13 +187,15 @@ Set `is_food_log: true`, log the adjustment:
 
 ## JSON Response Format
 
-Read `references/response-schemas.md` for the full JSON schema with examples. The two response shapes are:
+**Only food-related interactions use JSON.** Non-food messages (general chat, nutrition Q&A, encouragement) should be plain text — natural conversation, no JSON wrapper.
+
+Read `references/response-schemas.md` for the full JSON schema with examples. The two JSON response shapes are:
 
 1. **Food log response** (`is_food_log: true`) — includes `logged_items`, `meal_type`, `meal_totals`, `suggestions`
 2. **Non-food response** (`is_food_log: false`) — includes `message` only, plus optional `missing_meal_forgotten` and `assumed_intake`
 
 Key rules:
-- Prefix estimated items with `~`
+- Prefix estimated portions with `~`
 - Use USDA FoodData Central as primary nutrition source
 - Set `lang` to the language code matching the user's current message (`"zh"`, `"en"`, `"ja"`, etc.)
 

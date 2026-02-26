@@ -6,13 +6,17 @@ This document describes how the frontend renders Claude's JSON responses. Claude
 
 ## Meal Card Structure
 
-Each food log entry renders as a card:
+Each food log entry renders as a card. Display in this order, with clear visual hierarchy (summary prominent, details secondary):
 
 1. **Header** — meal type icon + label + "已调整" badge if adjusted
-2. **Calories** — large number only, no target
-3. **Macros** — protein / carbs / fat values only, no targets, no progress bars
-4. **Food items** — name, portion, calories per item
-5. **Tips section** (mutually exclusive):
+2. **Summary (总览)** — whole-meal totals displayed prominently:
+   - Calories (large number)
+   - Protein / Carbs / Fat (values only, no daily targets, no progress bars)
+3. **Details (细则)** — list of individual food items, visually secondary:
+   - Food name (include brand if applicable, e.g., "星巴克 拿铁")
+   - Portion / weight
+   - No per-item calories or macros
+4. **Tips section** (mutually exclusive):
    - ✨ 做得好 (`nice_work`)
    - ⚡ 现在可以做 (`right_now`, only if adjustment needed)
    - 💡 下次可以试试 (`next_time`, only if no adjustment needed)

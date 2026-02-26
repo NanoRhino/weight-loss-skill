@@ -54,14 +54,20 @@ Ask naturally and briefly — one question only. Match the user's language. Alwa
 | User response | Action |
 |---------------|--------|
 | Describes food | Record normally (`is_food_log: true`, `meal_type` = missing meal), `assumed_intake: null` |
-| "没吃" / "跳过" / "skip" | `is_food_log: false`, set `missing_meal_forgotten` = `"breakfast"` or `"lunch"`, set `assumed_intake` = checkpoint target ÷ 4 per macro |
-| "记不得" / can't recall | `is_food_log: false`, set `missing_meal_forgotten` = `"breakfast"` or `"lunch"`, set `assumed_intake` = checkpoint target ÷ 4 per macro |
+| "没吃" / "跳过" / "skip" | `is_food_log: false`, set `missing_meal_forgotten` = `"breakfast"` or `"lunch"`, `assumed_intake: null` (zero intake — user confirmed they didn't eat) |
+| "吃了但记不得" / "ate but can't recall" | `is_food_log: false`, set `missing_meal_forgotten` = `"breakfast"` or `"lunch"`, set `assumed_intake` = that single meal's standard ratio of daily targets (NOT the cumulative checkpoint). E.g. in 3-meal mode with default 30:40:30 ratio, a forgotten lunch = 40% of daily targets. |
 | Ambiguous (e.g. "随便吃了点") | Ask one follow-up for portion, then record |
 
-After resolving the missing meal, **always continue to log the meal the user originally mentioned** in the same or next response — do not make the user repeat themselves.
+After resolving the missing meal, **always continue to log the meal the user originally mentioned** in the next response — do not make the user repeat themselves. This takes two separate responses (two JSON objects in two turns): first the backfilled meal, then the original meal.
+
+**Backfilled meals** (meals the user is reporting after the fact): since the user has already eaten, `right_now` must be `null`. Only `next_time` suggestions are appropriate. `nice_work` can still be used if warranted.
 
 ---
 
 ## Assumed Meals
 
-Only created when the user says they can't remember or doesn't describe any food. Stored in app state (`assumedMeals`), used only for suggestion calculation — never added to the progress bar.
+Only created when the user confirms they ate but can't describe the food. The assumed amount is that single meal's standard ratio of daily targets (e.g. in 3-meal 30:40:30 mode, a forgotten lunch = 40% of daily targets, NOT the 70% cumulative checkpoint).
+
+When the user says they skipped / didn't eat, assumed_intake is null — that meal counts as zero intake.
+
+Assumed meals are stored in app state (`assumedMeals`), used only for suggestion calculation — never added to the progress bar.
