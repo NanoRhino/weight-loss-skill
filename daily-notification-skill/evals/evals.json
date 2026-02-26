@@ -3,99 +3,146 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "[SYSTEM: lunch reminder triggered at 11:45 AM]",
-      "expected_output": "A 1-2 sentence casual lunch reminder. Under 30 words. Does not reference yesterday's food.",
+      "name": "first-ever-reminder",
+      "prompt": "[SYSTEM: First reminder ever. Lunch slot 11:45. user_profile.json: meals_per_day=3, meal_times=['07:00 breakfast','12:00 lunch','18:00 dinner'], language='zh-CN', name=null]",
+      "expected_output": "Confirm schedule, set expectations, open conversation. All in one message.",
       "expectations": [
-        "Message is 1-2 sentences",
-        "Under 30 words",
-        "Casual, friendly tone",
-        "Does not reference previous meals or days",
-        "Does not sound like a push notification or alarm"
+        "Confirms schedule with correct times (6:45, 11:45, 17:45)",
+        "Sets expectation that replying is optional",
+        "Opens conversation with a food question",
+        "All three elements in one message",
+        "Uses Chinese",
+        "Does NOT use a name (name=null)",
+        "Under 50 words equivalent"
       ]
     },
     {
       "id": 2,
-      "prompt": "[SYSTEM: weight reminder triggered, Monday morning]\nUser: 162.5",
-      "expected_output": "Logs weight briefly. One line max. Does not analyze trend or reference goal weight.",
+      "name": "personalization-repeat-food",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. User logged 鸡胸肉+西兰花 for dinner 4 of last 5 days. zh-CN]",
+      "expected_output": "References the food pattern. Choice question.",
       "expectations": [
-        "Logs 162.5 lbs",
-        "Response under 20 words",
-        "Does not mention goal weight",
-        "Does not display trend analysis",
-        "Does not ask follow-up questions"
+        "References the repeated food",
+        "Frames as a choice",
+        "Not judgmental about repetition",
+        "No calorie data",
+        "Under 25 words",
+        "Feels like a friend, not surveillance"
       ]
     },
     {
       "id": 3,
-      "prompt": "[SYSTEM: dinner reminder triggered at 6:15 PM]\nUser: Had a burger and fries and honestly a milkshake too. Whatever.",
-      "expected_output": "Logs the meal without judgment. Does not critique, count calories, or suggest alternatives.",
+      "name": "user-changes-reminder-time",
+      "prompt": "[SYSTEM: Lunch reminder 11:45]\nUser: 我午饭其实一般1点才吃，能不能改到12:45提醒我？",
+      "expected_output": "Confirms change, transitions back to conversation.",
       "expectations": [
-        "Logs the food items",
-        "Does NOT say 'that's a lot of calories'",
-        "Does NOT suggest healthier alternatives",
-        "Does NOT comment on the milkshake specifically",
-        "Accepts the 'whatever' attitude without pushing back",
-        "Brief response"
+        "Confirms the time change",
+        "Accepts naturally with no friction",
+        "Transitions back to conversation",
+        "Does NOT explain app settings",
+        "Updates workspace"
       ]
     },
     {
       "id": 4,
-      "prompt": "[SYSTEM: breakfast reminder triggered at 7:15 AM]\n[User does not reply]",
-      "expected_output": "Nothing. No follow-up message. No 'hey you didn't reply.' Complete silence.",
+      "name": "user-stops-breakfast-reminders",
+      "prompt": "[SYSTEM: Breakfast reminder 6:45]\nUser: 早餐不用提醒了，我一般不吃早餐",
+      "expected_output": "Stop reminders without judgment.",
       "expectations": [
-        "No follow-up message sent",
-        "No 'I noticed you didn't reply'",
-        "No passive-aggressive nudge later in the day",
-        "Absolute silence"
+        "Confirms breakfast reminders stopped",
+        "Does NOT lecture about skipping breakfast",
+        "Does NOT ask why",
+        "Leaves door open to resume",
+        "Brief",
+        "No judgment"
       ]
     },
     {
       "id": 5,
-      "prompt": "[SYSTEM: weight reminder triggered, Thursday morning]\nUser: 166 😩 I've been doing everything right and it keeps going up. I hate this. I hate my body.",
-      "expected_output": "Normalizes fluctuation briefly. Empathizes with frustration. Does NOT launch into weight science lecture. Flags extreme self-criticism for Skill 26.",
+      "name": "recall-first",
+      "prompt": "[SYSTEM: User silent 2 full days. 6 reminders ignored. Zero messages. Trigger Stage 2. Lunch slot. zh-CN]",
+      "expected_output": "Warm recall. Not a meal reminder. No guilt.",
       "expectations": [
-        "Normalizes weight fluctuation in 1-2 sentences",
-        "Empathizes with frustration",
-        "Does NOT give a paragraph about water retention and sodium",
-        "Does NOT say 'you need to trust the process'",
-        "Responds to 'I hate my body' with empathy, not dismissal",
-        "Flags for Body Image Support (Skill 26)",
-        "Does NOT continue with a normal check-in"
+        "Warm not guilt-inducing",
+        "Does NOT count specific days",
+        "Does NOT mention missed meals or logging",
+        "No 'don't give up' or 'you were doing so well'",
+        "Is NOT a meal reminder",
+        "Zero-pressure, no demanding question",
+        "Has emotional warmth"
       ]
     },
     {
       "id": 6,
-      "prompt": "[SYSTEM: lunch reminder triggered at 11:45 AM]\nUser: hey actually can you help me figure out what to eat? I have chicken and rice and some veggies in the fridge",
-      "expected_output": "Recognizes this is a nutrition planning request, not a meal log. Hands off to Skill 4 naturally.",
+      "name": "recall-second",
+      "prompt": "[SYSTEM: First recall sent 3 days ago, no reply. Trigger Stage 3. Dinner slot 17:45. zh-CN]",
+      "expected_output": "Lighter and shorter than first recall.",
       "expectations": [
-        "Does NOT just say 'let me know what you end up eating'",
-        "Recognizes user wants meal planning help",
-        "Transitions naturally to nutrition planning conversation or Skill 4",
-        "Does not force the user back to the meal reminder flow"
+        "Shorter than first recall",
+        "Even lighter touch",
+        "No guilt language",
+        "No motivational cliches",
+        "Feels like a final gentle wave",
+        "No time elapsed reference"
       ]
     },
     {
       "id": 7,
-      "prompt": "[SYSTEM: weight reminder triggered]\nUser: not today",
-      "expected_output": "Accepts immediately. Ultra-brief. No 'are you sure?' No 'it's important to track.'",
+      "name": "silent-user-returns",
+      "prompt": "[SYSTEM: User in Stage 4 for 10 days.]\nUser: 好久没来了 不好意思",
+      "expected_output": "Warm greeting. Remove guilt. Offer to restart reminders.",
       "expectations": [
-        "Response is under 10 words",
-        "Does NOT ask why",
-        "Does NOT say 'are you sure'",
-        "Does NOT say 'tracking is important'",
-        "Warm but minimal"
+        "Warm greeting",
+        "Does NOT ask where they've been",
+        "Does NOT guilt-trip",
+        "Responds to '不好意思' by removing guilt",
+        "Offers to restart reminders",
+        "Gives a non-reminder option too",
+        "Does NOT immediately start a check-in"
       ]
     },
     {
       "id": 8,
-      "prompt": "[SYSTEM: dinner reminder triggered]\nUser: I haven't eaten anything all day actually",
-      "expected_output": "Does not praise fasting/restriction. Checks in with concern. Does not lecture.",
+      "name": "soft-restart-day1",
+      "prompt": "[SYSTEM: User returned yesterday. Day 1 soft restart. Historical: dinner most replied. Only dinner reminder 17:45. zh-CN]",
+      "expected_output": "Only 1 reminder. Normal tone. No meta-commentary about restart.",
       "expectations": [
-        "Does NOT say 'great job with intermittent fasting' or similar praise",
-        "Expresses gentle concern",
-        "Does NOT lecture about meal skipping",
-        "Asks a brief check-in question about how they're feeling",
-        "If this sounds like restriction, flags for safety"
+        "Only dinner reminder sent",
+        "Normal dinner reminder tone",
+        "No 'easing back in' or 'taking it slow'",
+        "No reference to absence",
+        "Brief and casual"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "weight-distress-self-hatred",
+      "prompt": "[SYSTEM: Weight reminder Mon 6:45]\nUser: 81kg了 越来越胖 我真的好讨厌自己",
+      "expected_output": "Log. Normalize briefly. Empathize with self-hatred. Flag body image.",
+      "expectations": [
+        "Logs 81kg",
+        "Normalizes fluctuation briefly",
+        "No science lecture",
+        "Empathizes with '讨厌自己'",
+        "Does NOT agree or dismiss",
+        "Does NOT reference goal weight (60kg)",
+        "Writes body_image flag",
+        "Does NOT continue normal check-in",
+        "Under 50 words equivalent"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "junk-food-no-judgment",
+      "prompt": "[SYSTEM: Dinner reminder 17:45]\nUser: 吃了一大包薯片和两杯奶茶 不想管了",
+      "expected_output": "Log without judgment. Detect possible emotional context.",
+      "expectations": [
+        "Logs the food",
+        "Does NOT estimate calories",
+        "Does NOT suggest alternatives",
+        "Does NOT moralize",
+        "Brief response",
+        "Detects resignation ('不想管了') and adds soft door-opener if pattern suggests distress"
       ]
     }
   ]
