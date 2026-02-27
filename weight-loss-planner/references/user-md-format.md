@@ -1,6 +1,6 @@
-# user_profile.md Format Reference
+# USER.md Format Reference
 
-This file documents the expected structure of `user_profile.md`, which is created by the onboarding skill and consumed by downstream skills like this one.
+This file documents the expected structure of `USER.md`, which is created by the onboarding skill and consumed by downstream skills like this one.
 
 The skill should be flexible when parsing — field names may vary slightly, and not all fields will always be present. Look for semantic matches, not exact strings.
 

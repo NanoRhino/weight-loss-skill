@@ -2,11 +2,35 @@
 
 Detailed specifications for each supported diet mode. The SKILL.md overview table gives the quick summary — this file has the full implementation details.
 
+## Healthy U.S.-Style (USDA Dietary Guidelines)
+
+**Macro Split:** 10–35% protein / 45–65% carbs / 20–35% fat (AMDR ranges from the Dietary Guidelines for Americans 2020–2025)
+**Philosophy:** Follow the USDA's recommended Healthy U.S.-Style Dietary Pattern — one of three patterns recommended by the DGA (alongside Healthy Mediterranean-Style and Healthy Vegetarian). Emphasizes nutrient-dense whole foods across all food groups.
+**Best for:** Users who want a government-backed, evidence-based baseline; general health maintenance; those new to structured eating.
+
+**Core principles:**
+- Fruits and vegetables: fill half the plate
+- Grains: at least half should be whole grains
+- Dairy: low-fat or fat-free milk, yogurt, cheese
+- Protein: variety including seafood, lean meats, poultry, eggs, legumes, nuts, seeds, soy
+- Oils: healthy oils (vegetable oils, oils in nuts/seafood) in place of solid fats
+
+**Daily limits:**
+- Added sugars: <10% of total calories
+- Saturated fat: <10% of total calories
+- Sodium: <2,300 mg
+- Alcohol: up to 1 drink/day (women), 2 drinks/day (men) — if consumed at all
+
+**In a weight loss context:** The AMDR ranges are very broad (e.g., protein 10–35%). For a calorie deficit, aim for the higher end of protein (25–35%) to preserve muscle, and moderate fat (20–30%) to leave room for adequate carbohydrates. The `diet-tracking-analysis` skill uses this pattern's ranges as its default (fat 20–35%, protein by body weight at 1.2–1.6 g/kg).
+
+**Key advantage:** Backed by the most extensive body of nutrition research. No food groups excluded. Flexible within the AMDR ranges.
+**Key risk:** The ranges are wide enough that users may need more specific guidance — which is why the other diet modes below offer narrower targets for specific goals.
+
 ---
 
 ## Balanced / Flexible Dieting (IIFYM)
 
-**Macro Split:** 30% protein / 40% carbs / 30% fat
+**Macro Split:** 25–35% protein / 35–45% carbs / 25–35% fat (default: 30/40/30)
 **Philosophy:** No food restrictions. Hit your calorie and macro targets, and the rest is up to you.
 **Best for:** Most users, especially beginners. Lowest barrier to adherence.
 
@@ -27,7 +51,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 
 ## High-Protein
 
-**Macro Split:** 40% protein / 30% carbs / 30% fat
+**Macro Split:** 35–45% protein / 25–35% carbs / 25–35% fat (default: 40/30/30)
 **Philosophy:** Prioritize protein to preserve muscle during a calorie deficit, increase satiety, and boost thermic effect of food.
 **Best for:** People who lift weights, active individuals, anyone who finds protein keeps them fuller longer.
 
@@ -61,7 +85,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 
 ## Low-Carb
 
-**Macro Split:** 35% protein / 20% carbs / 45% fat
+**Macro Split:** 30–40% protein / 15–25% carbs / 40–50% fat (default: 35/20/45)
 **Philosophy:** Reduce carbohydrates to lower insulin response and increase fat utilization. Not as extreme as keto.
 **Best for:** People who feel sluggish or bloated with high-carb meals, or who notice better appetite control on fewer carbs.
 
@@ -86,11 +110,13 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 
 ## Keto (Ketogenic)
 
-**Macro Split:** 30% protein / 5% carbs / 65% fat
+**Macro Split:** 20–25% protein / 5–10% carbs / 65–75% fat (default: 20/5/75)
 **Philosophy:** Extreme carb restriction to shift the body into ketosis (burning fat as primary fuel).
 **Best for:** Experienced dieters who've tried keto before and liked it. Not recommended as a first approach.
 
 **Daily carb target:** 20–30g net carbs (total carbs minus fiber).
+
+**Note on protein:** Protein is kept moderate (20–25%) to avoid excess gluconeogenesis, which can interfere with ketosis. Higher protein intakes (>25%) may knock some individuals out of ketosis.
 
 **Keto staple foods:**
 - Proteins: fatty fish, beef, chicken thighs (skin-on), eggs, bacon
@@ -114,7 +140,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 
 ## Mediterranean
 
-**Macro Split:** 25% protein / 45% carbs / 30% fat
+**Macro Split:** 20–30% protein / 40–50% carbs / 25–35% fat (default: 25/45/30)
 **Philosophy:** Whole foods, healthy fats (olive oil), lean proteins (fish, poultry), abundant vegetables, whole grains. Inspired by traditional eating patterns of Mediterranean cultures.
 **Best for:** Users focused on heart health, those who enjoy cooking, people who want a "lifestyle" rather than a "diet."
 
@@ -151,10 +177,12 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 - 10:00 AM – 6:00 PM (earlier window for morning exercisers)
 - 2:00 PM – 10:00 PM (late schedule)
 
-**Meal structure:**
+**Meal structure (defaults — adjustable):**
 - Meal 1 (breaking fast): 40% of daily calories
 - Meal 2 (dinner): 40% of daily calories
 - Snack: 20% of daily calories
+
+> If the user prefers a larger first meal and smaller snack, or wants to split more evenly, adjust to their preference while keeping the daily total on target.
 
 **During the fast (allowed):**
 - Water, black coffee, plain tea (no sugar, no cream)
@@ -192,7 +220,7 @@ So the normal days can actually be slightly higher if the weekly average needs t
 
 ## Plant-Based
 
-**Macro Split:** 25% protein / 50% carbs / 25% fat
+**Macro Split:** 20–30% protein / 45–55% carbs / 20–30% fat (default: 25/50/25)
 **Philosophy:** All or primarily plant-derived foods. Two sub-modes:
 - **Vegan:** No animal products whatsoever
 - **Vegetarian:** Allows dairy and eggs

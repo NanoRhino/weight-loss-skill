@@ -86,9 +86,30 @@ The user may:
 
 This adjustment step exists because TDEE estimation is inherently imprecise. Empowering the user to participate in the estimate improves both accuracy and buy-in. Don't skip it — even if data came from USER.md, the user should still confirm their TDEE before building a plan on it.
 
-Once TDEE is confirmed, ask about their weight loss goal:
+Once TDEE is confirmed, ask about their weight loss goal and diet mode preference:
 - "What's your target weight?"
 - "Do you have a timeline in mind, or would you like me to recommend one?"
+- "Do you have a preferred eating style? For example, balanced, high-protein, low-carb, keto, Mediterranean, intermittent fasting, or plant-based. If you're not sure, I'll default to balanced — it works for most people."
+
+### Diet Mode Selection
+
+See `references/diet-modes.md` for the full specification of each mode. The **Healthy U.S.-Style** mode follows the USDA Dietary Guidelines for Americans (AMDR ranges). Other modes intentionally deviate from AMDR based on their specific goals.
+
+| Mode | Fat Range | Best For | Key Constraint |
+|---|---|---|---|
+| **Healthy U.S.-Style (USDA)** | 20–35% | Following the Dietary Guidelines; general health | Added sugars <10%, sat fat <10%, sodium <2,300mg |
+| **Balanced / Flexible** | 25–35% | Most people; easiest to sustain | None — just hit your calories and macros |
+| **High-Protein** | 25–35% | Gym-goers preserving muscle during deficit | Requires consistent protein sources |
+| **Low-Carb** | 40–50% | People who feel better with fewer carbs | Carbs under ~100g/day |
+| **Keto** | 65–75% | Aggressive carb restriction fans | Carbs under 20–30g/day; adaptation period |
+| **Mediterranean** | 25–35% | Heart health focus; enjoys olive oil and fish | Emphasizes whole foods, limits processed |
+| **IF (16:8)** | Any | People who prefer fewer, larger meals | All food within 8-hour window |
+| **IF (5:2)** | Any | People who prefer 2 very-low days | 500–600 cal on 2 non-consecutive days |
+| **Plant-Based** | 20–30% | Vegetarian or vegan users | No animal products (vegan) or limited (vegetarian) |
+
+**Note:** Protein is always calculated from body weight (`weight_kg × 1.2–1.6g`), not from a percentage. The fat range above is what varies by mode and is used in the macro calculation. Carbs fill the remaining calories. IF is a timing strategy layered on top of any macro split (default to Balanced).
+
+Record the user's confirmed diet mode in the final report. The `meal-planner` skill will use this mode when building the actual food plan.
 
 ---
 
@@ -220,6 +241,7 @@ Use this template structure (adapt content based on the user's specific numbers)
 |---|---|
 | BMR | X,XXX cal/day |
 | Confirmed TDEE | X,XXX cal/day |
+| Diet Mode | [Mode name] |
 | Weight Loss Rate | X.X lbs/week |
 | Daily Calorie Range | X,XXX – X,XXX cal/day (midpoint: X,XXX) |
 | Protein Range | XXX – XXX g/day (midpoint: XXX g) |
