@@ -261,7 +261,7 @@ If the user doesn't know their body fat %, stick with Mifflin-St Jeor.
 
 ## Daily Macronutrient Targets During Weight Loss
 
-These formulas are aligned with the diet-tracking-analysis skill to ensure consistency across the weight loss skill suite. Protein is always anchored to body weight; fat varies by diet mode; carbs fill the remainder.
+The diet-tracking-analysis skill reads daily targets directly from weight-loss-planner output instead of recalculating them. Protein is always anchored to body weight; fat varies by diet mode; carbs fill the remainder.
 
 ### Diet Mode Fat Ranges
 

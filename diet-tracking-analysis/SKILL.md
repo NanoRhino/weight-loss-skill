@@ -35,28 +35,17 @@ Every time the user logs food, follow these steps **in order**:
 
 ## User Profile
 
-These fields are provided by the app and available in conversation context:
+These fields are provided by the app and available in conversation context. Daily calorie and macronutrient targets come directly from weight-loss-planner — this skill does not calculate them.
 
 | Field | Description |
 |-------|-------------|
-| `weight` | kg, used to calculate protein/fat targets |
-| `totalCal` | daily calorie goal |
+| `totalCal` | daily calorie target (midpoint) from weight-loss-planner |
+| `calRange` | `[min, max]` daily calorie range from weight-loss-planner |
+| `protein` | `{ target, min, max }` daily protein in grams, from weight-loss-planner |
+| `fat` | `{ target, min, max }` daily fat in grams, from weight-loss-planner |
+| `carb` | `{ target, min, max }` daily carb in grams, from weight-loss-planner |
 | `mealMode` | `"2"` = two meals, `"3"` = three meals (default) |
 | `customRatios` | optional `[morningPct, middayPct]` e.g. `[30, 40]` → 30:40:30 |
-
----
-
-## Daily Goal Calculation
-
-```
-protein target  = weight × 1.4 g  (range: weight×1.2 – weight×1.6)
-fat target      = totalCal × 27.5% ÷ 9  (range: totalCal×20% – totalCal×35%, divided by 9)
-carb target     = (totalCal − protein×4 − fat×9) ÷ 4
-carb range      = derived from protein and fat bounds:
-  carb max      = (totalCal − protein_min×4 − fat_min×9) ÷ 4
-  carb min      = (totalCal − protein_max×4 − fat_max×9) ÷ 4
-calorie range   = totalCal ± 100 kcal
-```
 
 ---
 
@@ -91,30 +80,30 @@ Checkpoints define cumulative intake targets at key points in the day. A checkpo
 
 ### Checkpoint Range Calculation
 
-Each checkpoint inherits the daily ranges scaled by the checkpoint percentage:
+Each checkpoint inherits the daily targets (from the user profile) scaled by the checkpoint percentage:
 
 ```
 checkpoint_cal_target = totalCal × checkpoint%
-checkpoint_cal_range  = (totalCal - 100) × checkpoint%  to  (totalCal + 100) × checkpoint%
+checkpoint_cal_range  = calRange[0] × checkpoint%  to  calRange[1] × checkpoint%
 
-checkpoint_protein_target = protein_target × checkpoint%
-checkpoint_protein_range  = protein_min × checkpoint%  to  protein_max × checkpoint%
+checkpoint_protein_target = protein.target × checkpoint%
+checkpoint_protein_range  = protein.min × checkpoint%  to  protein.max × checkpoint%
 
-checkpoint_fat_target     = fat_target × checkpoint%
-checkpoint_fat_range      = fat_min × checkpoint%  to  fat_max × checkpoint%
+checkpoint_fat_target     = fat.target × checkpoint%
+checkpoint_fat_range      = fat.min × checkpoint%  to  fat.max × checkpoint%
 
-checkpoint_carb_target    = carb_target × checkpoint%
-checkpoint_carb_range     = carb_min × checkpoint%  to  carb_max × checkpoint%
+checkpoint_carb_target    = carb.target × checkpoint%
+checkpoint_carb_range     = carb.min × checkpoint%  to  carb.max × checkpoint%
 ```
 
-**Example** (weight=70kg, totalCal=1800, breakfast checkpoint=30%):
+**Example** (weight-loss-planner output: totalCal=1800, calRange=[1700,1900], protein={98, 84–112}, fat={60, 50–70}, carb={217, 180.5–253.5}; breakfast checkpoint=30%):
 
 | Macro | Daily target | Daily range | Breakfast target (×30%) | Breakfast range (×30%) |
 |-------|-------------|-------------|------------------------|----------------------|
 | calories | 1800 kcal | 1700–1900 | 540 kcal | 510–570 kcal |
 | protein | 98g | 84–112g | 29.4g | 25.2–33.6g |
-| fat | 55g | 40–70g | 16.5g | 12–21g |
-| carb | 228g | 180.5–276g | 68.4g | 54.2–82.8g |
+| fat | 60g | 50–70g | 18g | 15–21g |
+| carb | 217g | 180.5–253.5g | 65.1g | 54.2–76.1g |
 
 ### Evaluation Rules
 
