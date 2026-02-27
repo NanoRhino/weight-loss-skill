@@ -24,25 +24,25 @@ This skill is interactive. Walk the user through five steps, confirming at each 
 
 This step has two paths. Check which one applies before doing anything else.
 
-#### Path A: USER.md exists (onboarded user)
+#### Path A: user_profile.md exists (onboarded user)
 
-Another skill may have already collected the user's body data during onboarding and stored it in `USER.md`. Check whether a USER.md file exists in the conversation context or in `/mnt/user-data/uploads/`. If it does, read it for these fields:
+Another skill may have already collected the user's body data during onboarding and stored it in `user_profile.md`. Check whether a `user_profile.md` file exists in the workspace. If it does, read it for these fields:
 
 - Height, current weight, age, biological sex
 - Activity level / daily activity description
 - Any previously calculated BMR, TDEE, or BMI
 
-If USER.md provides all required fields, **skip manual collection entirely**. Summarize what you found in a brief confirmation:
+If `user_profile.md` provides all required fields, **skip manual collection entirely**. Summarize what you found in a brief confirmation:
 
 > "I see from your profile that you're 35, male, 5'10", 220 lbs, moderately active. Let me calculate your numbers from there."
 
 Then proceed directly to calculating and presenting TDEE (see below). The user still gets a chance to adjust in Step 2 — you're just skipping the intake interview.
 
-If USER.md exists but is incomplete (e.g., has height and weight but no activity level), use what's there and ask only for the missing pieces.
+If `user_profile.md` exists but is incomplete (e.g., has height and weight but no activity level), use what's there and ask only for the missing pieces.
 
-#### Path B: No USER.md (standalone mode)
+#### Path B: No user_profile.md (standalone mode)
 
-If no USER.md is found, this skill works independently. Gather the user's physical stats through conversation. If they've already shared some info in earlier messages, acknowledge what you know and ask only for the gaps.
+If no `user_profile.md` is found in the workspace, this skill works independently. Gather the user's physical stats through conversation. If they've already shared some info in earlier messages, acknowledge what you know and ask only for the gaps.
 
 **Required inputs:**
 - Height (feet/inches for US users; accept cm too)
@@ -84,7 +84,7 @@ The user may:
 - Manually pick a value within the range → accept it
 - Ask questions about the numbers → explain patiently
 
-This adjustment step exists because TDEE estimation is inherently imprecise. Empowering the user to participate in the estimate improves both accuracy and buy-in. Don't skip it — even if data came from USER.md, the user should still confirm their TDEE before building a plan on it.
+This adjustment step exists because TDEE estimation is inherently imprecise. Empowering the user to participate in the estimate improves both accuracy and buy-in. Don't skip it — even if data came from `user_profile.md`, the user should still confirm their TDEE before building a plan on it.
 
 Once TDEE is confirmed, ask about their weight loss goal:
 - "What's your target weight?"

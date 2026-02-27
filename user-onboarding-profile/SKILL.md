@@ -124,63 +124,64 @@ If work type and exercise data are missing, default to Sedentary (1.2).
 
 If during conversation the user mentions any serious health condition (diabetes, heart disease, eating disorder, pregnancy, etc.), add a gentle note encouraging them to consult their doctor. Don't refuse to help — just flag it in the profile under `health_flags`.
 
-## Profile JSON Schema
+## Profile Output Format
 
-Use `null` for any field the user didn't provide. Never fabricate data.
+Use `—` for any field the user didn't provide. Never fabricate data.
 
-```json
-{
-  "profile_version": "2.0",
-  "created_at": "ISO-8601 timestamp",
-  "updated_at": "ISO-8601 timestamp",
-  "language": "zh-CN | en | ...",
+```markdown
+# User Profile
 
-  "basic_info": {
-    "name": "string | null",
-    "age": "number | null",
-    "sex": "male | female | other | null",
-    "height_cm": "number | null",
-    "weight_kg": "number | null",
-    "bmi": "number | null (calculated)",
-    "bmr_kcal": "number | null (calculated)",
-    "tdee_kcal": "number | null (estimated)"
-  },
+**Created:** [ISO-8601 timestamp]
+**Updated:** [ISO-8601 timestamp]
+**Language:** [zh-CN | en | ...]
 
-  "goals": {
-    "target_weight_kg": "number | null",
-    "weight_to_lose_kg": "number | null (calculated)",
-    "weekly_loss_rate_kg": "number (default 0.5)",
-    "estimated_weeks": "number | null (calculated)",
-    "core_motivation": "string | null",
-    "meals_per_day": "number | null",
-    "meal_times": ["string (e.g. '8:00 breakfast', '12:30 lunch', '19:00 dinner')"]
-  },
+## Basic Info
 
-  "optional_info": {
-    "work_type": "sedentary | active | null",
-    "food_restrictions": ["string"],
-    "exercise_habits": "string | null",
-    "exercise_preferences": ["string"]
-  },
+- **Name:** [string | —]
+- **Age:** [number | —]
+- **Sex:** [male | female | other | —]
+- **Height:** [X cm | —]
+- **Weight:** [X kg | —]
+- **BMI:** [number (calculated) | —]
+- **BMR:** [number kcal (calculated) | —]
+- **TDEE (estimated):** [number kcal | —]
 
-  "health_flags": ["string (auto-generated if user mentions health issues)"],
+## Goals
 
-  "coach_notes": {
-    "recommended_approach": "string (initial high-level recommendation based on collected data)"
-  }
-}
+- **Target Weight:** [X kg | —]
+- **Weight to Lose:** [X kg (calculated) | —]
+- **Weekly Loss Rate:** [X kg (default 0.5)]
+- **Estimated Weeks:** [number (calculated) | —]
+- **Core Motivation:** [string | —]
+- **Meals per Day:** [number | —]
+- **Meal Times:** [e.g. 08:00 breakfast, 12:30 lunch, 19:00 dinner | —]
+
+## Lifestyle
+
+- **Work Type:** [sedentary | active | —]
+- **Food Restrictions:** [list or None]
+- **Exercise Habits:** [string | —]
+- **Exercise Preferences:** [list or None]
+
+## Health Flags
+
+[list of flags, or None]
+
+## Coach Notes
+
+- **Recommended Approach:** [initial high-level recommendation based on collected data]
 ```
 
 ## Updating an Existing Profile
 
 When a user wants to update (not create) their profile:
 
-1. Ask them to share their existing profile JSON
+1. Read the existing `user_profile.md` from the workspace
 2. Ask what changed
 3. Update only the changed fields
-4. Bump `updated_at`, keep `created_at`
+4. Bump `Updated:` timestamp, keep `Created:` timestamp
 5. Recalculate derived fields (BMI, BMR, TDEE, weekly rate)
-6. Output the updated JSON
+6. Save the updated file
 
 ## Tone Guidelines
 
@@ -193,7 +194,6 @@ When a user wants to update (not create) their profile:
 
 After the user confirms their summary:
 
-1. Generate the Profile JSON file
-2. Save as `user_profile.json`
-3. Copy to `/mnt/user-data/outputs/user_profile.json`
-4. Present the file to the user for download
+1. Generate the profile in Markdown format as shown above
+2. Save as `user_profile.md` in the current workspace
+3. Confirm to the user that their profile has been saved

@@ -29,13 +29,13 @@ up to 3x/day, weight reminders 2x/week, delivered as in-app chat.
 
 ### Schedule
 
-Read meal times from workspace file `user_profile.json` → `goals.meal_times`.
+Read meal times from workspace file `user_profile.md` → `Goals > Meal Times`.
 Reminders fire 15 min before each meal.
 
 Example — this user's profile:
-```json
-"meals_per_day": 3,
-"meal_times": ["07:00 breakfast", "12:00 lunch", "18:00 dinner"]
+```markdown
+- **Meals per Day:** 3
+- **Meal Times:** 07:00 breakfast, 12:00 lunch, 18:00 dinner
 ```
 → Reminders at 6:45, 11:45, 17:45.
 Weight reminders: Mon & Thu, at first meal time minus 15 min (6:45).
@@ -144,9 +144,9 @@ across users). Write soft-restart status to `engagement.reminder_config`.
 ### Weight Reminder Rules
 
 - Max 2x/week. Always framed as optional.
-- If `health_flags` contains `"avoid_weight_focus"` or `"history_of_ed"` → never send.
-- Never show `goals.target_weight_kg` or last weigh-in in the reminder message.
-- Use `basic_info.weight_kg` as baseline for internal trend detection only.
+- If `Health Flags` contains `avoid_weight_focus` or `history_of_ed` → never send.
+- Never show the user's target weight or last weigh-in in the reminder message.
+- Use `Basic Info > Weight` as baseline for internal trend detection only.
 
 ---
 
@@ -204,7 +204,7 @@ Never playful tone for weight. Always optional.
 | Vague: "ate something" | `Logged ✓ Want to add details, or leave it?` |
 | Skipping: "skipping lunch" | `Noted!` |
 | Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk? No pressure either way." If purely indifferent (no distress signal), just log and move on. |
-| Hasn't eaten all day | Check `optional_info.exercise_habits` or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → write `flags.possible_restriction: true` |
+| Hasn't eaten all day | Check `Lifestyle > Exercise Habits` in profile or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → write `flags.possible_restriction: true` |
 | Asks what to eat | Answer if simple, or route to meal planning |
 | Talks about something else | Go with their flow. Don't force food topic. |
 
@@ -249,21 +249,21 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 
 ## Workspace
 
-### Reads from `user_profile.json`
+### Reads from `user_profile.md`
 
-| JSON Path | Purpose |
-|-----------|---------|
-| `language` | Response language (e.g. `"zh-CN"` → respond in Chinese, `"en-US"` → respond in English) |
-| `basic_info.name` | Greeting (if set) |
-| `basic_info.sex` | Context (e.g. don't mention menstrual cycle for `"male"`) |
-| `basic_info.weight_kg` | Baseline for trend detection (internal only) |
-| `goals.meals_per_day` | Max reminders per day (e.g. `3`) |
-| `goals.meal_times` | Reminder schedule (e.g. `["07:00 breakfast", "12:00 lunch", "18:00 dinner"]`) |
-| `goals.target_weight_kg` | Never show to user in reminders |
-| `optional_info.food_restrictions` | Respect in tips (e.g. don't suggest pork if restricted) |
-| `optional_info.exercise_habits` | Detect IF patterns |
-| `health_flags` | Skip weight reminders if ED-related flags present |
-| `coach_notes.recommended_approach` | Inform tone (e.g. user is on moderate deficit — don't suggest extreme restriction) |
+| Field | Purpose |
+|-------|---------|
+| `Language` | Response language (e.g. `zh-CN` → respond in Chinese, `en` → respond in English) |
+| `Basic Info > Name` | Greeting (if set) |
+| `Basic Info > Sex` | Context (e.g. don't mention menstrual cycle for `male`) |
+| `Basic Info > Weight` | Baseline for trend detection (internal only) |
+| `Goals > Meals per Day` | Max reminders per day (e.g. `3`) |
+| `Goals > Meal Times` | Reminder schedule (e.g. `07:00 breakfast, 12:00 lunch, 18:00 dinner`) |
+| `Goals > Target Weight` | Never show to user in reminders |
+| `Lifestyle > Food Restrictions` | Respect in tips (e.g. don't suggest pork if restricted) |
+| `Lifestyle > Exercise Habits` | Detect IF patterns |
+| `Health Flags` | Skip weight reminders if ED-related flags present |
+| `Coach Notes > Recommended Approach` | Inform tone (e.g. user is on moderate deficit — don't suggest extreme restriction) |
 
 ### Reads from logs (workspace)
 
