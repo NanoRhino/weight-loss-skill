@@ -1,0 +1,75 @@
+{
+  "skill_name": "habit-builder",
+  "evals": [
+    {
+      "id": 1,
+      "name": "first-habit-recommendation",
+      "prompt": "[SYSTEM: User just completed onboarding. Profile: 40M, 80kg, target 60kg, sedentary, 3 meals/day (7:00/12:00/18:00), no exercise, no food restrictions, no health flags. Recommend first habit.]",
+      "expected_output": "AI identifies lifestyle gaps, picks highest-leverage tiny habit, explains reasoning, asks for buy-in. Not 'run 5k' — something embarrassingly small.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 2,
+      "name": "tiny-fy-ambitious-request",
+      "prompt": "User: I want to exercise every day for 30 minutes",
+      "expected_output": "Acknowledges the goal, but shrinks it to a tiny version. Doesn't dismiss the ambition — reframes it as a starting point.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 3,
+      "name": "habit-woven-into-meal-convo",
+      "prompt": "[SYSTEM: Active habit = 'protein first at lunch'. Daily Notification lunch reminder. User replies: 'Having a sandwich from the deli']\nGenerate the AI response.",
+      "expected_output": "Logs the food AND naturally asks about the habit in the same message. Not two separate topics — one flowing response.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 4,
+      "name": "partial-completion-counts",
+      "prompt": "[SYSTEM: Active habit = 'walk 5 min after dinner'. In dinner conversation.]\nUser: went outside but only walked like 2 minutes, it was cold",
+      "expected_output": "Counts it as done. Doesn't say 'great job!' — says something like 'still counts'. Brief.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 5,
+      "name": "user-ignores-habit-mention",
+      "prompt": "[SYSTEM: Active habit = 'walk after dinner'. Habit was mentioned in last 3 conversations, user responded to the meal part but ignored the walk part each time. This is the 4th conversation.]\nUser: Had pasta tonight\nGenerate the AI response.",
+      "expected_output": "Logs the food. Does NOT mention the walking habit. Respects the pattern of non-engagement.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 6,
+      "name": "failure-restart-gentle",
+      "prompt": "[SYSTEM: Active habit = 'walk after dinner'. User has missed/no_response for 5 consecutive mentions over 2 weeks. Next natural conversation moment.]\nUser: Eating leftover pizza tonight",
+      "expected_output": "Logs food, then gently brings up the habit. Offers three choices: keep/shrink/swap. No guilt.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 7,
+      "name": "graduation-check",
+      "prompt": "[SYSTEM: Active habit = 'walk after dinner'. 14+ days, completion rate 85%. User has self-initiated 4 times. In a dinner conversation.]\nUser: Already went for my walk, having dinner now. Grilled chicken and veggies.",
+      "expected_output": "Notices the self-initiation. Asks if user still needs reminders for this habit. Begins graduation flow.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 8,
+      "name": "next-habit-after-graduation",
+      "prompt": "[SYSTEM: 'Walk after dinner' just graduated 3 days ago. User is in a lunch conversation. Recent logs show user eats very little protein — mostly carbs and fried food.]\nUser: Having noodles for lunch\nGenerate the AI response.",
+      "expected_output": "Logs food normally. Then suggests the next habit based on current data (likely protein-related). Explains reasoning. Doesn't rush — user just graduated one habit.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 9,
+      "name": "user-proposes-extreme-habit",
+      "prompt": "User: I want to do intermittent fasting, only eat one meal a day",
+      "expected_output": "Doesn't enable extreme restriction. Redirects to a sustainable alternative. Empathetic, not preachy.",
+      "files": ["user_profile.json"]
+    },
+    {
+      "id": 10,
+      "name": "self-hatred-over-failure",
+      "prompt": "[SYSTEM: Active habit = 'no eating after 10 PM'. User has been struggling.]\nUser: I ate a whole bag of chips at midnight again. I have zero self-control, what's wrong with me",
+      "expected_output": "Does NOT say 'don't give up'. Empathizes. Normalizes. Reframes from willpower to system design. Offers to adjust the habit. Writes body_image flag if severe.",
+      "files": ["user_profile.json"]
+    }
+  ]
+}
