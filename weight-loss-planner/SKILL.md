@@ -1,14 +1,11 @@
 ---
 name: weight-loss-planner
-description: >
-  Personal nutritionist skill for weight loss goal-setting and milestone planning.
-  Creates personalized Markdown reports with BMI analysis, TDEE-based calorie targets,
-  and phased milestone roadmaps (short/mid/long-term). Use this skill whenever the user
-  mentions weight loss goals, losing weight, diet planning, calorie targets, BMI calculation,
-  TDEE, body weight milestones, or asks for a weight loss plan, fat loss strategy, or
-  fitness goal roadmap. Also trigger when the user wants to calculate how long it will take
-  to reach a target weight, or asks about safe rates of weight loss. Target audience is
-  US-based users (imperial units by default, with metric conversions where helpful).
+version: 1.0.0
+description: "Personal nutritionist skill for weight loss goal-setting and milestone planning. Creates personalized Markdown reports with BMI analysis, TDEE-based calorie targets, and phased milestone roadmaps. Use this skill when the user mentions weight loss goals, diet planning, calorie targets, BMI, TDEE, or asks for a weight loss plan. Also trigger when user wants to calculate how long to reach a target weight."
+metadata:
+  openclaw:
+    emoji: "chart_with_upwards_trend"
+    homepage: https://github.com/NanoRhino/weight-loss-skill
 ---
 
 # Weight Loss Planner — Goal Setting & Milestones

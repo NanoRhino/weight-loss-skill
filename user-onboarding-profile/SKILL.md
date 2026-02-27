@@ -1,15 +1,11 @@
 ---
 name: user-onboarding-profile
-description: >
-  Build a comprehensive user profile for weight-loss coaching through natural conversation.
-  Use this skill whenever a new user starts their first conversation about weight loss, dieting,
-  fitness, or body transformation — or when any user says things like "I want to lose weight",
-  "help me get fit", "I need a diet plan", "let's start", "I'm new here", or asks about getting
-  started with a health/weight-loss program. Also trigger when a user wants to UPDATE their
-  existing profile (e.g., "my weight changed", "I got injured", "I switched jobs").
-  This skill is the foundation — all other coaching skills depend on the profile it produces.
-  When in doubt about whether to trigger, trigger it. A partially collected profile is better
-  than no profile at all.
+version: 1.0.0
+description: "Build a comprehensive user profile for weight-loss coaching through natural conversation. Use this skill when a new user starts their first conversation about weight loss, dieting, fitness, or body transformation. Also trigger when a user wants to UPDATE their existing profile. This skill is the foundation — all other coaching skills depend on the profile it produces. When in doubt, trigger it."
+metadata:
+  openclaw:
+    emoji: "clipboard"
+    homepage: https://github.com/NanoRhino/weight-loss-skill
 ---
 
 # User Onboarding & Profile Builder

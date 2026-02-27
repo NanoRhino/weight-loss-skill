@@ -1,12 +1,11 @@
 ---
 name: daily-notification
-description: >
-  System-initiated daily reminders for the AI weight loss companion. Sends
-  meal-time reminders (15 min before each meal) and weight logging reminders
-  (twice per week) as in-app chat messages. Use this skill when the system
-  needs to proactively reach out. Also use when the user replies to a reminder
-  — collect and log data inline. Do NOT use when the user initiates unprompted,
-  or wants detailed meal analysis.
+version: 1.0.0
+description: "System-initiated daily reminders for the AI weight loss companion. Sends meal-time reminders (15 min before each meal) and weight logging reminders (twice per week) as in-app chat messages. Use this skill when the system needs to proactively reach out. Also use when the user replies to a reminder — collect and log data inline. Do NOT use when the user initiates unprompted, or wants detailed meal analysis."
+metadata:
+  openclaw:
+    emoji: "bell"
+    homepage: https://github.com/NanoRhino/weight-loss-skill
 ---
 
 # Daily Notification

@@ -1,6 +1,11 @@
 ---
 name: diet-tracking-analysis
-description: Tracks what users eat, estimates calories and macros, and gives practical feedback. Use when user logs food, describes a meal, uploads a food photo, mentions what they ate or drank, or asks about their intake. Trigger phrases include "I had...", "I ate...", "for breakfast/lunch/dinner...", "log this", "track this", "how many calories in...", "just had...", "can you save this". Also trigger for Chinese equivalents like "吃了", "喝了", "早饭/午饭/晚饭吃了". Even casual mentions of food ("just grabbed a coffee", "had some toast") should trigger this skill. When in doubt about whether something is a food log, trigger anyway — it's better to ask than to miss a log.
+version: 1.0.0
+description: "Tracks what users eat, estimates calories and macros, and gives practical feedback. Use when user logs food, describes a meal, uploads a food photo, mentions what they ate or drank, or asks about their intake. Trigger phrases include 'I had...', 'I ate...', 'for breakfast/lunch/dinner...', 'log this', 'track this', 'how many calories in...'. Also trigger for Chinese equivalents like '吃了', '喝了', '早饭/午饭/晚饭吃了'. When in doubt, trigger anyway."
+metadata:
+  openclaw:
+    emoji: "fork_and_knife"
+    homepage: https://github.com/NanoRhino/weight-loss-skill
 ---
 
 # Diet Tracking & Analysis — Nourish App
