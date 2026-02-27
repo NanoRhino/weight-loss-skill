@@ -1,0 +1,28 @@
+{
+  "name": "weight-loss-skill",
+  "version": "1.0.0",
+  "description": "AI-powered weight loss coaching suite — onboarding, meal tracking, daily reminders, and goal planning. All data stored locally, fully private.",
+  "author": {
+    "name": "NanoRhino",
+    "url": "https://nanorhino.com"
+  },
+  "homepage": "https://github.com/NanoRhino/weight-loss-skill",
+  "repository": "https://github.com/NanoRhino/weight-loss-skill",
+  "license": "MIT",
+  "keywords": [
+    "weight-loss",
+    "diet",
+    "nutrition",
+    "health",
+    "meal-tracking",
+    "calorie-counting",
+    "fitness",
+    "coaching"
+  ],
+  "skills": [
+    "./daily-notification-skill",
+    "./diet-tracking-analysis",
+    "./user-onboarding-profile",
+    "./weight-loss-planner"
+  ]
+}
