@@ -10,6 +10,9 @@ An open-source [Claude Code](https://docs.anthropic.com/en/docs/claude-code) ski
 - 📈 **Progress Reports** — Weekly/monthly summaries with insights
 - 🎯 **Goal Setting** — Set target weight and timeline, get personalized plans
 - 🔔 **Daily Reminders** — Proactive meal-time and weight-logging notifications
+- 🏋️ **Exercise Logging** — Log workouts, estimate calories burned, get fitness feedback
+- 📋 **Exercise Programming** — Personalized training plans matched to your goals
+- 🔁 **Habit Builder** — Build sustainable healthy habits using Atomic Habits methodology
 
 ## Install
 
@@ -19,6 +22,10 @@ An open-source [Claude Code](https://docs.anthropic.com/en/docs/claude-code) ski
 # Install individual skills
 clawhub install NanoRhino/daily-notification
 clawhub install NanoRhino/diet-tracking-analysis
+clawhub install NanoRhino/exercise-logging
+clawhub install NanoRhino/exercise-programming
+clawhub install NanoRhino/habit-builder
+clawhub install NanoRhino/meal-planner
 clawhub install NanoRhino/user-onboarding-profile
 clawhub install NanoRhino/weight-loss-planner
 ```
@@ -28,9 +35,13 @@ clawhub install NanoRhino/weight-loss-planner
 ```bash
 git clone https://github.com/NanoRhino/weight-loss-skill.git
 cp -r weight-loss-skill/daily-notification-skill   ~/.openclaw/skills/
-cp -r weight-loss-skill/diet-tracking-analysis      ~/.openclaw/skills/
-cp -r weight-loss-skill/user-onboarding-profile     ~/.openclaw/skills/
-cp -r weight-loss-skill/weight-loss-planner         ~/.openclaw/skills/
+cp -r weight-loss-skill/diet-tracking-analysis     ~/.openclaw/skills/
+cp -r weight-loss-skill/exercise-logging           ~/.openclaw/skills/
+cp -r weight-loss-skill/exercise-programming       ~/.openclaw/skills/
+cp -r weight-loss-skill/habit-builder              ~/.openclaw/skills/
+cp -r weight-loss-skill/meal-planner               ~/.openclaw/skills/
+cp -r weight-loss-skill/user-onboarding-profile    ~/.openclaw/skills/
+cp -r weight-loss-skill/weight-loss-planner        ~/.openclaw/skills/
 ```
 
 ### Claude Code (plugin)
@@ -44,9 +55,13 @@ claude plugin install NanoRhino/weight-loss-skill
 ```bash
 git clone https://github.com/NanoRhino/weight-loss-skill.git
 cp -r weight-loss-skill/daily-notification-skill   ~/.claude/skills/
-cp -r weight-loss-skill/diet-tracking-analysis      ~/.claude/skills/
-cp -r weight-loss-skill/user-onboarding-profile     ~/.claude/skills/
-cp -r weight-loss-skill/weight-loss-planner         ~/.claude/skills/
+cp -r weight-loss-skill/diet-tracking-analysis     ~/.claude/skills/
+cp -r weight-loss-skill/exercise-logging           ~/.claude/skills/
+cp -r weight-loss-skill/exercise-programming       ~/.claude/skills/
+cp -r weight-loss-skill/habit-builder              ~/.claude/skills/
+cp -r weight-loss-skill/meal-planner               ~/.claude/skills/
+cp -r weight-loss-skill/user-onboarding-profile    ~/.claude/skills/
+cp -r weight-loss-skill/weight-loss-planner        ~/.claude/skills/
 ```
 
 ## Skills

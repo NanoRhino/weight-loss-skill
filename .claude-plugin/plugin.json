@@ -1,7 +1,7 @@
 {
   "name": "weight-loss-skill",
   "version": "1.0.0",
-  "description": "AI-powered weight loss coaching suite — onboarding, meal tracking, daily reminders, and goal planning. All data stored locally, fully private.",
+  "description": "AI-powered weight loss coaching suite — onboarding, meal tracking, daily reminders, goal planning, exercise logging, workout programming, and habit building. All data stored locally, fully private.",
   "author": {
     "name": "NanoRhino",
     "url": "https://nanorhino.com"
@@ -17,11 +17,18 @@
     "meal-tracking",
     "calorie-counting",
     "fitness",
-    "coaching"
+    "coaching",
+    "exercise",
+    "workout",
+    "habit"
   ],
   "skills": [
     "./daily-notification-skill",
     "./diet-tracking-analysis",
+    "./exercise-logging",
+    "./exercise-programming",
+    "./habit-builder",
+    "./meal-planner",
     "./user-onboarding-profile",
     "./weight-loss-planner"
   ]
