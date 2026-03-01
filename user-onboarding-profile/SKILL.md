@@ -176,7 +176,7 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 
 When a user wants to update (not create) their profile:
 
-1. Read the existing `user_profile.md` from the workspace
+1. Read the existing `USER.md` from the workspace
 2. Ask what changed
 3. Update only the changed fields
 4. Bump `Updated:` timestamp, keep `Created:` timestamp
@@ -195,5 +195,5 @@ When a user wants to update (not create) their profile:
 After the user confirms their summary:
 
 1. Generate the profile in Markdown format as shown above
-2. Save as `user_profile.md` in the current workspace
+2. Save as `USER.md` in the current workspace
 3. Confirm to the user that their profile has been saved
