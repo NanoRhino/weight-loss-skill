@@ -26,7 +26,7 @@ This step has two paths. Check which one applies before doing anything else.
 
 #### Path A: USER.md exists (onboarded user)
 
-Another skill may have already collected the user's body data during onboarding and stored it in `USER.md`. Check whether a USER.md file exists in the conversation context or in `/mnt/user-data/uploads/`. See `references/user-md-format.md` for parsing guidelines — field names and formats may vary. If it does, read it for these fields:
+Another skill may have already collected the user's body data during onboarding and stored it in `USER.md`. Check whether a USER.md file exists in the conversation context or in workspace for parsing guidelines — field names and formats may vary. If it does, read it for these fields:
 
 - Height, current weight, age, biological sex
 - Activity level / daily activity description
@@ -336,7 +336,7 @@ not fat).
 - Keep up the exercise routine you've built — it's now part of your lifestyle
 ```
 
-Save this as a Markdown file and present it to the user.
+Save this as a Markdown file `PLAN.md` in current workspace and present it to the user.
 
 ---
 
