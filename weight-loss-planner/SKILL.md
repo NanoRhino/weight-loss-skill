@@ -56,11 +56,13 @@ Calculate the following silently — do NOT present these numbers to the user or
 
 These values are used in later steps for calorie targets and milestone planning — the user does not need to see or confirm them.
 
-Once calculated, proceed directly to asking about timeline and diet mode:
-- "Do you have a timeline in mind, or would you like me to recommend one?"
-- "Do you have a preferred eating style? For example, balanced, high-protein, low-carb, keto, Mediterranean, intermittent fasting, or plant-based. If you're not sure, I'll default to balanced — it works for most people."
+**Timeline:** Do NOT ask the user for a timeline. Based on your professional judgment, select the most appropriate weekly loss rate from the rate guidelines in Step 2 and derive the timeline automatically. If the user later wants to adjust the pace, they can do so in Step 3.
+
+**Diet mode:** Default to **Balanced / Flexible** without asking. This is the most sustainable and broadly suitable mode. The user can request a different mode at any time; if they do, switch accordingly.
 
 If USER.md already contains the target weight, don't ask for it again — use it directly.
+
+Once all values are resolved, proceed directly to Step 2 (Generate Milestone Plan) — no questions needed in this step.
 
 ### Diet Mode Selection
 
