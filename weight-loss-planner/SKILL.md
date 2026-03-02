@@ -16,7 +16,7 @@ Your tone is warm, encouraging, and honest. You celebrate progress, gently corre
 
 ## Conversational Flow
 
-This skill is interactive. Walk the user through five steps, confirming at each stage before moving on. Don't dump everything at once — the conversation should feel like a consultation, not a printout.
+This skill is interactive. Walk the user through four steps, confirming at each stage before moving on. Don't dump everything at once — the conversation should feel like a consultation, not a printout.
 
 ---
 
@@ -30,13 +30,8 @@ Another skill may have already collected the user's body data during onboarding 
 
 - Height, current weight, age, biological sex
 - Activity level / daily activity description
-- Any previously calculated BMR, TDEE, or BMI
 
-If USER.md provides all required fields, **skip manual collection entirely**. Summarize what you found in a brief confirmation:
-
-> "I see from your profile that you're 35, male, 5'10", 220 lbs, moderately active. Let me calculate your numbers from there."
-
-Then proceed directly to calculating and presenting TDEE (see below). The user still gets a chance to adjust in Step 2 — you're just skipping the intake interview.
+If USER.md provides all required fields, **skip manual collection entirely** and proceed directly to calculating TDEE internally (see below).
 
 If USER.md exists but is incomplete (e.g., has height and weight but no activity level), use what's there and ask only for the missing pieces.
 
@@ -51,45 +46,21 @@ If no USER.md is found, this skill works independently. Gather the user's physic
 - Biological sex (male / female — needed for metabolic formulas)
 - Daily activity description (not just a dropdown — ask them to describe their typical day and exercise habits so you can estimate more accurately)
 
-#### After resolving data (both paths): Calculate & Present TDEE
+#### After resolving data (both paths): Calculate TDEE internally
+
+Calculate the following silently — do NOT present these numbers to the user or ask for confirmation:
 
 1. **BMR** using the Mifflin-St Jeor equation (see `references/formulas.md`)
-2. **TDEE as a point estimate + range**
+2. **TDEE** = BMR × activity multiplier. Use the best estimate based on available data. If activity data is missing, default to Sedentary (×1.2). Internally store TDEE as a point estimate ± 100 kcal range.
+3. **BMI** with the appropriate regional standard (see `references/formulas.md` for WHO vs Asian classification).
 
-This is important: don't give just one number. Based on the user's activity description, select the most likely activity multiplier, but also show the range one level above and below. People often misjudge their activity level, so the range helps them calibrate.
+These values are used in later steps for calorie targets and milestone planning — the user does not need to see or confirm them.
 
-**Example output format:**
-
-> Based on your stats, here's my estimate:
->
-> | Metric | Value |
-> |---|---|
-> | BMR | 1,939 cal/day |
-> | **Estimated TDEE** | **3,005 cal/day** |
-> | TDEE Range | 2,905 – 3,105 cal/day |
->
-> I placed you at "Moderately Active" (×1.55) based on your gym routine. The range is ±100 kcal to account for day-to-day variation. Does this feel right? If your day-to-day varies a lot, we can adjust the activity level.
-
-Also calculate and show BMI with its classification for context, but don't make it the centerpiece — BMI is a rough screening tool, not the full picture. **Use the appropriate regional BMI standard** based on the user's country or language (see `references/formulas.md` for WHO vs Asian classification). Always label which standard is being used.
-
-**Then ask the user to confirm or adjust.** Wait for their response before proceeding.
-
----
-
-### Step 2: Let User Adjust TDEE
-
-The user may:
-- Confirm the estimate as-is → proceed to Step 3
-- Provide new information ("actually I walk to work every day" or "I've been pretty sedentary lately") → recalculate and re-present
-- Manually pick a value within the range → accept it
-- Ask questions about the numbers → explain patiently
-
-This adjustment step exists because TDEE estimation is inherently imprecise. Empowering the user to participate in the estimate improves both accuracy and buy-in. Don't skip it — even if data came from USER.md, the user should still confirm their TDEE before building a plan on it.
-
-Once TDEE is confirmed, ask about their weight loss goal and diet mode preference:
-- "What's your target weight?"
+Once calculated, proceed directly to asking about timeline and diet mode:
 - "Do you have a timeline in mind, or would you like me to recommend one?"
 - "Do you have a preferred eating style? For example, balanced, high-protein, low-carb, keto, Mediterranean, intermittent fasting, or plant-based. If you're not sure, I'll default to balanced — it works for most people."
+
+If USER.md already contains the target weight, don't ask for it again — use it directly.
 
 ### Diet Mode Selection
 
@@ -113,9 +84,9 @@ Record the user's confirmed diet mode in the final report. The `meal-planner` sk
 
 ---
 
-### Step 3: Generate Milestone Plan
+### Step 2: Generate Milestone Plan
 
-Now you have: confirmed TDEE, current weight, target weight, and optionally a desired timeline.
+Now you have: calculated TDEE, current weight, target weight, and optionally a desired timeline.
 
 **Two modes depending on user input:**
 
@@ -196,7 +167,7 @@ Present the milestones in a clear table/structure, then ask:
 
 ---
 
-### Step 4: Let User Adjust the Plan
+### Step 3: Let User Adjust the Plan
 
 The user may want to:
 - **Speed up** → increase the weekly rate (recalculate calories; enforce safety floors)
@@ -208,7 +179,7 @@ Each adjustment triggers a recalculation. Re-present the updated plan and confir
 
 ---
 
-### Step 5: Output Final Structured Plan
+### Step 4: Output Final Structured Plan
 
 Once the user confirms, generate the final Markdown report. This is the deliverable — clean, structured, and ready to save.
 
