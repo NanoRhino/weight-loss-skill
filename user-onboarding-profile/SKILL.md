@@ -68,9 +68,9 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Round 4 — Meal timing:**
 
-Ask about their daily eating schedule. Don't assume three meals — some people eat twice or even once a day. Keep the question open-ended. Explain why.
+Ask about their daily eating schedule. Don't assume three meals — some people eat twice or even once a day. Keep the question open-ended. Explain why. **Important:** Do NOT say "last question" or "one more thing" here — there are still optional questions after this round.
 
-> Example: "Got it! One more thing — how many meals do you usually eat per day, and roughly what times? This helps me plan around your actual routine instead of giving you a generic schedule."
+> Example: "Got it! Next I'd like to know — how many meals do you usually eat per day, and roughly what times? This helps me plan around your actual routine instead of giving you a generic schedule."
 
 ### Step 2 — Optional Fields (user chooses)
 
