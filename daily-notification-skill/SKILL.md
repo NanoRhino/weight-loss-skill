@@ -253,12 +253,12 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 
 | Field | Purpose |
 |-------|---------|
-| `Language` | Response language (e.g. `zh-CN` → respond in Chinese, `en` → respond in English) |
+| `Language` (top-level field) | Response language (e.g. `zh-CN` → respond in Chinese, `en` → respond in English) |
 | `Basic Info > Name` | Greeting (if set) |
 | `Basic Info > Sex` | Context (e.g. don't mention menstrual cycle for `male`) |
 | `Basic Info > Weight` | Baseline for trend detection (internal only) |
 | `Goals > Meals per Day` | Max reminders per day (e.g. `3`) |
-| `Goals > Meal Times` | Reminder schedule (e.g. `07:00 breakfast, 12:00 lunch, 18:00 dinner`) |
+| `Goals > Meal Times` | Reminder schedule (e.g. `08:00 breakfast, 12:30 lunch, 19:00 dinner`) |
 | `Goals > Target Weight` | Never show to user in reminders |
 | `Lifestyle > Food Restrictions` | Respect in tips (e.g. don't suggest pork if restricted) |
 | `Lifestyle > Exercise Habits` | Detect IF patterns |
