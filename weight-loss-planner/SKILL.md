@@ -139,7 +139,7 @@ Present the plan as a single, clear summary — no phased milestones. Include:
 - Daily calorie target (midpoint)
 - Per-meal calorie split: breakfast ~30%, lunch ~40%, dinner ~30%. Show as inline text, not a table (e.g., "早餐 ~450 kcal / 午餐 ~600 kcal / 晚餐 ~450 kcal").
 - Daily macronutrient targets: protein (weight_kg × 1.2–1.6g), fat (25–35% of calories), carbs (remainder). See `references/formulas.md` for full calculation.
-- Estimated completion date
+- Estimated completion date — calculate from today's date + total weeks and show a specific date (e.g., "2026年8月15日"), not just "about X months"
 
 **Note:** TDEE will decrease as weight drops. The plan will be recalculated every 4 weeks or when weight drops by 4 kg, whichever comes first — but don't present this to the user upfront. Handle recalculations as they come.
 
