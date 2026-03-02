@@ -133,7 +133,7 @@ Default to the **midpoint** of the recommended range unless user preference, age
 
 Present the plan as a single, clear summary — no phased milestones. Include:
 
-- Weekly loss rate
+- Weekly loss rate — **with a brief explanation of why this rate is appropriate.** Reference the user's total amount to lose and explain the reasoning (e.g., "You have about X kg to lose, which falls in a moderate range. A rate of X kg/week is a good balance — fast enough to see steady progress, slow enough to preserve muscle and stay sustainable."). Keep it to 1–2 sentences, conversational, not clinical.
 - Daily calorie target (midpoint)
 - Daily macronutrient targets: protein (weight_kg × 1.2–1.6g), fat (25–35% of calories), carbs (remainder). See `references/formulas.md` for full calculation.
 - Estimated completion date
@@ -141,8 +141,8 @@ Present the plan as a single, clear summary — no phased milestones. Include:
 **Note:** TDEE will decrease as weight drops. The plan will be recalculated every 4 weeks or when weight drops by 4 kg, whichever comes first — but don't present this to the user upfront. Handle recalculations as they come.
 
 Then ask:
-- "Does this pace feel right to you?"
-- "Would you like to speed things up or slow things down?"
+- "Does this pace feel right to you? Would you like to speed things up or slow things down?"
+- "If this looks good, we can move on to your diet plan — what kinds of food do you usually eat, and are there any foods you love or can't eat?"
 
 ---
 
