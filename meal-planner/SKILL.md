@@ -143,7 +143,170 @@ Then ask the user to confirm or adjust.
 
 ---
 
-## Step 3: Generate the Meal Plan
+## Step 3: Present the Diet Pattern
+
+After confirming macros, **always present a Diet Pattern first** — before generating a full 7-day meal plan. The Diet Pattern gives the user an immediately actionable eating framework: a portion-based pattern for each meal slot plus a concrete one-day example with specific foods and amounts.
+
+### Why Pattern First, Not Plan First
+
+Most users don't need a detailed 7-day plan to start eating better. A clear pattern ("this is roughly what each meal looks like") plus one concrete example is enough to act on immediately. The 7-day plan is a nice-to-have — offer it, but only generate it if the user explicitly asks.
+
+### Selecting the Diet Pattern by Locale
+
+Match the diet pattern to the user's language/locale (resolved in Step 1). The pattern should reflect:
+- **Local foods** the user actually eats daily
+- **Local portion conventions** (hand portions, bowls, cups, etc.)
+- **Local meal structure** (e.g., Chinese breakfast is very different from American breakfast)
+
+Use the templates below as defaults. If the user's diet mode is non-standard (e.g., keto, IF 16:8), adapt the pattern accordingly — change the food types and portion ratios to match, but keep the same "pattern + example" format.
+
+### Precision Rule
+
+When specifying amounts, the **minimum granularity is 0.5** — never use values like 0.3 or 0.7. Valid values: 0.5, 1, 1.5, 2, 2.5, etc. Ranges use the same granularity (e.g., "0.5–1 fist", "1–2 cups").
+
+### English (US/Western) Pattern Template
+
+```markdown
+🇺🇸【Meal Pattern — Hand Portion Guide】
+Breakfast: 0.5–1 fist grains + 1 palm protein + 1 cup dairy/protein drink
+Lunch: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
+Dinner: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
+Snack: 1–2 fists fruit + 1–2 cups dairy/protein drink
+
+🥣【Example】
+Breakfast:
+● Oatmeal (cooked) 0.5 cup
+● 1 large egg
+● Milk 1 cup (8 fl oz)
+Lunch:
+● Brown rice (cooked) 1 cup
+● Grilled chicken breast 4 oz
+● Steamed broccoli & carrots 2 cups
+Dinner:
+● Whole-wheat pasta (cooked) 0.5 cup
+● Baked salmon 4 oz
+● Roasted bell peppers & asparagus 2 cups
+Snack:
+● 1 medium apple
+● Plain Greek yogurt 1 cup (8 fl oz)
+```
+
+### Chinese (中文) Pattern Template
+
+```markdown
+【饮食模式】
+早餐：一拳主食 + 一个蛋 + 200–500ml 无糖蛋白类饮品
+午餐：一拳主食 + 1–2 拳蔬菜 + 一拳肉类/豆制品
+晚餐：一拳主食 + 1–2 拳蔬菜 + 一拳肉类/豆制品
+加餐：200–350g 水果 + 10–15g 坚果
+
+【举例参考】
+早餐
+● 豆浆 1 杯
+● 水煮蛋 1 个
+● 菜包子 2 个
+午餐
+● 米饭 1 碗
+● 青椒炒鸡胸肉 1 盘
+● 蒜蓉西兰花 1 盘
+晚餐
+● 杂粮粥 1 碗
+● 番茄炒蛋 1 盘
+● 清蒸鱼 半条
+加餐
+● 巴旦木 10 颗
+● 苹果 1 个
+```
+
+### Japanese (日本語) Pattern Template
+
+```markdown
+【食事パターン — 手ばかりガイド】
+朝食：握りこぶし 0.5–1 の主食 + 手のひら 1 のたんぱく質 + 乳製品 1 杯
+昼食：握りこぶし 0.5–1 の主食 + 握りこぶし 2 の野菜 + 手のひら 1 のたんぱく質
+夕食：握りこぶし 0.5–1 の主食 + 握りこぶし 2 の野菜 + 手のひら 1 のたんぱく質
+間食：果物 1–2 個 + ナッツ 10–15g
+
+🥣【例】
+朝食：
+● 玄米ごはん 茶碗半分 (75g)
+● ゆで卵 1 個
+● 無糖ヨーグルト 1 カップ (200ml)
+昼食：
+● 玄米ごはん 茶碗 1 杯 (150g)
+● 鶏むね肉のソテー 1 枚 (120g)
+● ブロッコリーとにんじんの温サラダ 2 カップ
+夕食：
+● そば (茹で) 0.5 人前 (100g)
+● 焼き鮭 1 切れ (100g)
+● ほうれん草とキノコのおひたし 2 カップ
+間食：
+● りんご 1 個
+● 素焼きアーモンド 10 粒
+```
+
+### Korean (한국어) Pattern Template
+
+```markdown
+【식사 패턴 — 손바닥 가이드】
+아침: 주먹 0.5–1 탄수화물 + 손바닥 1 단백질 + 유제품/두유 1 컵
+점심: 주먹 0.5–1 탄수화물 + 주먹 2 채소 + 손바닥 1 단백질
+저녁: 주먹 0.5–1 탄수화물 + 주먹 2 채소 + 손바닥 1 단백질
+간식: 과일 1–2 주먹 + 견과류 10–15g
+
+🥣【예시】
+아침:
+● 현미밥 반 공기 (75g)
+● 삶은 달걀 1 개
+● 무가당 두유 1 컵 (200ml)
+점심:
+● 현미밥 1 공기 (150g)
+● 닭가슴살 구이 1 덩이 (120g)
+● 브로콜리 & 당근 볶음 2 컵
+저녁:
+● 잡곡밥 반 공기 (75g)
+● 고등어구이 1 토막 (100g)
+● 시금치나물 & 콩나물 2 컵
+간식:
+● 사과 1 개
+● 아몬드 10 알
+```
+
+### Other Languages
+
+For other locales, follow the same structure: **pattern (portion guide) + one-day example**. Adapt foods to local staples, use local measurement conventions, and ensure the foods match what the user can easily find and typically eats.
+
+### After Presenting the Diet Pattern
+
+Once you present the diet pattern, add the following message (in the user's language):
+
+**English:**
+> Going forward, just follow this pattern for your meals. Don't stress about getting it perfect — eat according to the pattern and send me what you had. I'll help you fine-tune from there.
+>
+> Would you like me to create a detailed 7-day meal plan as well?
+
+**Chinese:**
+> 之后按照这个模式吃就行，具体不用焦虑，直接把吃的发给我，我来帮你调整。
+>
+> 需要我再出一个 7 天的详细饮食方案吗？
+
+**Japanese:**
+> これからはこのパターンに沿って食べてみてください。完璧じゃなくて大丈夫です — 食べたものをそのまま送ってもらえれば、そこから調整します。
+>
+> 7日間の詳しい食事プランも作りましょうか？
+
+**Korean:**
+> 앞으로 이 패턴대로 드시면 됩니다. 완벽하지 않아도 괜찮아요 — 드신 걸 보내주시면 거기서 조정해 드릴게요.
+>
+> 7일 상세 식단도 만들어 드릴까요?
+
+**Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user doesn't ask for it, stop here — the diet pattern is sufficient to start.
+
+---
+
+## Step 4: Generate the Meal Plan
+
+> **Gate:** Only enter this step if the user explicitly requests a 7-day meal plan (either in response to the Step 3 question, or by asking for it directly). Do not auto-generate.
 
 Build a 7-day meal plan based on the confirmed calories, macros, diet mode, and user preferences.
 
@@ -215,7 +378,7 @@ Don't moralize about snacks. A 200-cal cookie that fits the macro budget is fine
 
 ---
 
-## Step 4: Present the Plan & Let User Customize
+## Step 5: Present the Plan & Let User Customize
 
 Present the 7-day plan in a structured Markdown format. See the template below.
 
@@ -235,7 +398,7 @@ The user may want to:
 
 ---
 
-## Step 5: Output Final Meal Plan
+## Step 6: Output Final Meal Plan
 
 Once confirmed, generate the final Markdown report. **Adapt the template to the user's locale** — use appropriate language, units, local food categories in the grocery list, and culturally relevant references.
 
