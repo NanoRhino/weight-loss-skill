@@ -129,41 +129,18 @@ Default to the **midpoint** of the recommended range unless user preference, age
 - If the user's target BMI would be below 18.5, express concern and suggest they discuss with a healthcare provider
 - 1 lb/week ≈ 500 cal/day deficit; 1.5 lbs/week ≈ 750; 2 lbs/week ≈ 1,000
 
-#### Milestone Structure
+#### Plan Presentation
 
-Divide the journey into three horizon milestones. The milestone timeframes are guidelines — adapt them proportionally based on total weight to lose.
+Present the plan as a single, clear summary — no phased milestones. Include:
 
-**Short-term (first ~2 weeks)**
-- Purpose: Quick early wins to build confidence
-- Typical target: 2–4 lbs (includes some water weight)
-- Non-weight goals: establish meal tracking habit, hit hydration target, get baseline measurements
-- Recalculation: not needed yet
+- Weekly loss rate
+- Daily calorie target (midpoint)
+- Daily macronutrient targets: protein (weight_kg × 1.2–1.6g), fat (25–35% of calories), carbs (remainder). See `references/formulas.md` for full calculation.
+- Estimated completion date
 
-**Mid-term (1–3 months)**
-- Purpose: Establish momentum and sustainable habits
-- Typical target: reach 30–50% of total goal
-- Non-weight goals: waist circumference change, energy level improvement, clothing fit
-- Recalculation: every 4 weeks or when weight drops by 4 kg (≈ 8.8 lbs), whichever comes first
-- Plateau awareness: normalize that plateaus may start here; include guidance
+**Note:** TDEE will decrease as weight drops. The plan will be recalculated every 4 weeks or when weight drops by 4 kg, whichever comes first — but don't present this to the user upfront. Handle recalculations as they come.
 
-**Long-term (3–6 months)**
-- Purpose: Reach target weight and transition to maintenance
-- Typical target: remaining weight to goal
-- Non-weight goals: body fat % change, strength improvements, sustainable routine established
-- Recalculation: continue every 4 weeks or per 4 kg lost
-- Transition planning: introduce maintenance calories gradually in the final 2–4 weeks
-
-For each milestone, provide:
-- A specific weight target (lbs)
-- An estimated date/date range
-- Daily calorie target for that phase (recalculated as weight drops)
-- Daily macronutrient ranges: protein (weight_kg × 1.2–1.6g), fat (20–35% of calories), carbs (remainder). Show midpoints when a single value is needed. See `references/formulas.md` for full calculation.
-- 1–2 non-weight indicator goals (waist measurement, energy, clothing size, body fat %)
-- 1–2 actionable habit goals
-
-**Non-weight indicators matter.** The scale doesn't tell the whole story — water retention, muscle gain, hormonal fluctuations all mask fat loss. Including non-weight metrics keeps users motivated through plateaus and gives a more complete picture of progress.
-
-Present the milestones in a clear table/structure, then ask:
+Then ask:
 - "Does this pace feel right to you?"
 - "Would you like to speed things up or slow things down?"
 
@@ -174,7 +151,6 @@ Present the milestones in a clear table/structure, then ask:
 The user may want to:
 - **Speed up** → increase the weekly rate (recalculate calories; enforce safety floors)
 - **Slow down** → decrease the rate (recalculate; explain that slower is often more sustainable)
-- **Adjust a specific milestone** → shift targets around
 - **Change the goal weight** → recalculate everything
 
 Each adjustment triggers a recalculation. Re-present the updated plan and confirm. Repeat until the user is satisfied. If they push for an unsafe rate, stand firm kindly — health first, always.
@@ -228,54 +204,13 @@ Use this template structure (adapt content based on the user's specific numbers)
 
 ---
 
-## Milestone Roadmap
-
-### 🟢 Short-Term: [Title] (Weeks 1–2)
-- **Weight target:** X lbs (lose X lbs)
-- **Calories:** X,XXX – X,XXX cal/day (midpoint: X,XXX)
-- **Macros:** P: XX–XXg / F: XX–XXg / C: XX–XXg
-- **Target date:** [Date]
-- **Non-weight goal:** [e.g., Take baseline waist measurement; establish tracking habit]
-- **Habit focus:** [e.g., Log every meal for 14 consecutive days]
-- **What to expect:** [Brief note about initial water weight loss, adjustment period]
-
-### 🟡 Mid-Term: [Title] (Weeks 3–XX)
-- **Weight target:** X lbs (lose X more lbs)
-- **Calories:** X,XXX – X,XXX cal/day (recalculated)
-- **Macros:** P: XX–XXg / F: XX–XXg / C: XX–XXg (recalculated)
-- **Target date:** [Date]
-- **Non-weight goal:** [e.g., Lose 1–2 inches off waist; notice improved energy]
-- **Habit focus:** [e.g., Meal prep 3+ days per week]
-- **What to expect:** [Plateau normalization, consistency message]
-
-### 🔴 Long-Term: [Title] (Weeks XX–XX)
-- **Weight target:** X lbs (goal! 🎉)
-- **Calories:** X,XXX – X,XXX cal/day (recalculated)
-- **Macros:** P: XX–XXg / F: XX–XXg / C: XX–XXg (recalculated)
-- **Target date:** [Date]
-- **Non-weight goal:** [e.g., Body fat % decrease; clothing size change]
-- **Habit focus:** [e.g., Practice maintenance eating 1–2 days/week]
-- **What to expect:** [Slower final progress, transition to maintenance]
-
----
-
-## Milestones at a Glance
-
-| # | Milestone | Weight | Rate | Calories | Est. Date |
-|---|---|---|---|---|---|
-| 1 | Short-term goal | X lbs | X.X lb/wk | X,XXX cal | [Date] |
-| 2 | Mid-term goal | X lbs | X.X lb/wk | X,XXX cal | [Date] |
-| 3 | 🎉 Goal reached! | X lbs | X.X lb/wk | X,XXX cal | [Date] |
-
----
-
 ## ⚠️ Important Notes
 
 - This plan is based on general nutritional science and is not a substitute for
   professional medical advice. Consult your doctor before starting any weight loss
   program, especially if you have existing health conditions.
-- TDEE decreases as you lose weight. This plan includes per-phase recalculations,
-  but real-world tracking may require further adjustments.
+- TDEE decreases as you lose weight. Your calorie targets will be recalculated
+  periodically as needed.
 - Weight fluctuates daily due to water, sodium, and hormones. Trust the weekly
   trend, not the daily number.
 - Plateaus of 2–3 weeks are normal. If progress stalls beyond 4 weeks, consider
@@ -313,15 +248,15 @@ Save this as a Markdown file `PLAN.md` in current workspace and present it to th
 
 ---
 
-## Milestone Celebration & Continuation
+## Progress Check-In & Continuation
 
 **Cross-session continuity:** Claude does not retain memory between conversations. When a user returns to check in or report progress, ask them to upload their previously saved plan Markdown file so you can pick up where they left off. If no file is available, ask for their current weight and goal to reconstruct context.
 
-When a user reports reaching a milestone (e.g., "I hit 200 lbs!"):
+When a user reports progress (e.g., "I'm at 70 kg now!"):
 1. Celebrate genuinely — acknowledge the effort, not just the number
 2. Highlight non-weight wins they may have noticed
 3. Recalculate TDEE at the new weight
-4. Present the updated plan for the next phase
+4. Present the updated plan
 5. Ask if they want to adjust anything going forward
 
 This keeps the plan alive and adaptive, rather than a static document.
@@ -334,7 +269,7 @@ This keeps the plan alive and adaptive, rather than a static document.
 This skill focuses on weight loss. If the user's BMI is below 18.5 or they want to lose weight to a BMI below 18.5, express concern warmly and recommend speaking with a healthcare provider. Don't generate a deficit plan.
 
 **Very large amount to lose (>100 lbs):**
-Break into major phases (e.g., first 50 lbs, next 50 lbs). The long-term milestone may only cover the first major phase, with a note to reassess and create a new plan at that point. Losing 100+ lbs is a multi-year journey — framing it as one continuous plan can feel overwhelming.
+Focus on the first major phase (e.g., first 50 lbs), with a note to reassess and create a new plan at that point. Losing 100+ lbs is a multi-year journey — framing it as one continuous plan can feel overwhelming.
 
 **User provides metric units:**
 Accept gracefully, convert internally, display in imperial with metric in parentheses.
@@ -343,7 +278,7 @@ Accept gracefully, convert internally, display in imperial with metric in parent
 Probe with specific questions: "What does a typical weekday look like for you — do you walk or drive to work? Sit most of the day? How many times a week do you exercise, and what do you do?" This yields a better activity estimate than asking them to self-classify.
 
 **User changes goal mid-plan:**
-No problem — recalculate from the current state. Acknowledge the change positively ("Goals evolve — that's totally fine!") and regenerate milestones.
+No problem — recalculate from the current state. Acknowledge the change positively ("Goals evolve — that's totally fine!") and regenerate the plan.
 
 **User mentions medical conditions (diabetes, thyroid, PCOS, eating disorder history, etc.):**
 Acknowledge the condition warmly and note that metabolic formulas may be less accurate for their situation. TDEE estimates assume typical metabolic function — conditions like hypothyroidism or PCOS can lower actual expenditure by 10–20%. Strongly recommend working with a healthcare provider alongside this plan. Do not refuse to generate a plan, but add a prominent caveat in the final report's Important Notes section, and suggest they use the conservative (lower) end of the TDEE range as their starting estimate.
