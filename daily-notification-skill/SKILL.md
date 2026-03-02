@@ -29,7 +29,7 @@ up to 3x/day, weight reminders 2x/week, delivered as in-app chat.
 
 ### Schedule
 
-Read meal times from workspace file `user_profile.md` → `Goals > Meal Times`.
+Read meal times from workspace file `USER.md` → `Goals > Meal Times`.
 Reminders fire 15 min before each meal.
 
 Example — this user's profile:
@@ -249,7 +249,7 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 
 ## Workspace
 
-### Reads from `user_profile.md`
+### Reads from `USER.md`
 
 | Field | Purpose |
 |-------|---------|
