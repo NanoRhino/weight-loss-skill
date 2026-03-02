@@ -68,9 +68,9 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Round 4 — Meal timing:**
 
-Ask about their daily eating schedule. Don't assume three meals — some people eat twice or even once a day. Keep the question open-ended. Explain why.
+Ask about their daily eating schedule. Don't assume three meals — some people eat twice or even once a day. Keep the question open-ended. Explain why. **Important:** Do NOT say "last question" or "one more thing" here — there are still optional questions after this round.
 
-> Example: "Got it! One more thing — how many meals do you usually eat per day, and roughly what times? This helps me plan around your actual routine instead of giving you a generic schedule."
+> Example: "Got it! Next I'd like to know — how many meals do you usually eat per day, and roughly what times? This helps me plan around your actual routine instead of giving you a generic schedule."
 
 ### Step 2 — Optional Fields (user chooses)
 
@@ -91,34 +91,9 @@ Do three things:
 
 1. **Brief summary** — Show the user a readable summary (not raw JSON) of what you collected. Keep it to a few lines.
 
-2. **Calculate derived fields** — BMI, BMR (Mifflin-St Jeor), TDEE estimate, suggested weekly loss rate.
+2. **Ask for confirmation** — "Does this look right? Anything you'd like to change?"
 
-3. **Ask for confirmation** — "Does this look right? Anything you'd like to change?"
-
-4. **Generate the Profile JSON** — After confirmation, create and output the file.
-
-## Calculations
-
-**BMI:**
-```
-BMI = weight_kg / (height_m ^ 2)
-```
-
-**BMR (Mifflin-St Jeor):**
-```
-Male:   BMR = 10 × weight_kg + 6.25 × height_cm - 5 × age + 5
-Female: BMR = 10 × weight_kg + 6.25 × height_cm - 5 × age - 161
-```
-
-**TDEE:** Multiply BMR by activity factor based on work type and exercise habits:
-- Sedentary (desk job, no exercise): 1.2
-- Lightly active (desk job + some exercise): 1.375
-- Moderately active (active job or regular exercise): 1.55
-- Active (active job + regular exercise): 1.725
-
-If work type and exercise data are missing, default to Sedentary (1.2).
-
-**Weekly loss rate:** `weight_to_lose_kg / timeline_weeks` — if no timeline given, suggest a safe default of 0.5 kg/week (roughly 1 lb/week) and calculate the timeline from that.
+3. **Generate the Profile** — After confirmation, create and output the file.
 
 ## Health Safety Note
 
@@ -142,16 +117,11 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 - **Sex:** [male | female | other | —]
 - **Height:** [X cm | —]
 - **Weight:** [X kg | —]
-- **BMI:** [number (calculated) | —]
-- **BMR:** [number kcal (calculated) | —]
-- **TDEE (estimated):** [number kcal | —]
 
 ## Goals
 
 - **Target Weight:** [X kg | —]
 - **Weight to Lose:** [X kg (calculated) | —]
-- **Weekly Loss Rate:** [X kg (default 0.5)]
-- **Estimated Weeks:** [number (calculated) | —]
 - **Core Motivation:** [string | —]
 - **Meals per Day:** [number | —]
 - **Meal Times:** [e.g. 08:00 breakfast, 12:30 lunch, 19:00 dinner | —]
@@ -180,8 +150,7 @@ When a user wants to update (not create) their profile:
 2. Ask what changed
 3. Update only the changed fields
 4. Bump `Updated:` timestamp, keep `Created:` timestamp
-5. Recalculate derived fields (BMI, BMR, TDEE, weekly rate)
-6. Save the updated file
+5. Save the updated file
 
 ## Tone Guidelines
 
