@@ -135,7 +135,7 @@ Present the plan as a single, clear summary — no phased milestones. Include:
 
 - Weekly loss rate — **with a brief explanation of why this rate is appropriate.** Frame it from the user's perspective: what they'll feel and experience, not internal nutrition logic. For example: "以你目前的体重，每周减 X kg 不会让你觉得饿得难受，也不容易反弹，大概 X 个月就能到目标。" Keep it to 1–2 sentences, warm and practical.
 - Daily calorie target (midpoint)
-- Per-meal calorie split: breakfast ~30%, lunch ~40%, dinner ~30%. Show the actual calorie number for each meal based on the daily target (e.g., "早餐 ~450 kcal / 午餐 ~600 kcal / 晚餐 ~450 kcal").
+- Per-meal calorie split: breakfast ~30%, lunch ~40%, dinner ~30%. Show as inline text, not a table (e.g., "早餐 ~450 kcal / 午餐 ~600 kcal / 晚餐 ~450 kcal").
 - Daily macronutrient targets: protein (weight_kg × 1.2–1.6g), fat (25–35% of calories), carbs (remainder). See `references/formulas.md` for full calculation.
 - Estimated completion date
 
