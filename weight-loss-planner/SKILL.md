@@ -195,9 +195,9 @@ Snack:
 ● [Dairy/protein drink] [X cup (X fl oz)]
 ```
 
-Then ask: **"Does this eating pattern look doable for you? Would you like to adjust the diet mode, meal structure, or any food choices?"**
+End with a reassuring closing message (adapt to user's language): **"Just follow this general pattern — no need to stress over exact foods. When you eat, snap a photo or jot it down and send it to me. I'll help you stay on track!"**
 
-Wait for the user's confirmation before proceeding to Step 3.
+Then proceed to Step 3.
 
 #### Worked Example (Balanced, 1,500 cal/day, 70 kg, US)
 
@@ -239,7 +239,7 @@ Total check: 420 + 140 + 240 + 80 + 600 = 1,480 ≈ 1,500 ✓
 > ● 1 medium apple
 > ● Plain Greek yogurt 1 cup (8 fl oz)
 >
-> Does this eating pattern look doable for you? Would you like to adjust the diet mode, meal structure, or any food choices?
+> Just follow this general pattern — no need to stress over exact foods. When you eat, snap a photo or jot it down and send it to me. I'll help you stay on track!
 
 ---
 
