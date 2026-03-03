@@ -416,7 +416,7 @@ The meal plan uses a **day → meal → food items** hierarchy. Each level shows
 
 **2. Meal level:** Two types of meals with different formats:
 
-- **Self-cooked meal:** Show the dish name first, then indent food item details below it. Each item = **food name + natural portion description (precise weight)**. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not). For batch-prep meals, add a **🔄 prep note** with storage and reheat instructions (e.g., "🔄 可提前做好冷藏 3 天，微波加热 2 分钟" / "🔄 Batch-prep friendly — stores 3 days, microwave 2 min with a splash of water"). For fresh-only dishes, mark them so the user knows these can't be made ahead (e.g., "🔥 现做现吃" / "🔥 Best made fresh").
+- **Self-cooked meal:** Show the dish name first, then indent food item details below it. Each item = **food name + natural portion description (precise weight)**. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
 
 - **Eating-out meal:** Show the restaurant/source + dish name + ordering instructions. Add a **💡 tip** line with practical advice (e.g., "ask for sauce on the side", "skip the rice and add extra veggies", "pick the small size"). No need to break down individual ingredients — the user is ordering, not cooking.
 
@@ -457,7 +457,6 @@ Grilled chicken breast with brown rice and broccoli
 - Brown rice — 1 small bowl (100g cooked)
 - Steamed broccoli — 1 cup (80g)
 - Olive oil — 1 teaspoon (5ml)
-- 🔄 Batch-prep friendly: chicken + rice store 3 days (separate containers). Microwave rice with a splash of water. Steam broccoli fresh (2 min microwave).
 
 ### 🍽️ Dinner — XXX cal | P Xg · C Xg · F Xg [Eating out]
 Chipotle — Chicken burrito bowl
@@ -495,18 +494,16 @@ Chipotle — Chicken burrito bowl
 - 杂粮饭 — 1小碗 (120g熟重)
 - 白灼西兰花 — 1份 (100g)
 - 紫菜蛋花汤 — 1小碗 (200ml)
-- 🔄 红烧鸡腿可提前做好冷藏 3 天，微波 2 分钟加热；杂粮饭单独装盒冷藏，加一勺水微波 1.5 分钟；西兰花当天微波蒸 2 分钟即可，不用提前做
 
 ### 🍽️ 晚餐 — 500 kcal | P 30g · C 52g · F 18g [外卖]
 美团/饿了么 — 清蒸鲈鱼套餐
 - 点：清蒸鲈鱼 + 蒜蓉西兰花 + 米饭（小份）
 - 💡 备注"少油少盐"，米饭吃小半碗就够了，剩下的别硬吃
-- 💡 鱼类不适合隔夜，放到外卖/现做的日子吃
 
 ### 🍎 零食 — 180 kcal | P 8g · C 16g · F 6g
 - 无糖酸奶 — 1小杯 (130g)
 - 原味腰果 — 1小把 (15g)
-- 苹果 — 1个（整个，不要提前切）
+- 苹果 — 1个
 ```
 
 ### Japanese format example
@@ -529,7 +526,6 @@ Chipotle — Chicken burrito bowl
 - 玄米 — お茶碗1杯 (150g)
 - 冷凍ブロッコリー — 1カップ (100g)
 - 💡 ブロッコリーはレンジ2分でOK。鶏むねは前日に下味つけておくと楽
-- 🔄 作り置きOK：照り焼きチキンは冷蔵3日保存可。玄米は別容器で保存、水を少し加えてレンジで温め直し
 ```
 
 ---
