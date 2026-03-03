@@ -350,7 +350,13 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 
 **Variety matters.** Don't repeat the same protein at every meal. Rotate across the week. If Tuesday dinner is chicken stir-fry, Thursday dinner should be something different.
 
-**Meal prep friendliness.** For users who cook, flag which meals can be batch-cooked. Most users want at least 2–3 "cook once, eat twice" situations per week.
+**Meal prep friendliness & storage feasibility.** For users who cook, flag which meals can be batch-cooked — but **only recommend batch-prepping dishes that actually store and reheat well.** See `references/meal-prep-feasibility.md` for the full storage tier system. Key rules:
+- **Batch-prep backbone:** Braised meats, curries, soups, roasted root vegetables, and cooked grains are ideal for 3–4 day storage. Build the week around these.
+- **Fresh-only dishes on cook days or eat-out days:** Leafy-green stir-fries (炒青菜, sautéed spinach), fried/crispy foods, noodle soups, raw salads, and sashimi must be eaten the same day they're made — never schedule these as batch-prep leftovers.
+- **Fish is a 1–2 day protein, not a batch-prep protein.** Cooked fish develops stronger off-flavors after 2 days. Use chicken thigh, beef, pork, or tofu for multi-day prep; schedule fish on cook days or eat-out days.
+- **Separate components that store differently:** Pasta + sauce, soup + noodles, salad + dressing, congee + toppings — always store separately so the absorbent component doesn't degrade.
+- **Don't recommend pre-cutting fruit for the week.** Cut apples brown, cut avocado grays, cut bananas get mushy. Recommend whole fruit as snacks. Berries are the exception — they hold 2–3 days.
+- **Cap any single batch-prep dish at 3 consecutive days max.** Even great-storing dishes become monotonous. Alternate 2–3 different prep dishes per week.
 
 **Budget awareness.** Default to affordable staples. If recommending salmon, also offer a canned tuna alternative. If a recipe calls for pine nuts, suggest sunflower seeds as a swap.
 
@@ -410,7 +416,7 @@ The meal plan uses a **day → meal → food items** hierarchy. Each level shows
 
 **2. Meal level:** Two types of meals with different formats:
 
-- **Self-cooked meal:** Show the dish name first, then indent food item details below it. Each item = **food name + natural portion description (precise weight)**. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
+- **Self-cooked meal:** Show the dish name first, then indent food item details below it. Each item = **food name + natural portion description (precise weight)**. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not). For batch-prep meals, add a **🔄 prep note** with storage and reheat instructions (e.g., "🔄 可提前做好冷藏 3 天，微波加热 2 分钟" / "🔄 Batch-prep friendly — stores 3 days, microwave 2 min with a splash of water"). For fresh-only dishes, mark them so the user knows these can't be made ahead (e.g., "🔥 现做现吃" / "🔥 Best made fresh").
 
 - **Eating-out meal:** Show the restaurant/source + dish name + ordering instructions. Add a **💡 tip** line with practical advice (e.g., "ask for sauce on the side", "skip the rice and add extra veggies", "pick the small size"). No need to break down individual ingredients — the user is ordering, not cooking.
 
@@ -420,7 +426,7 @@ The meal plan uses a **day → meal → food items** hierarchy. Each level shows
 - Weight-based (when no natural unit exists): "a thin slice (~30g)"
 - Always include precise weight in parentheses after the natural description
 
-**4. No repetition:** Don't use the same main dish twice in 7 days. Rotate proteins, cooking styles, and cuisines. Breakfast can repeat a few times (most people prefer routine), but lunch and dinner should be distinct every day.
+**4. No repetition:** Don't use the same main dish twice in 7 days. Rotate proteins, cooking styles, and cuisines. Breakfast can repeat a few times (most people prefer routine), but lunch and dinner should be distinct every day. Batch-prep dishes may appear on 2–3 consecutive days (this is expected and practical), but they count as a single dish — don't use the same batch-prep dish in two different batches within the same week.
 
 **5. Readability:** Use whitespace and indentation to make the plan scannable. Each day should be visually distinct. Keep food item lines short — one item per line.
 
@@ -451,6 +457,7 @@ Grilled chicken breast with brown rice and broccoli
 - Brown rice — 1 small bowl (100g cooked)
 - Steamed broccoli — 1 cup (80g)
 - Olive oil — 1 teaspoon (5ml)
+- 🔄 Batch-prep friendly: chicken + rice store 3 days (separate containers). Microwave rice with a splash of water. Steam broccoli fresh (2 min microwave).
 
 ### 🍽️ Dinner — XXX cal | P Xg · C Xg · F Xg [Eating out]
 Chipotle — Chicken burrito bowl
@@ -483,22 +490,23 @@ Chipotle — Chicken burrito bowl
 - 纯牛奶 — 1盒 (250ml)
 
 ### 🥗 午餐 — 530 kcal | P 38g · C 58g · F 16g
-白切鸡 + 杂粮饭 + 炒青菜 [食堂/快餐]
-- 白切鸡（去皮）— 小半盘 (120g)
+红烧鸡腿 + 杂粮饭 + 白灼西兰花
+- 红烧鸡腿（去皮）— 1个 (120g)
 - 杂粮饭 — 1小碗 (120g熟重)
-- 清炒芥兰 — 1份 (100g)
+- 白灼西兰花 — 1份 (100g)
 - 紫菜蛋花汤 — 1小碗 (200ml)
-- 💡 和阿姨说"鸡肉多给点、饭少一点"，大部分食堂都能配合
+- 🔄 红烧鸡腿可提前做好冷藏 3 天，微波 2 分钟加热；杂粮饭单独装盒冷藏，加一勺水微波 1.5 分钟；西兰花当天微波蒸 2 分钟即可，不用提前做
 
 ### 🍽️ 晚餐 — 500 kcal | P 30g · C 52g · F 18g [外卖]
 美团/饿了么 — 清蒸鲈鱼套餐
 - 点：清蒸鲈鱼 + 蒜蓉西兰花 + 米饭（小份）
 - 💡 备注"少油少盐"，米饭吃小半碗就够了，剩下的别硬吃
+- 💡 鱼类不适合隔夜，放到外卖/现做的日子吃
 
 ### 🍎 零食 — 180 kcal | P 8g · C 16g · F 6g
 - 无糖酸奶 — 1小杯 (130g)
 - 原味腰果 — 1小把 (15g)
-- 苹果 — 半个 (80g)
+- 苹果 — 1个（整个，不要提前切）
 ```
 
 ### Japanese format example
@@ -521,6 +529,7 @@ Chipotle — Chicken burrito bowl
 - 玄米 — お茶碗1杯 (150g)
 - 冷凍ブロッコリー — 1カップ (100g)
 - 💡 ブロッコリーはレンジ2分でOK。鶏むねは前日に下味つけておくと楽
+- 🔄 作り置きOK：照り焼きチキンは冷蔵3日保存可。玄米は別容器で保存、水を少し加えてレンジで温め直し
 ```
 
 ---
@@ -536,6 +545,8 @@ These principles should guide every decision in the plan. They're not rules to s
 **80/20 rule.** Aim for ~80% whole, nutrient-dense foods and ~20% flexibility. This keeps the plan realistic and prevents the all-or-nothing mindset that derails most diets.
 
 **Prep realism.** Don't design a plan that requires elaborate cooking every day. Match the prep level to the user's actual cooking conditions and willingness. For users who eat out frequently, build the plan around smart restaurant choices rather than forcing them to cook.
+
+**Storage-aware planning.** Every dish in a meal plan should taste good when the user actually eats it — not just when it's freshly made. If a dish is meant to be reheated on Day 3, it must be a dish that genuinely holds up on Day 3 (braised meats, curries, soups — not leafy stir-fries, fried foods, or fish). Schedule fresh-only dishes on cook days or eat-out days. See `references/meal-prep-feasibility.md` for detailed storage tiers and assignment rules.
 
 **Budget awareness.** Default to affordable staples. If recommending salmon, also offer a canned tuna alternative. If a recipe calls for pine nuts, suggest sunflower seeds as a swap.
 
