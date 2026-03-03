@@ -23,6 +23,7 @@
     "./daily-notification-skill",
     "./diet-tracking-analysis",
     "./user-onboarding-profile",
-    "./weight-loss-planner"
+    "./weight-loss-planner",
+    "./weekly-report"
   ]
 }
