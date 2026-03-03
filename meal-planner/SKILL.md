@@ -410,27 +410,133 @@ Once confirmed, generate the final Markdown report. **Adapt the template to the 
 
 ### Output Format Rules
 
+**CRITICAL: The 7-day meal plan MUST follow the exact format shown in the locale-specific examples below. Do not deviate from the structure, heading hierarchy, or line format. Every generated plan must match the template precisely — same heading levels, same emoji prefixes, same "dish summary + indented item list" layout.**
+
 The meal plan uses a **day → meal → food items** hierarchy. Each level shows calories and macros (P/C/F).
 
-**1. Day level:** Daily total calories and P/C/F
+**1. Day level:** `## 周一 — X,XXX kcal | P Xg · C Xg · F Xg` — daily total calories and P/C/F.
 
-**2. Meal level:** Two types of meals with different formats:
+**2. Meal level:** `### 🍳 早餐 — XXX kcal | P Xg · C Xg · F Xg` — meal emoji + meal name + calories + P/C/F. Two types of meals with different formats:
 
-- **Self-cooked meal:** Show the dish name first, then indent food item details below it. Each item = **food name + natural portion description (precise weight)**. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
+- **Self-cooked meal:** First line after heading = **dish summary** (concise dish names joined by " + "). Below it = indented food items, each on its own line: `- 食材名 — 自然份量描述 (精确重量)`. "Natural portion" means how people actually talk about that food — "2 片", "1 碗", "1 个", "半个" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
 
-- **Eating-out meal:** Show the restaurant/source + dish name + ordering instructions. Add a **💡 tip** line with practical advice (e.g., "ask for sauce on the side", "skip the rice and add extra veggies", "pick the small size"). No need to break down individual ingredients — the user is ordering, not cooking.
+- **Eating-out meal:** Heading includes `[外卖]` or `[外食]` tag. First line = **platform/restaurant — dish name**. Below it = `- 点：` ordering details. Add a **💡** tip line with practical advice (e.g., "备注少油少盐", "ask for sauce on the side"). No need to break down individual ingredients — the user is ordering, not cooking.
 
 **3. Portion descriptions:** Use the most natural, everyday way people describe that specific food:
-- Countable items: "2 slices", "1 egg", "3 dumplings", "1 banana"
-- Bowls/cups: "1 small bowl", "half a cup"
-- Weight-based (when no natural unit exists): "a thin slice (~30g)"
+- Countable items: "2 片", "1 个", "3 个饺子", "1 根香蕉"
+- Bowls/cups: "1 小碗", "半杯"
+- Weight-based (when no natural unit exists): "一薄片 (~30g)"
 - Always include precise weight in parentheses after the natural description
 
 **4. No repetition:** Don't use the same main dish twice in 7 days. Rotate proteins, cooking styles, and cuisines. Breakfast can repeat a few times (most people prefer routine), but lunch and dinner should be distinct every day. Batch-prep dishes may appear on 2–3 consecutive days (this is expected and practical), but they count as a single dish — don't use the same batch-prep dish in two different batches within the same week.
 
 **5. Readability:** Use whitespace and indentation to make the plan scannable. Each day should be visually distinct. Keep food item lines short — one item per line.
 
-### Report Template
+**6. Snacks:** `### 🍎 零食` — list items directly, no dish summary line needed.
+
+### Chinese Format — Mandatory Template
+
+Below is the **canonical Chinese 7-day meal plan format**. The output **must** follow this structure exactly. Three representative days are shown in full (做饭日、工作日、外食日) to illustrate the pattern.
+
+```markdown
+# 🍽️ 你的一周饮食方案
+
+**日期：** [当前日期]
+**每日热量目标：** X,XXX kcal（范围：X,XXX – X,XXX）
+**饮食模式：** [模式]
+**宏量：** 蛋白质 Xg（体重 × X.Xg/kg）/ 碳水 Xg / 脂肪 Xg
+
+---
+
+## 周日 — 1,610 kcal | P 102g · C 178g · F 48g
+
+### 🍳 早餐 — 380 kcal | P 22g · C 48g · F 11g
+豆浆 + 水煮蛋 + 菜包子
+- 无糖豆浆 — 1杯 (300ml)
+- 水煮蛋 — 1个 (50g)
+- 菜包子 — 2个 (120g)
+
+### 🥗 午餐 — 540 kcal | P 36g · C 60g · F 16g
+清蒸鲈鱼 + 蒜蓉油麦菜 + 米饭
+- 清蒸鲈鱼 — 半条 (150g)
+- 蒜蓉油麦菜 — 1盘 (120g)
+- 白米饭 — 1小碗 (120g熟重)
+
+### 🍽️ 晚餐 — 510 kcal | P 35g · C 52g · F 17g
+咖喱鸡腿 + 杂粮饭 + 凉拌黄瓜
+- 咖喱鸡腿（去皮）— 1个 (120g)
+- 杂粮饭 — 1小碗 (120g熟重)
+- 凉拌黄瓜 — 1碟 (80g)
+
+### 🍎 零食 — 180 kcal | P 9g · C 18g · F 4g
+- 无糖酸奶 — 1小杯 (130g)
+- 橘子 — 1个
+
+---
+
+## 周一 — 1,590 kcal | P 100g · C 172g · F 52g
+
+### 🍳 早餐 — 380 kcal | P 24g · C 46g · F 12g
+全麦吐司 + 煮鸡蛋 + 牛奶
+- 全麦吐司 — 2片 (100g)
+- 煮鸡蛋 — 1个 (50g)
+- 低脂芝士 — 1片 (20g)
+- 纯牛奶 — 1盒 (250ml)
+
+### 🥗 午餐 — 530 kcal | P 38g · C 58g · F 16g
+红烧鸡腿 + 杂粮饭 + 白灼西兰花
+- 红烧鸡腿（去皮）— 1个 (120g)
+- 杂粮饭 — 1小碗 (120g熟重)
+- 白灼西兰花 — 1份 (100g)
+- 紫菜蛋花汤 — 1小碗 (200ml)
+
+### 🍽️ 晚餐 — 500 kcal | P 30g · C 52g · F 18g [外卖]
+美团/饿了么 — 清蒸鲈鱼套餐
+- 点：清蒸鲈鱼 + 蒜蓉西兰花 + 米饭（小份）
+- 💡 备注"少油少盐"，米饭吃小半碗就够了，剩下的别硬吃
+
+### 🍎 零食 — 180 kcal | P 8g · C 16g · F 6g
+- 无糖酸奶 — 1小杯 (130g)
+- 原味腰果 — 1小把 (15g)
+- 苹果 — 1个
+
+---
+
+## 周二 — 1,600 kcal | P 98g · C 180g · F 50g
+
+### 🍳 早餐 — 370 kcal | P 20g · C 50g · F 10g
+杂粮粥 + 茶叶蛋 + 牛奶
+- 杂粮粥 — 1碗 (250ml)
+- 茶叶蛋 — 1个 (50g)
+- 纯牛奶 — 1盒 (250ml)
+
+### 🥗 午餐 — 540 kcal | P 36g · C 62g · F 16g
+咖喱牛肉 + 米饭 + 烤南瓜
+- 咖喱牛肉 — 1份 (130g)
+- 白米饭 — 1小碗 (120g熟重)
+- 烤南瓜 — 1份 (100g)
+
+### 🍽️ 晚餐 — 510 kcal | P 34g · C 50g · F 18g [外食]
+兰州拉面 — 牛肉拉面
+- 点：牛肉拉面 + 卤蛋
+- 💡 汤底油多可以少喝汤，面吃完肉和菜就行
+
+### 🍎 零食 — 180 kcal | P 8g · C 18g · F 6g
+- 原味巴旦木 — 10颗 (15g)
+- 香蕉 — 1根
+
+---
+
+## 周三 至 周六
+
+[同样结构，每天不同主菜，按以下规律安排：]
+[周三为第二个做饭日 — 备餐新的 Tier A 菜品，覆盖周四周五]
+[鱼类、炒叶菜等不耐存食材只出现在做饭日/外食日]
+[面条汤类只出现在外食日]
+[每日热量在目标范围内浮动，7天平均命中目标]
+```
+
+### English Format — Mandatory Template
 
 ```markdown
 # 🍽️ Your Weekly Meal Plan
@@ -476,37 +582,7 @@ Chipotle — Chicken burrito bowl
 [...through Sunday]
 ```
 
-### Chinese format example
-
-```markdown
-## 周一 — 1,590 kcal | P 100g · C 172g · F 52g
-
-### 🍳 早餐 — 380 kcal | P 24g · C 46g · F 12g
-全麦吐司 + 煮鸡蛋 + 牛奶
-- 全麦吐司 — 2片 (100g)
-- 煮鸡蛋 — 1个 (50g)
-- 低脂芝士 — 1片 (20g)
-- 纯牛奶 — 1盒 (250ml)
-
-### 🥗 午餐 — 530 kcal | P 38g · C 58g · F 16g
-红烧鸡腿 + 杂粮饭 + 白灼西兰花
-- 红烧鸡腿（去皮）— 1个 (120g)
-- 杂粮饭 — 1小碗 (120g熟重)
-- 白灼西兰花 — 1份 (100g)
-- 紫菜蛋花汤 — 1小碗 (200ml)
-
-### 🍽️ 晚餐 — 500 kcal | P 30g · C 52g · F 18g [外卖]
-美团/饿了么 — 清蒸鲈鱼套餐
-- 点：清蒸鲈鱼 + 蒜蓉西兰花 + 米饭（小份）
-- 💡 备注"少油少盐"，米饭吃小半碗就够了，剩下的别硬吃
-
-### 🍎 零食 — 180 kcal | P 8g · C 16g · F 6g
-- 无糖酸奶 — 1小杯 (130g)
-- 原味腰果 — 1小把 (15g)
-- 苹果 — 1个
-```
-
-### Japanese format example
+### Japanese Format — Mandatory Template
 
 ```markdown
 ## 月曜日 — 1,520 kcal | P 104g · C 170g · F 36g
