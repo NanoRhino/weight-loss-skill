@@ -45,10 +45,11 @@ but what was skipped.
   "user_id": "string",
   "meal_type": "lunch",
   "status": "logged",
+  "trigger_type": "checkin",
   "food_description": "chicken salad and crackers",
   "estimated_calories": 450,
-  "reminder_sent_at": "2025-02-26T12:15:00Z",
-  "replied_at": "2025-02-26T12:22:00Z",
+  "reminder_sent_at": "2025-02-26T12:30:00Z",
+  "replied_at": "2025-02-26T12:35:00Z",
   "source": "daily-notification"
 }
 ```
@@ -57,6 +58,7 @@ but what was skipped.
 |-------|-------------|
 | `meal_type` | `"breakfast"` / `"lunch"` / `"dinner"` |
 | `status` | `"logged"` (user reported food) / `"skipped"` (user said they're skipping) / `"no_reply"` (user didn't respond) |
+| `trigger_type` | `"reminder"` (pre-meal reminder) / `"checkin"` (post-meal check-in). Indicates which message type the user replied to. |
 | `food_description` | What the user said they ate. `null` if skipped or no reply. |
 | `estimated_calories` | From nutrition RAG if available. `null` if not available or not applicable. |
 | `reminder_sent_at` | When the reminder was sent |
@@ -84,6 +86,8 @@ the day's records into a summary written to `logs.daily_summary.{date}`.
   "meals": {
     "breakfast": {
       "reminder_sent": true,
+      "checkin_sent": false,
+      "trigger_type": "reminder",
       "status": "logged",
       "replied_at": "2025-02-26T07:52:00Z",
       "food_description": "oatmeal and coffee",
@@ -91,6 +95,8 @@ the day's records into a summary written to `logs.daily_summary.{date}`.
     },
     "lunch": {
       "reminder_sent": true,
+      "checkin_sent": true,
+      "trigger_type": null,
       "status": "no_reply",
       "replied_at": null,
       "food_description": null,
@@ -98,6 +104,8 @@ the day's records into a summary written to `logs.daily_summary.{date}`.
     },
     "dinner": {
       "reminder_sent": true,
+      "checkin_sent": true,
+      "trigger_type": "checkin",
       "status": "logged",
       "replied_at": "2025-02-26T18:50:00Z",
       "food_description": "grilled chicken and rice",
@@ -122,7 +130,9 @@ the day's records into a summary written to `logs.daily_summary.{date}`.
 - `recorded_at`: ISO timestamp or null
 
 **meals.{meal_type} object:**
-- `reminder_sent`: boolean — whether a reminder was sent for this meal
+- `reminder_sent`: boolean — whether a pre-meal reminder was sent for this meal
+- `checkin_sent`: boolean — whether a post-meal check-in was sent for this meal
+- `trigger_type`: `"reminder"` / `"checkin"` / `null` — which message type the user replied to (`null` if no reply)
 - `status`: `"logged"` / `"skipped"` / `"no_reply"` / `"not_sent"` (reminder was suppressed)
 - `replied_at`: ISO timestamp or null
 - `food_description`: string or null
