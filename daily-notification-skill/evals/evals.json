@@ -144,45 +144,6 @@
         "Brief response",
         "Detects resignation ('不想管了') and adds soft door-opener if pattern suggests distress"
       ]
-    },
-    {
-      "id": 11,
-      "name": "checkin-basic-no-reply-to-premeal",
-      "prompt": "[SYSTEM: Post-meal check-in 12:30. Pre-meal reminder sent at 11:45, no reply. Lunch unlogged. zh-CN]",
-      "expected_output": "Short check-in asking what they had for lunch. No reference to ignored reminder.",
-      "expectations": [
-        "Asks what user ate for lunch",
-        "Does NOT mention the pre-meal reminder",
-        "Does NOT say 'you didn't reply' or 'earlier'",
-        "Under 15 words",
-        "Casual and zero-pressure",
-        "Uses Chinese"
-      ]
-    },
-    {
-      "id": 12,
-      "name": "checkin-skipped-meal-already-logged",
-      "prompt": "[SYSTEM: Post-meal check-in 12:30. Pre-meal reminder sent at 11:45, user replied '吃了个三明治'. Lunch already logged. zh-CN]",
-      "expected_output": "Check-in should NOT be sent — meal already logged.",
-      "expectations": [
-        "No message sent",
-        "Check-in is suppressed because meal is already logged",
-        "Pre-send gate 7 blocks this check-in"
-      ]
-    },
-    {
-      "id": 13,
-      "name": "checkin-first-touch-premeal-suppressed",
-      "prompt": "[SYSTEM: Post-meal check-in 18:30. Pre-meal reminder was suppressed (user was in active conversation at 17:45). Dinner unlogged. zh-CN]",
-      "expected_output": "Check-in is the first touch. Slightly longer, normal dinner check-in tone.",
-      "expectations": [
-        "Sends check-in as first touch",
-        "Slightly longer than a second-touch check-in",
-        "Normal dinner check-in tone",
-        "Does NOT reference suppressed reminder",
-        "Under 25 words",
-        "Uses Chinese"
-      ]
     }
   ]
 }

@@ -1,7 +1,7 @@
 ---
 name: daily-notification
 version: 1.0.0
-description: "System-initiated daily reminders for the AI weight loss companion. Sends pre-meal reminders (15 min before each meal), post-meal check-in prompts (30 min after each meal), and weight logging reminders (twice per week) as in-app chat messages. Use this skill when the system needs to proactively reach out. Also use when the user replies to a reminder or check-in — collect and log data inline. Do NOT use when the user initiates unprompted, or wants detailed meal analysis."
+description: "System-initiated daily reminders for the AI weight loss companion. Sends meal-time reminders (15 min before each meal) and weight logging reminders (twice per week) as in-app chat messages. Use this skill when the system needs to proactively reach out. Also use when the user replies to a reminder — collect and log data inline. Do NOT use when the user initiates unprompted, or wants detailed meal analysis."
 metadata:
   openclaw:
     emoji: "bell"
@@ -10,12 +10,12 @@ metadata:
 
 # Daily Notification
 
-Reminders that open conversations — not data collection forms. Pre-meal reminders
-up to 3x/day, post-meal check-ins as backup, weight reminders 2x/week, delivered as in-app chat.
+Reminders that open conversations — not data collection forms. Meal reminders
+up to 3x/day, weight reminders 2x/week, delivered as in-app chat.
 
 ## Principles
 
-1. **Two touches max.** Pre-meal opener + post-meal check-in = max 2 per meal. After each, silence. Never send a third.
+1. **One and done.** One message. No reply = silence. Never follow up.
 2. **Conversation > report.** Ask something they want to answer, not something they owe you.
 3. **Variety.** Rotate phrasing. Same opener every day = muted by day 3.
 4. **Anchor, don't mirror.** Steady energy whether user is excited or flat.
@@ -40,18 +40,7 @@ Example — this user's profile:
 → Reminders at 6:45, 11:45, 17:45.
 Weight reminders: Mon & Thu, at first meal time minus 15 min (6:45).
 
-#### Meal Check-in (用餐打卡)
-
-Post-meal logging prompts — fire **30 min after** each meal time.
-Only sent when the pre-meal reminder got no reply AND the meal is still unlogged.
-
-Same user example:
-→ Check-ins at 7:30, 12:30, 18:30 (only if that meal wasn't logged yet).
-
-This is the only allowed second touch per meal. After check-in, silence.
-
-First reminder ever → confirm schedule with actual calculated times from the profile,
-including the check-in windows.
+First reminder ever → confirm schedule with actual calculated times from the profile.
 (See "First Day Experience" below for the full flow.)
 
 ### Pre-send Checks
@@ -64,15 +53,6 @@ Run in order. Any fail = don't send.
 4. User in active conversation? → delay 30 min, re-check
 5. Number of reminders per day must not exceed `goals.meals_per_day`.
 6. All clear → send
-
-#### Check-in Pre-send (additional gates)
-
-All standard pre-send checks apply, plus:
-
-6. 30 minutes have passed since meal time? → if not, wait
-7. User already replied to the pre-meal reminder for this meal? → skip (meal logged)
-8. Pre-meal reminder was not sent (suppressed)? → check-in becomes the FIRST touch (allowed)
-9. All clear → send check-in
 
 ### Lifecycle: Active → Recall → Silent
 
@@ -124,7 +104,7 @@ The first reminder sets the tone for the entire relationship. Don't waste it
 on a generic "lunch coming up."
 
 **First reminder ever** (after onboarding, at the next meal slot):
-1. Confirm schedule with the ACTUAL times calculated from `goals.meal_times` — don't hardcode example times. Mention both pre-meal reminders and post-meal check-ins with their times.
+1. Confirm schedule with the ACTUAL times calculated from `goals.meal_times` — don't hardcode example times
 2. Set expectations: "Reply when you can, ignore when you can't — zero pressure."
 3. Open conversation with a question about the current meal
 
@@ -206,35 +186,6 @@ patterns ("you've been on a salad kick"), not single data points
 **Time-of-day energy:**
 Morning = soft, low-demand · Midday = quick, snappy · Evening = relaxed
 
-### Meal Check-in (用餐打卡) — post-meal logging
-
-Short, functional, zero-pressure. If the user ignored the pre-meal opener,
-this is their second (and last) chance. Keep it even lighter.
-
-**Tone:** casual check-in, acknowledge the meal has passed.
-
-**Examples by meal:**
-
-Breakfast:
-`"早饭吃了啥？随便说说就行 😊"` · `"Morning — what'd you end up having?"`
-
-Lunch:
-`"午饭搞定了吧～吃了什么？"` · `"Lunch done? What'd you have?"`
-
-Dinner:
-`"晚饭结束了～今晚吃了啥？"` · `"Dinner wrapped — anything good?"`
-
-**Rules:**
-- Never reference the ignored pre-meal reminder
-- Never say "you didn't reply" / "earlier I asked" / "I reminded you"
-- Max 15 words
-- Same 5-technique rotation applies, but skew toward technique 1 (choice) and
-  technique 3 (situational) — keep it short
-- If this is the first touch (pre-meal was suppressed), can be slightly longer
-
-**Time-of-day energy (same as pre-meal):**
-Morning = soft, low-demand · Midday = quick, snappy · Evening = relaxed
-
 ### Weight Reminders — always optional framing
 
 `"Weigh-in day — want to check, or skip? Either's fine."` ·
@@ -245,9 +196,7 @@ Never playful tone for weight. Always optional.
 
 ## Handling Replies
 
-### Meal replies (pre-meal reminders & post-meal check-ins)
-
-Reply handling is identical for both pre-meal reminders and post-meal check-ins.
+### Meal replies
 
 | User says | Response |
 |-----------|----------|
@@ -329,7 +278,7 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 | Path | When |
 |------|------|
 | `logs.weight.{date}` | User reports weight: `{ value, unit, recorded_at, reminder_sent_at }` |
-| `logs.meals.{date}.{meal_type}` | Every reminder/check-in: `{ status, food_description, estimated_calories, reminder_sent_at, replied_at, trigger_type }` |
+| `logs.meals.{date}.{meal_type}` | Every reminder: `{ status, food_description, estimated_calories, reminder_sent_at, replied_at }` |
 | `logs.daily_summary.{date}` | 9 PM auto-summary: all records + engagement stats |
 | `flags.*` | Safety signals |
 | `engagement.notification_stage` | Stage 1/2/3/4 |
@@ -337,7 +286,6 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 | `engagement.days_since_first_reminder` | Tracks warm-up period (day 1-3 = limited techniques) |
 
 Status values: `"logged"` / `"skipped"` / `"no_reply"`
-Trigger type values: `"reminder"` (pre-meal) / `"checkin"` (post-meal)
 Full JSON schemas: `references/data-schemas.md`
 
 ---
@@ -346,6 +294,5 @@ Full JSON schemas: `references/data-schemas.md`
 
 ## Performance
 
-- Pre-meal reminder: 1-2 sentences, < 25 words
-- Post-meal check-in: 1 sentence, < 15 words
-- Reply handling: max 2 turns (reminder/check-in → reply → response → done)
+- Reminder: 1-2 sentences, < 25 words
+- Reply handling: max 2 turns (reminder → reply → response → done)

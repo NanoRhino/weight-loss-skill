@@ -68,9 +68,9 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Round 4 — Meal timing:**
 
-Ask about their daily eating schedule. Don't assume three meals — some people eat twice or even once a day. Keep the question open-ended. Explain why. **Important:** Do NOT say "last question" or "one more thing" here — there are still optional questions after this round.
+Ask about their daily eating schedule. Don't assume three meals — some people eat twice or even once a day. Keep the question open-ended. Explain that you'll send a check-in reminder **15 minutes before each meal** — this is why you need their times. **Important:** Do NOT say "last question" or "one more thing" here — there are still optional questions after this round.
 
-> Example: "Got it! Next I'd like to know — how many meals do you usually eat per day, and roughly what times? This helps me plan around your actual routine instead of giving you a generic schedule."
+> Example: "Got it! Next I'd like to know — how many meals do you usually eat per day, and roughly what times? I'll send you a check-in reminder 15 minutes before each meal, so knowing your actual schedule helps me remind you at the right time instead of guessing."
 
 ### Step 2 — Optional Fields (user chooses)
 
@@ -89,9 +89,9 @@ If the user engages, collect whatever they share in 1 round. If they say "that's
 
 Do three things:
 
-1. **Brief summary** — Show the user a readable summary (not raw JSON) of what you collected. Keep it to a few lines.
+1. **Brief summary** — Show the user a readable summary (not raw JSON) of what you collected. Keep it to a few lines. Include the calculated **check-in reminder times** (each meal time minus 15 min) so the user can see exactly when they'll be reminded. Example: "I'll send check-in reminders at 6:45, 11:45, 17:45 — 15 minutes before each meal."
 
-2. **Ask for confirmation** — "Does this look right? Anything you'd like to change?"
+2. **Ask for confirmation** — "Does this look right? Anything you'd like to change?" — users may want to adjust meal times after seeing the reminder schedule.
 
 3. **Generate the Profile** — After confirmation, create and output the file.
 
@@ -125,6 +125,7 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 - **Core Motivation:** [string | —]
 - **Meals per Day:** [number | —]
 - **Meal Times:** [e.g. 08:00 breakfast, 12:30 lunch, 19:00 dinner | —]
+- **Reminder Times:** [calculated: each meal time − 15 min, e.g. 07:45, 12:15, 18:45 | —]
 
 ## Lifestyle
 
