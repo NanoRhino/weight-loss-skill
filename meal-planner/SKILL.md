@@ -193,83 +193,89 @@ Snack:
 
 ### Chinese Pattern Template
 
-```markdown
-【饮食模式】
-早餐：一拳主食 + 一个蛋 + 200–500ml 无糖蛋白类饮品
-午餐：一拳主食 + 1–2 拳蔬菜 + 一拳肉类/豆制品
-晚餐：一拳主食 + 1–2 拳蔬菜 + 一拳肉类/豆制品
-加餐：200–350g 水果 + 10–15g 坚果
+> For Chinese-speaking users. Output in Chinese; English shown here for skill readability.
 
-【举例参考】
-早餐
-● 豆浆 1 杯
-● 水煮蛋 1 个
-● 菜包子 2 个
-午餐
-● 米饭 1 碗
-● 青椒炒鸡胸肉 1 盘
-● 蒜蓉西兰花 1 盘
-晚餐
-● 杂粮粥 1 碗
-● 番茄炒蛋 1 盘
-● 清蒸鱼 半条
-加餐
-● 巴旦木 10 颗
-● 苹果 1 个
+```markdown
+[Meal Pattern]
+Breakfast: 1 fist starch + 1 egg + 200–500ml unsweetened protein drink
+Lunch: 1 fist starch + 1–2 fists vegetables + 1 fist meat/tofu
+Dinner: 1 fist starch + 1–2 fists vegetables + 1 fist meat/tofu
+Snack: 200–350g fruit + 10–15g nuts
+
+[Example]
+Breakfast:
+● Soy milk 1 cup
+● Boiled egg 1
+● Veggie buns 2
+Lunch:
+● Rice 1 bowl
+● Green pepper chicken breast stir-fry 1 plate
+● Garlic broccoli 1 plate
+Dinner:
+● Mixed-grain congee 1 bowl
+● Tomato egg stir-fry 1 plate
+● Steamed fish half
+Snack:
+● Almonds 10
+● Apple 1
 ```
 
 ### Japanese Pattern Template
 
-```markdown
-【食事パターン — 手ばかりガイド】
-朝食：握りこぶし 0.5–1 の主食 + 手のひら 1 のたんぱく質 + 乳製品 1 杯
-昼食：握りこぶし 0.5–1 の主食 + 握りこぶし 2 の野菜 + 手のひら 1 のたんぱく質
-夕食：握りこぶし 0.5–1 の主食 + 握りこぶし 2 の野菜 + 手のひら 1 のたんぱく質
-間食：果物 1–2 個 + ナッツ 10–15g
+> For Japanese-speaking users. Output in Japanese; English shown here for skill readability.
 
-🥣【例】
-朝食：
-● 玄米ごはん 茶碗半分 (75g)
-● ゆで卵 1 個
-● 無糖ヨーグルト 1 カップ (200ml)
-昼食：
-● 玄米ごはん 茶碗 1 杯 (150g)
-● 鶏むね肉のソテー 1 枚 (120g)
-● ブロッコリーとにんじんの温サラダ 2 カップ
-夕食：
-● そば (茹で) 0.5 人前 (100g)
-● 焼き鮭 1 切れ (100g)
-● ほうれん草とキノコのおひたし 2 カップ
-間食：
-● りんご 1 個
-● 素焼きアーモンド 10 粒
+```markdown
+[Meal Pattern — Hand Portion Guide]
+Breakfast: 0.5–1 fist starch + 1 palm protein + 1 cup dairy
+Lunch: 0.5–1 fist starch + 2 fists vegetables + 1 palm protein
+Dinner: 0.5–1 fist starch + 2 fists vegetables + 1 palm protein
+Snack: 1–2 fruits + nuts 10–15g
+
+[Example]
+Breakfast:
+● Brown rice half bowl (75g)
+● Boiled egg 1
+● Unsweetened yogurt 1 cup (200ml)
+Lunch:
+● Brown rice 1 bowl (150g)
+● Sautéed chicken breast 1 piece (120g)
+● Warm broccoli & carrot salad 2 cups
+Dinner:
+● Soba noodles (cooked) 0.5 serving (100g)
+● Grilled salmon 1 fillet (100g)
+● Spinach & mushroom ohitashi 2 cups
+Snack:
+● Apple 1
+● Plain roasted almonds 10
 ```
 
 ### Korean Pattern Template
 
-```markdown
-【식사 패턴 — 손바닥 가이드】
-아침: 주먹 0.5–1 탄수화물 + 손바닥 1 단백질 + 유제품/두유 1 컵
-점심: 주먹 0.5–1 탄수화물 + 주먹 2 채소 + 손바닥 1 단백질
-저녁: 주먹 0.5–1 탄수화물 + 주먹 2 채소 + 손바닥 1 단백질
-간식: 과일 1–2 주먹 + 견과류 10–15g
+> For Korean-speaking users. Output in Korean; English shown here for skill readability.
 
-🥣【예시】
-아침:
-● 현미밥 반 공기 (75g)
-● 삶은 달걀 1 개
-● 무가당 두유 1 컵 (200ml)
-점심:
-● 현미밥 1 공기 (150g)
-● 닭가슴살 구이 1 덩이 (120g)
-● 브로콜리 & 당근 볶음 2 컵
-저녁:
-● 잡곡밥 반 공기 (75g)
-● 고등어구이 1 토막 (100g)
-● 시금치나물 & 콩나물 2 컵
-간식:
-● 사과 1 개
-● 아몬드 10 알
+```markdown
+[Meal Pattern — Hand Portion Guide]
+Breakfast: 0.5–1 fist carbs + 1 palm protein + 1 cup dairy/soy milk
+Lunch: 0.5–1 fist carbs + 2 fists vegetables + 1 palm protein
+Dinner: 0.5–1 fist carbs + 2 fists vegetables + 1 palm protein
+Snack: 1–2 fists fruit + nuts 10–15g
+
+[Example]
+Breakfast:
+● Brown rice half bowl (75g)
+● Boiled egg 1
+● Unsweetened soy milk 1 cup (200ml)
+Lunch:
+● Brown rice 1 bowl (150g)
+● Grilled chicken breast 1 piece (120g)
+● Broccoli & carrot stir-fry 2 cups
+Dinner:
+● Mixed-grain rice half bowl (75g)
+● Grilled mackerel 1 fillet (100g)
+● Spinach & bean sprout sides 2 cups
+Snack:
+● Apple 1
+● Almonds 10
 ```
 
 ### Other Languages
@@ -278,27 +284,11 @@ For other locales, follow the same structure: **pattern (portion guide) + one-da
 
 ### After Presenting the Diet Pattern
 
-Once you present the diet pattern, add the following message (in the user's language):
+Once you present the diet pattern, add the following message (adapt to the user's language):
 
-**English:**
 > Going forward, just follow this pattern for your meals. Don't stress about getting it perfect — eat according to the pattern and send me what you had. I'll help you fine-tune from there.
 >
 > Would you like me to create a detailed 7-day meal plan as well?
-
-**Chinese:**
-> 之后按照这个模式吃就行，具体不用焦虑，直接把吃的发给我，我来帮你调整。
->
-> 需要我再出一个 7 天的详细饮食方案吗？
-
-**Japanese:**
-> これからはこのパターンに沿って食べてみてください。完璧じゃなくて大丈夫です — 食べたものをそのまま送ってもらえれば、そこから調整します。
->
-> 7日間の詳しい食事プランも作りましょうか？
-
-**Korean:**
-> 앞으로 이 패턴대로 드시면 됩니다. 완벽하지 않아도 괜찮아요 — 드신 걸 보내주시면 거기서 조정해 드릴게요.
->
-> 7일 상세 식단도 만들어 드릴까요?
 
 **Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user doesn't ask for it, stop here — the diet pattern is sufficient to start.
 
@@ -414,13 +404,13 @@ Once confirmed, generate the final Markdown report. **Adapt the template to the 
 
 The meal plan uses a **day → meal → food items** hierarchy. Each level shows calories and macros (P/C/F).
 
-**1. Day level:** `## [Day] — X,XXX kcal | P Xg · C Xg · F Xg` — daily total calories and P/C/F. Day names use the user's locale (e.g., "Monday", "周一", "月曜日").
+**1. Day level:** `## [Day] — X,XXX kcal | P Xg · C Xg · F Xg` — daily total calories and P/C/F. Day names use the user's locale.
 
-**2. Meal level:** `### [emoji] [Meal name] — XXX kcal | P Xg · C Xg · F Xg` — meal emoji + meal name + calories + P/C/F. Meal names use the user's locale (e.g., "Breakfast", "早餐", "朝食"). Two types of meals with different formats:
+**2. Meal level:** `### [emoji] [Meal name] — XXX kcal | P Xg · C Xg · F Xg` — meal emoji + meal name + calories + P/C/F. Meal names use the user's locale. Two types of meals with different formats:
 
 - **Self-cooked meal:** First line after heading = **dish summary** (concise dish names joined by " + "). Below it = indented food items, each on its own line: `- [food name] — [natural portion] ([precise weight])`. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
 
-- **Eating-out meal:** Heading includes a locale-appropriate tag (e.g., `[Eating out]`, `[外卖]`, `[コンビニ]`). First line = **platform/restaurant — dish name**. Below it = ordering details as a bullet. Add a **💡** tip line with practical advice (e.g., "ask for sauce on the side", "request less oil and salt"). No need to break down individual ingredients — the user is ordering, not cooking.
+- **Eating-out meal:** Heading includes a locale-appropriate tag (e.g., `[Eating out]`, `[Takeout]`, `[Konbini]`). First line = **platform/restaurant — dish name**. Below it = ordering details as a bullet. Add a **💡** tip line with practical advice (e.g., "ask for sauce on the side", "request less oil and salt"). No need to break down individual ingredients — the user is ordering, not cooking.
 
 **3. Portion descriptions:** Use the most natural, everyday way people describe that specific food in their locale:
 - Countable items: "2 slices", "1 egg", "3 dumplings", "1 banana"
@@ -432,98 +422,100 @@ The meal plan uses a **day → meal → food items** hierarchy. Each level shows
 
 **5. Readability:** Use whitespace and indentation to make the plan scannable. Each day should be visually distinct. Keep food item lines short — one item per line.
 
-**6. Snacks:** `### 🍎 [Snack]` (locale-appropriate: "Snack", "零食", "間食") — list items directly, no dish summary line needed.
+**6. Snacks:** `### 🍎 [Snack]` (locale-appropriate name) — list items directly, no dish summary line needed.
 
-### Chinese Format — Mandatory Template
+### 7-Day Meal Plan — Mandatory Template
 
-Below is the **canonical Chinese 7-day meal plan format**. The output **must** follow this structure exactly. Three representative days are shown in full (cook day, weekday with batch-prep, eat-out day) to illustrate the pattern.
+Below is the **canonical 7-day meal plan format**. The output **must** follow this structure exactly. All text adapts to the user's language at runtime. Three representative days are shown in full (cook day, weekday with batch-prep, eat-out day) to illustrate the pattern.
+
+> **China locale example** — demonstrates Chinese-style dishes, Meituan/Ele.me ordering, and batch-prep rotation. For other locales, swap in locale-appropriate foods and restaurants while keeping the identical structure.
 
 ```markdown
-# 🍽️ 你的一周饮食方案
+# 🍽️ Your Weekly Meal Plan
 
-**日期：** [当前日期]
-**每日热量目标：** X,XXX kcal（范围：X,XXX – X,XXX）
-**饮食模式：** [模式]
-**宏量：** 蛋白质 Xg（体重 × X.Xg/kg）/ 碳水 Xg / 脂肪 Xg
-
----
-
-## 周日 — 1,610 kcal | P 102g · C 178g · F 48g
-
-### 🍳 早餐 — 380 kcal | P 22g · C 48g · F 11g
-豆浆 + 水煮蛋 + 菜包子
-- 无糖豆浆 — 1杯 (300ml)
-- 水煮蛋 — 1个 (50g)
-- 菜包子 — 2个 (120g)
-
-### 🥗 午餐 — 540 kcal | P 36g · C 60g · F 16g
-清蒸鲈鱼 + 蒜蓉油麦菜 + 米饭
-- 清蒸鲈鱼 — 半条 (150g)
-- 蒜蓉油麦菜 — 1盘 (120g)
-- 白米饭 — 1小碗 (120g熟重)
-
-### 🍽️ 晚餐 — 510 kcal | P 35g · C 52g · F 17g
-咖喱鸡腿 + 杂粮饭 + 凉拌黄瓜
-- 咖喱鸡腿（去皮）— 1个 (120g)
-- 杂粮饭 — 1小碗 (120g熟重)
-- 凉拌黄瓜 — 1碟 (80g)
-
-### 🍎 零食 — 180 kcal | P 9g · C 18g · F 4g
-- 无糖酸奶 — 1小杯 (130g)
-- 橘子 — 1个
+**Date:** [Current date]
+**Daily Calorie Target:** X,XXX kcal (range: X,XXX – X,XXX)
+**Diet Mode:** [Mode]
+**Macros:** Xg protein (weight × X.Xg/kg) / Xg carbs / Xg fat
 
 ---
 
-## 周一 — 1,590 kcal | P 100g · C 172g · F 52g
+## Sunday — 1,610 kcal | P 102g · C 178g · F 48g
 
-### 🍳 早餐 — 380 kcal | P 24g · C 46g · F 12g
-全麦吐司 + 煮鸡蛋 + 牛奶
-- 全麦吐司 — 2片 (100g)
-- 煮鸡蛋 — 1个 (50g)
-- 低脂芝士 — 1片 (20g)
-- 纯牛奶 — 1盒 (250ml)
+### 🍳 Breakfast — 380 kcal | P 22g · C 48g · F 11g
+Soy milk + boiled egg + veggie buns
+- Unsweetened soy milk — 1 cup (300ml)
+- Boiled egg — 1 (50g)
+- Veggie buns — 2 (120g)
 
-### 🥗 午餐 — 530 kcal | P 38g · C 58g · F 16g
-红烧鸡腿 + 杂粮饭 + 白灼西兰花
-- 红烧鸡腿（去皮）— 1个 (120g)
-- 杂粮饭 — 1小碗 (120g熟重)
-- 白灼西兰花 — 1份 (100g)
-- 紫菜蛋花汤 — 1小碗 (200ml)
+### 🥗 Lunch — 540 kcal | P 36g · C 60g · F 16g
+Steamed sea bass + garlic lettuce + rice
+- Steamed sea bass — half fish (150g)
+- Garlic sautéed lettuce — 1 plate (120g)
+- White rice — 1 small bowl (120g cooked)
 
-### 🍽️ 晚餐 — 500 kcal | P 30g · C 52g · F 18g [外卖]
-美团/饿了么 — 清蒸鲈鱼套餐
-- 点：清蒸鲈鱼 + 蒜蓉西兰花 + 米饭（小份）
-- 💡 备注"少油少盐"，米饭吃小半碗就够了，剩下的别硬吃
+### 🍽️ Dinner — 510 kcal | P 35g · C 52g · F 17g
+Curry chicken leg + mixed-grain rice + smashed cucumber
+- Curry chicken leg (skinless) — 1 (120g)
+- Mixed-grain rice — 1 small bowl (120g cooked)
+- Smashed cucumber salad — 1 small dish (80g)
 
-### 🍎 零食 — 180 kcal | P 8g · C 16g · F 6g
-- 无糖酸奶 — 1小杯 (130g)
-- 原味腰果 — 1小把 (15g)
-- 苹果 — 1个
+### 🍎 Snack — 180 kcal | P 9g · C 18g · F 4g
+- Unsweetened yogurt — 1 small cup (130g)
+- Mandarin orange — 1
 
 ---
 
-## 周二 — 1,600 kcal | P 98g · C 180g · F 50g
+## Monday — 1,590 kcal | P 100g · C 172g · F 52g
 
-### 🍳 早餐 — 370 kcal | P 20g · C 50g · F 10g
-杂粮粥 + 茶叶蛋 + 牛奶
-- 杂粮粥 — 1碗 (250ml)
-- 茶叶蛋 — 1个 (50g)
-- 纯牛奶 — 1盒 (250ml)
+### 🍳 Breakfast — 380 kcal | P 24g · C 46g · F 12g
+Whole-wheat toast + boiled egg + milk
+- Whole-wheat toast — 2 slices (100g)
+- Boiled egg — 1 (50g)
+- Low-fat cheese — 1 slice (20g)
+- Whole milk — 1 carton (250ml)
 
-### 🥗 午餐 — 540 kcal | P 36g · C 62g · F 16g
-咖喱牛肉 + 米饭 + 烤南瓜
-- 咖喱牛肉 — 1份 (130g)
-- 白米饭 — 1小碗 (120g熟重)
-- 烤南瓜 — 1份 (100g)
+### 🥗 Lunch — 530 kcal | P 38g · C 58g · F 16g
+Braised chicken leg + mixed-grain rice + blanched broccoli
+- Braised chicken leg (skinless) — 1 (120g)
+- Mixed-grain rice — 1 small bowl (120g cooked)
+- Blanched broccoli — 1 serving (100g)
+- Seaweed egg-drop soup — 1 small bowl (200ml)
 
-### 🍽️ 晚餐 — 510 kcal | P 34g · C 50g · F 18g [外食]
-兰州拉面 — 牛肉拉面
-- 点：牛肉拉面 + 卤蛋
-- 💡 汤底油多可以少喝汤，面吃完肉和菜就行
+### 🍽️ Dinner — 500 kcal | P 30g · C 52g · F 18g [Takeout]
+Meituan/Ele.me — Steamed sea bass set meal
+- Order: steamed sea bass + garlic broccoli + rice (small)
+- 💡 Request "less oil, less salt." Half a bowl of rice is enough — don't force yourself to finish it.
 
-### 🍎 零食 — 180 kcal | P 8g · C 18g · F 6g
-- 原味巴旦木 — 10颗 (15g)
-- 香蕉 — 1根
+### 🍎 Snack — 180 kcal | P 8g · C 16g · F 6g
+- Unsweetened yogurt — 1 small cup (130g)
+- Plain cashews — 1 small handful (15g)
+- Apple — 1
+
+---
+
+## Tuesday — 1,600 kcal | P 98g · C 180g · F 50g
+
+### 🍳 Breakfast — 370 kcal | P 20g · C 50g · F 10g
+Mixed-grain congee + tea egg + milk
+- Mixed-grain congee — 1 bowl (250ml)
+- Tea egg — 1 (50g)
+- Whole milk — 1 carton (250ml)
+
+### 🥗 Lunch — 540 kcal | P 36g · C 62g · F 16g
+Curry beef + rice + roasted pumpkin
+- Curry beef — 1 serving (130g)
+- White rice — 1 small bowl (120g cooked)
+- Roasted pumpkin — 1 serving (100g)
+
+### 🍽️ Dinner — 510 kcal | P 34g · C 50g · F 18g [Eating out]
+Lanzhou Noodle Shop — Beef noodle soup
+- Order: beef noodle soup + braised egg
+- 💡 The broth is oily — go easy on the soup. Eat the noodles, meat, and veggies, skip the rest.
+
+### 🍎 Snack — 180 kcal | P 8g · C 18g · F 6g
+- Plain almonds — 10 (15g)
+- Banana — 1
 
 ---
 
@@ -536,18 +528,9 @@ Below is the **canonical Chinese 7-day meal plan format**. The output **must** f
 [Daily calories fluctuate within the target range; 7-day average hits the target]
 ```
 
-### English Format — Mandatory Template
+> **US locale example** — demonstrates American-style dishes with imperial measurements and restaurant chains.
 
 ```markdown
-# 🍽️ Your Weekly Meal Plan
-
-**Date:** [Current date]
-**Daily Calorie Target:** X,XXX cal (range: X,XXX – X,XXX)
-**Diet Mode:** [Mode]
-**Macros:** Xg protein (weight × X.Xg/kg) / Xg carbs / Xg fat
-
----
-
 ## Monday — X,XXX cal | P Xg · C Xg · F Xg
 
 ### 🍳 Breakfast — XXX cal | P Xg · C Xg · F Xg
@@ -573,35 +556,29 @@ Chipotle — Chicken burrito bowl
 - Greek yogurt — 1 small tub (150g)
 - Blueberries — a small handful (50g)
 
----
-
-## Tuesday — X,XXX cal | P Xg · C Xg · F Xg
-
-[Same structure, different meals — no repeated main dishes]
-
-[...through Sunday]
+[...same structure through Sunday]
 ```
 
-### Japanese Format — Mandatory Template
+> **Japan locale example** — demonstrates konbini-based meals and IF 16:8 skipped breakfast.
 
 ```markdown
-## 月曜日 — 1,520 kcal | P 104g · C 170g · F 36g
+## Monday — 1,520 kcal | P 104g · C 170g · F 36g
 
-### 🍳 朝食 — 省略（IF 16:8のため）
+### 🍳 Breakfast — skipped (IF 16:8)
 
-### 🥗 昼食 12:00 — 620 kcal | P 40g · C 72g · F 12g [コンビニ]
-セブン — サラダチキン + おにぎりセット
-- サラダチキン — 1パック (115g)
-- おにぎり — 2個（鮭・昆布）
-- カップ味噌汁 — 1個
-- 💡 「たんぱく質が摂れる」シリーズはマクロが明記されていて管理しやすい
+### 🥗 Lunch 12:00 — 620 kcal | P 40g · C 72g · F 12g [Konbini]
+7-Eleven — Salad chicken + onigiri set
+- Salad chicken — 1 pack (115g)
+- Onigiri — 2 (salmon, kelp)
+- Cup miso soup — 1
+- 💡 The "protein-packed" series has macros printed on the label — easy to track.
 
-### 🍽️ 夕食 19:00 — 590 kcal | P 42g · C 60g · F 14g
-鶏むね照り焼き + 玄米 + ブロッコリー
-- 鶏むね肉 — 1枚 (150g)
-- 玄米 — お茶碗1杯 (150g)
-- 冷凍ブロッコリー — 1カップ (100g)
-- 💡 ブロッコリーはレンジ2分でOK。鶏むねは前日に下味つけておくと楽
+### 🍽️ Dinner 19:00 — 590 kcal | P 42g · C 60g · F 14g
+Teriyaki chicken breast + brown rice + broccoli
+- Chicken breast — 1 piece (150g)
+- Brown rice — 1 rice-bowl (150g)
+- Frozen broccoli — 1 cup (100g)
+- 💡 Microwave broccoli 2 min. Marinate chicken the night before for easier prep.
 ```
 
 ---
