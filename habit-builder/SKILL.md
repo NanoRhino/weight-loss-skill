@@ -15,6 +15,8 @@ description: >
 
 # Habit Builder
 
+Always reply in the same language the user is writing in. If the user switches language mid-conversation, switch too.
+
 The engine for sustainable lifestyle change. Not a habit tracker — a system
 that gradually migrates a user's daily life from patterns that make weight
 gain easy to patterns that make healthy weight natural.

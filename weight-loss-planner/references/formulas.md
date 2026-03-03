@@ -40,10 +40,10 @@ Use this standard when the user is located in an Asian country, or when the user
 
 | BMI Range | Classification |
 |---|---|
-| < 18.5 | Underweight (偏瘦) |
-| 18.5 – 23.9 | Normal weight (正常) |
-| 24.0 – 27.9 | Overweight (超重) |
-| ≥ 28.0 | Obese (肥胖) |
+| < 18.5 | Underweight |
+| 18.5 – 23.9 | Normal weight |
+| 24.0 – 27.9 | Overweight |
+| ≥ 28.0 | Obese |
 
 **How to select the standard:**
 1. If the user's country is known → use the corresponding regional standard

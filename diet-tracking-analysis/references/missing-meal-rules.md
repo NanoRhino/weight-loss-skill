@@ -10,9 +10,9 @@ Evaluate from conversation history (including `apiHistory`):
 
 ```
 bfRecorded    = any breakfast or snack_am entry exists in apiHistory
-              OR user previously said "没吃早饭" / "skip breakfast" / equivalent
+              OR user previously said "skip breakfast" / "didn't eat breakfast" / equivalent in any language
 lunchRecorded = any lunch or snack_pm entry exists in apiHistory
-              OR user previously said "没吃午饭" / "skip lunch" / equivalent
+              OR user previously said "skip lunch" / "didn't eat lunch" / equivalent in any language
 ```
 
 ### Rules for `mealMode = "3"` (default)
@@ -39,11 +39,7 @@ lunchRecorded = any lunch or snack_pm entry exists in apiHistory
 
 Ask naturally and briefly — one question only. Match the user's language. Always include a short reason (data completeness + accurate suggestions):
 
-**Chinese:**
-- 早饭还没记录，为了让今天的数据完整、给你的建议更准，早上吃了什么？（没吃也告诉我一声就好）
-- 午饭还没记录，想先补上才能给你准确的晚饭建议，中午吃了什么？（没吃也没关系）
-
-**English:**
+Adapt to the user's language. English examples:
 - "Breakfast isn't logged yet — filling it in helps keep your data complete and makes my suggestions more accurate. Did you have anything this morning? (totally fine if you skipped)"
 - "Lunch isn't logged yet — I'd like to fill that in before giving you dinner suggestions. Did you eat anything around midday? (no worries if not)"
 
@@ -54,9 +50,9 @@ Ask naturally and briefly — one question only. Match the user's language. Alwa
 | User response | Action |
 |---------------|--------|
 | Describes food | Record normally (`is_food_log: true`, `meal_type` = missing meal), `assumed_intake: null` |
-| "没吃" / "跳过" / "skip" | `is_food_log: false`, set `missing_meal_forgotten` = `"breakfast"` or `"lunch"`, `assumed_intake: null` (zero intake — user confirmed they didn't eat) |
-| "吃了但记不得" / "ate but can't recall" | `is_food_log: false`, set `missing_meal_forgotten` = `"breakfast"` or `"lunch"`, set `assumed_intake` = that single meal's standard ratio of daily targets (NOT the cumulative checkpoint). E.g. in 3-meal mode with default 30:40:30 ratio, a forgotten lunch = 40% of daily targets. |
-| Ambiguous (e.g. "随便吃了点") | Ask one follow-up for portion, then record |
+| "didn't eat" / "skip" / equivalent in any language | `is_food_log: false`, set `missing_meal_forgotten` = `"breakfast"` or `"lunch"`, `assumed_intake: null` (zero intake — user confirmed they didn't eat) |
+| "ate but can't recall" / equivalent in any language | `is_food_log: false`, set `missing_meal_forgotten` = `"breakfast"` or `"lunch"`, set `assumed_intake` = that single meal's standard ratio of daily targets (NOT the cumulative checkpoint). E.g. in 3-meal mode with default 30:40:30 ratio, a forgotten lunch = 40% of daily targets. |
+| Ambiguous (e.g. "had a little something") | Ask one follow-up for portion, then record |
 
 After resolving the missing meal, **always continue to log the meal the user originally mentioned** in the next response — do not make the user repeat themselves. This takes two separate responses (two JSON objects in two turns): first the backfilled meal, then the original meal.
 

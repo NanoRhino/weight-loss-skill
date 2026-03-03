@@ -44,7 +44,7 @@ Estimated duration: ~70 min
 
 #### Main Training
 
-**Exercise 1: Barbell Back Squat｜RPE 8**
+**Exercise 1: Barbell Back Squat|RPE 8**
 Start ~82-87kg
 Set 1 ×4-6
 Rest 3 min
@@ -55,7 +55,7 @@ Rest 3 min
 Set 4 ×4-6
 Rest 3 min → next exercise
 
-**Exercise 2: DB Romanian Deadlift｜RPE 7-8**
+**Exercise 2: DB Romanian Deadlift|RPE 7-8**
 Lighter hinge to complement heavy squat — conv. DL is on Thursday
 Set 1 ×8-10
 Rest 2 min
@@ -64,7 +64,7 @@ Rest 2 min
 Set 3 ×8-10
 Rest 2 min → next exercise
 
-**Exercise 3: Bulgarian Split Squat (DB)｜RPE 7-8**
+**Exercise 3: Bulgarian Split Squat (DB)|RPE 7-8**
 Set 1 ×8-10 left → 8-10 right
 Rest 90 sec
 Set 2 ×8-10 left → 8-10 right
@@ -72,7 +72,7 @@ Rest 90 sec
 Set 3 ×8-10 left → 8-10 right
 Rest 2 min → next exercise
 
-**Exercise 4: Barbell Hip Thrust｜RPE 7-8**
+**Exercise 4: Barbell Hip Thrust|RPE 7-8**
 Use pad; set up against sofa pushed to wall
 Set 1 ×8-10
 Rest 2 min
@@ -111,7 +111,7 @@ Estimated duration: ~70 min
 
 #### Main Training
 
-**Exercise 1: Barbell Bench Press｜RPE 8**
+**Exercise 1: Barbell Bench Press|RPE 8**
 Start ~65-70kg. Use safety pins.
 Set 1 ×4-6
 Rest 3 min
@@ -122,7 +122,7 @@ Rest 3 min
 Set 4 ×4-6
 Rest 3 min → next exercise
 
-**Exercise 2: Barbell Bent-Over Row｜RPE 7-8**
+**Exercise 2: Barbell Bent-Over Row|RPE 7-8**
 Overhand grip, ~45° torso
 Set 1 ×5-7
 Rest 2 min
@@ -133,7 +133,7 @@ Rest 2 min
 Set 4 ×5-7
 Rest 2 min → next exercise
 
-**Exercise 3: Barbell Overhead Press｜RPE 7-8**
+**Exercise 3: Barbell Overhead Press|RPE 7-8**
 If shoulder feels off → sub Landmine Press
 Set 1 ×5-7
 Rest 2 min
@@ -142,7 +142,7 @@ Rest 2 min
 Set 3 ×5-7
 Rest 2 min → next exercise
 
-**Exercise 4: Weighted Chin-up｜RPE 7-8**
+**Exercise 4: Weighted Chin-up|RPE 7-8**
 Hang weight from belt or hold DB between feet
 Set 1 ×5-8
 Rest 2 min
@@ -151,7 +151,7 @@ Rest 2 min
 Set 3 ×5-8
 Rest 60 sec → next exercise
 
-**Exercise 5: DB Lateral Raise｜RPE 8-9**
+**Exercise 5: DB Lateral Raise|RPE 8-9**
 Light, strict form
 Set 1 ×12-15
 Rest 60 sec
@@ -160,7 +160,7 @@ Rest 60 sec
 Set 3 ×12-15
 Rest 60 sec → next exercise
 
-**Exercise 6: DB Hammer Curl｜RPE 8-9**
+**Exercise 6: DB Hammer Curl|RPE 8-9**
 Neutral grip = shoulder-friendly
 Set 1 ×10-12
 Rest 60 sec
@@ -196,7 +196,7 @@ Estimated duration: ~70 min
 
 #### Main Training
 
-**Exercise 1: Conventional Deadlift｜RPE 7-8**
+**Exercise 1: Conventional Deadlift|RPE 7-8**
 Start ~95-105kg. Primary hinge for the week.
 Set 1 ×6-8
 Rest 3 min
@@ -207,7 +207,7 @@ Rest 3 min
 Set 4 ×6-8
 Rest 3 min → next exercise
 
-**Exercise 2: Front Squat｜RPE 7-8**
+**Exercise 2: Front Squat|RPE 7-8**
 Cross-arm or clean grip. Lighter squat complements heavy DL.
 Set 1 ×8-10
 Rest 2 min
@@ -216,7 +216,7 @@ Rest 2 min
 Set 3 ×8-10
 Rest 2 min → next exercise
 
-**Exercise 3: Walking Lunges (DB)｜RPE 7-8**
+**Exercise 3: Walking Lunges (DB)|RPE 7-8**
 Sub reverse lunges if space is tight
 Set 1 ×12 each leg
 Rest 90 sec
@@ -225,7 +225,7 @@ Rest 90 sec
 Set 3 ×12 each
 Rest 90 sec → next exercise
 
-**Exercise 4: Single-Leg DB RDL｜RPE 7-8**
+**Exercise 4: Single-Leg DB RDL|RPE 7-8**
 Set 1 ×10 left → 10 right
 Rest 90 sec
 Set 2 ×10 left → 10 right
@@ -233,7 +233,7 @@ Rest 90 sec
 Set 3 ×10 left → 10 right
 Rest 60 sec → next exercise
 
-**Exercise 5: Hanging Leg Raise｜RPE 8**
+**Exercise 5: Hanging Leg Raise|RPE 8**
 Use your pull-up bar
 Set 1 ×10-12
 Rest 60 sec
@@ -272,7 +272,7 @@ Estimated duration: ~70 min
 
 #### Main Training
 
-**Exercise 1: DB Floor Press (neutral grip)｜RPE 7-8**
+**Exercise 1: DB Floor Press (neutral grip)|RPE 7-8**
 Shoulder-friendly pressing
 Set 1 ×8-10
 Rest 2 min
@@ -283,7 +283,7 @@ Rest 2 min
 Set 4 ×8-10
 Rest 2 min → next exercise
 
-**Exercise 2: Pull-up (bodyweight)｜RPE 7-8**
+**Exercise 2: Pull-up (bodyweight)|RPE 7-8**
 Vary grip width week to week
 Set 1 ×8-12
 Rest 2 min
@@ -294,7 +294,7 @@ Rest 2 min
 Set 4 ×8-12
 Rest 90 sec → next exercise
 
-**Exercise 3: DB Arnold Press｜RPE 7-8**
+**Exercise 3: DB Arnold Press|RPE 7-8**
 Rotation is good for shoulder health
 Set 1 ×10-12
 Rest 90 sec
@@ -303,7 +303,7 @@ Rest 90 sec
 Set 3 ×10-12
 Rest 90 sec → next exercise
 
-**Exercise 4: DB Row (single arm)｜RPE 7-8**
+**Exercise 4: DB Row (single arm)|RPE 7-8**
 Chest-supported on bench
 Set 1 ×10-12 left → 10-12 right
 Rest 90 sec
@@ -312,7 +312,7 @@ Rest 90 sec
 Set 3 ×10-12 left → 10-12 right
 Rest 60 sec → next exercise
 
-**Exercise 5: Close-Grip Push-up｜RPE 8-9**
+**Exercise 5: Close-Grip Push-up|RPE 8-9**
 Tricep focus
 Set 1 ×12-15
 Rest 60 sec
@@ -321,7 +321,7 @@ Rest 60 sec
 Set 3 ×12-15
 Rest 60 sec → next exercise
 
-**Exercise 6: DB Incline Curl｜RPE 8-9**
+**Exercise 6: DB Incline Curl|RPE 8-9**
 Bench at 45° for long head stretch
 Set 1 ×10-12
 Rest 60 sec

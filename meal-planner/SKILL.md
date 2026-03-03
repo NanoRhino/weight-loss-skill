@@ -167,13 +167,13 @@ When specifying amounts, the **minimum granularity is 0.5** — never use values
 ### English (US/Western) Pattern Template
 
 ```markdown
-🇺🇸【Meal Pattern — Hand Portion Guide】
+🇺🇸[Meal Pattern — Hand Portion Guide]
 Breakfast: 0.5–1 fist grains + 1 palm protein + 1 cup dairy/protein drink
 Lunch: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
 Dinner: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
 Snack: 1–2 fists fruit + 1–2 cups dairy/protein drink
 
-🥣【Example】
+🥣[Example]
 Breakfast:
 ● Oatmeal (cooked) 0.5 cup
 ● 1 large egg
@@ -193,7 +193,7 @@ Snack:
 
 ### Chinese Pattern Template
 
-> For Chinese-speaking users. Output in Chinese; English shown here for skill readability.
+> For Chinese-speaking users. Output in the user's language; English shown here for skill readability.
 
 ```markdown
 [Meal Pattern]
@@ -622,5 +622,5 @@ Accommodate what you can, but flag clearly: "I can build a plan around your nut 
 **User wants to eat out frequently:**
 This is completely valid — don't treat it as a problem to solve. Build restaurant/takeout/convenience store options directly into the plan as primary meals, not fallbacks. Include specific ordering guidance with approximate macros. Examples:
 - **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 cal, 42g P / 20g C / 30g F"
-- **China:** "Shaxian snacks: 8 steamed dumplings + seaweed egg-drop soup — ~450 cal, 20g P / 55g C / 15g F"
+- **China:** "Shaxian Snacks: 8 steamed dumplings + seaweed egg-drop soup — ~450 cal, 20g P / 55g C / 15g F"
 - **Japan:** "Konbini: salad chicken + 1 onigiri + salad — ~450 cal, 30g P / 45g C / 10g F"
