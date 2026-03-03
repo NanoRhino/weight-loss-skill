@@ -1,7 +1,7 @@
 ---
 name: diet-tracking-analysis
 version: 1.0.0
-description: "Tracks what users eat, estimates calories and macros, and gives practical feedback. Use when user logs food, describes a meal, uploads a food photo, mentions what they ate or drank, or asks about their intake. Trigger phrases include 'I had...', 'I ate...', 'for breakfast/lunch/dinner...', 'log this', 'track this', 'how many calories in...'. Also trigger for Chinese equivalents like '吃了', '喝了', '早饭/午饭/晚饭吃了'. When in doubt, trigger anyway."
+description: "Tracks what users eat, estimates calories and macros, and gives practical feedback. Use when user logs food, describes a meal, uploads a food photo, mentions what they ate or drank, or asks about their intake. Trigger phrases include 'I had...', 'I ate...', 'for breakfast/lunch/dinner...', 'log this', 'track this', 'how many calories in...'. When in doubt, trigger anyway."
 metadata:
   openclaw:
     emoji: "fork_and_knife"
@@ -121,16 +121,16 @@ Adjustment needed (`right_now`) when: calories outside checkpoint cal range OR 2
 
 If user describes food without any quantity, ask ONE clarifying question using everyday references — never ask for grams:
 
-- Size: "大概多大？手掌大小、拳头大小，还是更大？"
-- Bowl fill: "碗大概多满？小半碗、大半碗，还是满满一碗？"
-- Plate: "大概多少？一小碟、半盘，还是一整盘？"
-- Count: "多少个？一个还是两三个？"
+- Size: "About how big? Palm-sized, fist-sized, or bigger?"
+- Bowl fill: "About how full was the bowl? Less than half, more than half, or completely full?"
+- Plate: "About how much? A small plate, half a plate, or a full plate?"
+- Count: "How many? One, or two or three?"
 
 If multiple foods in the same meal all lack quantity, ask about them together in one message — do not split into multiple rounds.
 
 If user says they don't know → use standard medium portion, prefix portion with `~`.
 
-**Exceptions** (record directly without asking): standardized foods like "一罐可乐", "一个鸡蛋", "一片吐司".
+**Exceptions** (record directly without asking): standardized foods like "a can of Coke", "an egg", "a slice of toast".
 
 ---
 
@@ -151,7 +151,7 @@ Set `is_food_log: true`, log the adjusted meal:
 - `logged_items` = the complete list of all foods in this meal after adjustment (original items + added items, or minus removed items)
 - `meal_totals` = the full meal's totals after adjustment
 - `nice_work: null`, `suggestions: null`
-- `message` = brief confirmation like "好的，已记录调整～"
+- `message` = brief confirmation like "Got it, adjustment logged!"
 
 ---
 
@@ -162,10 +162,10 @@ Set `is_food_log: true`, log the adjusted meal:
 - Cannot split mixed/cooked dishes or adjust pre-cooking ingredient amounts
 - Do NOT list calories or macros per food item
 - **Never use for backfilled meals** (meals reported after the fact during missing meal resolution) — use `next_time` instead
-- **Content must be user-facing** — do not expose internal reasoning (e.g. don't say "蛋炒饭本身不好拆开调整"). Just give the actionable suggestion directly.
-- **Single option** → give one clear suggestion, no "or" alternatives. End with: "调整后本餐累计热量约X kcal，蛋白质Xg，碳水Xg，脂肪Xg。"
-- **Multiple options** → list each on its own line: `方案A：xxx\n方案B：xxx\n你倾向于哪个方案？`
-- **Overshoot + may have finished eating** → still give `right_now` with a practical reduction tip (e.g. "汤别喝完"), but append a reassuring fallback: "如果已经吃完了也没关系，一天超标不影响整体，明天注意平衡就好。"
+- **Content must be user-facing** — do not expose internal reasoning (e.g. don't say "fried rice is hard to deconstruct and adjust"). Just give the actionable suggestion directly.
+- **Single option** → give one clear suggestion, no "or" alternatives. End with: "After adjusting, this meal totals approximately X kcal, Xg protein, Xg carbs, Xg fat."
+- **Multiple options** → list each on its own line: `Option A: xxx\nOption B: xxx\nWhich option do you prefer?`
+- **Overshoot + may have finished eating** → still give `right_now` with a practical reduction tip (e.g. "don't finish the soup"), but append a reassuring fallback: "If you've already finished eating, that's okay — one day over target doesn't ruin the big picture, just aim for balance tomorrow."
 
 ### `next_time` — only when NO adjustment needed
 - Habit or next-meal pairing suggestion

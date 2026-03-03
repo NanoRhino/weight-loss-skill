@@ -1,375 +1,375 @@
-# 用例 4：备战5公里跑 · 跑步+体能+柔韧性
+# Test Case 4: Couch to 5K · Running + Strength + Flexibility
 
-**用户输入：**
-> 我想三个月后跑个5公里，之前完全没跑过步。女，32岁，163cm，58kg。平时就是上下班走路。喜欢户外运动，不喜欢去健身房。没有器械，只能靠自己身体和户外场地。爬楼梯4层微喘还能说话。没有伤病。每周能练5天，每次30-45分钟。
-
----
-
-**Claude 回复：**
-
-3个月从零到5公里完全可以实现！我给你设计了一个综合计划，以跑步训练为核心，搭配体能和柔韧性练习，帮你安全地建立跑步能力。
-
-> ⚠️ 本训练计划仅供参考。跑步是高冲击运动，如果训练中出现持续的关节疼痛（不是正常的肌肉酸痛），请休息几天，严重的话去看医生。
+**User Input:**
+> I want to run a 5K in three months. I've never run before. Female, 32, 163cm, 58kg. I normally just walk to and from work. I enjoy outdoor activities but don't like going to the gym. No equipment, just bodyweight and outdoor areas. I get slightly winded climbing 4 flights of stairs but can still talk. No injuries. Can train 5 days per week, 30-45 minutes each.
 
 ---
 
-## 每周总览
+**Claude Response:**
 
-| 周一 | 周二 | 周三 | 周四 | 周五 | 周六 | 周日 |
-|------|------|------|------|------|------|------|
-| 跑走交替 | 体能训练 | 休息 · 散步 | 跑走交替 | 柔韧性+核心 | 长距离慢跑/走 | 完全休息 |
+Going from zero to 5K in three months is totally achievable! I've designed a comprehensive plan with running as the core, plus strength and flexibility work to build your running ability safely.
 
----
-
-### 周一：跑走交替训练
-预计用时：~35 分钟
-
-跟练参考：
-[▶ Couch to 5K 跑走交替（第1周）](https://www.youtube.com/results?search_query=couch+to+5k+week+1+run+walk+interval+beginner)
-
-#### 热身（约 5 分钟）
-
-1. 快步走 3 分钟
-2. 前后腿摆 ×10 每侧
-3. 髋关节画圈 ×8 每侧
-4. 高抬腿原地踏步 ×10 每侧
-
-#### 主训练
-
-**跑走交替（第1-2周方案）**
-全程保持能说话的强度——跑的时候微喘但能说出完整句子
-
-慢跑 1 分钟 → 快走 2 分钟，重复 8 轮（共约 24 分钟）
-
-> 跑的时候不用快，"能一边跑一边和朋友聊天"就是正确的速度。跑不动就走，走和跑交替是最科学的入门方法。
-
-#### 放松（约 5 分钟）
-
-1. 慢走 2 分钟，让心率下降
-2. 小腿拉伸 每侧 30 秒
-3. 股四头肌拉伸 每侧 30 秒
-4. 腘绳肌拉伸 每侧 30 秒
-5. 髋屈肌弓步拉伸 每侧 30 秒
+> ⚠️ This training plan is for reference only. Running is a high-impact activity. If you experience persistent joint pain during training (not normal muscle soreness), rest for a few days. If it's serious, see a doctor.
 
 ---
 
-### 周二：体能训练（徒手）
-预计用时：~30 分钟
+## Weekly Overview
 
-跟练参考：
-[▶ 跑者体能训练·无器械](https://www.youtube.com/results?search_query=bodyweight+strength+training+for+runners+no+equipment+fitnessblender)
-
-#### 热身（约 5 分钟）
-
-1. 原地踏步 2 分钟
-2. 猫牛式 ×10
-3. 全球最伟大拉伸 ×5 每侧
-4. 臀桥 ×10（激活臀部）
-
-#### 主训练
-
-**动作 1：臀桥 (Glute Bridge)**
-臀部是跑步的发动机
-
-第 1 组 ×15
-
-休息 45 秒
-
-第 2 组 ×15
-
-休息 45 秒
-
-第 3 组 ×15
-
-休息 60 秒 → 换下一个动作
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Run/Walk intervals | Strength training | Rest · Walk | Run/Walk intervals | Flexibility + Core | Long distance slow jog/walk | Full rest |
 
 ---
 
-**动作 2：弓步 (Bodyweight Lunges)**
-单腿力量+平衡，直接提升跑步稳定性
+### Monday: Run/Walk Interval Training
+Estimated time: ~35 min
 
-第 1 组 ×10 每侧
+Follow-along reference:
+[▶ Couch to 5K Run/Walk Intervals (Week 1)](https://www.youtube.com/results?search_query=couch+to+5k+week+1+run+walk+interval+beginner)
 
-休息 45 秒
+#### Warm-up (~5 min)
 
-第 2 组 ×10 每侧
+1. Brisk walk 3 min
+2. Leg swings forward/backward ×10 each side
+3. Hip circles ×8 each side
+4. High knees marching in place ×10 each side
 
-休息 45 秒
+#### Main Workout
 
-第 3 组 ×10 每侧
+**Run/Walk Intervals (Week 1-2 plan)**
+Keep the intensity at a conversational level throughout — slightly winded while jogging but able to speak in full sentences
 
-休息 60 秒 → 换下一个动作
+Jog 1 min → brisk walk 2 min, repeat 8 rounds (about 24 min total)
 
----
+> You don't need to run fast. "Being able to chat with a friend while running" is the correct pace. If you can't keep running, walk. Alternating between walking and running is the most effective way to start.
 
-**动作 3：俯卧撑 (Push-up)**
-上肢和核心，跑步摆臂需要上半身支撑。做不了标准的从跪姿开始。
+#### Cool-down (~5 min)
 
-第 1 组 ×8-10
-
-休息 45 秒
-
-第 2 组 ×8-10
-
-休息 45 秒
-
-第 3 组 ×8-10
-
-休息 60 秒 → 换下一个动作
+1. Slow walk 2 min to bring heart rate down
+2. Calf stretch 30 sec each side
+3. Quad stretch 30 sec each side
+4. Hamstring stretch 30 sec each side
+5. Hip flexor lunge stretch 30 sec each side
 
 ---
 
-**动作 4：单腿臀桥 (Single-Leg Glute Bridge)**
-跑步是单腿交替发力，这个动作直接模拟跑步发力模式
+### Tuesday: Strength Training (Bodyweight)
+Estimated time: ~30 min
 
-第 1 组 ×8 每侧
+Follow-along reference:
+[▶ Bodyweight Strength Training for Runners](https://www.youtube.com/results?search_query=bodyweight+strength+training+for+runners+no+equipment+fitnessblender)
 
-休息 45 秒
+#### Warm-up (~5 min)
 
-第 2 组 ×8 每侧
+1. March in place 2 min
+2. Cat-Cow ×10
+3. World's Greatest Stretch ×5 each side
+4. Glute Bridge ×10 (glute activation)
 
-休息 45 秒
+#### Main Workout
 
-第 3 组 ×8 每侧
+**Exercise 1: Glute Bridge**
+The glutes are the engine of running
 
-休息 60 秒 → 换下一个动作
+Set 1 ×15
 
----
+Rest 45 sec
 
-**动作 5：平板支撑 (Plank)**
-跑步时躯干稳定的核心
+Set 2 ×15
 
-第 1 组 ×20-30 秒
+Rest 45 sec
 
-休息 45 秒
+Set 3 ×15
 
-第 2 组 ×20-30 秒
-
-休息 45 秒
-
-第 3 组 ×20-30 秒
-
-休息 60 秒 → 换下一个动作
+Rest 60 sec → move to next exercise
 
 ---
 
-**动作 6：小腿提踵 (Calf Raises)**
-找台阶或路沿，脚掌前半部分踩上去
+**Exercise 2: Bodyweight Lunges**
+Single-leg strength + balance, directly improves running stability
 
-第 1 组 ×15
+Set 1 ×10 each side
 
-休息 45 秒
+Rest 45 sec
 
-第 2 组 ×15
+Set 2 ×10 each side
 
-休息 45 秒
+Rest 45 sec
 
-第 3 组 ×15
+Set 3 ×10 each side
 
-#### 放松（约 5 分钟）
-
-1. 小腿拉伸 每侧 30 秒
-2. 股四头肌拉伸 每侧 20 秒
-3. 臀部拉伸（仰卧4字拉伸）每侧 30 秒
-4. 腘绳肌拉伸 每侧 20 秒
+Rest 60 sec → move to next exercise
 
 ---
 
-### 周三：休息日
-- 散步 15-20 分钟，轻松步伐
-- 如果腿特别酸可以做 5 分钟泡沫轴或拉伸
-- 不跑步，不做高强度活动
+**Exercise 3: Push-up**
+Upper body and core — running arm swing needs upper body support. If you can't do standard push-ups, start from your knees.
+
+Set 1 ×8-10
+
+Rest 45 sec
+
+Set 2 ×8-10
+
+Rest 45 sec
+
+Set 3 ×8-10
+
+Rest 60 sec → move to next exercise
 
 ---
 
-### 周四：跑走交替训练
-预计用时：~35 分钟
+**Exercise 4: Single-Leg Glute Bridge**
+Running is alternating single-leg force production — this exercise directly mimics running mechanics
 
-内容和周一相同（使用当前周数对应的跑走比例，见下方渐进计划）。
+Set 1 ×8 each side
 
-#### 热身（约 5 分钟）
+Rest 45 sec
 
-1. 快步走 3 分钟
-2. 前后腿摆 ×10 每侧
-3. 髋关节画圈 ×8 每侧
-4. 高抬腿原地踏步 ×10 每侧
+Set 2 ×8 each side
 
-#### 主训练
+Rest 45 sec
 
-**跑走交替** — 同周一方案
+Set 3 ×8 each side
 
-#### 放松（约 5 分钟）
-
-1. 慢走 2 分钟
-2. 小腿拉伸 每侧 30 秒
-3. 股四头肌拉伸 每侧 30 秒
-4. 腘绳肌拉伸 每侧 30 秒
-5. 髋屈肌弓步拉伸 每侧 30 秒
+Rest 60 sec → move to next exercise
 
 ---
 
-### 周五：柔韧性 + 核心
-预计用时：~30 分钟
+**Exercise 5: Plank**
+Core trunk stability while running
 
-跟练参考：
-[▶ 跑者瑜伽拉伸 30分钟](https://www.youtube.com/results?search_query=yoga+for+runners+30+minutes+flexibility+yoga+with+adriene)
+Set 1 ×20-30 sec
 
-#### 动态热身（约 3 分钟）
+Rest 45 sec
 
-1. 猫牛式 ×10
-2. 脊柱扭转 ×5 每侧
-3. 仰卧髋关节画圈 ×8 每侧
+Set 2 ×20-30 sec
 
-#### 柔韧性训练
+Rest 45 sec
 
-**部位 1：髋屈肌**
-跑步后最容易紧的地方
+Set 3 ×20-30 sec
 
-半跪姿髋屈肌拉伸 — 每侧 45 秒，做 2 轮（中间休息 15 秒）
+Rest 60 sec → move to next exercise
 
 ---
 
-**部位 2：腘绳肌**
+**Exercise 6: Calf Raises**
+Find a step or curb, place the front half of your foot on the edge
 
-仰卧单腿直腿拉伸（可用毛巾辅助）— 每侧 45 秒，做 2 轮
+Set 1 ×15
 
----
+Rest 45 sec
 
-**部位 3：小腿 + 跟腱**
+Set 2 ×15
 
-靠墙小腿拉伸（直腿版）— 每侧 30 秒
+Rest 45 sec
 
-靠墙小腿拉伸（屈膝版·比目鱼肌）— 每侧 30 秒
+Set 3 ×15
 
----
+#### Cool-down (~5 min)
 
-**部位 4：IT Band / 臀部外侧**
-
-仰卧交叉腿拉伸 — 每侧 45 秒
-
----
-
-#### 核心训练
-
-**动作 1：死虫式 (Dead Bug)**
-
-第 1 组 ×8 每侧
-
-休息 30 秒
-
-第 2 组 ×8 每侧
-
-休息 30 秒
-
-第 3 组 ×8 每侧
-
-休息 45 秒 → 换下一个动作
+1. Calf stretch 30 sec each side
+2. Quad stretch 20 sec each side
+3. Glute stretch (Supine Figure-4 Stretch) 30 sec each side
+4. Hamstring stretch 20 sec each side
 
 ---
 
-**动作 2：侧平板支撑 (Side Plank)**
-
-第 1 组 左侧 ×15-20 秒 → 右侧 ×15-20 秒
-
-休息 30 秒
-
-第 2 组 左侧 ×15-20 秒 → 右侧 ×15-20 秒
-
-休息 45 秒 → 换下一个动作
+### Wednesday: Rest Day
+- Walk 15-20 min at an easy pace
+- If your legs are especially sore, do 5 min of foam rolling or stretching
+- No running, no high-intensity activity
 
 ---
 
-**动作 3：鸟狗式 (Bird Dog)**
+### Thursday: Run/Walk Interval Training
+Estimated time: ~35 min
 
-第 1 组 ×8 每侧
+Same content as Monday (use the run/walk ratio for the current week — see the progression plan below).
 
-休息 30 秒
+#### Warm-up (~5 min)
 
-第 2 组 ×8 每侧
+1. Brisk walk 3 min
+2. Leg swings forward/backward ×10 each side
+3. Hip circles ×8 each side
+4. High knees marching in place ×10 each side
 
-休息 30 秒
+#### Main Workout
 
-第 3 组 ×8 每侧
+**Run/Walk Intervals** — same plan as Monday
 
-#### 放松（约 3 分钟）
+#### Cool-down (~5 min)
 
-1. 婴儿式 (Child's Pose) — 1 分钟
-2. 仰卧脊柱扭转 — 每侧 30 秒
-3. 挺尸式 (Savasana) — 1 分钟，深呼吸
-
----
-
-### 周六：长距离慢跑/走
-预计用时：~35-45 分钟
-
-#### 热身（约 5 分钟）
-
-1. 快步走 3 分钟
-2. 前后腿摆 ×10 每侧
-3. 高抬腿 ×10 每侧
-
-#### 主训练
-
-**长距离跑走（第1-2周方案）**
-今天的目标是距离和时间，不是速度。全程保持轻松。
-
-快走 5 分钟（过渡）→ 慢跑 2 分钟 / 快走 3 分钟，重复 5 轮（共约 25 分钟）→ 快走 5 分钟（收尾）
-
-> 不用看配速，感觉"我还能继续"就对了。
-
-#### 放松（约 5 分钟）
-
-1. 慢走 2 分钟
-2. 小腿拉伸 每侧 30 秒
-3. 股四头肌拉伸 每侧 30 秒
-4. 腘绳肌拉伸 每侧 30 秒
-5. 全身伸展 30 秒
+1. Slow walk 2 min
+2. Calf stretch 30 sec each side
+3. Quad stretch 30 sec each side
+4. Hamstring stretch 30 sec each side
+5. Hip flexor lunge stretch 30 sec each side
 
 ---
 
-### 周日：完全休息
-- 不运动，好好恢复
-- 可以做 5-10 分钟轻度拉伸，但不是必须
+### Friday: Flexibility + Core
+Estimated time: ~30 min
+
+Follow-along reference:
+[▶ 30-Minute Yoga Stretch for Runners](https://www.youtube.com/results?search_query=yoga+for+runners+30+minutes+flexibility+yoga+with+adriene)
+
+#### Dynamic Warm-up (~3 min)
+
+1. Cat-Cow ×10
+2. Spinal twist ×5 each side
+3. Supine hip circles ×8 each side
+
+#### Flexibility Training
+
+**Area 1: Hip Flexors**
+The area most likely to get tight from running
+
+Half-kneeling hip flexor stretch — 45 sec each side, 2 rounds (15 sec rest between rounds)
 
 ---
 
-## 渐进计划（12 周 → 5 公里）
+**Area 2: Hamstrings**
 
-| 周数 | 周一/周四：跑走交替 | 周六：长距离 |
+Supine single-leg straight-leg stretch (can use a towel for assistance) — 45 sec each side, 2 rounds
+
+---
+
+**Area 3: Calves + Achilles Tendon**
+
+Wall calf stretch (straight-leg version) — 30 sec each side
+
+Wall calf stretch (bent-knee version · soleus) — 30 sec each side
+
+---
+
+**Area 4: IT Band / Outer Hip**
+
+Supine cross-leg stretch — 45 sec each side
+
+---
+
+#### Core Training
+
+**Exercise 1: Dead Bug**
+
+Set 1 ×8 each side
+
+Rest 30 sec
+
+Set 2 ×8 each side
+
+Rest 30 sec
+
+Set 3 ×8 each side
+
+Rest 45 sec → move to next exercise
+
+---
+
+**Exercise 2: Side Plank**
+
+Set 1 Left side ×15-20 sec → Right side ×15-20 sec
+
+Rest 30 sec
+
+Set 2 Left side ×15-20 sec → Right side ×15-20 sec
+
+Rest 45 sec → move to next exercise
+
+---
+
+**Exercise 3: Bird Dog**
+
+Set 1 ×8 each side
+
+Rest 30 sec
+
+Set 2 ×8 each side
+
+Rest 30 sec
+
+Set 3 ×8 each side
+
+#### Cool-down (~3 min)
+
+1. Child's Pose — 1 min
+2. Supine spinal twist — 30 sec each side
+3. Savasana — 1 min, deep breathing
+
+---
+
+### Saturday: Long Distance Slow Jog/Walk
+Estimated time: ~35-45 min
+
+#### Warm-up (~5 min)
+
+1. Brisk walk 3 min
+2. Leg swings forward/backward ×10 each side
+3. High knees ×10 each side
+
+#### Main Workout
+
+**Long Distance Run/Walk (Week 1-2 plan)**
+Today's goal is distance and time, not speed. Keep it easy the whole way.
+
+Brisk walk 5 min (transition) → jog 2 min / brisk walk 3 min, repeat 5 rounds (about 25 min total) → brisk walk 5 min (cool-down walk)
+
+> Don't worry about pace. If you feel like "I can keep going," you're doing it right.
+
+#### Cool-down (~5 min)
+
+1. Slow walk 2 min
+2. Calf stretch 30 sec each side
+3. Quad stretch 30 sec each side
+4. Hamstring stretch 30 sec each side
+5. Full-body stretch 30 sec
+
+---
+
+### Sunday: Full Rest
+- No exercise, recover well
+- You can do 5-10 min of light stretching, but it's not required
+
+---
+
+## Progression Plan (12 Weeks → 5K)
+
+| Week | Mon/Thu: Run/Walk Intervals | Sat: Long Distance |
 |------|---------------------|-------------|
-| **1-2 周** | 跑 1 分钟 / 走 2 分钟 × 8 轮 | 跑 2 / 走 3 × 5 轮 |
-| **3-4 周** | 跑 2 分钟 / 走 1.5 分钟 × 7 轮 | 跑 3 / 走 2 × 5 轮 |
-| **5-6 周** | 跑 3 分钟 / 走 1 分钟 × 6 轮 | 跑 5 / 走 1 × 4 轮 |
-| **7-8 周** | 跑 5 分钟 / 走 1 分钟 × 5 轮 | 连续跑 15 分钟 + 走 5 + 跑 10 |
-| **9-10 周** | 连续慢跑 20 分钟 | 连续慢跑 25 分钟 |
-| **11 周** | 连续慢跑 25 分钟 | 连续慢跑 30 分钟（约 4-5 公里） |
-| **12 周** | 轻松跑 15 分钟 × 2（减量） | 5K！ |
+| **Weeks 1-2** | Run 1 min / Walk 2 min × 8 rounds | Run 2 / Walk 3 × 5 rounds |
+| **Weeks 3-4** | Run 2 min / Walk 1.5 min × 7 rounds | Run 3 / Walk 2 × 5 rounds |
+| **Weeks 5-6** | Run 3 min / Walk 1 min × 6 rounds | Run 5 / Walk 1 × 4 rounds |
+| **Weeks 7-8** | Run 5 min / Walk 1 min × 5 rounds | Continuous run 15 min + Walk 5 + Run 10 |
+| **Weeks 9-10** | Continuous jog 20 min | Continuous jog 25 min |
+| **Week 11** | Continuous jog 25 min | Continuous jog 30 min (approx. 4-5 km) |
+| **Week 12** | Easy run 15 min × 2 (taper) | 5K! |
 
-**体能训练（周二）渐进**：第5周起每个动作加1组或多做3-5次；第9周起可加入跳跃动作（跳蹲、跳弓步）提升跑步爆发力。
-
----
-
-## 装备建议
-
-- **跑步鞋**：最重要的装备，去跑步专卖店试穿，合脚就好
-- **衣服**：速干面料，不穿棉质（出汗后又重又难受）
-- **App**：推荐 Nike Run Club 或 Keep 记录距离和配速
+**Strength Training (Tuesday) Progression**: Starting week 5, add 1 set or 3-5 extra reps per exercise; starting week 9, you can add plyometric moves (jump squats, jump lunges) to boost running power.
 
 ---
 
-## 附录
+## Equipment Recommendations
 
-### 什么是正确的跑步强度？
+- **Running shoes**: The most important piece of gear — visit a running specialty store to try them on, as long as they fit well
+- **Clothing**: Moisture-wicking fabric, avoid cotton (heavy and uncomfortable when sweaty)
+- **App**: Nike Run Club or Strava recommended to track distance and pace
 
-用"说话测试"就行，不需要看心率：
-- ✅ 跑步时能说出完整句子 → 强度正确
-- ⚠️ 只能说几个词就要喘 → 太快了，慢下来
-- ❌ 说不出话 → 走一会儿再跑
+---
 
-### 常见问题
+## Reference
 
-**"跑不动怎么办？"** — 走就对了。走和跑交替是科学的入门方法。
+### What is the correct running intensity?
 
-**"小腿很酸 / 胫骨前侧疼？"** — 可能是胫骨应力反应（shin splints），新手常见。减少跑步量，多做小腿拉伸和提踵，确保穿合适的跑步鞋。如果疼超过一周去看医生。
+Use the "talk test" — no need to check heart rate:
+- ✅ Can speak in full sentences while running → correct intensity
+- ⚠️ Can only say a few words before gasping → too fast, slow down
+- ❌ Can't speak at all → walk for a bit, then run again
 
-**"应该跑多快？"** — 作为新手，每次跑步都应该是"慢跑"。正确的速度 = 能一边跑一边和朋友聊天。
+### Common Questions
+
+**"What if I can't keep running?"** — Just walk. Alternating between walking and running is an effective, science-backed way to start.
+
+**"My calves are really sore / pain along the front of my shin?"** — This could be a shin stress reaction (shin splints), common in beginners. Reduce your running volume, do more calf stretches and calf raises, and make sure you're wearing proper running shoes. If the pain lasts more than a week, see a doctor.
+
+**"How fast should I run?"** — As a beginner, every run should be a "slow jog." The correct pace = being able to chat with a friend while running.

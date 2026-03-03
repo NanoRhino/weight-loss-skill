@@ -1,6 +1,6 @@
 ---
 name: exercise-logging
-description: Tracks workouts and exercise, estimates calories burned, and gives practical fitness feedback. Use when user logs a workout, describes physical activity, uploads a fitness tracker screenshot, or mentions exercise they did. Trigger phrases include "I ran...", "I did...", "just finished...", "log my workout", "went to the gym", "played basketball", "walked for...", "swam...", "lifted weights". Also trigger for Chinese equivalents like "跑了", "练了", "游了", "打了球", "去了健身房", "走了", "骑了", "做了运动". Even casual mentions of physical activity ("took the stairs", "biked to work", "散了个步") should trigger this skill. Also trigger when user uploads or pastes data from fitness devices (Apple Watch, Garmin, Strava, etc.) or asks for a weekly exercise summary. When in doubt about whether something is an exercise log, trigger anyway — it's better to ask than to miss a log.
+description: Tracks workouts and exercise, estimates calories burned, and gives practical fitness feedback. Use when user logs a workout, describes physical activity, uploads a fitness tracker screenshot, or mentions exercise they did. Trigger phrases include "I ran...", "I did...", "just finished...", "log my workout", "went to the gym", "played basketball", "walked for...", "swam...", "lifted weights". Even casual mentions of physical activity ("took the stairs", "biked to work") should trigger this skill. Also trigger when user uploads or pastes data from fitness devices (Apple Watch, Garmin, Strava, etc.) or asks for a weekly exercise summary. When in doubt about whether something is an exercise log, trigger anyway — it's better to ask than to miss a log.
 ---
 
 # Exercise Logging — FitTrack
@@ -57,7 +57,7 @@ If `weight` is missing on first trigger, ask the user and suggest they add it to
 When user logs exercise, follow these steps:
 
 1. **Parse the activity** → identify exercise type, duration, intensity, and any other provided details
-2. **Check for multiple activities** → if user describes more than one exercise (e.g., "先跑了30分钟，然后拉伸20分钟"), parse each activity separately and log them as an array
+2. **Check for multiple activities** → if user describes more than one exercise (e.g., "ran 30 minutes, then stretched for 20 minutes"), parse each activity separately and log them as an array
 3. **Classify the exercise(s)** → assign category for each (see Exercise Categories)
 4. **Fill missing fields** → use device data or MET estimation for calories; ask only if critical info is truly ambiguous
 5. **Log the exercise(s)** → produce a JSON response with `is_exercise_log: true`; use `exercises` array for multi-activity, single-item array for single activity
@@ -101,9 +101,9 @@ Read `references/met-table.md` for the full MET value table. Key principles:
 
 | User Description | Intensity | HR Zone (approx) | RPE |
 |-----------------|-----------|-------------------|-----|
-| Easy / light / 轻松 / 慢 | `low` | Zone 1-2 (50-65% max HR) | 1-3 |
-| Moderate / normal / 中等 / 一般 | `moderate` | Zone 3 (65-75% max HR) | 4-6 |
-| Hard / intense / 高强度 / 累 | `high` | Zone 4-5 (75-95% max HR) | 7-10 |
+| Easy / light | `low` | Zone 1-2 (50-65% max HR) | 1-3 |
+| Moderate / normal | `moderate` | Zone 3 (65-75% max HR) | 4-6 |
+| Hard / intense | `high` | Zone 4-5 (75-95% max HR) | 7-10 |
 
 If intensity is not stated: default to `moderate` for most activities, `high` for HIIT.
 
@@ -143,7 +143,7 @@ Read `references/risk-alerts.md` for detailed rules. Alert when:
 ### Trigger
 
 - **Sunday auto-append**: If today is Sunday and the user sends any message (exercise-related or not), append the weekly summary to your response. Handle the user's message normally first, then add the summary below a separator. If the user has already received a summary this Sunday, do not repeat it.
-- **Manual trigger**: User explicitly asks for a summary at any time ("总结一下这周运动" / "weekly summary" / "how did I do this week")
+- **Manual trigger**: User explicitly asks for a summary at any time ("weekly summary" / "how did I do this week")
 
 ### Content
 

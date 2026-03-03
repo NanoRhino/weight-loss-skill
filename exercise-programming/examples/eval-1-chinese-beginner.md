@@ -1,395 +1,395 @@
-# 用例 1：中文新手 · 商业健身房 · 减脂增肌 · 每周3天
+# Test Case 1: Beginner · Commercial Gym · Fat Loss + Muscle Gain · 3 Days/Week
 
-**用户输入：**
-> 我想开始健身，帮我制定一个训练计划。我是个完全的新手，从没去过健身房。男，28岁，175cm，80kg。目标是减脂增肌。每周能练3天，每次1小时。家附近有个商业健身房，器械挺全的。我比较喜欢力量训练，不太喜欢跑步。爬楼梯3-4层会微喘但还能说话。没有伤病。
-
----
-
-**Claude 回复：**
-
-根据你的情况，我给你设计了一个每周3天的全身训练计划。对新手来说全身训练效率最高——每个肌群每周刺激3次，进步很快。
-
-> ⚠️ 本训练计划仅供参考，不能替代专业医疗建议。正确的动作形式非常重要——建议前1-2周请健身房教练帮你看一下动作。
+**User Input:**
+> I want to start working out, help me create a training plan. I'm a complete beginner, never been to a gym. Male, 28, 175cm, 80kg. Goal is fat loss and muscle gain. Can train 3 days per week, 1 hour each. There's a commercial gym near my house with a good equipment selection. I prefer strength training and don't like running. I get slightly winded climbing 3-4 flights of stairs but can still talk. No injuries.
 
 ---
 
-## 每周总览
+**Claude Response:**
 
-| 周一 | 周二 | 周三 | 周四 | 周五 | 周六 | 周日 |
+Based on your profile, I've designed a 3-day full body training plan. Full body training is the most efficient for beginners — each muscle group gets stimulated 3 times per week, leading to faster progress.
+
+> ⚠️ This training plan is for informational and educational purposes only. It is not a substitute for professional medical advice. Proper form is critical — consider asking a gym trainer to check your form during the first 1-2 weeks.
+
+---
+
+## Weekly Overview
+
+| Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |------|------|------|------|------|------|------|
-| 全身训练 A | 休息 · 有氧 25min | 全身训练 B | 休息 · 有氧 25min | 全身训练 C | 休息 · 可选散步 | 完全休息 |
+| Full Body A | Rest · Cardio 25min | Full Body B | Rest · Cardio 25min | Full Body C | Rest · Optional walk | Full rest |
 
 ---
 
-### 周一：全身训练 A
-预计用时：~55 分钟
+### Monday: Full Body A
+Estimated duration: ~55 min
 
-#### 热身（约 8 分钟）
+#### Warm-up (~8 min)
 
-1. 椭圆机或动感单车慢骑 3 分钟
-2. 猫牛式 ×10
-3. 全球最伟大拉伸 (World's Greatest Stretch) ×5 每侧
-4. 徒手深蹲 ×10
-5. 俯卧撑 ×5-8（做不了标准可以扶较高平面做）
+1. Elliptical or stationary bike slow ride 3 min
+2. Cat-Cow ×10
+3. World's Greatest Stretch ×5 each side
+4. Bodyweight Squat ×10
+5. Push-up ×5-8 (if you can't do standard, use an elevated surface)
 
-#### 主训练
+#### Main Training
 
-**动作 1：高脚杯深蹲 (Goblet Squat)｜RPE 6-7**
-第3-4周可过渡到杠铃深蹲
+**Exercise 1: Goblet Squat | RPE 6-7**
+Can transition to barbell squat in weeks 3-4
 
-第 1 组 ×10-12
+Set 1 ×10-12
 
-休息 90 秒
+Rest 90 sec
 
-第 2 组 ×10-12
+Set 2 ×10-12
 
-休息 90 秒
+Rest 90 sec
 
-第 3 组 ×10-12
+Set 3 ×10-12
 
-休息 90 秒 → 换下一个动作
-
----
-
-**动作 2：哑铃平板卧推 (DB Bench Press)｜RPE 6-7**
-替代动作：器械推胸
-
-第 1 组 ×10-12
-
-休息 90 秒
-
-第 2 组 ×10-12
-
-休息 90 秒
-
-第 3 组 ×10-12
-
-休息 90 秒 → 换下一个动作
+Rest 90 sec → move to next exercise
 
 ---
 
-**动作 3：坐姿绳索划船 (Seated Cable Row)｜RPE 6-7**
-挺胸，肩胛骨向后收
+**Exercise 2: DB Bench Press | RPE 6-7**
+Alternative: chest press machine
 
-第 1 组 ×10-12
+Set 1 ×10-12
 
-休息 90 秒
+Rest 90 sec
 
-第 2 组 ×10-12
+Set 2 ×10-12
 
-休息 90 秒
+Rest 90 sec
 
-第 3 组 ×10-12
+Set 3 ×10-12
 
-休息 90 秒 → 换下一个动作
-
----
-
-**动作 4：哑铃罗马尼亚硬拉 (DB Romanian Deadlift)｜RPE 6-7**
-膝盖微弯，臀部往后推，感受后侧链拉伸
-
-第 1 组 ×10-12
-
-休息 90 秒
-
-第 2 组 ×10-12
-
-休息 90 秒
-
-第 3 组 ×10-12
-
-休息 60 秒 → 换下一个动作
+Rest 90 sec → move to next exercise
 
 ---
 
-**动作 5：平板支撑 (Plank)**
-逐渐从 20 秒增加到 45-60 秒
+**Exercise 3: Seated Cable Row | RPE 6-7**
+Chest up, retract shoulder blades
 
-第 1 组 ×20-30 秒
+Set 1 ×10-12
 
-休息 60 秒
+Rest 90 sec
 
-第 2 组 ×20-30 秒
+Set 2 ×10-12
 
-休息 60 秒
+Rest 90 sec
 
-第 3 组 ×20-30 秒
+Set 3 ×10-12
 
-#### 放松（约 5 分钟）
-
-1. 股四头肌拉伸 每侧 20 秒
-2. 腘绳肌拉伸 每侧 20 秒
-3. 胸肌门框拉伸 20 秒
-4. 背阔肌拉伸 每侧 20 秒
-
-动作参考视频：高脚杯深蹲 [▶](https://www.youtube.com/results?search_query=goblet+squat+form+megsquats) | 哑铃卧推 [▶](https://www.youtube.com/results?search_query=dumbbell+bench+press+form+jeff+nippard) | 绳索划船 [▶](https://www.youtube.com/results?search_query=seated+cable+row+form+renaissance+periodization) | 哑铃RDL [▶](https://www.youtube.com/results?search_query=dumbbell+romanian+deadlift+form+jeff+nippard) | 平板支撑 [▶](https://www.youtube.com/results?search_query=plank+form+squat+university)
+Rest 90 sec → move to next exercise
 
 ---
 
-### 周二：休息日
-- 椭圆机或动感单车 25-30 分钟，保持"能正常聊天"的强度
-- 不安排跑步（你不喜欢，椭圆机和单车减脂效果一样好）
-- 如果今天没时间，跳过也行，周四补上
+**Exercise 4: DB Romanian Deadlift | RPE 6-7**
+Slight knee bend, push hips back, feel the posterior chain stretch
+
+Set 1 ×10-12
+
+Rest 90 sec
+
+Set 2 ×10-12
+
+Rest 90 sec
+
+Set 3 ×10-12
+
+Rest 60 sec → move to next exercise
 
 ---
 
-### 周三：全身训练 B
-预计用时：~55 分钟
+**Exercise 5: Plank**
+Gradually increase from 20 sec to 45-60 sec
 
-#### 热身（约 8 分钟）
+Set 1 ×20-30 sec
 
-1. 动感单车慢骑 3 分钟
-2. 髋关节画圈 ×10 每侧
-3. 弓步行走 ×8 每侧
-4. 弹力带拉面 (Band Pull-Apart) ×15
+Rest 60 sec
 
-#### 主训练
+Set 2 ×20-30 sec
 
-**动作 1：腿举 (Leg Press)｜RPE 6-7**
-脚位居中，膝盖不内扣
+Rest 60 sec
 
-第 1 组 ×10-12
+Set 3 ×20-30 sec
 
-休息 90 秒
+#### Cooldown (~5 min)
 
-第 2 组 ×10-12
+1. Quad stretch 20 sec each side
+2. Hamstring stretch 20 sec each side
+3. Chest doorway stretch 20 sec
+4. Lat stretch 20 sec each side
 
-休息 90 秒
-
-第 3 组 ×10-12
-
-休息 90 秒 → 换下一个动作
+Exercise reference videos: Goblet Squat [▶](https://www.youtube.com/results?search_query=goblet+squat+form+megsquats) | DB Bench Press [▶](https://www.youtube.com/results?search_query=dumbbell+bench+press+form+jeff+nippard) | Seated Cable Row [▶](https://www.youtube.com/results?search_query=seated+cable+row+form+renaissance+periodization) | DB RDL [▶](https://www.youtube.com/results?search_query=dumbbell+romanian+deadlift+form+jeff+nippard) | Plank [▶](https://www.youtube.com/results?search_query=plank+form+squat+university)
 
 ---
 
-**动作 2：坐姿哑铃肩推 (Seated DB Shoulder Press)｜RPE 6-7**
-替代动作：器械肩推
-
-第 1 组 ×10-12
-
-休息 90 秒
-
-第 2 组 ×10-12
-
-休息 90 秒
-
-第 3 组 ×10-12
-
-休息 90 秒 → 换下一个动作
+### Tuesday: Rest Day
+- Elliptical or stationary bike 25-30 min, maintain a "can hold a conversation" intensity
+- No running scheduled (you don't like it, and elliptical/bike are equally effective for fat loss)
+- If you don't have time today, skip it and make it up on Thursday
 
 ---
 
-**动作 3：高位下拉 (Lat Pulldown)｜RPE 6-7**
-比肩略宽握距
+### Wednesday: Full Body B
+Estimated duration: ~55 min
 
-第 1 组 ×10-12
+#### Warm-up (~8 min)
 
-休息 90 秒
+1. Stationary bike slow ride 3 min
+2. Hip Circles ×10 each side
+3. Walking Lunges ×8 each side
+4. Band Pull-Apart ×15
 
-第 2 组 ×10-12
+#### Main Training
 
-休息 90 秒
+**Exercise 1: Leg Press | RPE 6-7**
+Feet centered, don't let knees cave in
 
-第 3 组 ×10-12
+Set 1 ×10-12
 
-休息 60 秒 → 换下一个动作
+Rest 90 sec
 
----
+Set 2 ×10-12
 
-**动作 4：臀桥 (Glute Bridge)｜RPE 6-7**
-熟练后可加哑铃在髋部
+Rest 90 sec
 
-第 1 组 ×15
+Set 3 ×10-12
 
-休息 60 秒
-
-第 2 组 ×15
-
-休息 60 秒
-
-第 3 组 ×15
-
-休息 60 秒 → 换下一个动作
+Rest 90 sec → move to next exercise
 
 ---
 
-**动作 5：死虫式 (Dead Bug)**
-核心稳定训练
+**Exercise 2: Seated DB Shoulder Press | RPE 6-7**
+Alternative: shoulder press machine
 
-第 1 组 ×8 每侧
+Set 1 ×10-12
 
-休息 60 秒
+Rest 90 sec
 
-第 2 组 ×8 每侧
+Set 2 ×10-12
 
-休息 60 秒
+Rest 90 sec
 
-第 3 组 ×8 每侧
+Set 3 ×10-12
 
-#### 放松（约 5 分钟）
-
-1. 髋屈肌弓步拉伸 每侧 20 秒
-2. 肩部拉伸 每侧 20 秒
-3. 背阔肌拉伸 每侧 20 秒
-4. 臀部拉伸 每侧 20 秒
-
-动作参考视频：腿举 [▶](https://www.youtube.com/results?search_query=leg+press+form+renaissance+periodization) | 哑铃肩推 [▶](https://www.youtube.com/results?search_query=seated+dumbbell+shoulder+press+megsquats) | 高位下拉 [▶](https://www.youtube.com/results?search_query=lat+pulldown+form+jeff+nippard) | 臀桥 [▶](https://www.youtube.com/results?search_query=glute+bridge+form+fitnessblender) | 死虫式 [▶](https://www.youtube.com/results?search_query=dead+bug+exercise+squat+university)
+Rest 90 sec → move to next exercise
 
 ---
 
-### 周四：休息日
-- 椭圆机或动感单车 25-30 分钟，轻松强度
-- 或者快步走 30 分钟也可以
-- 2-3 周后感觉越来越轻松，可以把其中一次改为间歇（单车冲刺 30 秒 / 慢骑 60 秒 × 8 轮）
+**Exercise 3: Lat Pulldown | RPE 6-7**
+Grip slightly wider than shoulder width
+
+Set 1 ×10-12
+
+Rest 90 sec
+
+Set 2 ×10-12
+
+Rest 90 sec
+
+Set 3 ×10-12
+
+Rest 60 sec → move to next exercise
 
 ---
 
-### 周五：全身训练 C
-预计用时：~55 分钟
+**Exercise 4: Glute Bridge | RPE 6-7**
+Once comfortable, add a dumbbell on hips
 
-#### 热身（约 8 分钟）
+Set 1 ×15
 
-1. 椭圆机 3 分钟
-2. 猫牛式 ×10
-3. 全球最伟大拉伸 ×5 每侧
-4. 徒手深蹲 ×10
-5. 弹力带肩环绕 ×10
+Rest 60 sec
 
-#### 主训练
+Set 2 ×15
 
-**动作 1：哑铃弓步 (DB Lunges)｜RPE 6-7**
-第3-4周可升级为保加利亚分腿蹲
+Rest 60 sec
 
-第 1 组 ×10 每侧
+Set 3 ×15
 
-休息 90 秒
-
-第 2 组 ×10 每侧
-
-休息 90 秒
-
-第 3 组 ×10 每侧
-
-休息 90 秒 → 换下一个动作
+Rest 60 sec → move to next exercise
 
 ---
 
-**动作 2：俯卧撑 (Push-up)｜RPE 7**
-做不了标准的先从跪姿开始
+**Exercise 5: Dead Bug**
+Core stability training
 
-第 1 组 ×8-12
+Set 1 ×8 each side
 
-休息 90 秒
+Rest 60 sec
 
-第 2 组 ×8-12
+Set 2 ×8 each side
 
-休息 90 秒
+Rest 60 sec
 
-第 3 组 ×8-12
+Set 3 ×8 each side
 
-休息 60 秒 → 换下一个动作
+#### Cooldown (~5 min)
 
----
+1. Hip flexor lunge stretch 20 sec each side
+2. Shoulder stretch 20 sec each side
+3. Lat stretch 20 sec each side
+4. Glute stretch 20 sec each side
 
-**动作 3：单臂哑铃划船 (Single-Arm DB Row)｜RPE 6-7**
-一手撑凳，背部保持平直
-
-第 1 组 左侧 ×10-12 → 右侧 ×10-12
-
-休息 60 秒
-
-第 2 组 左侧 ×10-12 → 右侧 ×10-12
-
-休息 60 秒
-
-第 3 组 左侧 ×10-12 → 右侧 ×10-12
-
-休息 90 秒 → 换下一个动作
+Exercise reference videos: Leg Press [▶](https://www.youtube.com/results?search_query=leg+press+form+renaissance+periodization) | DB Shoulder Press [▶](https://www.youtube.com/results?search_query=seated+dumbbell+shoulder+press+megsquats) | Lat Pulldown [▶](https://www.youtube.com/results?search_query=lat+pulldown+form+jeff+nippard) | Glute Bridge [▶](https://www.youtube.com/results?search_query=glute+bridge+form+fitnessblender) | Dead Bug [▶](https://www.youtube.com/results?search_query=dead+bug+exercise+squat+university)
 
 ---
 
-**动作 4：壶铃/哑铃硬拉 (KB/DB Deadlift)｜RPE 6-7**
-
-第 1 组 ×10-12
-
-休息 90 秒
-
-第 2 组 ×10-12
-
-休息 90 秒
-
-第 3 组 ×10-12
-
-休息 60 秒 → 换下一个动作
+### Thursday: Rest Day
+- Elliptical or stationary bike 25-30 min, easy intensity
+- Or a brisk walk for 30 min works too
+- After 2-3 weeks when it starts feeling easier, swap one session for intervals (bike sprint 30 sec / easy ride 60 sec × 8 rounds)
 
 ---
 
-**动作 5：农夫行走 (Farmer's Walk)**
-全身协调 + 握力训练
+### Friday: Full Body C
+Estimated duration: ~55 min
 
-第 1 组 30 米
+#### Warm-up (~8 min)
 
-休息 60 秒
+1. Elliptical 3 min
+2. Cat-Cow ×10
+3. World's Greatest Stretch ×5 each side
+4. Bodyweight Squat ×10
+5. Band Shoulder Dislocates ×10
 
-第 2 组 30 米
+#### Main Training
 
-休息 60 秒
+**Exercise 1: DB Lunges | RPE 6-7**
+Can upgrade to Bulgarian Split Squat in weeks 3-4
 
-第 3 组 30 米
+Set 1 ×10 each side
 
-#### 放松（约 5 分钟）
+Rest 90 sec
 
-1. 腘绳肌拉伸 每侧 20 秒
-2. 股四头肌拉伸 每侧 20 秒
-3. 胸肌拉伸 20 秒
-4. 髋屈肌拉伸 每侧 20 秒
+Set 2 ×10 each side
 
-动作参考视频：哑铃弓步 [▶](https://www.youtube.com/results?search_query=dumbbell+lunges+form+megsquats) | 俯卧撑进阶 [▶](https://www.youtube.com/results?search_query=push+up+progression+athleanx) | 单臂划船 [▶](https://www.youtube.com/results?search_query=single+arm+dumbbell+row+jeff+nippard) | 壶铃硬拉 [▶](https://www.youtube.com/results?search_query=kettlebell+deadlift+form+fitnessblender) | 农夫行走 [▶](https://www.youtube.com/results?search_query=farmers+walk+form+renaissance+periodization)
+Rest 90 sec
 
----
+Set 3 ×10 each side
 
-### 周六：休息日
-- 可以散步 20-30 分钟，或者做任何喜欢的轻度活动
-- 也可以完全休息
-
----
-
-### 周日：完全休息
-- 好好恢复，为下周充电
+Rest 90 sec → move to next exercise
 
 ---
 
-## 渐进计划
+**Exercise 2: Push-up | RPE 7**
+If you can't do standard, start from knees
 
-| 阶段 | 内容 |
+Set 1 ×8-12
+
+Rest 90 sec
+
+Set 2 ×8-12
+
+Rest 90 sec
+
+Set 3 ×8-12
+
+Rest 60 sec → move to next exercise
+
+---
+
+**Exercise 3: Single-Arm DB Row | RPE 6-7**
+One hand on bench, keep back flat
+
+Set 1 Left ×10-12 → Right ×10-12
+
+Rest 60 sec
+
+Set 2 Left ×10-12 → Right ×10-12
+
+Rest 60 sec
+
+Set 3 Left ×10-12 → Right ×10-12
+
+Rest 90 sec → move to next exercise
+
+---
+
+**Exercise 4: KB/DB Deadlift | RPE 6-7**
+
+Set 1 ×10-12
+
+Rest 90 sec
+
+Set 2 ×10-12
+
+Rest 90 sec
+
+Set 3 ×10-12
+
+Rest 60 sec → move to next exercise
+
+---
+
+**Exercise 5: Farmer's Walk**
+Full body coordination + grip training
+
+Set 1 30 m
+
+Rest 60 sec
+
+Set 2 30 m
+
+Rest 60 sec
+
+Set 3 30 m
+
+#### Cooldown (~5 min)
+
+1. Hamstring stretch 20 sec each side
+2. Quad stretch 20 sec each side
+3. Chest stretch 20 sec
+4. Hip flexor stretch 20 sec each side
+
+Exercise reference videos: DB Lunges [▶](https://www.youtube.com/results?search_query=dumbbell+lunges+form+megsquats) | Push-up Progression [▶](https://www.youtube.com/results?search_query=push+up+progression+athleanx) | Single-Arm DB Row [▶](https://www.youtube.com/results?search_query=single+arm+dumbbell+row+jeff+nippard) | KB Deadlift [▶](https://www.youtube.com/results?search_query=kettlebell+deadlift+form+fitnessblender) | Farmer's Walk [▶](https://www.youtube.com/results?search_query=farmers+walk+form+renaissance+periodization)
+
+---
+
+### Saturday: Rest Day
+- Go for a walk 20-30 min, or do any light activity you enjoy
+- Or take a full rest
+
+---
+
+### Sunday: Full Rest
+- Recover well and recharge for next week
+
+---
+
+## Progression Plan
+
+| Phase | Content |
 |------|------|
-| **第 1-2 周** | 学习动作，RPE 6-7，不急着加重 |
-| **第 3-4 周** | 渐进超负荷：RPE ≤7 → 加 2.5kg 或多做 1-2 次。动作升级：高脚杯深蹲→杠铃深蹲，弓步→保加利亚分腿蹲 |
-| **第 5 周（减载）** | 每个动作只做 2 组，重量不变 |
-| **第 6 周起** | 更高基准开始新循环 |
+| **Weeks 1-2** | Learn movements, RPE 6-7, no rush to add weight |
+| **Weeks 3-4** | Progressive overload: if RPE ≤7 → add 2.5kg or do 1-2 more reps. Exercise upgrades: Goblet Squat → Barbell Squat, Lunges → Bulgarian Split Squat |
+| **Week 5 (Deload)** | Only do 2 sets per exercise, same weight |
+| **Week 6 onward** | Start a new cycle at a higher baseline |
 
-建议用手机备忘录记录每次的动作、重量、次数——这是进步的关键。
+Track your exercises, weights, and reps using a notes app — this is the key to progress.
 
 ---
 
-## 附录
+## Reference
 
-### 强度标注说明 (RPE)
+### Intensity Scale (RPE)
 
-| RPE | 含义 |
+| RPE | Meaning |
 |-----|------|
-| 6 | 还能再做4次以上——比较轻松 |
-| 7 | 还能再做3次——中等 |
-| 8 | 还能再做2次——有挑战 |
+| 6 | Could do 4+ more reps — fairly easy |
+| 7 | Could do 3 more reps — moderate |
+| 8 | Could do 2 more reps — challenging |
 
-前两周所有动作目标 RPE 6-7，做完一组感觉"还有余力"就对了。
+For the first two weeks, aim for RPE 6-7 on all exercises. If you finish a set feeling like you "still have gas in the tank," you're on track.
 
-### 起始重量参考
+### Starting Weight Guide
 
-| 动作类型 | 建议起始重量 |
+| Exercise Type | Suggested Starting Weight |
 |---------|------------|
-| 上肢推（卧推、肩推） | 哑铃 6-10kg 每只，或空杠（20kg） |
-| 上肢拉（划船、下拉） | 哑铃 8-12kg 每只，或器械最轻档 |
-| 下肢（深蹲、硬拉） | 哑铃 8-12kg 高脚杯深蹲，或空杠 |
+| Upper body push (bench press, shoulder press) | 6-10kg dumbbells each hand, or empty barbell (20kg) |
+| Upper body pull (rows, pulldowns) | 8-12kg dumbbells each hand, or lightest machine setting |
+| Lower body (squats, deadlifts) | 8-12kg dumbbell for goblet squat, or empty barbell |
 
-做 10 次还很轻松 → 下组加重；做不到 8 次就力竭 → 太重，减一档。
+If 10 reps still feel easy → increase weight next set; if you hit failure before 8 reps → too heavy, drop one increment.

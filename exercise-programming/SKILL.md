@@ -1,6 +1,6 @@
 ---
 name: exercise-programming
-description: Designs personalized exercise and training programs based on user goals, experience, equipment, and health status. Use when user asks to create a workout plan, training program, exercise routine, or fitness schedule. Trigger phrases include "make me a workout", "design a training plan", "I want to start working out", "help me build a program", "exercise plan", "gym routine", "training split", "I need a fitness program". Also trigger for Chinese equivalents like "帮我制定训练计划", "健身计划", "运动方案", "我想开始锻炼", "练什么好". Trigger even for casual mentions like "what should I do at the gym", "how should I train", "I want to get stronger/lose weight/build muscle". When in doubt about whether something is an exercise programming request, trigger anyway.
+description: Designs personalized exercise and training programs based on user goals, experience, equipment, and health status. Use when user asks to create a workout plan, training program, exercise routine, or fitness schedule. Trigger phrases include "make me a workout", "design a training plan", "I want to start working out", "help me build a program", "exercise plan", "gym routine", "training split", "I need a fitness program". Trigger even for casual mentions like "what should I do at the gym", "how should I train", "I want to get stronger/lose weight/build muscle". When in doubt about whether something is an exercise programming request, trigger anyway.
 ---
 
 # Exercise Programming
@@ -34,7 +34,7 @@ Before designing any program, gather information across these categories. Ask co
 
 | Category | What to Ask | Notes |
 |----------|------------|-------|
-| **Training goal** | What's your primary goal? (增肌/减脂/力量/体能/体态矫正/综合健康/运动表现/跑步/柔韧性/产后恢复) | If multiple goals, ask user to rank priority |
+| **Training goal** | What's your primary goal? (muscle gain / fat loss / strength / fitness / posture correction / general health / athletic performance / running / flexibility / postpartum recovery) | If multiple goals, ask user to rank priority |
 | **Experience level** | How long have you been training regularly? | Map to: Beginner (<6 months) / Intermediate (6 months–3 years) / Advanced (3+ years) |
 | **Schedule** | How many days per week can you train, and how long per session? | This determines the training split |
 | **Equipment & venue** | Where do you train and what equipment is available? | Commercial gym / home gym / bodyweight only / outdoor |
@@ -84,11 +84,11 @@ The core design principles are:
 Always start with a **full week view from Monday to Sunday**. Every day appears — training days AND rest days. Rest days include cardio or active recovery recommendations.
 
 ```
-## 每周总览 / Weekly Overview
+## Weekly Overview
 
-| 周一 Mon | 周二 Tue | 周三 Wed | 周四 Thu | 周五 Fri | 周六 Sat | 周日 Sun |
+| Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---------|---------|---------|---------|---------|---------|---------|
-| 全身训练 A | 休息 · 快走30min | 全身训练 B | 休息 · 快走30min | 全身训练 C | 休息 · 可选轻度活动 | 休息 |
+| Full Body A | Rest · Brisk walk 30min | Full Body B | Rest · Brisk walk 30min | Full Body C | Rest · Optional light activity | Rest |
 ```
 
 Then write out each day (Mon through Sun) in order, including rest days.
@@ -100,52 +100,52 @@ Write the plan in **sequential order** — the user reads top to bottom and foll
 **Training day structure:**
 
 ```
-### 周一：全身训练 A
-预计用时：~55 分钟
+### Monday: Full Body A
+Estimated duration: ~55 min
 
-#### 热身（约 8 分钟）
+#### Warm-up (~8 min)
 
-1. 椭圆机慢骑 3 分钟
-2. 猫牛式 ×10
-3. 全球最伟大拉伸 ×5 每侧
-4. 徒手深蹲 ×10
+1. Elliptical slow ride 3 min
+2. Cat-Cow ×10
+3. World's Greatest Stretch ×5 each side
+4. Bodyweight Squat ×10
 
-#### 主训练
+#### Main Training
 
-**动作 1：高脚杯深蹲 (Goblet Squat)｜RPE 6-7**
+**Exercise 1: Goblet Squat｜RPE 6-7**
 
-第 1 组 ×10-12
+Set 1 ×10-12
 
-休息 90 秒
+Rest 90 sec
 
-第 2 组 ×10-12
+Set 2 ×10-12
 
-休息 90 秒
+Rest 90 sec
 
-第 3 组 ×10-12
+Set 3 ×10-12
 
-休息 90 秒 → 换下一个动作
+Rest 90 sec → next exercise
 
-**动作 2：哑铃平板卧推 (DB Bench Press)｜RPE 6-7**
+**Exercise 2: DB Bench Press｜RPE 6-7**
 
-第 1 组 ×10-12
+Set 1 ×10-12
 
-休息 90 秒
+Rest 90 sec
 
-第 2 组 ×10-12
+Set 2 ×10-12
 
-休息 90 秒
+Rest 90 sec
 
-第 3 组 ×10-12
+Set 3 ×10-12
 
-休息 90 秒 → 换下一个动作
+Rest 90 sec → next exercise
 
 ...
 
-#### 放松（约 5 分钟）
+#### Cooldown (~5 min)
 
-1. 股四头肌拉伸 每侧 20 秒
-2. 腘绳肌拉伸 每侧 20 秒
+1. Quad stretch 20 sec each side
+2. Hamstring stretch 20 sec each side
 ...
 ```
 
@@ -154,27 +154,27 @@ Write the plan in **sequential order** — the user reads top to bottom and foll
 1. **Straight sets** — complete ALL sets of one exercise before moving to the next. This is the default. Never circuit-style unless user specifically requests it.
 2. **Each exercise is a bold block** with name, English name, and RPE on the header line
 3. **Sets and rests each get their own line with a blank line between them** — this is critical for readability. Every set line, every rest line must be visually separated by a blank line
-4. **Rest between exercises** — the last rest line indicates transition (e.g., "休息 90 秒 → 换下一个动作")
+4. **Rest between exercises** — the last rest line indicates transition (e.g., "Rest 90 sec → next exercise")
 5. **No timestamps** — just sequential order from top to bottom
-6. **Form cues** go under the exercise header, before Set 1 (e.g., "膝盖微弯，臀部往后推")
+6. **Form cues** go under the exercise header, before Set 1 (e.g., "Slight knee bend, push hips back")
 7. **Warm-up and cooldown** use numbered lists (simpler, no sets/reps structure needed)
-8. **Merge identical repeating rounds** — when the same action repeats identically multiple times (e.g., run/walk intervals, stretch hold × 2 sides), write it once with a repeat count instead of listing each round individually. Example: "慢跑 1 分钟 → 快走 2 分钟，重复 8 轮" instead of writing out all 8 rounds. Strength training sets with rest between them should still be written out individually since the user needs to track each set.
+8. **Merge identical repeating rounds** — when the same action repeats identically multiple times (e.g., run/walk intervals, stretch hold × 2 sides), write it once with a repeat count instead of listing each round individually. Example: "Jog 1 min → brisk walk 2 min, repeat 8 rounds" instead of writing out all 8 rounds. Strength training sets with rest between them should still be written out individually since the user needs to track each set.
 
 **Rest day structure:**
 
 ```
-### 周二：休息日
-- 椭圆机或快走 25-30 分钟，轻松强度
-- 或者完全休息也可以
+### Tuesday: Rest Day
+- Elliptical or brisk walk 25-30 min, easy intensity
+- Or full rest is fine too
 ```
 
 ### Video Links
 
 **Principle: prefer one follow-along video per session over per-exercise links.**
 
-- **Home / bodyweight / yoga / beginner sessions**: Search for a single follow-along video matching the session. Present it at the top of the day: "跟练视频参考：[▶ 链接](link)"
+- **Home / bodyweight / yoga / beginner sessions**: Search for a single follow-along video matching the session. Present it at the top of the day: "Follow-along video: [▶ Link](link)"
   - If no single video matches, provide 2-3 grouped by section, NOT one per exercise
-- **Gym / strength sessions**: Provide a curated list of reference videos AFTER the full day's timeline. Example: "动作参考视频：深蹲 [▶](link) | 卧推 [▶](link) | 划船 [▶](link)"
+- **Gym / strength sessions**: Provide a curated list of reference videos AFTER the full day's timeline. Example: "Exercise reference videos: Squat [▶](link) | Bench Press [▶](link) | Row [▶](link)"
 
 Match channel to user level:
 - **Beginners / Home**: FitnessBlender, MegSquats
@@ -200,7 +200,7 @@ Include a brief note encouraging users to track their workouts — even just a n
 
 ### Supplementary Info Position
 
-RPE scale explanation, starting weight guidance, and other reference material should come AFTER the training plan, not before. The user wants to see the actual plan first. Place supplementary info at the end under a clear heading like "附录 / Reference".
+RPE scale explanation, starting weight guidance, and other reference material should come AFTER the training plan, not before. The user wants to see the actual plan first. Place supplementary info at the end under a clear heading like "Reference".
 
 ### Progression Overview
 

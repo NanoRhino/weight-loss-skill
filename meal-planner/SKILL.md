@@ -191,85 +191,85 @@ Snack:
 ● Plain Greek yogurt 1 cup (8 fl oz)
 ```
 
-### Chinese (中文) Pattern Template
+### Chinese Pattern Template
 
 ```markdown
-【饮食模式】
-早餐：一拳主食 + 一个蛋 + 200–500ml 无糖蛋白类饮品
-午餐：一拳主食 + 1–2 拳蔬菜 + 一拳肉类/豆制品
-晚餐：一拳主食 + 1–2 拳蔬菜 + 一拳肉类/豆制品
-加餐：200–350g 水果 + 10–15g 坚果
+【Diet Pattern】
+Breakfast: 1 fist-sized grain + 1 egg + 200–500ml unsweetened protein drink
+Lunch: 1 fist-sized grain + 1–2 fists vegetables + 1 fist-sized meat/tofu
+Dinner: 1 fist-sized grain + 1–2 fists vegetables + 1 fist-sized meat/tofu
+Snack: 200–350g fruit + 10–15g nuts
 
-【举例参考】
-早餐
-● 豆浆 1 杯
-● 水煮蛋 1 个
-● 菜包子 2 个
-午餐
-● 米饭 1 碗
-● 青椒炒鸡胸肉 1 盘
-● 蒜蓉西兰花 1 盘
-晚餐
-● 杂粮粥 1 碗
-● 番茄炒蛋 1 盘
-● 清蒸鱼 半条
-加餐
-● 巴旦木 10 颗
-● 苹果 1 个
+【Example】
+Breakfast
+● Soy milk — 1 cup
+● Boiled egg — 1
+● Steamed veggie buns — 2
+Lunch
+● Rice — 1 bowl
+● Stir-fried chicken breast with green peppers — 1 plate
+● Garlic broccoli — 1 plate
+Dinner
+● Multigrain porridge — 1 bowl
+● Tomato scrambled eggs — 1 plate
+● Steamed fish — half
+Snack
+● Almonds — 10
+● Apple — 1
 ```
 
-### Japanese (日本語) Pattern Template
+### Japanese Pattern Template
 
 ```markdown
-【食事パターン — 手ばかりガイド】
-朝食：握りこぶし 0.5–1 の主食 + 手のひら 1 のたんぱく質 + 乳製品 1 杯
-昼食：握りこぶし 0.5–1 の主食 + 握りこぶし 2 の野菜 + 手のひら 1 のたんぱく質
-夕食：握りこぶし 0.5–1 の主食 + 握りこぶし 2 の野菜 + 手のひら 1 のたんぱく質
-間食：果物 1–2 個 + ナッツ 10–15g
+【Meal Pattern — Hand Portion Guide】
+Breakfast: 0.5–1 fist grains + 1 palm protein + 1 cup dairy
+Lunch: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
+Dinner: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
+Snack: 1–2 fruits + nuts 10–15g
 
-🥣【例】
-朝食：
-● 玄米ごはん 茶碗半分 (75g)
-● ゆで卵 1 個
-● 無糖ヨーグルト 1 カップ (200ml)
-昼食：
-● 玄米ごはん 茶碗 1 杯 (150g)
-● 鶏むね肉のソテー 1 枚 (120g)
-● ブロッコリーとにんじんの温サラダ 2 カップ
-夕食：
-● そば (茹で) 0.5 人前 (100g)
-● 焼き鮭 1 切れ (100g)
-● ほうれん草とキノコのおひたし 2 カップ
-間食：
-● りんご 1 個
-● 素焼きアーモンド 10 粒
+🥣【Example】
+Breakfast:
+● Brown rice — half rice bowl (75g)
+● Boiled egg — 1
+● Unsweetened yogurt — 1 cup (200ml)
+Lunch:
+● Brown rice — 1 rice bowl (150g)
+● Sautéed chicken breast — 1 piece (120g)
+● Warm broccoli and carrot salad — 2 cups
+Dinner:
+● Soba noodles (cooked) — 0.5 serving (100g)
+● Grilled salmon — 1 fillet (100g)
+● Spinach and mushroom ohitashi — 2 cups
+Snack:
+● Apple — 1
+● Plain roasted almonds — 10
 ```
 
-### Korean (한국어) Pattern Template
+### Korean Pattern Template
 
 ```markdown
-【식사 패턴 — 손바닥 가이드】
-아침: 주먹 0.5–1 탄수화물 + 손바닥 1 단백질 + 유제품/두유 1 컵
-점심: 주먹 0.5–1 탄수화물 + 주먹 2 채소 + 손바닥 1 단백질
-저녁: 주먹 0.5–1 탄수화물 + 주먹 2 채소 + 손바닥 1 단백질
-간식: 과일 1–2 주먹 + 견과류 10–15g
+【Meal Pattern — Palm Portion Guide】
+Breakfast: 0.5–1 fist carbs + 1 palm protein + 1 cup dairy/soy milk
+Lunch: 0.5–1 fist carbs + 2 fists vegetables + 1 palm protein
+Dinner: 0.5–1 fist carbs + 2 fists vegetables + 1 palm protein
+Snack: 1–2 fists fruit + nuts 10–15g
 
-🥣【예시】
-아침:
-● 현미밥 반 공기 (75g)
-● 삶은 달걀 1 개
-● 무가당 두유 1 컵 (200ml)
-점심:
-● 현미밥 1 공기 (150g)
-● 닭가슴살 구이 1 덩이 (120g)
-● 브로콜리 & 당근 볶음 2 컵
-저녁:
-● 잡곡밥 반 공기 (75g)
-● 고등어구이 1 토막 (100g)
-● 시금치나물 & 콩나물 2 컵
-간식:
-● 사과 1 개
-● 아몬드 10 알
+🥣【Example】
+Breakfast:
+● Brown rice — half bowl (75g)
+● Boiled egg — 1
+● Unsweetened soy milk — 1 cup (200ml)
+Lunch:
+● Brown rice — 1 bowl (150g)
+● Grilled chicken breast — 1 piece (120g)
+● Stir-fried broccoli & carrots — 2 cups
+Dinner:
+● Multigrain rice — half bowl (75g)
+● Grilled mackerel — 1 piece (100g)
+● Spinach & bean sprout namul — 2 cups
+Snack:
+● Apple — 1
+● Almonds — 10
 ```
 
 ### Other Languages
@@ -286,19 +286,19 @@ Once you present the diet pattern, add the following message (in the user's lang
 > Would you like me to create a detailed 7-day meal plan as well?
 
 **Chinese:**
-> 之后按照这个模式吃就行，具体不用焦虑，直接把吃的发给我，我来帮你调整。
+> Going forward, just follow this pattern for your meals. Don't stress about getting it perfect — eat according to the pattern and send me what you had. I'll help you fine-tune from there.
 >
-> 需要我再出一个 7 天的详细饮食方案吗？
+> Would you like me to create a detailed 7-day meal plan as well?
 
 **Japanese:**
-> これからはこのパターンに沿って食べてみてください。完璧じゃなくて大丈夫です — 食べたものをそのまま送ってもらえれば、そこから調整します。
+> Going forward, just follow this pattern for your meals. Don't stress about getting it perfect — eat according to the pattern and send me what you had. I'll help you fine-tune from there.
 >
-> 7日間の詳しい食事プランも作りましょうか？
+> Would you like me to create a detailed 7-day meal plan as well?
 
 **Korean:**
-> 앞으로 이 패턴대로 드시면 됩니다. 완벽하지 않아도 괜찮아요 — 드신 걸 보내주시면 거기서 조정해 드릴게요.
+> Going forward, just follow this pattern for your meals. Don't stress about getting it perfect — eat according to the pattern and send me what you had. I'll help you fine-tune from there.
 >
-> 7일 상세 식단도 만들어 드릴까요?
+> Would you like me to create a detailed 7-day meal plan as well?
 
 **Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user doesn't ask for it, stop here — the diet pattern is sufficient to start.
 
@@ -335,8 +335,8 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 **Locale-appropriate foods.** Use foods that match the user's country/region and are available at their local grocery stores, markets, or restaurants. Don't recommend foods that are hard to find or culturally unfamiliar unless the user asks for them.
 
 - **US-based users:** grocery store staples — chicken breast, ground turkey, eggs, Greek yogurt, canned tuna, rice, oats, sweet potatoes, etc. Think Walmart, Trader Joe's, Costco.
-- **China-based users:** 鸡胸肉、鸡蛋、豆腐、鱼虾、糙米/杂粮饭、各类绿叶蔬菜、杂豆。Think 盒马、永辉、菜市场。
-- **Japan-based users:** 鶏むね肉、魚、豆腐、納豆、玄米、味噌汁、野菜。Think スーパー、コンビニ (convenience stores are a legitimate meal source in Japan).
+- **China-based users:** Chicken breast, eggs, tofu, fish/shrimp, brown rice/multigrain rice, leafy greens, mixed beans. Think local supermarkets and fresh markets.
+- **Japan-based users:** Chicken breast, fish, tofu, natto, brown rice, miso soup, vegetables. Think supermarkets and convenience stores (convenience stores are a legitimate meal source in Japan).
 - **Other regions:** Adapt accordingly based on local staple foods, common proteins, and typical grocery availability. When unsure, ask the user what's easy for them to get.
 
 **Build around cooking conditions:**
@@ -359,7 +359,7 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 Use **measurement units appropriate to the user's locale**:
 
 - **US users:** American household measurements as primary — oz, cups, tbsp, fl oz. Include gram equivalents in parentheses for people who use food scales: "6 oz (170g) chicken breast"
-- **Metric-region users (China, Japan, Europe, etc.):** Grams (g) and milliliters (ml) as primary units. Use everyday references that make sense locally (e.g., "一小碗米饭 ~150g", "手掌大小的鸡胸肉 ~120g")
+- **Metric-region users (China, Japan, Europe, etc.):** Grams (g) and milliliters (ml) as primary units. Use everyday references that make sense locally (e.g., "1 small bowl of rice ~150g", "palm-sized chicken breast ~120g")
 
 **Visual portion anchors** are helpful for people who don't measure:
 - Palm-sized portion of protein ≈ 3–4 oz (85–113g)
@@ -473,54 +473,54 @@ Chipotle — Chicken burrito bowl
 ### Chinese format example
 
 ```markdown
-## 周一 — 1,590 kcal | P 100g · C 172g · F 52g
+## Monday — 1,590 kcal | P 100g · C 172g · F 52g
 
-### 🍳 早餐 — 380 kcal | P 24g · C 46g · F 12g
-全麦吐司 + 煮鸡蛋 + 牛奶
-- 全麦吐司 — 2片 (100g)
-- 煮鸡蛋 — 1个 (50g)
-- 低脂芝士 — 1片 (20g)
-- 纯牛奶 — 1盒 (250ml)
+### 🍳 Breakfast — 380 kcal | P 24g · C 46g · F 12g
+Whole wheat toast + boiled egg + milk
+- Whole wheat toast — 2 slices (100g)
+- Boiled egg — 1 (50g)
+- Low-fat cheese — 1 slice (20g)
+- Whole milk — 1 carton (250ml)
 
-### 🥗 午餐 — 530 kcal | P 38g · C 58g · F 16g
-白切鸡 + 杂粮饭 + 炒青菜 [食堂/快餐]
-- 白切鸡（去皮）— 小半盘 (120g)
-- 杂粮饭 — 1小碗 (120g熟重)
-- 清炒芥兰 — 1份 (100g)
-- 紫菜蛋花汤 — 1小碗 (200ml)
-- 💡 和阿姨说"鸡肉多给点、饭少一点"，大部分食堂都能配合
+### 🥗 Lunch — 530 kcal | P 38g · C 58g · F 16g
+Poached chicken + multigrain rice + stir-fried greens [Cafeteria/Fast casual]
+- Poached chicken (skinless) — small portion (120g)
+- Multigrain rice — 1 small bowl (120g cooked)
+- Stir-fried Chinese broccoli — 1 serving (100g)
+- Seaweed egg drop soup — 1 small bowl (200ml)
+- 💡 Ask for extra chicken and less rice — most cafeterias will accommodate
 
-### 🍽️ 晚餐 — 500 kcal | P 30g · C 52g · F 18g [外卖]
-美团/饿了么 — 清蒸鲈鱼套餐
-- 点：清蒸鲈鱼 + 蒜蓉西兰花 + 米饭（小份）
-- 💡 备注"少油少盐"，米饭吃小半碗就够了，剩下的别硬吃
+### 🍽️ Dinner — 500 kcal | P 30g · C 52g · F 18g [Delivery]
+Food delivery — Steamed sea bass set meal
+- Order: Steamed sea bass + garlic broccoli + rice (small)
+- 💡 Add a note for 'less oil, less salt'. Half a small bowl of rice is enough — don't force yourself to finish the rest
 
-### 🍎 零食 — 180 kcal | P 8g · C 16g · F 6g
-- 无糖酸奶 — 1小杯 (130g)
-- 原味腰果 — 1小把 (15g)
-- 苹果 — 半个 (80g)
+### 🍎 Snack — 180 kcal | P 8g · C 16g · F 6g
+- Unsweetened yogurt — 1 small cup (130g)
+- Plain cashews — 1 small handful (15g)
+- Apple — half (80g)
 ```
 
 ### Japanese format example
 
 ```markdown
-## 月曜日 — 1,520 kcal | P 104g · C 170g · F 36g
+## Monday — 1,520 kcal | P 104g · C 170g · F 36g
 
-### 🍳 朝食 — 省略（IF 16:8のため）
+### 🍳 Breakfast — Skipped (IF 16:8)
 
-### 🥗 昼食 12:00 — 620 kcal | P 40g · C 72g · F 12g [コンビニ]
-セブン — サラダチキン + おにぎりセット
-- サラダチキン — 1パック (115g)
-- おにぎり — 2個（鮭・昆布）
-- カップ味噌汁 — 1個
-- 💡 「たんぱく質が摂れる」シリーズはマクロが明記されていて管理しやすい
+### 🥗 Lunch 12:00 — 620 kcal | P 40g · C 72g · F 12g [Convenience store]
+7-Eleven — Salad chicken + onigiri set
+- Salad chicken — 1 pack (115g)
+- Onigiri — 2 (salmon & kelp)
+- Cup miso soup — 1
+- 💡 The 'high protein' product lines have macros clearly labeled, making them easy to track
 
-### 🍽️ 夕食 19:00 — 590 kcal | P 42g · C 60g · F 14g
-鶏むね照り焼き + 玄米 + ブロッコリー
-- 鶏むね肉 — 1枚 (150g)
-- 玄米 — お茶碗1杯 (150g)
-- 冷凍ブロッコリー — 1カップ (100g)
-- 💡 ブロッコリーはレンジ2分でOK。鶏むねは前日に下味つけておくと楽
+### 🍽️ Dinner 19:00 — 590 kcal | P 42g · C 60g · F 14g
+Chicken breast teriyaki + brown rice + broccoli
+- Chicken breast — 1 piece (150g)
+- Brown rice — 1 rice bowl (150g)
+- Frozen broccoli — 1 cup (100g)
+- 💡 Microwave broccoli for 2 min. Marinate chicken breast the night before for easy prep
 ```
 
 ---
@@ -560,5 +560,5 @@ Accommodate what you can, but flag clearly: "I can build a plan around your nut 
 **User wants to eat out frequently:**
 This is completely valid — don't treat it as a problem to solve. Build restaurant/takeout/convenience store options directly into the plan as primary meals, not fallbacks. Include specific ordering guidance with approximate macros. Examples:
 - **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 cal, 42g P / 20g C / 30g F"
-- **China:** "沙县小吃：蒸饺8个 + 紫菜蛋花汤 — ~450 cal, 20g P / 55g C / 15g F"
-- **Japan:** "コンビニ：サラダチキン + おにぎり1個 + サラダ — ~450 cal, 30g P / 45g C / 10g F"
+- **China:** "Chinese dumplings: 8 steamed dumplings + seaweed egg drop soup — ~450 cal, 20g P / 55g C / 15g F"
+- **Japan:** "Convenience store: Salad chicken + 1 onigiri + salad — ~450 cal, 30g P / 45g C / 10g F"

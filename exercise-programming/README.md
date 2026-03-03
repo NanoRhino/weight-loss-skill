@@ -15,10 +15,10 @@ A Claude skill for designing personalized exercise and training programs. Covers
 │   ├── sport-specific-guide.md         # Sport-specific conditioning principles
 │   └── mental-health-chronic-adaptive-guide.md  # Chronic conditions, adaptive fitness, mental health
 ├── examples/                   # Sample outputs from testing
-│   ├── eval-1-chinese-beginner.md      # Chinese beginner, commercial gym, fat loss + muscle gain
-│   ├── eval-2-english-intermediate.md  # English intermediate, home gym, strength focus
-│   ├── eval-3-chinese-knee-injury.md   # Chinese female, knee injury, home dumbbells + yoga
-│   └── eval-4-5k-runner.md            # Chinese female, Couch-to-5K, outdoor bodyweight
+│   ├── eval-1-chinese-beginner.md      # Beginner, commercial gym, fat loss + muscle gain
+│   ├── eval-2-english-intermediate.md  # Intermediate, home gym, strength focus
+│   ├── eval-3-chinese-knee-injury.md   # Female, knee injury, home dumbbells + yoga
+│   └── eval-4-5k-runner.md            # Female, Couch-to-5K, outdoor bodyweight
 └── README.md
 ```
 
@@ -47,7 +47,7 @@ All plans use a sequential timeline format with:
 - Full Monday-to-Sunday weekly overview (training + rest days)
 - Each exercise as a bold block with sets/rests written individually
 - Blank lines between sets and rests for readability
-- Repeating identical rounds merged (e.g., "跑1分钟/走2分钟 × 8轮")
+- Repeating identical rounds merged (e.g., "Jog 1 min / Walk 2 min × 8 rounds")
 - Video links (follow-along for home; reference list for gym)
 - Supplementary info (RPE scale, starting weights) placed at end as appendix
 

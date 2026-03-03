@@ -334,7 +334,7 @@ When incorporating yoga or stretching, be aware of these contraindications:
 | Lower back | Deep forward folds, Wheel/Bridge with poor form, Plow Pose | Cat-Cow, Knees-to-Chest, Gentle Supine Twist, Child's Pose |
 | Shoulder | Chaturanga with poor form, Full Wheel, Behind-the-head stretches | Thread the Needle, Eagle Arms, Cross-body Shoulder Stretch |
 
-When in doubt, instruct the user to skip the pose and substitute with a gentler alternative. Always add a caveat: "如果这个姿势让膝盖/腰/肩感到不适，请跳过。"
+When in doubt, instruct the user to skip the pose and substitute with a gentler alternative. Always add a caveat: "If this pose causes discomfort in your knee/back/shoulder, please skip it."
 
 ### General Substitution Principle
 

@@ -4,14 +4,14 @@
     {
       "id": 1,
       "name": "first-ever-reminder",
-      "prompt": "[SYSTEM: First reminder ever. Lunch slot 11:45. user_profile.json: meals_per_day=3, meal_times=['07:00 breakfast','12:00 lunch','18:00 dinner'], language='zh-CN', name=null]",
+      "prompt": "[SYSTEM: First reminder ever. Lunch slot 11:45. user_profile.json: meals_per_day=3, meal_times=['07:00 breakfast','12:00 lunch','18:00 dinner'], language='en', name=null]",
       "expected_output": "Confirm schedule, set expectations, open conversation. All in one message.",
       "expectations": [
         "Confirms schedule with correct times (6:45, 11:45, 17:45)",
         "Sets expectation that replying is optional",
         "Opens conversation with a food question",
         "All three elements in one message",
-        "Uses Chinese",
+        "Responds in the user's language",
         "Does NOT use a name (name=null)",
         "Under 50 words equivalent"
       ]
@@ -19,7 +19,7 @@
     {
       "id": 2,
       "name": "personalization-repeat-food",
-      "prompt": "[SYSTEM: Dinner reminder 17:45. User logged 鸡胸肉+西兰花 for dinner 4 of last 5 days. zh-CN]",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. User logged chicken breast + broccoli for dinner 4 of last 5 days. en]",
       "expected_output": "References the food pattern. Choice question.",
       "expectations": [
         "References the repeated food",
@@ -33,7 +33,7 @@
     {
       "id": 3,
       "name": "user-changes-reminder-time",
-      "prompt": "[SYSTEM: Lunch reminder 11:45]\nUser: 我午饭其实一般1点才吃，能不能改到12:45提醒我？",
+      "prompt": "[SYSTEM: Lunch reminder 11:45]\nUser: I actually usually eat lunch at 1 PM, can you change the reminder to 12:45?",
       "expected_output": "Confirms change, transitions back to conversation.",
       "expectations": [
         "Confirms the time change",
@@ -46,7 +46,7 @@
     {
       "id": 4,
       "name": "user-stops-breakfast-reminders",
-      "prompt": "[SYSTEM: Breakfast reminder 6:45]\nUser: 早餐不用提醒了，我一般不吃早餐",
+      "prompt": "[SYSTEM: Breakfast reminder 6:45]\nUser: No need to remind me about breakfast, I usually skip it",
       "expected_output": "Stop reminders without judgment.",
       "expectations": [
         "Confirms breakfast reminders stopped",
@@ -60,7 +60,7 @@
     {
       "id": 5,
       "name": "recall-first",
-      "prompt": "[SYSTEM: User silent 2 full days. 6 reminders ignored. Zero messages. Trigger Stage 2. Lunch slot. zh-CN]",
+      "prompt": "[SYSTEM: User silent 2 full days. 6 reminders ignored. Zero messages. Trigger Stage 2. Lunch slot. en]",
       "expected_output": "Warm recall. Not a meal reminder. No guilt.",
       "expectations": [
         "Warm not guilt-inducing",
@@ -75,7 +75,7 @@
     {
       "id": 6,
       "name": "recall-second",
-      "prompt": "[SYSTEM: First recall sent 3 days ago, no reply. Trigger Stage 3. Dinner slot 17:45. zh-CN]",
+      "prompt": "[SYSTEM: First recall sent 3 days ago, no reply. Trigger Stage 3. Dinner slot 17:45. en]",
       "expected_output": "Lighter and shorter than first recall.",
       "expectations": [
         "Shorter than first recall",
@@ -89,13 +89,13 @@
     {
       "id": 7,
       "name": "silent-user-returns",
-      "prompt": "[SYSTEM: User in Stage 4 for 10 days.]\nUser: 好久没来了 不好意思",
+      "prompt": "[SYSTEM: User in Stage 4 for 10 days.]\nUser: It's been a while, sorry about that",
       "expected_output": "Warm greeting. Remove guilt. Offer to restart reminders.",
       "expectations": [
         "Warm greeting",
         "Does NOT ask where they've been",
         "Does NOT guilt-trip",
-        "Responds to '不好意思' by removing guilt",
+        "Responds to 'sorry about that' by removing guilt",
         "Offers to restart reminders",
         "Gives a non-reminder option too",
         "Does NOT immediately start a check-in"
@@ -104,7 +104,7 @@
     {
       "id": 8,
       "name": "soft-restart-day1",
-      "prompt": "[SYSTEM: User returned yesterday. Day 1 soft restart. Historical: dinner most replied. Only dinner reminder 17:45. zh-CN]",
+      "prompt": "[SYSTEM: User returned yesterday. Day 1 soft restart. Historical: dinner most replied. Only dinner reminder 17:45. en]",
       "expected_output": "Only 1 reminder. Normal tone. No meta-commentary about restart.",
       "expectations": [
         "Only dinner reminder sent",
@@ -117,13 +117,13 @@
     {
       "id": 9,
       "name": "weight-distress-self-hatred",
-      "prompt": "[SYSTEM: Weight reminder Mon 6:45]\nUser: 81kg了 越来越胖 我真的好讨厌自己",
+      "prompt": "[SYSTEM: Weight reminder Mon 6:45]\nUser: 81kg now, getting fatter and fatter, I really hate myself",
       "expected_output": "Log. Normalize briefly. Empathize with self-hatred. Flag body image.",
       "expectations": [
         "Logs 81kg",
         "Normalizes fluctuation briefly",
         "No science lecture",
-        "Empathizes with '讨厌自己'",
+        "Empathizes with 'hate myself'",
         "Does NOT agree or dismiss",
         "Does NOT reference goal weight (60kg)",
         "Writes body_image flag",
@@ -134,7 +134,7 @@
     {
       "id": 10,
       "name": "junk-food-no-judgment",
-      "prompt": "[SYSTEM: Dinner reminder 17:45]\nUser: 吃了一大包薯片和两杯奶茶 不想管了",
+      "prompt": "[SYSTEM: Dinner reminder 17:45]\nUser: Ate a whole bag of chips and two bubble teas, don't care anymore",
       "expected_output": "Log without judgment. Detect possible emotional context.",
       "expectations": [
         "Logs the food",
@@ -142,7 +142,7 @@
         "Does NOT suggest alternatives",
         "Does NOT moralize",
         "Brief response",
-        "Detects resignation ('不想管了') and adds soft door-opener if pattern suggests distress"
+        "Detects resignation ('don't care anymore') and adds soft door-opener if pattern suggests distress"
       ]
     }
   ]

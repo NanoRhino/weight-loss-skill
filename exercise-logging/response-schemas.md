@@ -28,7 +28,7 @@ Return this whenever the user logs a workout or exercise session. Supports singl
   "risk_alert": null,
   "is_exercise_log": true,
   "date": "2026-02-28",
-  "lang": "zh"
+  "lang": "en"
 }
 ```
 
@@ -36,7 +36,7 @@ Return this whenever the user logs a workout or exercise session. Supports singl
 
 - `exercises`: **array** of exercise objects. Single activity = array with one item. Multiple activities (e.g., "ran 30min then stretched 20min") = array with multiple items.
 - `category`: one of the six defined categories
-- `activity`: specific name in user's language (e.g., "跑步", "running", "游泳")
+- `activity`: specific name in user's language (e.g., "running", "swimming")
 - `duration_min`: integer, in minutes
 - `intensity`: `low` / `moderate` / `high`. If user provides RPE or HR, map to these three levels
 - `calories`: integer per exercise. If from device, use device value. If estimated via MET, prefix display text with `≈` (but store as integer in JSON)
@@ -45,7 +45,7 @@ Return this whenever the user logs a workout or exercise session. Supports singl
 - `distance_unit`: follows user's `unit_preference` or contextual language
 - `avg_hr` / `max_hr`: integer or null. Only when device data is available
 - `pace`: string or null (e.g., "5:30/km", "8:45/mi"). Calculated from distance + duration when both available
-- `feeling`: string or null. User's subjective description (e.g., "good", "tired", "轻松", "累")
+- `feeling`: string or null. User's subjective description (e.g., "good", "tired", "easy", "exhausted")
 - `source`: indicates data origin per exercise
   - `"user"` — all data from user description
   - `"device"` — all data from smart device
@@ -62,27 +62,27 @@ Default to today's date. If user indicates a different date, parse as follows:
 
 | User Expression | Parsing Rule | Example (today = 2026-02-28, Saturday) |
 |----------------|--------------|----------------------------------------|
-| "today" / "今天" | Current date | 2026-02-28 |
-| "yesterday" / "昨天" | Current date − 1 | 2026-02-27 |
-| "前天" / "day before yesterday" | Current date − 2 | 2026-02-26 |
-| "周三" / "Wednesday" / "on Wednesday" | Most recent past Wednesday (or today if today is Wednesday) | 2026-02-25 |
-| "上周五" / "last Friday" | Previous week's Friday | 2026-02-20 |
-| "2/25" / "2月25号" / "Feb 25" | Specific date, assume current year unless year is specified | 2026-02-25 |
-| "三天前" / "3 days ago" | Current date − N | 2026-02-25 |
+| "today" | Current date | 2026-02-28 |
+| "yesterday" | Current date − 1 | 2026-02-27 |
+| "day before yesterday" | Current date − 2 | 2026-02-26 |
+| "Wednesday" / "on Wednesday" | Most recent past Wednesday (or today if today is Wednesday) | 2026-02-25 |
+| "last Friday" | Previous week's Friday | 2026-02-20 |
+| "2/25" / "Feb 25" | Specific date, assume current year unless year is specified | 2026-02-25 |
+| "3 days ago" | Current date − N | 2026-02-25 |
 
 If the parsed date is in the future, ask user to confirm — likely a mistake.
 
 ### Examples
 
-**Single activity: "跑了5公里，用了30分钟" (weight: 70kg)**
+**Single activity: "Ran 5km in 30 minutes" (weight: 70kg)**
 
 ```json
 {
-  "message": "已记录！",
+  "message": "Logged!",
   "exercises": [
     {
       "category": "cardio",
-      "activity": "跑步",
+      "activity": "running",
       "duration_min": 30,
       "intensity": "moderate",
       "calories": 368,
@@ -96,23 +96,23 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
     }
   ],
   "total_calories": 368,
-  "feedback": "配速6分钟不错，≈368 kcal。中高强度有氧正好在高效燃脂区间。",
+  "feedback": "Solid 6:00/km pace, ≈368 kcal. Moderate-high intensity cardio is right in the efficient fat-burning zone.",
   "risk_alert": null,
   "is_exercise_log": true,
   "date": "2026-02-28",
-  "lang": "zh"
+  "lang": "en"
 }
 ```
 
-**Multiple activities: "今天先跑了30分钟，然后做了20分钟拉伸" (weight: 70kg)**
+**Multiple activities: "Today I ran for 30 minutes, then did 20 minutes of stretching" (weight: 70kg)**
 
 ```json
 {
-  "message": "已记录！",
+  "message": "Logged!",
   "exercises": [
     {
       "category": "cardio",
-      "activity": "跑步",
+      "activity": "running",
       "duration_min": 30,
       "intensity": "moderate",
       "calories": 280,
@@ -126,7 +126,7 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
     },
     {
       "category": "flexibility",
-      "activity": "拉伸",
+      "activity": "stretching",
       "duration_min": 20,
       "intensity": "low",
       "calories": 54,
@@ -140,11 +140,11 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
     }
   ],
   "total_calories": 334,
-  "feedback": "跑步+拉伸是很好的组合，≈334 kcal。跑后拉伸有助于恢复，减少肌肉酸痛。",
+  "feedback": "Running + stretching is a great combo, ≈334 kcal. Post-run stretching aids recovery and reduces muscle soreness.",
   "risk_alert": null,
   "is_exercise_log": true,
   "date": "2026-02-28",
-  "lang": "zh"
+  "lang": "en"
 }
 ```
 
@@ -178,15 +178,15 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
 }
 ```
 
-**Backdate: "昨天打了一小时羽毛球" (today is 2026-02-28)**
+**Backdate: "Played badminton for an hour yesterday" (today is 2026-02-28)**
 
 ```json
 {
-  "message": "已记录！",
+  "message": "Logged!",
   "exercises": [
     {
       "category": "sports",
-      "activity": "羽毛球",
+      "activity": "badminton",
       "duration_min": 60,
       "intensity": "moderate",
       "calories": 315,
@@ -200,11 +200,11 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
     }
   ],
   "total_calories": 315,
-  "feedback": "一小时羽毛球消耗≈315 kcal，全身都能练到，尤其是敏捷性和反应力。",
+  "feedback": "An hour of badminton burns ≈315 kcal — great full-body workout, especially for agility and reflexes.",
   "risk_alert": null,
   "is_exercise_log": true,
   "date": "2026-02-27",
-  "lang": "zh"
+  "lang": "en"
 }
 ```
 
@@ -240,6 +240,6 @@ Weekly summaries use the non-exercise response format with a structured `message
   "risk_alert": null,
   "is_exercise_log": false,
   "date": null,
-  "lang": "zh"
+  "lang": "en"
 }
 ```
