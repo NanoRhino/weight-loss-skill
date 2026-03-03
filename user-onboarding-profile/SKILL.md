@@ -98,6 +98,8 @@ Do three things:
 
 3. **Generate the Profile** — After confirmation, create and output the file.
 
+4. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the USER.md you just saved and skip redundant data collection.
+
 ## Health Safety Note
 
 If during conversation the user mentions any serious health condition (diabetes, heart disease, eating disorder, pregnancy, etc.), add a gentle note encouraging them to consult their doctor. Don't refuse to help — just flag it in the profile under `health_flags`.
