@@ -16,7 +16,7 @@ Your tone is warm, encouraging, and honest. You celebrate progress, gently corre
 
 ## Conversational Flow
 
-This skill is interactive. Walk the user through five steps, confirming at each stage before moving on. Don't dump everything at once — the conversation should feel like a consultation, not a printout.
+This skill is interactive. Walk the user through six steps, confirming at each stage before moving on. Don't dump everything at once — the conversation should feel like a consultation, not a printout.
 
 ---
 
@@ -76,10 +76,10 @@ Also calculate and show BMI with its classification for context, but don't make 
 
 ---
 
-### Step 2: Let User Adjust TDEE
+### Step 2: Confirm TDEE & Set Goals
 
 The user may:
-- Confirm the estimate as-is → proceed to Step 3
+- Confirm the estimate as-is → proceed
 - Provide new information ("actually I walk to work every day" or "I've been pretty sedentary lately") → recalculate and re-present
 - Manually pick a value within the range → accept it
 - Ask questions about the numbers → explain patiently
@@ -91,7 +91,7 @@ Once TDEE is confirmed, ask about their weight loss goal and diet mode preferenc
 - "Do you have a timeline in mind, or would you like me to recommend one?"
 - "Do you have a preferred eating style? For example, balanced, high-protein, low-carb, keto, Mediterranean, intermittent fasting, or plant-based. If you're not sure, I'll default to balanced — it works for most people."
 
-### Diet Mode Selection
+#### Diet Mode Selection
 
 See `references/diet-modes.md` for the full specification of each mode. The **Healthy U.S.-Style** mode follows the USDA Dietary Guidelines for Americans (AMDR ranges). Other modes intentionally deviate from AMDR based on their specific goals.
 
@@ -111,9 +111,11 @@ See `references/diet-modes.md` for the full specification of each mode. The **He
 
 Record the user's confirmed diet mode in the final report. The `meal-planner` skill will use this mode when building the actual food plan.
 
-### Diet Mode Overview — Presentation
+---
 
-After the user confirms their diet mode, present a **Diet Mode Overview** before proceeding to Step 3. This follows three internal steps: (1) confirm diet-mode adaptations, (2) calculate hand portions, (3) output the Meal Pattern + Example adapted to the user's country.
+### Step 3: Diet Mode Overview
+
+After the user confirms their diet mode, present a **Diet Mode Overview** before proceeding to Step 4. This follows three internal steps: (1) confirm diet-mode adaptations, (2) calculate hand portions, (3) output the Meal Pattern + Example adapted to the user's country.
 
 #### Step A — Confirm Diet-Mode Adaptations
 
@@ -197,7 +199,7 @@ Snack:
 
 End with a reassuring closing message (adapt to user's language): **"Just follow this general pattern — no need to stress over exact foods. When you eat, snap a photo or jot it down and send it to me. I'll help you stay on track!"**
 
-Then proceed to Step 3.
+Then proceed to Step 4.
 
 #### Worked Example (Balanced, 1,500 cal/day, 70 kg, US)
 
@@ -243,7 +245,7 @@ Total check: 420 + 140 + 240 + 80 + 600 = 1,480 ≈ 1,500 ✓
 
 ---
 
-### Step 3: Generate Milestone Plan
+### Step 4: Generate Milestone Plan
 
 Now you have: confirmed TDEE, current weight, target weight, and optionally a desired timeline.
 
@@ -326,7 +328,7 @@ Present the milestones in a clear table/structure, then ask:
 
 ---
 
-### Step 4: Let User Adjust the Plan
+### Step 5: Let User Adjust the Plan
 
 The user may want to:
 - **Speed up** → increase the weekly rate (recalculate calories; enforce safety floors)
@@ -338,7 +340,7 @@ Each adjustment triggers a recalculation. Re-present the updated plan and confir
 
 ---
 
-### Step 5: Output Final Structured Plan
+### Step 6: Output Final Structured Plan
 
 Once the user confirms, generate the final Markdown report. This is the deliverable — clean, structured, and ready to save.
 
