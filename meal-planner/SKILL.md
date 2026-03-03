@@ -380,7 +380,7 @@ Don't moralize about snacks. A 200-cal cookie that fits the macro budget is fine
 
 ## Step 5: Present the Plan & Let User Customize
 
-Present the 7-day plan in a structured Markdown format. See the template below.
+Present the 7-day plan in a clean, structured format. See the template below. **Do NOT mention "Markdown", filenames, or `.md` to the user** — these are internal implementation details.
 
 After presenting, ask:
 - "How does this look? Any meals you'd want to swap out?"
@@ -400,7 +400,7 @@ The user may want to:
 
 ## Step 6: Output Final Meal Plan
 
-Once confirmed, generate the final Markdown report. **Adapt the template to the user's locale** — use appropriate language, units, local food categories in the grocery list, and culturally relevant references.
+Once confirmed, generate the final meal plan report. **Adapt the template to the user's locale** — use appropriate language, units, local food categories in the grocery list, and culturally relevant references. **Do NOT mention "Markdown", filenames, or `.md` to the user** — just present the plan content directly.
 
 ### Output Format Rules
 
