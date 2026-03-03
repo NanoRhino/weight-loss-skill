@@ -213,7 +213,7 @@ Lunch:
 ● Garlic broccoli 1 plate
 Dinner:
 ● Mixed-grain congee 1 bowl
-● Tomato egg stir-fry 1 plate
+● Garlic shrimp stir-fry 1 plate
 ● Steamed fish half
 Snack:
 ● Almonds 10
@@ -347,6 +347,8 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 - **Separate components that store differently:** Pasta + sauce, soup + noodles, salad + dressing, congee + toppings — always store separately so the absorbent component doesn't degrade.
 - **Don't recommend pre-cutting fruit for the week.** Cut apples brown, cut avocado grays, cut bananas get mushy. Recommend whole fruit as snacks. Berries are the exception — they hold 2–3 days.
 - **Cap any single batch-prep dish at 3 consecutive days max.** Even great-storing dishes become monotonous. Alternate 2–3 different prep dishes per week.
+
+**Egg limit: 1 per day.** Cap whole-egg intake at one egg per day across all meals. This includes boiled eggs, fried eggs, tea eggs, braised eggs, and eggs as a primary ingredient in dishes like tomato egg stir-fry. If the user needs more protein, supplement with other sources — chicken breast, fish, tofu, Greek yogurt, cottage cheese, legumes, or protein powder. When a breakfast already includes an egg, do not schedule egg-heavy dishes (e.g., egg stir-fries, egg-drop soup, shakshuka) for other meals that day. Eggs used as a minor binding ingredient in cooking (e.g., a small amount of egg wash) do not count toward this limit.
 
 **Budget awareness.** Default to affordable staples. If recommending salmon, also offer a canned tuna alternative. If a recipe calls for pine nuts, suggest sunflower seeds as a swap.
 
@@ -510,7 +512,7 @@ Curry beef + rice + roasted pumpkin
 
 ### 🍽️ Dinner — 510 kcal | P 34g · C 50g · F 18g [Eating out]
 Lanzhou Noodle Shop — Beef noodle soup
-- Order: beef noodle soup + braised egg
+- Order: beef noodle soup + braised beef side dish
 - 💡 The broth is oily — go easy on the soup. Eat the noodles, meat, and veggies, skip the rest.
 
 ### 🍎 Snack — 180 kcal | P 8g · C 18g · F 6g
