@@ -162,7 +162,7 @@ Each adjustment triggers a recalculation. Re-present the updated plan and confir
 
 ### Step 4: Output Final Structured Plan
 
-Once the user confirms, generate the final Markdown report. This is the deliverable — clean, structured, and ready to save.
+Once the user confirms, generate the final plan report. This is the deliverable — clean, structured, and ready to save. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
 
 Use this template structure (adapt content based on the user's specific numbers):
 
@@ -247,13 +247,13 @@ not fat).
 - Keep up the exercise routine you've built — it's now part of your lifestyle
 ```
 
-Save this as a Markdown file `PLAN.md` in current workspace and present it to the user.
+**Internal action (do NOT mention to user):** Silently save the plan as `PLAN.md` in the current workspace. Do not tell the user the filename, file format, or that a file is being saved — just present the plan content directly in the conversation.
 
 ---
 
 ## Progress Check-In & Continuation
 
-**Cross-session continuity:** Claude does not retain memory between conversations. When a user returns to check in or report progress, ask them to upload their previously saved plan Markdown file so you can pick up where they left off. If no file is available, ask for their current weight and goal to reconstruct context.
+**Cross-session continuity:** Claude does not retain memory between conversations. When a user returns to check in or report progress, ask them to upload their previously saved plan file so you can pick up where they left off. If no file is available, ask for their current weight and goal to reconstruct context.
 
 When a user reports progress (e.g., "I'm at 70 kg now!"):
 1. Celebrate genuinely — acknowledge the effort, not just the number

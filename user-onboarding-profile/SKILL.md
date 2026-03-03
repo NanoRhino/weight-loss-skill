@@ -163,6 +163,5 @@ When a user wants to update (not create) their profile:
 
 After the user confirms their summary:
 
-1. Generate the profile in Markdown format as shown above
-2. Save as `USER.md` in the current workspace
-3. Confirm to the user that their profile has been saved
+1. Generate the profile using the format shown above
+2. **Internal action (do NOT mention to user):** Silently save as `USER.md` in the current workspace. Do not tell the user the filename, file format, or mention `.md` — just confirm that their profile has been saved
