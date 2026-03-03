@@ -113,21 +113,35 @@ Record the user's confirmed diet mode in the final report. The `meal-planner` sk
 
 ### Diet Mode Overview — Presentation
 
-After the user confirms their diet mode, calculate macros and present a **Diet Mode Overview** before proceeding to Step 3. This overview translates abstract macro numbers into a concrete eating picture — the user should be able to visualize what their day actually looks like before committing to the plan.
+After the user confirms their diet mode, present a **Diet Mode Overview** before proceeding to Step 3. This follows three internal steps: (1) confirm diet-mode adaptations, (2) calculate hand portions, (3) output the Meal Pattern + Example adapted to the user's country.
 
-#### Hand Portion Reference
+#### Step A — Confirm Diet-Mode Adaptations
 
-| Component | 1 Portion | US Measure | ≈ Cal |
-|---|---|---|---|
-| Grains (cooked) | 1 fist | 1 cup | 200 |
-| Lean protein | 1 palm | 4 oz | 140 |
-| Non-starchy vegetables | 1 fist | 1 cup | 35 |
-| Fruit | 1 fist | 1 medium / 1 cup | 80 |
-| Dairy / protein drink | — | 1 cup (8 fl oz) | 120 |
+The default meal structure (grains + protein + vegetables + fruit + dairy) applies to **Balanced / USDA / High-Protein / Mediterranean** modes. For specialized modes, apply the adaptations below **before** running the portion calculation:
 
-#### Portion Calculation
+| Mode | Meal Structure Adaptations |
+|---|---|
+| **Low-Carb** | Reduce grain fists (typically 0.5 per meal or less); increase protein palm by 0.5; add a fat portion (1 thumb ≈ 1 tbsp oil/butter ≈ 120 cal) to lunch and dinner |
+| **Keto** | Replace grains with low-carb options (cauliflower rice, lettuce wraps); fruit limited to 0.5 cup berries; add 2–3 fat portions/day; replace skim milk with full-fat options |
+| **Plant-Based** | Replace animal proteins with plant equivalents (tofu 8 oz, tempeh 4 oz, lentils 1 cup, or edamame 1 cup per palm-equivalent); keep dairy for vegetarian, replace with fortified soy milk for vegan |
+| **IF (16:8)** | Same food choices compressed into 2 meals + 1 snack within the 8-hour window; redistribute portions proportionally into larger meals |
+| **IF (5:2)** | Normal days use the standard template; low days (500–600 cal) use a simplified 2-meal pattern with protein + vegetables only |
 
-Given the user's daily calorie target (`totalCal`) and protein display value from the macro calculation (see `references/formulas.md`), determine hand portions as follows. **Round every portion to the nearest 0.5** — never display smaller fractions (e.g., show 1.5, never 1.3 or 1.7).
+#### Step B — Hand Portion Reference & Portion Calculation
+
+**Hand Portion Reference** (with macronutrient breakdown for calculation):
+
+| Component | 1 Portion | US Measure | ≈ Cal | Protein | Carbs | Fat |
+|---|---|---|---|---|---|---|
+| Grains (cooked) | 1 fist | 1 cup | 200 | 5g | 40g | 2g |
+| Lean protein | 1 palm | 4 oz | 140 | 28g | 0g | 3g |
+| Non-starchy vegetables | 1 fist | 1 cup | 35 | 2g | 7g | 0g |
+| Fruit | 1 fist | 1 medium / 1 cup | 80 | 0g | 20g | 0g |
+| Dairy / protein drink | — | 1 cup (8 fl oz) | 120 | 12g | 12g | 2g |
+
+**Non-starchy vegetables** (broccoli, spinach, bell peppers, zucchini, carrots, asparagus, mushrooms, cauliflower, etc.) are freely interchangeable at equal volume.
+
+**Portion Calculation:** Given the user's daily calorie target (`totalCal`) and protein display value from the macro calculation (see `references/formulas.md`), determine hand portions. **Round every portion to the nearest 0.5** — never display smaller fractions (e.g., show 1.5, never 1.3 or 1.7).
 
 ```
 1. dairy_cups    = 2  (1 at breakfast + 1 at snack)
@@ -152,9 +166,9 @@ Given the user's daily calorie target (`totalCal`) and protein display value fro
 
 Display each meal's grain fists as a **range**: `per_meal` to `per_meal + 0.5`, giving the user daily flexibility. If `per_meal` < 0.5, set the range floor to 0.5.
 
-#### Output Template
+#### Step C — Output Meal Pattern + Example
 
-Present the overview in three sections. The **regional flag emoji** and **section labels** adapt to the user's language/region; food names and units use local conventions. US defaults shown below.
+Present the overview in two sections. Adapt the output to the **user's country**: use the appropriate regional flag emoji, translate section labels into the user's language, and select locally common foods with local units in the Example. US defaults shown below.
 
 **Section 1 — Macro Table** (see `references/formulas.md` for calculation):
 
@@ -166,7 +180,7 @@ Present the overview in three sections. The **regional flag emoji** and **sectio
 > | Fat | [X]% of cal | [X]g | ~[X]g | [X]–[X]g |
 > | Carbs | remainder | [X]g | ~[X]g | [X]–[X]g |
 
-**Section 2 — Meal Pattern, Example, and Food Exchange List:**
+**Section 2 — Meal Pattern + Example:**
 
 ```
 [Flag]【Meal Pattern — Hand Portion Guide】
@@ -191,57 +205,7 @@ Dinner:
 Snack:
 ● [Fruit] [count / X cup(s)]
 ● [Dairy/protein drink] [X cup (X fl oz)]
-
-🔄【Food Exchange List — swap any item within the same group】
-
-🌾 Grains (1 fist ≈ 200 cal):
-  ● Oatmeal (cooked) — 1 cup
-  ● Brown rice (cooked) — 1 cup
-  ● Whole-wheat pasta (cooked) — 1 cup
-  ● Quinoa (cooked) — 1 cup
-  ● Whole-wheat bread — 2 slices
-  ● Sweet potato (baked) — 1 medium (5 oz)
-  ● Corn tortillas (6") — 3
-
-🥩 Protein (1 palm ≈ 140 cal):
-  ● Chicken breast (skinless) — 4 oz
-  ● Turkey breast — 4 oz
-  ● Salmon fillet — 3.5 oz
-  ● 93% lean ground beef — 3.5 oz
-  ● Shrimp (peeled) — 5 oz
-  ● Pork tenderloin — 4 oz
-  ● Large eggs — 2
-  ● Canned tuna (in water) — 1 can (5 oz)
-
-🍎 Fruit (1 fist ≈ 80 cal):
-  ● Apple — 1 medium
-  ● Banana — 1 medium
-  ● Orange — 1 large
-  ● Strawberries — 1.5 cups
-  ● Blueberries — 1 cup
-  ● Grapes — 1 cup
-
-🥛 Dairy / Protein Drink (1 cup ≈ 120 cal):
-  ● 2% milk — 1 cup (8 fl oz)
-  ● Skim milk — 1.5 cups (12 fl oz)
-  ● Plain Greek yogurt — 1 cup (8 fl oz)
-  ● Low-fat kefir — 1 cup (8 fl oz)
-  ● Whey protein (1 scoop + water) — 12 fl oz
 ```
-
-**Non-starchy vegetables** (broccoli, spinach, bell peppers, zucchini, carrots, asparagus, mushrooms, cauliflower, etc.) are freely interchangeable at equal volume — all roughly 25–50 cal per cup.
-
-#### Diet-Mode Adaptations
-
-The template above is the default for **Balanced / USDA / High-Protein / Mediterranean** modes. For specialized modes, adapt as follows:
-
-| Mode | Key Changes to Template |
-|---|---|
-| **Low-Carb** | Reduce grain fists (typically 0.5 per meal or less); increase protein palm by 0.5; add a fat portion (1 thumb ≈ 1 tbsp oil/butter ≈ 120 cal) to lunch and dinner |
-| **Keto** | Replace grains with low-carb options (cauliflower rice, lettuce wraps); fruit limited to 0.5 cup berries; add 2–3 fat portions/day; replace skim milk with full-fat options |
-| **Plant-Based** | Replace animal proteins with plant equivalents (tofu 8 oz, tempeh 4 oz, lentils 1 cup, or edamame 1 cup per palm-equivalent); keep dairy for vegetarian, replace with fortified soy milk for vegan |
-| **IF (16:8)** | Same food choices compressed into 2 meals + 1 snack within the 8-hour window; redistribute portions proportionally into larger meals |
-| **IF (5:2)** | Normal days use the standard template; low days (500–600 cal) use a simplified 2-meal pattern with protein + vegetables only |
 
 #### Worked Example (Balanced, 1,500 cal/day, 70 kg, US)
 
@@ -252,7 +216,7 @@ The template above is the default for **Balanced / USDA / High-Protein / Mediter
 ```
 dairy_cups    = 2            → dairy protein = 24g
 protein_palms = round((98 − 24) / 28) = round(2.6) = 2.5 → round up to 3 (1+1+1)
-                3 × 28 + 24 = 108g — within range 84–112g ✓
+                protein check: 3×28 + 2×12 = 108g — within range 84–112g ✓
 veg_fists     = 4
 fruit_fists   = 1
 remaining_cal = 1,500 − (3×140 + 4×35 + 2×120 + 1×80) = 1,500 − 880 = 620
