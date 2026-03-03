@@ -6,30 +6,30 @@ Return this whenever the user logs food or accepts a suggestion adjustment.
 
 ```json
 {
-  "message": "简短确认",
+  "message": "Brief confirmation in user's language",
   "logged_items": [
     {
-      "name": "食物名（含品牌，如有）",
-      "portion": "量+单位"
+      "name": "Food name (include brand if applicable)",
+      "portion": "Amount + unit"
     }
   ],
   "meal_type": "breakfast|lunch|dinner|snack_am|snack_pm",
   "meal_totals": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
-  "nice_work": "鼓励或null",
+  "nice_work": "Encouragement or null",
   "suggestions": {
-    "right_now": "当餐建议或null",
-    "next_time": "下次建议或null（right_now有值时必须为null）"
+    "right_now": "Current meal suggestion or null",
+    "next_time": "Next time suggestion or null (must be null when right_now has value)"
   },
   "is_food_log": true,
   "missing_meal_forgotten": null,
   "assumed_intake": null,
-  "lang": "zh"
+  "lang": "en"
 }
 ```
 
 ### Field Notes
 
-- `logged_items`: array of all foods in this meal. Each item includes name and portion only — no per-item calories or macros. If the food has a brand (e.g., "星巴克拿铁", "Kirkland 坚果"), include the brand in the name field. For adjustment responses (user accepted a suggestion), include the complete list of all foods after adjustment — not just the new items.
+- `logged_items`: array of all foods in this meal. Each item includes name and portion only — no per-item calories or macros. If the food has a brand (e.g., "Starbucks latte", "Kirkland trail mix"), include the brand in the name field. For adjustment responses (user accepted a suggestion), include the complete list of all foods after adjustment — not just the new items.
 - `portion`: use the user's own units or everyday references, never raw grams unless the user specified grams. Prefix `~` for estimated portions.
 - `meal_totals`: the whole meal's totals — this is the ONLY place per-meal nutrition numbers appear. Individual food items do not carry nutrition values. For adjustment responses, this is the full meal total after adjustment, not the net difference.
 - `suggestions.right_now` and `suggestions.next_time` are mutually exclusive — never both non-null.
@@ -45,16 +45,16 @@ Return this for food-workflow interactions that don't produce a log entry: porti
 
 ```json
 {
-  "message": "回复或追问",
+  "message": "Response or follow-up question in user's language",
   "logged_items": null,
   "meal_type": null,
   "meal_totals": null,
   "nice_work": null,
   "suggestions": null,
   "is_food_log": false,
-  "missing_meal_forgotten": "breakfast或lunch或null",
+  "missing_meal_forgotten": "breakfast or lunch or null",
   "assumed_intake": { "cal": 0, "protein": 0, "fat": 0, "carb": 0 },
-  "lang": "zh"
+  "lang": "en"
 }
 ```
 
@@ -67,4 +67,4 @@ Return this for food-workflow interactions that don't produce a log entry: porti
 
 ## Nutrition Data Source
 
-Use USDA FoodData Central as the primary source for calorie and macro estimates. For Chinese foods not well-covered by USDA, use China CDC food composition tables as a secondary source.
+Use USDA FoodData Central as the primary source for calorie and macro estimates. For regional foods not well-covered by USDA (e.g., Chinese, Japanese, Korean dishes), use the appropriate national food composition databases as a secondary source (e.g., China CDC food composition tables, Japan Standard Tables of Food Composition).

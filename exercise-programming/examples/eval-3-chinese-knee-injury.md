@@ -1,242 +1,242 @@
-# 用例 3：中文女性 · 膝盖半月板损伤 · 家庭哑铃+瑜伽垫 · 每周2天
+# Test Case 3: Female · Knee Meniscus Injury · Home Dumbbells + Yoga Mat · 2 Days/Week
 
-**用户输入：**
-> 我膝盖有半月板损伤，医生说可以运动但要避免深蹲和跑步。我想保持身体健康，改善体能。女，45岁。每周能练2天，每次45分钟。只能在家练，有一对哑铃和瑜伽垫。喜欢瑜伽，不喜欢高强度运动。爬楼梯3层就明显喘需要停一下。
-
----
-
-**Claude 回复：**
-
-完全理解你的情况。我给你设计了一个安全温和的居家方案，所有动作都避开深蹲和跑步，融入你喜欢的瑜伽。
-
-> ⚠️ 本训练计划仅供参考。你有半月板损伤，**强烈建议开始前咨询一位物理治疗师**，确认以下动作适合你。训练中如果膝盖出现关节疼痛（不是肌肉酸痛），请立即停止该动作。
+**User Input:**
+> I have a knee meniscus injury. My doctor said I can exercise but should avoid squats and running. I want to stay healthy and improve my fitness. Female, 45 years old. I can train 2 days per week, 45 minutes each session. I can only work out at home — I have a pair of dumbbells and a yoga mat. I like yoga but don't like high-intensity exercise. I get noticeably winded climbing 3 flights of stairs and need to stop for a moment.
 
 ---
 
-## 每周总览
+**Claude Response:**
 
-| 周一 | 周二 | 周三 | 周四 | 周五 | 周六 | 周日 |
-|------|------|------|------|------|------|------|
-| 散步 10-15min | 全身训练 + 瑜伽 | 散步 10-15min | 休息 | 散步 10-15min | 全身训练 + 瑜伽 | 休息 |
+Completely understood. I've designed a safe and gentle home program for you. All exercises avoid squats and running, and incorporate the yoga you enjoy.
 
----
-
-### 周一：散步日
-- 散步 10-15 分钟，轻松步伐，不用刻意快走
-- 第 3 周起可以增加到 15-20 分钟
-- 走不了也没关系，能走就走
+> ⚠️ This training plan is for reference only. You have a meniscus injury — **I strongly recommend consulting a physical therapist before starting** to confirm these exercises are appropriate for you. If you experience joint pain in your knee during training (not muscle soreness), stop that exercise immediately.
 
 ---
 
-### 周二：全身训练 + 瑜伽放松
-预计用时：~45 分钟
+## Weekly Overview
 
-跟练视频参考：
-[▶ 低冲击全身哑铃训练（无深蹲无跳跃）](https://www.youtube.com/results?search_query=low+impact+full+body+dumbbell+workout+no+squats+no+jumping+fitnessblender)
-
-#### 热身（约 5 分钟）
-
-1. 原地踏步 2 分钟，轻松节奏
-2. 猫牛式 (Cat-Cow) ×10，跟着呼吸走
-3. 仰卧髋关节画圈 ×8 每侧
-4. 臀桥 ×10（热身用，激活臀部）
-
-#### 主训练
-
-**动作 1：臀桥 (Glute Bridge)｜RPE 6**
-膝盖友好，激活臀部
-第 1 组 ×12-15
-休息 60 秒
-第 2 组 ×12-15
-休息 60 秒
-第 3 组 ×12-15
-休息 90 秒 → 换下一个动作
-
-**动作 2：哑铃罗马尼亚硬拉 (DB Romanian Deadlift)｜RPE 6-7**
-膝盖微弯保持不动，臀部往后推
-第 1 组 ×10-12
-休息 90 秒
-第 2 组 ×10-12
-休息 90 秒
-第 3 组 ×10-12
-休息 60 秒 → 换下一个动作
-
-**动作 3：跪姿俯卧撑 (Kneeling Push-up)｜RPE 6-7**
-在瑜伽垫上做，保护膝盖
-第 1 组 ×8-10
-休息 60 秒
-第 2 组 ×8-10
-休息 60 秒
-第 3 组 ×8-10
-休息 60 秒 → 换下一个动作
-
-**动作 4：哑铃单臂划船 (Single-Arm DB Row)｜RPE 6-7**
-一手撑椅子（椅子靠墙放防滑）
-第 1 组 左侧 ×10 → 右侧 ×10
-休息 60 秒
-第 2 组 左侧 ×10 → 右侧 ×10
-休息 60 秒
-第 3 组 左侧 ×10 → 右侧 ×10
-休息 60 秒 → 换下一个动作
-
-**动作 5：仰卧直腿抬高 (Straight-Leg Raise)**
-温和锻炼股四头肌，维持膝盖周围肌力
-第 1 组 左腿 ×10 → 右腿 ×10
-休息 60 秒
-第 2 组 左腿 ×10 → 右腿 ×10
-
-#### 瑜伽放松（约 12 分钟）
-
-以下体式都避开了对膝盖有压力的姿势：
-
-1. 猫牛式 ×8，温和版
-2. 仰卧抱膝 (Knees to Chest) — 1 分钟
-3. 仰卧脊柱扭转 (Supine Twist) — 左侧 1 分钟
-4. 仰卧脊柱扭转 — 右侧 1 分钟
-5. 仰卧4字拉伸 (Reclined Figure-4 Stretch) — 左侧 1 分钟
-   **代替鸽子式**，膝盖压力小得多
-6. 仰卧4字拉伸 — 右侧 1 分钟
-7. 仰卧腘绳肌拉伸 — 用毛巾套脚掌辅助，左侧 1 分钟
-8. 仰卧腘绳肌拉伸 — 右侧 1 分钟
-9. 仰卧束角式 (Reclined Butterfly) — 1 分钟
-10. 挺尸式 (Savasana) — 3 分钟，闭眼，深呼吸
-
-> 如果任何姿势让膝盖感到不适，请直接跳过。
+| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
+|--------|---------|-----------|----------|--------|----------|--------|
+| Walk 10–15 min | Full Body + Yoga | Walk 10–15 min | Rest | Walk 10–15 min | Full Body + Yoga | Rest |
 
 ---
 
-### 周三：散步日
-- 散步 10-15 分钟，可以在小区或公园走走
+### Monday: Walking Day
+- Walk 10–15 minutes at a relaxed pace, no need to power walk
+- Starting week 3, you can increase to 15–20 minutes
+- If you can't walk, that's okay — walk when you can
 
 ---
 
-### 周四：休息
-- 完全休息，让身体恢复
+### Tuesday: Full Body + Yoga Cool-down
+Estimated duration: ~45 minutes
+
+Follow-along video reference:
+[▶ Low-Impact Full Body Dumbbell Workout (No Squats, No Jumping)](https://www.youtube.com/results?search_query=low+impact+full+body+dumbbell+workout+no+squats+no+jumping+fitnessblender)
+
+#### Warm-up (~5 minutes)
+
+1. Marching in place 2 minutes, easy pace
+2. Cat-Cow ×10, sync with your breathing
+3. Supine Hip Circles ×8 each side
+4. Glute Bridge ×10 (warm-up to activate glutes)
+
+#### Main Workout
+
+**Exercise 1: Glute Bridge | RPE 6**
+Knee-friendly, activates the glutes
+Set 1 ×12–15
+Rest 60 seconds
+Set 2 ×12–15
+Rest 60 seconds
+Set 3 ×12–15
+Rest 90 seconds → move to next exercise
+
+**Exercise 2: DB Romanian Deadlift | RPE 6–7**
+Slight knee bend held steady, push hips back
+Set 1 ×10–12
+Rest 90 seconds
+Set 2 ×10–12
+Rest 90 seconds
+Set 3 ×10–12
+Rest 60 seconds → move to next exercise
+
+**Exercise 3: Kneeling Push-up | RPE 6–7**
+Do these on the yoga mat to protect your knees
+Set 1 ×8–10
+Rest 60 seconds
+Set 2 ×8–10
+Rest 60 seconds
+Set 3 ×8–10
+Rest 60 seconds → move to next exercise
+
+**Exercise 4: Single-Arm DB Row | RPE 6–7**
+One hand on a chair (place chair against a wall to prevent sliding)
+Set 1 Left ×10 → Right ×10
+Rest 60 seconds
+Set 2 Left ×10 → Right ×10
+Rest 60 seconds
+Set 3 Left ×10 → Right ×10
+Rest 60 seconds → move to next exercise
+
+**Exercise 5: Supine Straight-Leg Raise**
+Gently works the quads, maintaining muscle strength around the knee
+Set 1 Left leg ×10 → Right leg ×10
+Rest 60 seconds
+Set 2 Left leg ×10 → Right leg ×10
+
+#### Yoga Cool-down (~12 minutes)
+
+All poses below avoid positions that put pressure on the knee:
+
+1. Cat-Cow ×8, gentle version
+2. Knees to Chest — 1 minute
+3. Supine Twist — left side 1 minute
+4. Supine Twist — right side 1 minute
+5. Reclined Figure-4 Stretch — left side 1 minute
+   **Replaces Pigeon Pose**, much less knee pressure
+6. Reclined Figure-4 Stretch — right side 1 minute
+7. Supine Hamstring Stretch — use a towel looped around the foot, left side 1 minute
+8. Supine Hamstring Stretch — right side 1 minute
+9. Reclined Butterfly — 1 minute
+10. Savasana — 3 minutes, eyes closed, deep breathing
+
+> If any pose causes discomfort in your knee, skip it.
 
 ---
 
-### 周五：散步日
-- 散步 10-15 分钟，感觉好可以走久一点
+### Wednesday: Walking Day
+- Walk 10–15 minutes, stroll around your neighborhood or a park
 
 ---
 
-### 周六：全身训练 + 瑜伽放松
-预计用时：~45 分钟
-
-跟练视频参考：
-[▶ 低冲击居家训练（适合初学者）](https://www.youtube.com/results?search_query=low+impact+home+workout+dumbbells+no+jumping+no+squats+megsquats)
-
-#### 热身（约 5 分钟）
-
-1. 原地踏步 2 分钟
-2. 猫牛式 ×10
-3. 髋关节画圈 ×8 每侧
-4. 鸟狗式 (Bird Dog) ×6 每侧
-
-#### 主训练
-
-**动作 1：哑铃臀推 (DB Hip Thrust)｜RPE 6-7**
-背靠沙发（推到墙边防滑），哑铃放髋部
-第 1 组 ×12-15
-休息 60 秒
-第 2 组 ×12-15
-休息 60 秒
-第 3 组 ×12-15
-休息 90 秒 → 换下一个动作
-
-**动作 2：哑铃硬拉 (DB Deadlift)｜RPE 6-7**
-从地面起，和周二的 RDL 是不同的动作模式
-第 1 组 ×10-12
-休息 90 秒
-第 2 组 ×10-12
-休息 90 秒
-第 3 组 ×10-12
-休息 60 秒 → 换下一个动作
-
-**动作 3：坐姿哑铃肩推 (Seated DB Shoulder Press)｜RPE 6-7**
-坐在椅子上做
-第 1 组 ×10-12
-休息 60 秒
-第 2 组 ×10-12
-休息 60 秒
-第 3 组 ×10-12
-休息 60 秒 → 换下一个动作
-
-**动作 4：俯身哑铃反向飞鸟 (DB Reverse Fly)｜RPE 6-7**
-改善圆肩体态
-第 1 组 ×12-15
-休息 60 秒
-第 2 组 ×12-15
-休息 60 秒
-第 3 组 ×12-15
-休息 60 秒 → 换下一个动作
-
-**动作 5：侧卧蚌式 (Clamshell)**
-臀中肌训练，帮助膝关节稳定性
-第 1 组 左侧 ×12 → 右侧 ×12
-休息 60 秒
-第 2 组 左侧 ×12 → 右侧 ×12
-
-#### 瑜伽放松（约 12 分钟）
-
-1. 婴儿式 (Child's Pose) — 1 分钟
-   如果膝盖深屈不舒服，大腿和小腿之间垫一个枕头
-2. 坐姿前屈 (Seated Forward Fold) — 1 分钟
-3. 坐姿扭转 (Seated Twist) — 左侧 1 分钟
-4. 坐姿扭转 — 右侧 1 分钟
-5. 快乐婴儿式 (Happy Baby) — 1 分钟，保持温和
-6. 腿靠墙式 (Legs Up the Wall) — 3 分钟，促进循环
-7. 仰卧束角式 — 1 分钟
-8. 挺尸式 (Savasana) — 3 分钟
-
-> 如果任何姿势让膝盖感到不适，请直接跳过。
+### Thursday: Rest
+- Full rest, let your body recover
 
 ---
 
-### 周日：休息
-- 完全休息，好好恢复
+### Friday: Walking Day
+- Walk 10–15 minutes, go longer if you feel good
 
 ---
 
-## 渐进计划
+### Saturday: Full Body + Yoga Cool-down
+Estimated duration: ~45 minutes
 
-| 阶段 | 内容 |
-|------|------|
-| **第 1-2 周** | 轻哑铃，RPE 6，重点是熟悉动作 |
-| **第 3-4 周** | 感觉轻松了 → 每组多做 2 次，或放慢动作（下降数3秒） |
-| **第 5 周（减载）** | 每个动作只做 2 组，多做瑜伽放松 |
-| **第 6 周起** | 新一轮：单腿臀桥代替双腿、增加次数、或稍加重 |
+Follow-along video reference:
+[▶ Low-Impact Home Workout (Beginner-Friendly)](https://www.youtube.com/results?search_query=low+impact+home+workout+dumbbells+no+jumping+no+squats+megsquats)
 
-**如果哑铃是固定重量不能调节**，完全没问题：
-- 增加次数（12→15→20）
-- 放慢速度（下降3秒，底部停顿2秒）
-- 进阶到单侧（双腿臀桥→单腿臀桥）
-- 减少组间休息（60秒→45秒）
+#### Warm-up (~5 minutes)
 
-## 重要提醒
+1. Marching in place 2 minutes
+2. Cat-Cow ×10
+3. Hip Circles ×8 each side
+4. Bird Dog ×6 each side
 
-- 肌肉酸痛（臀部或大腿后侧酸）= 正常
-- **关节疼痛（膝盖锐痛、肿胀）= 不正常** → 立即停止，持续请联系医生
+#### Main Workout
+
+**Exercise 1: DB Hip Thrust | RPE 6–7**
+Back against the couch (push it against the wall to prevent sliding), dumbbell on hips
+Set 1 ×12–15
+Rest 60 seconds
+Set 2 ×12–15
+Rest 60 seconds
+Set 3 ×12–15
+Rest 90 seconds → move to next exercise
+
+**Exercise 2: DB Deadlift | RPE 6–7**
+From the floor — a different movement pattern from Tuesday's RDL
+Set 1 ×10–12
+Rest 90 seconds
+Set 2 ×10–12
+Rest 90 seconds
+Set 3 ×10–12
+Rest 60 seconds → move to next exercise
+
+**Exercise 3: Seated DB Shoulder Press | RPE 6–7**
+Sit on a chair
+Set 1 ×10–12
+Rest 60 seconds
+Set 2 ×10–12
+Rest 60 seconds
+Set 3 ×10–12
+Rest 60 seconds → move to next exercise
+
+**Exercise 4: DB Reverse Fly | RPE 6–7**
+Improves rounded-shoulder posture
+Set 1 ×12–15
+Rest 60 seconds
+Set 2 ×12–15
+Rest 60 seconds
+Set 3 ×12–15
+Rest 60 seconds → move to next exercise
+
+**Exercise 5: Clamshell**
+Gluteus medius training, helps with knee joint stability
+Set 1 Left ×12 → Right ×12
+Rest 60 seconds
+Set 2 Left ×12 → Right ×12
+
+#### Yoga Cool-down (~12 minutes)
+
+1. Child's Pose — 1 minute
+   If deep knee flexion is uncomfortable, place a pillow between your thighs and calves
+2. Seated Forward Fold — 1 minute
+3. Seated Twist — left side 1 minute
+4. Seated Twist — right side 1 minute
+5. Happy Baby — 1 minute, keep it gentle
+6. Legs Up the Wall — 3 minutes, promotes circulation
+7. Reclined Butterfly — 1 minute
+8. Savasana — 3 minutes
+
+> If any pose causes discomfort in your knee, skip it.
 
 ---
 
-## 附录
+### Sunday: Rest
+- Full rest, recover well
 
-### 强度标注说明 (RPE)
+---
 
-| RPE | 含义 |
-|-----|------|
-| 6 | 还能再做4次以上——比较轻松 |
-| 7 | 还能再做3次——中等 |
+## Progression Plan
 
-前两周目标 RPE 6，感觉"还很轻松"就对了。
+| Phase | Details |
+|-------|---------|
+| **Weeks 1–2** | Light dumbbells, RPE 6, focus on learning the movements |
+| **Weeks 3–4** | Feeling easier → add 2 reps per set, or slow down the tempo (3-second lowering phase) |
+| **Week 5 (Deload)** | Only do 2 sets per exercise, more yoga cool-down |
+| **Week 6 onward** | New cycle: single-leg glute bridge instead of double-leg, increase reps, or slightly increase weight |
 
-### 起始重量参考
+**If your dumbbells are fixed weight and can't be adjusted**, that's perfectly fine:
+- Increase reps (12 → 15 → 20)
+- Slow down the tempo (3-second lowering, 2-second pause at the bottom)
+- Progress to single-leg variations (double-leg glute bridge → single-leg glute bridge)
+- Reduce rest between sets (60 sec → 45 sec)
 
-| 动作类型 | 建议起始重量 |
-|---------|------------|
-| 上肢推（肩推、俯卧撑） | 2-4kg 每只 |
-| 上肢拉（划船、飞鸟） | 4-6kg 每只 |
-| 下肢（硬拉、臀推） | 4-8kg 每只 |
+## Important Reminders
 
-做 10 次还很轻松 → 下次可加重或加次数；做不到 8 次 → 太重了。
+- Muscle soreness (glutes or hamstrings feeling sore) = normal
+- **Joint pain (sharp knee pain, swelling) = not normal** → stop immediately, see a doctor if it persists
+
+---
+
+## Appendix
+
+### Intensity Rating Guide (RPE)
+
+| RPE | Meaning |
+|-----|---------|
+| 6 | Could do 4+ more reps — fairly easy |
+| 7 | Could do 3 more reps — moderate |
+
+For the first two weeks, aim for RPE 6. If it feels "still pretty easy," you're on track.
+
+### Starting Weight Reference
+
+| Movement Type | Suggested Starting Weight |
+|--------------|--------------------------|
+| Upper body push (shoulder press, push-ups) | 2–4 kg each |
+| Upper body pull (rows, flyes) | 4–6 kg each |
+| Lower body (deadlifts, hip thrusts) | 4–8 kg each |
+
+If 10 reps still feel easy → add weight or reps next time. If you can't reach 8 reps → too heavy.

@@ -368,6 +368,6 @@ The ACSM uses the pre-participation screening algorithm (ACSM 2022):
 ### How to Phrase It
 
 When medical clearance is needed, say:
-> "建议在开始之前先咨询你的医生，确认这个训练计划适合你的情况。把这个计划带给医生看，让他们帮你评估一下。"
+> "I'd recommend checking with your doctor before starting, just to make sure this plan is a good fit for your situation. You can show them this plan and get their input." (Adapt to the user's language.)
 
 Do NOT say "you need a doctor's permission" (too paternalistic) or "you might die if you exercise" (fear-inducing). Frame it as a smart, collaborative step.

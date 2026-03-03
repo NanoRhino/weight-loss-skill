@@ -47,7 +47,7 @@ All plans use a sequential timeline format with:
 - Full Monday-to-Sunday weekly overview (training + rest days)
 - Each exercise as a bold block with sets/rests written individually
 - Blank lines between sets and rests for readability
-- Repeating identical rounds merged (e.g., "跑1分钟/走2分钟 × 8轮")
+- Repeating identical rounds merged (e.g., "Jog 1 min / walk 2 min × 8 rounds")
 - Video links (follow-along for home; reference list for gym)
 - Supplementary info (RPE scale, starting weights) placed at end as appendix
 
