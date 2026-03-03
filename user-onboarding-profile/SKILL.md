@@ -68,9 +68,9 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Round 4 — Meal timing:**
 
-Ask about their daily eating schedule. Don't assume three meals — some people eat twice or even once a day. Keep the question open-ended. Explain why. **Important:** Do NOT say "last question" or "one more thing" here — there are still optional questions after this round.
+Ask about their daily eating schedule. Don't assume three meals — some people eat twice or even once a day. Keep the question open-ended. Explain that you'll send a check-in reminder **15 minutes before each meal** — this is why you need their times. **Important:** Do NOT say "last question" or "one more thing" here — there are still optional questions after this round.
 
-> Example: "Got it! Next I'd like to know — how many meals do you usually eat per day, and roughly what times? This helps me plan around your actual routine instead of giving you a generic schedule."
+> Example: "Got it! Next I'd like to know — how many meals do you usually eat per day, and roughly what times? I'll send you a check-in reminder 15 minutes before each meal, so knowing your actual schedule helps me remind you at the right time instead of guessing."
 
 ### Step 2 — Optional Fields (user chooses)
 
@@ -89,9 +89,9 @@ If the user engages, collect whatever they share in 1 round. If they say "that's
 
 Do three things:
 
-1. **Brief summary** — Show the user a readable summary (not raw JSON) of what you collected. Keep it to a few lines.
+1. **Brief summary** — Show the user a readable summary (not raw JSON) of what you collected. Keep it to a few lines. Include the calculated **check-in reminder times** (each meal time minus 15 min) so the user can see exactly when they'll be reminded. Example: "I'll send check-in reminders at 6:45, 11:45, 17:45 — 15 minutes before each meal."
 
-2. **Ask for confirmation** — "Does this look right? Anything you'd like to change?"
+2. **Ask for confirmation** — "Does this look right? Anything you'd like to change?" — users may want to adjust meal times after seeing the reminder schedule.
 
 3. **Generate the Profile** — After confirmation, create and output the file.
 
@@ -125,6 +125,7 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 - **Core Motivation:** [string | —]
 - **Meals per Day:** [number | —]
 - **Meal Times:** [e.g. 08:00 breakfast, 12:30 lunch, 19:00 dinner | —]
+- **Reminder Times:** [calculated: each meal time − 15 min, e.g. 07:45, 12:15, 18:45 | —]
 
 ## Lifestyle
 
@@ -141,6 +142,64 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 
 - **Recommended Approach:** [initial high-level recommendation based on collected data]
 ```
+
+## Meal Check-in Reminder — Trigger Strategy
+
+The profile's `Meal Times` and `Reminder Times` drive the daily check-in system.
+Below is how reminders are triggered after onboarding completes.
+
+### Schedule
+
+Reminders fire **15 min before** each meal time from `Goals > Meal Times`.
+
+Example — user profile says:
+```
+Meal Times: 07:00 breakfast, 12:00 lunch, 18:00 dinner
+```
+→ Reminders at 6:45, 11:45, 17:45.
+
+Weight reminders: Mon & Thu, at first meal time minus 15 min.
+
+### Pre-send Checks
+
+Run in order. Any fail = don't send.
+
+1. Quiet hours? (before 6 AM / after 9 PM) → skip
+2. User in silent mode? (Stage 4) → skip
+3. This meal already logged today? → skip
+4. User in active conversation? → delay 30 min, re-check
+5. Number of reminders per day must not exceed `Goals > Meals per Day`
+6. All clear → send
+
+### Lifecycle: Active → Recall → Silent
+
+```
+Stage 1: ACTIVE — normal reminders
+    │
+    └── 2 full calendar days: zero replies + zero messages
+           │
+Stage 2: PAUSE — stop all reminders, send first recall
+    │
+    ├── User replies → back to Stage 1
+    └── 3 days, no reply
+           │
+Stage 3: SECOND RECALL — one final message
+    │
+    ├── User replies → back to Stage 1
+    └── No reply → Stage 4
+           │
+Stage 4: SILENT — send nothing. Wait for user to return.
+```
+
+### Adaptive Timing
+
+| Signal | Action |
+|--------|--------|
+| Consistently replies 30+ min late | Shift that meal's reminder time |
+| Never replies to breakfast (2+ weeks) | Stop breakfast reminders |
+| Weekend pattern differs | Adjust weekend timing separately |
+
+---
 
 ## Updating an Existing Profile
 
