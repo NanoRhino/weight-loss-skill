@@ -79,9 +79,9 @@ The core design principles are:
 
 ## Step 3: Present the Plan
 
-### Weekly Overview — Monday to Sunday
+### Weekly Overview — Monday to Sunday (Mandatory)
 
-Always start with a **full week view from Monday to Sunday**. Every day appears — training days AND rest days. Rest days include cardio or active recovery recommendations.
+MUST always start with a **full week view from Monday to Sunday**. Every day MUST appear — training days AND rest days. Rest days MUST include cardio or active recovery recommendations.
 
 ```
 ## Weekly Overview
@@ -95,7 +95,9 @@ Always start with a **full week view from Monday to Sunday**. Every day appears 
 
 Then write out each day (Mon through Sun) in order, including rest days.
 
-### Output Format
+### Output Format (Mandatory)
+
+The following format is a **strict specification** — you MUST follow it exactly. This is not a suggestion or guideline; it is a required output format. Any deviation is considered incorrect output.
 
 Write the plan in **sequential order** — the user reads top to bottom and follows along. No timestamps. Use clear visual separation between exercises.
 
@@ -151,16 +153,16 @@ Rest 90s → move to next exercise
 ...
 ```
 
-**Key rules:**
+**Mandatory format rules (MUST follow, not optional):**
 
-1. **Straight sets** — complete ALL sets of one exercise before moving to the next. This is the default. Never circuit-style unless user specifically requests it.
-2. **Each exercise is a bold block** with name, English name, and RPE on the header line
-3. **Sets and rests each get their own line with a blank line between them** — this is critical for readability. Every set line, every rest line must be visually separated by a blank line
-4. **Rest between exercises** — the last rest line indicates transition (e.g., "Rest 90s → move to next exercise")
-5. **No timestamps** — just sequential order from top to bottom
-6. **Form cues** go under the exercise header, before Set 1 (e.g., "Slight knee bend, push hips back")
-7. **Warm-up and cooldown** use numbered lists (simpler, no sets/reps structure needed)
-8. **Merge identical repeating rounds** — when the same action repeats identically multiple times (e.g., run/walk intervals, stretch hold × 2 sides), write it once with a repeat count instead of listing each round individually. Example: "Jog 1 min → brisk walk 2 min, repeat ×8 rounds" instead of writing out all 8 rounds. Strength training sets with rest between them should still be written out individually since the user needs to track each set.
+1. **Straight sets** — MUST complete ALL sets of one exercise before moving to the next. This is the required default. NEVER use circuit-style unless user specifically requests it.
+2. **Each exercise MUST be a bold block** with name, English name, and RPE on the header line
+3. **Sets and rests MUST each get their own line with a blank line between them** — every set line, every rest line MUST be visually separated by a blank line. No exceptions.
+4. **Rest between exercises** — the last rest line MUST indicate transition (e.g., "Rest 90s → move to next exercise")
+5. **No timestamps** — MUST use sequential order from top to bottom only
+6. **Form cues** MUST go under the exercise header, before Set 1 (e.g., "Slight knee bend, push hips back")
+7. **Warm-up and cooldown** MUST use numbered lists (simpler, no sets/reps structure needed)
+8. **Merge identical repeating rounds** — when the same action repeats identically multiple times (e.g., run/walk intervals, stretch hold × 2 sides), MUST write it once with a repeat count instead of listing each round individually. Example: "Jog 1 min → brisk walk 2 min, repeat ×8 rounds" instead of writing out all 8 rounds. Strength training sets with rest between them MUST still be written out individually since the user needs to track each set.
 
 **Rest day structure:**
 
@@ -170,13 +172,13 @@ Rest 90s → move to next exercise
 - Or full rest is fine too
 ```
 
-### Video Links
+### Video Links (Mandatory)
 
-**Principle: prefer one follow-along video per session over per-exercise links.**
+**Rule: MUST prefer one follow-along video per session over per-exercise links.**
 
-- **Home / bodyweight / yoga / beginner sessions**: Search for a single follow-along video matching the session. Present it at the top of the day: "Follow-along video: [▶ link](link)"
-  - If no single video matches, provide 2-3 grouped by section, NOT one per exercise
-- **Gym / strength sessions**: Provide a curated list of reference videos AFTER the full day's timeline. Example: "Exercise reference videos: Squat [▶](link) | Bench Press [▶](link) | Row [▶](link)"
+- **Home / bodyweight / yoga / beginner sessions**: MUST search for a single follow-along video matching the session. MUST present it at the top of the day: "Follow-along video: [▶ link](link)"
+  - If no single video matches, provide 2-3 grouped by section, NEVER one per exercise
+- **Gym / strength sessions**: MUST provide a curated list of reference videos AFTER the full day's timeline. Required format: "Exercise reference videos: Squat [▶](link) | Bench Press [▶](link) | Row [▶](link)"
 
 Match channel to user level:
 - **Beginners / Home**: FitnessBlender, MegSquats
@@ -200,13 +202,13 @@ If user trains at home alone, include these safety notes:
 
 Include a brief note encouraging users to track their workouts — even just a notes app works. Tracking weights, reps, and RPE is essential for applying progressive overload.
 
-### Supplementary Info Position
+### Supplementary Info Position (Mandatory)
 
-RPE scale explanation, starting weight guidance, and other reference material should come AFTER the training plan, not before. The user wants to see the actual plan first. Place supplementary info at the end under a clear heading like "Reference" (or locale equivalent).
+RPE scale explanation, starting weight guidance, and other reference material MUST come AFTER the training plan, NEVER before. The user wants to see the actual plan first. MUST place supplementary info at the end under a clear heading like "Reference" (or locale equivalent).
 
-### Progression Overview
+### Progression Overview (Mandatory)
 
-After the weekly schedule, include a brief progression plan:
+After the weekly schedule, MUST include a brief progression plan:
 
 ```
 ## Progression Plan (Weeks 1–4)
