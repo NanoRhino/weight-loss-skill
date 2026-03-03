@@ -111,6 +111,21 @@ See `references/diet-modes.md` for the full specification of each mode. The **He
 
 Record the user's confirmed diet mode in the final report. The `meal-planner` skill will use this mode when building the actual food plan.
 
+#### Present Calorie Target & Macro Table
+
+After the user confirms target weight, timeline, and diet mode, calculate and present the daily calorie target and macronutrient breakdown (see `references/formulas.md` for full calculation). Example:
+
+> Here's your daily target based on losing ~1.25 lbs/week:
+>
+> | Macro | Range | Target (midpoint) |
+> |---|---|---|
+> | Calories | X,XXX – X,XXX kcal | X,XXX kcal |
+> | Protein | XXX – XXX g | XXX g |
+> | Fat | XX – XX g | XX g |
+> | Carbs | XXX – XXX g | XXX g |
+
+Confirm with the user, then proceed to Step 3.
+
 ---
 
 ### Step 3: Diet Mode Overview
@@ -170,7 +185,7 @@ Display each meal's grain fists as a **range**: `per_meal` to `per_meal + 0.5`, 
 
 #### Step C — Output Meal Pattern + Example
 
-**MANDATORY FORMAT — output MUST follow this exact structure. Do not add, remove, or reorder sections. Do not insert a Macro Table here (it was already presented earlier in this step).** Adapt to the user's country: use the appropriate regional flag emoji, translate section labels into the user's language, and select locally common foods with local units in the Example. US defaults shown below.
+**MANDATORY FORMAT — output MUST follow this exact structure. Do not add, remove, or reorder sections. Do not insert a Macro Table here (it was already presented in Step 2).** Adapt to the user's country: use the appropriate regional flag emoji, translate section labels into the user's language, and select locally common foods with local units in the Example. US defaults shown below.
 
 ```
 [Flag]【Meal Pattern — Hand Portion Guide】
