@@ -1,7 +1,7 @@
 ---
 name: daily-notification
 version: 1.0.0
-description: "System-initiated daily reminders for the AI weight loss companion. Sends meal-time reminders (15 min before each meal) and weight logging reminders (twice per week) as in-app chat messages. Use this skill when the system needs to proactively reach out. Also use when the user replies to a reminder — collect and log data inline. Do NOT use when the user initiates unprompted, or wants detailed meal analysis."
+description: "System-initiated daily reminders for the AI weight loss companion. Sends meal-time reminders (15 min before each meal) and weight logging reminders (twice per week) as in-app chat messages. Two entry points: (1) system triggers at a scheduled time with no user message — compose and send the next reminder; (2) user replies to a reminder — workspace has a recent reminder_sent_at for this meal/weight slot within the last 2 hours, collect and log inline. Do NOT use when the user initiates a conversation with no corresponding reminder record in the workspace, or wants detailed meal analysis."
 metadata:
   openclaw:
     emoji: "bell"
@@ -27,6 +27,19 @@ up to 3x/day, weight reminders 2x/week, delivered as in-app chat.
 
 ## Trigger Strategy
 
+### Context Detection
+
+Determine which mode you are in **before doing anything else**:
+
+| Condition | Mode |
+|-----------|------|
+| No user message (system-triggered) | **Send mode** — run Pre-send Checks, then compose and send the next scheduled reminder |
+| User message + `logs.meals.{today}.{meal_type}.reminder_sent_at` exists within last 2 hours | **Reply mode** — handle meal reply, log data |
+| User message + `logs.weight.{today}.reminder_sent_at` exists within last 2 hours | **Reply mode** — handle weight reply, log data |
+| User message but no matching reminder record in workspace | **Exit** — user initiated without a reminder; do not use this skill |
+
+---
+
 ### Schedule
 
 Read meal times from workspace file `USER.md` → `Goals > Meal Times`.
@@ -35,10 +48,10 @@ Reminders fire 15 min before each meal.
 Example — this user's profile:
 ```markdown
 - **Meals per Day:** 3
-- **Meal Times:** 07:00 breakfast, 12:00 lunch, 18:00 dinner
+- **Meal Times:** 08:00 breakfast, 12:30 lunch, 19:00 dinner
 ```
-→ Reminders at 6:45, 11:45, 17:45.
-Weight reminders: Mon & Thu, at first meal time minus 15 min (6:45).
+→ Reminders at 7:45, 12:15, 18:45.
+Weight reminders: Mon & Thu, at first meal time minus 15 min (7:45).
 
 First reminder ever → confirm schedule with actual calculated times from the profile.
 (See "First Day Experience" below for the full flow.)
@@ -49,9 +62,9 @@ Run in order. Any fail = don't send.
 
 1. Quiet hours? (before 6 AM / after 9 PM) → skip
 2. User in silent mode? (Stage 4) → skip
-3. This meal already logged today? (check `logs.meals.{date}`) → skip
-4. User in active conversation? → delay 30 min, re-check
-5. Number of reminders per day must not exceed `goals.meals_per_day`.
+3. Reminder already sent for this meal/weight slot today? (check `logs.meals.{date}.{meal_type}.reminder_sent_at` or `logs.weight.{date}.reminder_sent_at`) → skip
+4. User in active conversation? → platform-layer check; if platform doesn't expose this, skip this check
+5. Number of reminders sent today must not exceed `goals.meals_per_day`
 6. All clear → send
 
 ### Lifecycle: Active → Recall → Silent
@@ -77,6 +90,8 @@ Stage 4: SILENT — send nothing. Wait for user to return.
 Recall replaces the next meal reminder slot — don't send at random hours.
 Weight reminders also stop at Stage 2. Write current stage to
 `engagement.notification_stage`.
+
+**Stage transition evaluation:** At every Send mode invocation, before Pre-send Checks, compute elapsed time since `engagement.last_interaction` and advance the stage if thresholds are met. Write the updated stage to `engagement.notification_stage` before making any send decision.
 
 ### Recall Messages
 
@@ -104,6 +119,9 @@ The first reminder sets the tone for the entire relationship. Don't waste it
 on a generic "lunch coming up."
 
 **First reminder ever** (after onboarding, at the next meal slot):
+
+Check `engagement.first_reminder_sent` — if absent or `false`, this is the first reminder. Set it to `true` after sending.
+
 1. Confirm schedule with the ACTUAL times calculated from `goals.meal_times` — don't hardcode example times
 2. Set expectations: "Reply when you can, ignore when you can't — zero pressure."
 3. Open conversation with a question about the current meal
@@ -229,6 +247,7 @@ Users may ask to change reminders in natural language. Handle inline:
 | "Stop all reminders" | Stop everything, move to Stage 4. `"All reminders off. I'm still here if you want to chat. 💛"` |
 | "Remind me more" / "Can you also remind me for snacks" | Outside current scope — acknowledge and note for future: `"I can only do meals and weight for now, but I'll keep that in mind."` |
 | "Resume reminders" / "Start reminding me again" | Restart Stage 1 with previous config. Confirm schedule. |
+| "Change weight reminders to Tue & Fri" | Update weight reminder days. Update `engagement.reminder_config`. Confirm: `"Got it — weight check-ins moved to Tuesday and Friday."` |
 
 ---
 
@@ -260,6 +279,7 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 | `Goals > Meals per Day` | Max reminders per day (e.g. `3`) |
 | `Goals > Meal Times` | Reminder schedule (e.g. `08:00 breakfast, 12:30 lunch, 19:00 dinner`) |
 | `Goals > Target Weight` | Never show to user in reminders |
+| `Goals > Weight Unit` | Unit for weight records and display (`lbs` or `kg`) |
 | `Lifestyle > Food Restrictions` | Respect in tips (e.g. don't suggest pork if restricted) |
 | `Lifestyle > Exercise Habits` | Detect IF patterns |
 | `Health Flags` | Skip weight reminders if ED-related flags present |
@@ -279,10 +299,11 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 |------|------|
 | `logs.weight.{date}` | User reports weight: `{ value, unit, recorded_at, reminder_sent_at }` |
 | `logs.meals.{date}.{meal_type}` | Every reminder: `{ status, food_description, estimated_calories, reminder_sent_at, replied_at }` |
-| `logs.daily_summary.{date}` | 9 PM auto-summary: all records + engagement stats |
+| `logs.daily_summary.{date}` | Platform-triggered at 9 PM (or last meal slot + 1 hr): compile and write daily summary |
 | `flags.*` | Safety signals |
 | `engagement.notification_stage` | Stage 1/2/3/4 |
 | `engagement.reminder_config` | Adaptive timing changes |
+| `engagement.first_reminder_sent` | Set to `true` after the very first reminder is sent |
 | `engagement.days_since_first_reminder` | Tracks warm-up period (day 1-3 = limited techniques) |
 
 Status values: `"logged"` / `"skipped"` / `"no_reply"`
