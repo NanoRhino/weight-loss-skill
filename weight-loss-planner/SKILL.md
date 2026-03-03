@@ -168,19 +168,7 @@ Display each meal's grain fists as a **range**: `per_meal` to `per_meal + 0.5`, 
 
 #### Step C — Output Meal Pattern + Example
 
-Present the overview in two sections. Adapt the output to the **user's country**: use the appropriate regional flag emoji, translate section labels into the user's language, and select locally common foods with local units in the Example. US defaults shown below.
-
-**Section 1 — Macro Table** (see `references/formulas.md` for calculation):
-
-> Based on [totalCal] cal/day, [weight_kg] kg, [Mode name] (fat range [X–Y]%):
->
-> | Macro | Target | Grams | Per Meal (~3 meals) | Adjustable Range |
-> |---|---|---|---|---|
-> | Protein | [weight_kg] × 1.4 g/kg | [X]g | ~[X]g | [X]–[X]g |
-> | Fat | [X]% of cal | [X]g | ~[X]g | [X]–[X]g |
-> | Carbs | remainder | [X]g | ~[X]g | [X]–[X]g |
-
-**Section 2 — Meal Pattern + Example:**
+**MANDATORY FORMAT — output MUST follow this exact structure. Do not add, remove, or reorder sections. Do not insert a Macro Table here (it was already presented earlier in this step).** Adapt to the user's country: use the appropriate regional flag emoji, translate section labels into the user's language, and select locally common foods with local units in the Example. US defaults shown below.
 
 ```
 [Flag]【Meal Pattern — Hand Portion Guide】
@@ -207,10 +195,11 @@ Snack:
 ● [Dairy/protein drink] [X cup (X fl oz)]
 ```
 
-#### Worked Example (Balanced, 1,500 cal/day, 70 kg, US)
+Then ask: **"Does this eating pattern look doable for you? Would you like to adjust the diet mode, meal structure, or any food choices?"**
 
-**Macro calculation:**
-- Protein: 70 × 1.4 = 98g / Fat: 1,500 × 30% ÷ 9 = 50g / Carbs: (1,500 − 98×4 − 50×9) ÷ 4 = 153g
+Wait for the user's confirmation before proceeding to Step 3.
+
+#### Worked Example (Balanced, 1,500 cal/day, 70 kg, US)
 
 **Portion calculation:**
 ```
@@ -225,7 +214,7 @@ Grain range: 1–1.5 fists per meal
 Total check: 420 + 140 + 240 + 80 + 600 = 1,480 ≈ 1,500 ✓
 ```
 
-**Output for this example:**
+**Output:**
 
 > 🇺🇸【Meal Pattern — Hand Portion Guide】
 > Breakfast: 1–1.5 fists grains + 1 palm protein + 1 cup dairy/protein drink
@@ -249,10 +238,8 @@ Total check: 420 + 140 + 240 + 80 + 600 = 1,480 ≈ 1,500 ✓
 > Snack:
 > ● 1 medium apple
 > ● Plain Greek yogurt 1 cup (8 fl oz)
-
-Then ask: **"Does this eating pattern look doable for you? Would you like to adjust the diet mode, meal structure, or any food choices?"**
-
-Wait for the user's confirmation before proceeding to Step 3.
+>
+> Does this eating pattern look doable for you? Would you like to adjust the diet mode, meal structure, or any food choices?
 
 ---
 
