@@ -191,7 +191,7 @@ Snack:
 ● Plain Greek yogurt 1 cup (8 fl oz)
 ```
 
-### Chinese (中文) Pattern Template
+### Chinese Pattern Template
 
 ```markdown
 【饮食模式】
@@ -218,7 +218,7 @@ Snack:
 ● 苹果 1 个
 ```
 
-### Japanese (日本語) Pattern Template
+### Japanese Pattern Template
 
 ```markdown
 【食事パターン — 手ばかりガイド】
@@ -245,7 +245,7 @@ Snack:
 ● 素焼きアーモンド 10 粒
 ```
 
-### Korean (한국어) Pattern Template
+### Korean Pattern Template
 
 ```markdown
 【식사 패턴 — 손바닥 가이드】
@@ -335,8 +335,8 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 **Locale-appropriate foods.** Use foods that match the user's country/region and are available at their local grocery stores, markets, or restaurants. Don't recommend foods that are hard to find or culturally unfamiliar unless the user asks for them.
 
 - **US-based users:** grocery store staples — chicken breast, ground turkey, eggs, Greek yogurt, canned tuna, rice, oats, sweet potatoes, etc. Think Walmart, Trader Joe's, Costco.
-- **China-based users:** 鸡胸肉、鸡蛋、豆腐、鱼虾、糙米/杂粮饭、各类绿叶蔬菜、杂豆。Think 盒马、永辉、菜市场。
-- **Japan-based users:** 鶏むね肉、魚、豆腐、納豆、玄米、味噌汁、野菜。Think スーパー、コンビニ (convenience stores are a legitimate meal source in Japan).
+- **China-based users:** chicken breast, eggs, tofu, fish/shrimp, brown rice/mixed-grain rice, leafy greens, legumes. Think Hema, Yonghui, wet markets.
+- **Japan-based users:** chicken breast, fish, tofu, natto, brown rice, miso soup, vegetables. Think supermarkets, convenience stores (konbini are a legitimate meal source in Japan).
 - **Other regions:** Adapt accordingly based on local staple foods, common proteins, and typical grocery availability. When unsure, ask the user what's easy for them to get.
 
 **Build around cooking conditions:**
@@ -352,7 +352,7 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 
 **Meal prep friendliness & storage feasibility.** For users who cook, flag which meals can be batch-cooked — but **only recommend batch-prepping dishes that actually store and reheat well.** See `references/meal-prep-feasibility.md` for the full storage tier system. Key rules:
 - **Batch-prep backbone:** Braised meats, curries, soups, roasted root vegetables, and cooked grains are ideal for 3–4 day storage. Build the week around these.
-- **Fresh-only dishes on cook days or eat-out days:** Leafy-green stir-fries (炒青菜, sautéed spinach), fried/crispy foods, noodle soups, raw salads, and sashimi must be eaten the same day they're made — never schedule these as batch-prep leftovers.
+- **Fresh-only dishes on cook days or eat-out days:** Leafy-green stir-fries, sautéed spinach, fried/crispy foods, noodle soups, raw salads, and sashimi must be eaten the same day they're made — never schedule these as batch-prep leftovers.
 - **Fish is a 1–2 day protein, not a batch-prep protein.** Cooked fish develops stronger off-flavors after 2 days. Use chicken thigh, beef, pork, or tofu for multi-day prep; schedule fish on cook days or eat-out days.
 - **Separate components that store differently:** Pasta + sauce, soup + noodles, salad + dressing, congee + toppings — always store separately so the absorbent component doesn't degrade.
 - **Don't recommend pre-cutting fruit for the week.** Cut apples brown, cut avocado grays, cut bananas get mushy. Recommend whole fruit as snacks. Berries are the exception — they hold 2–3 days.
@@ -365,7 +365,7 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 Use **measurement units appropriate to the user's locale**:
 
 - **US users:** American household measurements as primary — oz, cups, tbsp, fl oz. Include gram equivalents in parentheses for people who use food scales: "6 oz (170g) chicken breast"
-- **Metric-region users (China, Japan, Europe, etc.):** Grams (g) and milliliters (ml) as primary units. Use everyday references that make sense locally (e.g., "一小碗米饭 ~150g", "手掌大小的鸡胸肉 ~120g")
+- **Metric-region users (China, Japan, Europe, etc.):** Grams (g) and milliliters (ml) as primary units. Use everyday references that make sense locally (e.g., "1 small bowl of rice ~150g", "palm-sized chicken breast ~120g")
 
 **Visual portion anchors** are helpful for people who don't measure:
 - Palm-sized portion of protein ≈ 3–4 oz (85–113g)
@@ -414,29 +414,29 @@ Once confirmed, generate the final Markdown report. **Adapt the template to the 
 
 The meal plan uses a **day → meal → food items** hierarchy. Each level shows calories and macros (P/C/F).
 
-**1. Day level:** `## 周一 — X,XXX kcal | P Xg · C Xg · F Xg` — daily total calories and P/C/F.
+**1. Day level:** `## [Day] — X,XXX kcal | P Xg · C Xg · F Xg` — daily total calories and P/C/F. Day names use the user's locale (e.g., "Monday", "周一", "月曜日").
 
-**2. Meal level:** `### 🍳 早餐 — XXX kcal | P Xg · C Xg · F Xg` — meal emoji + meal name + calories + P/C/F. Two types of meals with different formats:
+**2. Meal level:** `### [emoji] [Meal name] — XXX kcal | P Xg · C Xg · F Xg` — meal emoji + meal name + calories + P/C/F. Meal names use the user's locale (e.g., "Breakfast", "早餐", "朝食"). Two types of meals with different formats:
 
-- **Self-cooked meal:** First line after heading = **dish summary** (concise dish names joined by " + "). Below it = indented food items, each on its own line: `- 食材名 — 自然份量描述 (精确重量)`. "Natural portion" means how people actually talk about that food — "2 片", "1 碗", "1 个", "半个" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
+- **Self-cooked meal:** First line after heading = **dish summary** (concise dish names joined by " + "). Below it = indented food items, each on its own line: `- [food name] — [natural portion] ([precise weight])`. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
 
-- **Eating-out meal:** Heading includes `[外卖]` or `[外食]` tag. First line = **platform/restaurant — dish name**. Below it = `- 点：` ordering details. Add a **💡** tip line with practical advice (e.g., "备注少油少盐", "ask for sauce on the side"). No need to break down individual ingredients — the user is ordering, not cooking.
+- **Eating-out meal:** Heading includes a locale-appropriate tag (e.g., `[Eating out]`, `[外卖]`, `[コンビニ]`). First line = **platform/restaurant — dish name**. Below it = ordering details as a bullet. Add a **💡** tip line with practical advice (e.g., "ask for sauce on the side", "request less oil and salt"). No need to break down individual ingredients — the user is ordering, not cooking.
 
-**3. Portion descriptions:** Use the most natural, everyday way people describe that specific food:
-- Countable items: "2 片", "1 个", "3 个饺子", "1 根香蕉"
-- Bowls/cups: "1 小碗", "半杯"
-- Weight-based (when no natural unit exists): "一薄片 (~30g)"
+**3. Portion descriptions:** Use the most natural, everyday way people describe that specific food in their locale:
+- Countable items: "2 slices", "1 egg", "3 dumplings", "1 banana"
+- Bowls/cups: "1 small bowl", "half a cup"
+- Weight-based (when no natural unit exists): "a thin slice (~30g)"
 - Always include precise weight in parentheses after the natural description
 
 **4. No repetition:** Don't use the same main dish twice in 7 days. Rotate proteins, cooking styles, and cuisines. Breakfast can repeat a few times (most people prefer routine), but lunch and dinner should be distinct every day. Batch-prep dishes may appear on 2–3 consecutive days (this is expected and practical), but they count as a single dish — don't use the same batch-prep dish in two different batches within the same week.
 
 **5. Readability:** Use whitespace and indentation to make the plan scannable. Each day should be visually distinct. Keep food item lines short — one item per line.
 
-**6. Snacks:** `### 🍎 零食` — list items directly, no dish summary line needed.
+**6. Snacks:** `### 🍎 [Snack]` (locale-appropriate: "Snack", "零食", "間食") — list items directly, no dish summary line needed.
 
 ### Chinese Format — Mandatory Template
 
-Below is the **canonical Chinese 7-day meal plan format**. The output **must** follow this structure exactly. Three representative days are shown in full (做饭日、工作日、外食日) to illustrate the pattern.
+Below is the **canonical Chinese 7-day meal plan format**. The output **must** follow this structure exactly. Three representative days are shown in full (cook day, weekday with batch-prep, eat-out day) to illustrate the pattern.
 
 ```markdown
 # 🍽️ 你的一周饮食方案
@@ -527,13 +527,13 @@ Below is the **canonical Chinese 7-day meal plan format**. The output **must** f
 
 ---
 
-## 周三 至 周六
+## Wednesday through Saturday
 
-[同样结构，每天不同主菜，按以下规律安排：]
-[周三为第二个做饭日 — 备餐新的 Tier A 菜品，覆盖周四周五]
-[鱼类、炒叶菜等不耐存食材只出现在做饭日/外食日]
-[面条汤类只出现在外食日]
-[每日热量在目标范围内浮动，7天平均命中目标]
+[Same structure, different main dishes each day, following these rules:]
+[Wednesday = second cook day — batch-prep new Tier A dishes to cover Thu/Fri]
+[Fish, leafy stir-fries, and other low-storage foods only on cook days or eat-out days]
+[Noodle soups only on eat-out days]
+[Daily calories fluctuate within the target range; 7-day average hits the target]
 ```
 
 ### English Format — Mandatory Template
@@ -643,5 +643,5 @@ Accommodate what you can, but flag clearly: "I can build a plan around your nut 
 **User wants to eat out frequently:**
 This is completely valid — don't treat it as a problem to solve. Build restaurant/takeout/convenience store options directly into the plan as primary meals, not fallbacks. Include specific ordering guidance with approximate macros. Examples:
 - **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 cal, 42g P / 20g C / 30g F"
-- **China:** "沙县小吃：蒸饺8个 + 紫菜蛋花汤 — ~450 cal, 20g P / 55g C / 15g F"
-- **Japan:** "コンビニ：サラダチキン + おにぎり1個 + サラダ — ~450 cal, 30g P / 45g C / 10g F"
+- **China:** "Shaxian snacks: 8 steamed dumplings + seaweed egg-drop soup — ~450 cal, 20g P / 55g C / 15g F"
+- **Japan:** "Konbini: salad chicken + 1 onigiri + salad — ~450 cal, 30g P / 45g C / 10g F"

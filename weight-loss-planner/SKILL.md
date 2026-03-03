@@ -108,7 +108,7 @@ Now you have: calculated TDEE, current weight, target weight, and optionally a d
 4. If safe → build the plan around that rate
 5. If unsafe → explain the specific risks clearly (muscle loss, metabolic slowdown, nutrient deficiency, gallstone risk, hormonal disruption), propose the closest safe rate, and show what timeline that rate implies. Let the user decide. Example:
 
-> "要在六月前到 68 kg 的话，每周得减大概 1.2 kg——这个速度挺激进的，很难安全地坚持住。我建议每周 0.5–0.7 kg，大概九月能到目标。你想用稳一点的节奏，还是我们折中一下？"
+> "To reach 68 kg by June, you'd need to lose about 1.2 kg per week — that's pretty aggressive and hard to sustain safely. I'd suggest 0.5–0.7 kg per week, which would get you there by September. Want to go with the steadier pace, or should we find a middle ground?"
 
 6. **If the user insists on the aggressive rate after being informed:** Respect their autonomy — generate the plan, but add a prominent health warning in the report, set a mandatory 2-week check-in, and remind them they can request an adjustment at any time without penalty.
 
@@ -135,11 +135,11 @@ Default to the **midpoint** of the recommended range unless user preference, age
 
 Present the plan as a single, clear summary — no phased milestones. Include:
 
-- Weekly loss rate — **with a brief explanation of why this rate is appropriate.** Frame it from the user's perspective: what they'll feel and experience, not internal nutrition logic. For example: "以你目前的体重，每周减 X kg 不会让你觉得饿得难受，也不容易反弹，大概 X 个月就能到目标。" Keep it to 1–2 sentences, warm and practical.
+- Weekly loss rate — **with a brief explanation of why this rate is appropriate.** Frame it from the user's perspective: what they'll feel and experience, not internal nutrition logic. For example: "At your current weight, losing X kg per week won't leave you feeling starved, and it's much less likely to bounce back — you'd reach your goal in about X months." Keep it to 1–2 sentences, warm and practical.
 - Daily calorie target (midpoint)
-- Per-meal calorie split: breakfast ~30%, lunch ~40%, dinner ~30%. Show as inline text, not a table (e.g., "早餐 ~450 kcal / 午餐 ~600 kcal / 晚餐 ~450 kcal").
+- Per-meal calorie split: breakfast ~30%, lunch ~40%, dinner ~30%. Show as inline text, not a table (e.g., "Breakfast ~450 kcal / Lunch ~600 kcal / Dinner ~450 kcal").
 - Daily macronutrient targets: protein (weight_kg × 1.2–1.6g), fat (25–35% of calories), carbs (remainder). See `references/formulas.md` for full calculation.
-- Estimated completion date — calculate from today's date + total weeks and show a specific date (e.g., "2026年8月15日"), not just "about X months"
+- Estimated completion date — calculate from today's date + total weeks and show a specific date (e.g., "August 15, 2026"), not just "about X months"
 
 **Note:** TDEE will decrease as weight drops. The plan will be recalculated every 4 weeks or when weight drops by 4 kg, whichever comes first — but don't present this to the user upfront. Handle recalculations as they come.
 
