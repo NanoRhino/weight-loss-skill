@@ -191,16 +191,6 @@ Stage 3: SECOND RECALL — one final message
 Stage 4: SILENT — send nothing. Wait for user to return.
 ```
 
-### Soft Restart (after recall return)
-
-| Day after return | Frequency |
-|------------------|-----------|
-| Day 1 | 1 reminder only (the meal they historically reply to most) |
-| Day 2 | 2 reminders (add the next most-replied meal) |
-| Day 3+ | Full schedule restored |
-
-If no reply history exists, start with dinner only.
-
 ### Adaptive Timing
 
 | Signal | Action |
