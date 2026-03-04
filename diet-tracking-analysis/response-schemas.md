@@ -25,6 +25,9 @@ Start logging your first meal!
 · Chicken breast salad — one large plate — 280 kcal
 · Whole wheat bread — 2 slices — 180 kcal
 
+📊 So far today: 839 / 1050 kcal ✅ | Protein 62g ✅ | Carbs 87g ⬇️ | Fat 33g ✅
+Protein and fat are on track, carbs slightly low — adding a bit of grain at dinner will sort that out.
+
 ✨ Great protein choice with the chicken breast!
 💡 Next time: Try adding half a cup of quinoa to your salad for an extra carb boost.
 ```
@@ -38,6 +41,9 @@ Start logging your first meal!
 · Fried rice — ~1 bowl — 520 kcal
 · Bubble tea — 1 cup — 380 kcal
 
+📊 So far today: 1279 / 1050 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
+Calories and carbs are running high while protein is low — the rice + bubble tea combo pushed carbs up.
+
 ⚡ Right now: Add a side of grilled chicken (~100g) to boost protein. For dinner, go lighter — steamed fish + veggies, skip the rice. If you've already finished, no worries — one meal over won't ruin things, just balance it out tomorrow.
 ```
 
@@ -49,6 +55,9 @@ Start logging your first meal!
 🍽 This meal total: 900 kcal | Protein 15g | Carbs 128g | Fat 35g
 · Fried rice — ~1 bowl — 520 kcal
 · Bubble tea — 1 cup — 380 kcal
+
+📊 So far today: 1279 / 1050 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
+Calories and carbs are running high while protein is low — the fried rice and bubble tea are tasty but carb-heavy.
 
 💡 Next meal: Dinner idea — go heavier on protein and lighter on carbs to balance out. Try grilled chicken breast + steamed veggies, keep rice to half a bowl.
 ```
