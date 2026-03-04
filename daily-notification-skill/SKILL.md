@@ -43,6 +43,74 @@ Weight reminders: Mon & Thu, at first meal time minus 15 min (6:45).
 First reminder ever → confirm schedule with actual calculated times from the profile.
 (See "First Day Experience" below for the full flow.)
 
+### Scheduling Reminders (cron)
+
+Use the wrapper script to create/manage scheduled reminders. **Do NOT use the cron tool directly.**
+
+Script path: `bash {baseDir}/scripts/create-reminder.sh`
+
+#### Setup reminders after onboarding
+
+Once the user's profile is complete (`USER.md` has meal times + timezone), create recurring cron jobs:
+
+```bash
+# Example: 3 meals, reminders 15 min before each
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> \
+  --name "早餐提醒" \
+  --message "根据用户饮食计划和最近记录，发一条友好的早餐提醒。参考 daily-notification skill 的消息模板，轮换使用5种技巧。" \
+  --cron "45 6 * * *" \
+  --tz "Asia/Shanghai"
+
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> \
+  --name "午餐提醒" \
+  --message "根据用户饮食计划和今天已记录的餐食，发一条友好的午餐提醒。参考 daily-notification skill 的消息模板。" \
+  --cron "45 11 * * *" \
+  --tz "Asia/Shanghai"
+
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> \
+  --name "晚餐提醒" \
+  --message "根据用户饮食计划和今天已记录的餐食，发一条友好的晚餐提醒。参考 daily-notification skill 的消息模板。" \
+  --cron "45 17 * * *" \
+  --tz "Asia/Shanghai"
+```
+
+#### Weight reminders (2x/week)
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> \
+  --name "体重记录提醒" \
+  --message "今天是称重日，发一条轻松的体重记录提醒。语气要温和，强调'可选'。参考 daily-notification skill 的体重提醒模板。" \
+  --cron "45 6 * * 1,4" \
+  --tz "Asia/Shanghai"
+```
+
+#### One-shot reminders (user requests)
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> \
+  --name "喝水提醒" \
+  --message "提醒用户喝水" \
+  --at "30m"
+```
+
+#### Managing reminders
+
+- **List**: use cron tool with `action: "list"` to see all scheduled jobs
+- **Remove**: use cron tool with `action: "remove"` and `jobId`
+- **Adjust timing**: remove old job + create new one with updated schedule
+
+#### Important
+
+- `--agent` must match your agent ID (e.g. `007-zhuoran`)
+- `--tz` should match the user's timezone from `USER.md`
+- The script automatically looks up the user's Slack ID from config
+- Adjust cron expressions based on actual meal times in `USER.md`
+
 ### Pre-send Checks
 
 Run in order. Any fail = don't send.
