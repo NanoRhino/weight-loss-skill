@@ -17,21 +17,29 @@ Your left shoulder tightness is built in: shoulder mobility every upper warm-up,
 
 **Home Training Safety:**
 - Set safety pins just below your lowest squat depth — practice bailing once at light weight
-- Bench press: keep safety pins at chest level, or use dumbbells when pushing RPE 9
-- Don't test true 1RM solo — cap at RPE 9
+- Bench press: keep safety pins at chest level, or use dumbbells when pushing near your limit
+- Don't test true 1RM solo — cap at near-maximum intensity (could do 1 more rep at most)
 
 ---
 
 ## Weekly Overview
 
-| Mon | Tue | Wed | Thu | Fri | Sat | Sun |
-|-----|-----|-----|-----|-----|-----|-----|
-| Lower Strength | Upper Strength | Rest | Lower Hypertrophy | Upper Hypertrophy | Rest · Walk 20-30min | Rest |
+| Day | Training |
+|-----|----------|
+| Mon | Lower Strength |
+| Tue | Upper Strength |
+| Wed | Rest |
+| Thu | Lower Hypertrophy |
+| Fri | Upper Hypertrophy |
+| Sat | Rest · Walk 20-30min |
+| Sun | Rest |
 
 ---
 
 ### Monday: Lower Body — Strength
 Estimated duration: ~70 min
+
+Follow-along video: [▶ Lower Body Strength Workout (Squat & RDL)](https://www.youtube.com/results?search_query=lower+body+strength+workout+squat+rdl+jeff+nippard)
 
 #### Warm-up (~8 min)
 
@@ -44,50 +52,21 @@ Estimated duration: ~70 min
 
 #### Main Training
 
-**Exercise 1: Barbell Back Squat|RPE 8**
+**Exercise 1: Barbell Back Squat | hard effort (could do ~2 more reps)**
 Start ~82-87kg
-Set 1 ×4-6
-Rest 3 min
-Set 2 ×4-6
-Rest 3 min
-Set 3 ×4-6
-Rest 3 min
-Set 4 ×4-6
-Rest 3 min → next exercise
+4 sets ×4-6 reps, rest 3 min between sets
 
-**Exercise 2: DB Romanian Deadlift|RPE 7-8**
-Lighter hinge to complement heavy squat — conv. DL is on Thursday
-Set 1 ×8-10
-Rest 2 min
-Set 2 ×8-10
-Rest 2 min
-Set 3 ×8-10
-Rest 2 min → next exercise
+**Exercise 2: DB Romanian Deadlift | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×8-10 reps, rest 2 min between sets
 
-**Exercise 3: Bulgarian Split Squat (DB)|RPE 7-8**
-Set 1 ×8-10 left → 8-10 right
-Rest 90 sec
-Set 2 ×8-10 left → 8-10 right
-Rest 90 sec
-Set 3 ×8-10 left → 8-10 right
-Rest 2 min → next exercise
+**Exercise 3: Bulgarian Split Squat (DB) | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×8-10 each leg, rest 90s between sets
 
-**Exercise 4: Barbell Hip Thrust|RPE 7-8**
-Use pad; set up against sofa pushed to wall
-Set 1 ×8-10
-Rest 2 min
-Set 2 ×8-10
-Rest 2 min
-Set 3 ×8-10
-Rest 60 sec → next exercise
+**Exercise 4: Barbell Hip Thrust | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×8-10 reps, rest 2 min between sets
 
 **Exercise 5: Weighted Plank**
-Place plate on back
-Set 1 ×30-45 sec
-Rest 60 sec
-Set 2 ×30-45 sec
-Rest 60 sec
-Set 3 ×30-45 sec
+3 sets ×30-45 sec, rest 60s between sets
 
 #### Cooldown (~5 min)
 
@@ -95,12 +74,12 @@ Set 3 ×30-45 sec
 2. Hamstring stretch 20 sec each side
 3. Quad stretch 20 sec each side
 
-Video refs: Back Squat [▶](https://www.youtube.com/results?search_query=barbell+back+squat+form+jeff+nippard) | DB RDL [▶](https://www.youtube.com/results?search_query=dumbbell+romanian+deadlift+form+jeff+nippard) | BSS [▶](https://www.youtube.com/results?search_query=bulgarian+split+squat+dumbbell+renaissance+periodization) | Hip Thrust [▶](https://www.youtube.com/results?search_query=barbell+hip+thrust+form+jeff+nippard)
-
 ---
 
 ### Tuesday: Upper Body — Strength
 Estimated duration: ~70 min
+
+Follow-along video: [▶ Upper Body Strength Bench & Row Workout](https://www.youtube.com/results?search_query=upper+body+strength+bench+press+row+workout+jeff+nippard)
 
 #### Warm-up (~8 min)
 
@@ -111,62 +90,24 @@ Estimated duration: ~70 min
 
 #### Main Training
 
-**Exercise 1: Barbell Bench Press|RPE 8**
+**Exercise 1: Barbell Bench Press | hard effort (could do ~2 more reps)**
 Start ~65-70kg. Use safety pins.
-Set 1 ×4-6
-Rest 3 min
-Set 2 ×4-6
-Rest 3 min
-Set 3 ×4-6
-Rest 3 min
-Set 4 ×4-6
-Rest 3 min → next exercise
+4 sets ×4-6 reps, rest 3 min between sets
 
-**Exercise 2: Barbell Bent-Over Row|RPE 7-8**
-Overhand grip, ~45° torso
-Set 1 ×5-7
-Rest 2 min
-Set 2 ×5-7
-Rest 2 min
-Set 3 ×5-7
-Rest 2 min
-Set 4 ×5-7
-Rest 2 min → next exercise
+**Exercise 2: Barbell Bent-Over Row | moderate-hard effort (could do ~2-3 more reps)**
+4 sets ×5-7 reps, rest 2 min between sets
 
-**Exercise 3: Barbell Overhead Press|RPE 7-8**
-If shoulder feels off → sub Landmine Press
-Set 1 ×5-7
-Rest 2 min
-Set 2 ×5-7
-Rest 2 min
-Set 3 ×5-7
-Rest 2 min → next exercise
+**Exercise 3: Barbell Overhead Press | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×5-7 reps, rest 2 min between sets
 
-**Exercise 4: Weighted Chin-up|RPE 7-8**
-Hang weight from belt or hold DB between feet
-Set 1 ×5-8
-Rest 2 min
-Set 2 ×5-8
-Rest 2 min
-Set 3 ×5-8
-Rest 60 sec → next exercise
+**Exercise 4: Weighted Chin-up | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×5-8 reps, rest 2 min between sets
 
-**Exercise 5: DB Lateral Raise|RPE 8-9**
-Light, strict form
-Set 1 ×12-15
-Rest 60 sec
-Set 2 ×12-15
-Rest 60 sec
-Set 3 ×12-15
-Rest 60 sec → next exercise
+**Exercise 5: DB Lateral Raise | high effort (could do ~1-2 more reps)**
+3 sets ×12-15 reps, rest 60s between sets
 
-**Exercise 6: DB Hammer Curl|RPE 8-9**
-Neutral grip = shoulder-friendly
-Set 1 ×10-12
-Rest 60 sec
-Set 2 ×10-12
-Rest 60 sec
-Set 3 ×10-12
+**Exercise 6: DB Hammer Curl | high effort (could do ~1-2 more reps)**
+3 sets ×10-12 reps, rest 60s between sets
 
 #### Cooldown (~5 min)
 
@@ -174,8 +115,6 @@ Set 3 ×10-12
 2. Lat stretch 20 sec each side
 3. Cross-body shoulder stretch 20 sec each side
 4. Sleeper stretch 20 sec each side (specifically for left shoulder)
-
-Video refs: Bench [▶](https://www.youtube.com/results?search_query=barbell+bench+press+form+jeff+nippard) | Row [▶](https://www.youtube.com/results?search_query=barbell+row+form+renaissance+periodization) | OHP [▶](https://www.youtube.com/results?search_query=overhead+press+form+jeff+nippard) | Chin-up [▶](https://www.youtube.com/results?search_query=weighted+chin+up+jeff+nippard)
 
 ---
 
@@ -187,6 +126,8 @@ Video refs: Bench [▶](https://www.youtube.com/results?search_query=barbell+ben
 ### Thursday: Lower Body — Hypertrophy
 Estimated duration: ~70 min
 
+Follow-along video: [▶ Lower Body Hypertrophy Deadlift Workout](https://www.youtube.com/results?search_query=lower+body+hypertrophy+deadlift+workout+renaissance+periodization)
+
 #### Warm-up (~8 min)
 
 1. Bodyweight squats × 15
@@ -196,59 +137,24 @@ Estimated duration: ~70 min
 
 #### Main Training
 
-**Exercise 1: Conventional Deadlift|RPE 7-8**
+**Exercise 1: Conventional Deadlift | moderate-hard effort (could do ~2-3 more reps)**
 Start ~95-105kg. Primary hinge for the week.
-Set 1 ×6-8
-Rest 3 min
-Set 2 ×6-8
-Rest 3 min
-Set 3 ×6-8
-Rest 3 min
-Set 4 ×6-8
-Rest 3 min → next exercise
+4 sets ×6-8 reps, rest 3 min between sets
 
-**Exercise 2: Front Squat|RPE 7-8**
-Cross-arm or clean grip. Lighter squat complements heavy DL.
-Set 1 ×8-10
-Rest 2 min
-Set 2 ×8-10
-Rest 2 min
-Set 3 ×8-10
-Rest 2 min → next exercise
+**Exercise 2: Front Squat | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×8-10 reps, rest 2 min between sets
 
-**Exercise 3: Walking Lunges (DB)|RPE 7-8**
-Sub reverse lunges if space is tight
-Set 1 ×12 each leg
-Rest 90 sec
-Set 2 ×12 each
-Rest 90 sec
-Set 3 ×12 each
-Rest 90 sec → next exercise
+**Exercise 3: Walking Lunges (DB) | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×12 each leg, rest 90s between sets
 
-**Exercise 4: Single-Leg DB RDL|RPE 7-8**
-Set 1 ×10 left → 10 right
-Rest 90 sec
-Set 2 ×10 left → 10 right
-Rest 90 sec
-Set 3 ×10 left → 10 right
-Rest 60 sec → next exercise
+**Exercise 4: Single-Leg DB RDL | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×10 each leg, rest 90s between sets
 
-**Exercise 5: Hanging Leg Raise|RPE 8**
-Use your pull-up bar
-Set 1 ×10-12
-Rest 60 sec
-Set 2 ×10-12
-Rest 60 sec
-Set 3 ×10-12
-Rest 90 sec → next exercise
+**Exercise 5: Hanging Leg Raise | hard effort (could do ~2 more reps)**
+3 sets ×10-12 reps, rest 60s between sets
 
 **Exercise 6: Farmer's Walk (DB)**
-Heavy as possible, core braced
-Set 1 ×30m
-Rest 90 sec
-Set 2 ×30m
-Rest 90 sec
-Set 3 ×30m
+3 sets ×30m, rest 90s between sets
 
 #### Cooldown (~5 min)
 
@@ -256,12 +162,12 @@ Set 3 ×30m
 2. Hamstring stretch 20 sec each side
 3. Pigeon pose 20 sec each side
 
-Video refs: Deadlift [▶](https://www.youtube.com/results?search_query=conventional+deadlift+form+jeff+nippard) | Front Squat [▶](https://www.youtube.com/results?search_query=front+squat+form+squat+university) | Single-Leg RDL [▶](https://www.youtube.com/results?search_query=single+leg+rdl+dumbbell+megsquats)
-
 ---
 
 ### Friday: Upper Body — Hypertrophy
 Estimated duration: ~70 min
+
+Follow-along video: [▶ Upper Body Hypertrophy Workout at Home](https://www.youtube.com/results?search_query=upper+body+hypertrophy+dumbbell+barbell+home+workout+renaissance+periodization)
 
 #### Warm-up (~8 min)
 
@@ -272,62 +178,23 @@ Estimated duration: ~70 min
 
 #### Main Training
 
-**Exercise 1: DB Floor Press (neutral grip)|RPE 7-8**
-Shoulder-friendly pressing
-Set 1 ×8-10
-Rest 2 min
-Set 2 ×8-10
-Rest 2 min
-Set 3 ×8-10
-Rest 2 min
-Set 4 ×8-10
-Rest 2 min → next exercise
+**Exercise 1: DB Floor Press (neutral grip) | moderate-hard effort (could do ~2-3 more reps)**
+4 sets ×8-10 reps, rest 2 min between sets
 
-**Exercise 2: Pull-up (bodyweight)|RPE 7-8**
-Vary grip width week to week
-Set 1 ×8-12
-Rest 2 min
-Set 2 ×8-12
-Rest 2 min
-Set 3 ×8-12
-Rest 2 min
-Set 4 ×8-12
-Rest 90 sec → next exercise
+**Exercise 2: Pull-up (bodyweight) | moderate-hard effort (could do ~2-3 more reps)**
+4 sets ×8-12 reps, rest 2 min between sets
 
-**Exercise 3: DB Arnold Press|RPE 7-8**
-Rotation is good for shoulder health
-Set 1 ×10-12
-Rest 90 sec
-Set 2 ×10-12
-Rest 90 sec
-Set 3 ×10-12
-Rest 90 sec → next exercise
+**Exercise 3: DB Arnold Press | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×10-12 reps, rest 90s between sets
 
-**Exercise 4: DB Row (single arm)|RPE 7-8**
-Chest-supported on bench
-Set 1 ×10-12 left → 10-12 right
-Rest 90 sec
-Set 2 ×10-12 left → 10-12 right
-Rest 90 sec
-Set 3 ×10-12 left → 10-12 right
-Rest 60 sec → next exercise
+**Exercise 4: DB Row (single arm) | moderate-hard effort (could do ~2-3 more reps)**
+3 sets ×10-12 each arm, rest 90s between sets
 
-**Exercise 5: Close-Grip Push-up|RPE 8-9**
-Tricep focus
-Set 1 ×12-15
-Rest 60 sec
-Set 2 ×12-15
-Rest 60 sec
-Set 3 ×12-15
-Rest 60 sec → next exercise
+**Exercise 5: Close-Grip Push-up | high effort (could do ~1-2 more reps)**
+3 sets ×12-15 reps, rest 60s between sets
 
-**Exercise 6: DB Incline Curl|RPE 8-9**
-Bench at 45° for long head stretch
-Set 1 ×10-12
-Rest 60 sec
-Set 2 ×10-12
-Rest 60 sec
-Set 3 ×10-12
+**Exercise 6: DB Incline Curl | high effort (could do ~1-2 more reps)**
+3 sets ×10-12 reps, rest 60s between sets
 
 #### Cooldown (~5 min)
 
@@ -335,8 +202,6 @@ Set 3 ×10-12
 2. Lat stretch 20 sec each side
 3. Tricep stretch 20 sec each side
 4. Shoulder sleeper stretch 20 sec each side
-
-Video refs: Floor Press [▶](https://www.youtube.com/results?search_query=dumbbell+floor+press+athleanx) | Arnold Press [▶](https://www.youtube.com/results?search_query=arnold+press+form+renaissance+periodization) | DB Row [▶](https://www.youtube.com/results?search_query=single+arm+dumbbell+row+jeff+nippard)
 
 ---
 
@@ -357,10 +222,10 @@ Video refs: Floor Press [▶](https://www.youtube.com/results?search_query=dumbb
 
 | Week | Strategy |
 |------|----------|
-| 1 | Establish working weights at RPE 7-8 |
+| 1 | Establish working weights at hard effort (could do ~2 more reps) |
 | 2 | Same weight, aim for top of rep range |
-| 3 | Add 2.5kg to barbell compounds if RPE was ≤8 |
-| 4 | Hold weight, push RPE to 8-9 on top sets |
+| 3 | Add 2.5kg to barbell compounds if effort felt manageable |
+| 4 | Hold weight, push to near-maximum on top sets (could do ~1 more rep) |
 
 **Hypertrophy Days (Thu & Fri):**
 
@@ -374,7 +239,9 @@ Video refs: Floor Press [▶](https://www.youtube.com/results?search_query=dumbb
 **12-week targets** (dependent on nutrition, sleep, consistency):
 Squat 100→110-115kg | Bench 80→87.5-90kg | Deadlift 120→130-135kg
 
-Keep a training log — record weight, reps, RPE for every working set.
+> If any exercise is unfamiliar, just ask me and I'll explain it in detail!
+
+Keep a training log — record weight, reps, and perceived effort for every working set.
 
 ---
 

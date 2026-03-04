@@ -123,7 +123,9 @@ Every program should cover these fundamental movement patterns across the traini
 
 **Advanced**: Can use %1RM, RPE, or RIR depending on the phase. Compounds: RPE 7–9. Isolation: RPE 8–10.
 
-### RPE Scale (include in program for beginners)
+### RPE Scale (internal reference — convert to plain language in user-facing output)
+
+> **Important:** When writing the actual training plan for users, do NOT use "RPE" terminology. Convert to intuitive descriptions like "中等力度（做完感觉还能再做3次左右）" or "moderate effort (could do ~3 more reps)". See SKILL.md for the full mapping.
 
 | RPE | Description |
 |-----|------------|
