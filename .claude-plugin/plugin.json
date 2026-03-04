@@ -25,6 +25,7 @@
     "./diet-tracking-analysis",
     "./meal-planner",
     "./user-onboarding-profile",
-    "./weight-loss-planner"
+    "./weight-loss-planner",
+    "./weekly-report"
   ]
 }

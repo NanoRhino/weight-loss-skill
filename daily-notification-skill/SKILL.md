@@ -38,7 +38,8 @@ Example — this user's profile:
 - **Meal Times:** 07:00 breakfast, 12:00 lunch, 18:00 dinner
 ```
 → Reminders at 6:45, 11:45, 17:45.
-Weight reminders: Mon & Thu, at first meal time minus 15 min (6:45).
+Weight reminders: Mon & Thu, at breakfast time minus 30 min (6:30).
+Weigh-in must be done on an empty stomach (before eating) for consistency.
 
 First reminder ever → confirm schedule with actual calculated times from the profile.
 (See "First Day Experience" below for the full flow.)
@@ -145,10 +146,11 @@ on a generic "lunch coming up."
 
 **First reminder ever** (after onboarding, at the next meal slot):
 1. Confirm schedule with the ACTUAL times calculated from `goals.meal_times` — don't hardcode example times
-2. Set expectations: "Reply when you can, ignore when you can't — zero pressure."
-3. Open conversation with a question about the current meal
+2. Inform the user about weigh-in schedule: **every Monday and Thursday morning, on an empty stomach (before eating)**. Explain why fasting matters: water, food, and sodium cause intra-day fluctuations — fasting gives the most consistent reading.
+3. Set expectations: "Reply when you can, ignore when you can't — zero pressure."
+4. Open conversation with a question about the current meal
 
-All three in one message. After this, normal reminders begin.
+All four in one message. After this, normal reminders begin.
 
 **Day 1-3 (warm-up period):**
 - Use technique 1 (choice questions) and 3 (situational) only — these require
@@ -203,7 +205,8 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 ### Weight Reminder Rules
 
-- Max 2x/week. Always framed as optional.
+- **Mon & Thu only.** Max 2x/week. Always framed as optional.
+- Reminder time = breakfast time from `Goals > Meal Times` minus 30 min. Always remind user to weigh **on an empty stomach** (before eating). If user has already eaten, still accept the reading but tag it internally as `fasting: false`.
 - If `Health Flags` contains `avoid_weight_focus` or `history_of_ed` → never send.
 - Never show the user's target weight or last weigh-in in the reminder message.
 - Use `Basic Info > Weight` as baseline for internal trend detection only.
@@ -246,10 +249,12 @@ patterns ("you've been on a salad kick"), not single data points
 **Time-of-day energy:**
 Morning = soft, low-demand · Midday = quick, snappy · Evening = relaxed
 
-### Weight Reminders — always optional framing
+### Weight Reminders — always optional framing, always mention fasting
 
-`"Weigh-in day — want to check, or skip? Either's fine."` ·
-`"Thursday morning — scale check if you're feeling it."` ·
+`"Weigh-in day — eaten yet? Best to check before breakfast. Or skip, totally fine."` ·
+`"Thursday morning — scale check if you're feeling it. Before eating for the most accurate read."` ·
+`"Monday weigh-in — stepped on the scale before breakfast? If not, no worries."` ·
+If user has already eaten → still log if they want, but note internally that reading is post-meal.
 Never playful tone for weight. Always optional.
 
 ---

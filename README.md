@@ -21,6 +21,7 @@ clawhub install NanoRhino/daily-notification
 clawhub install NanoRhino/diet-tracking-analysis
 clawhub install NanoRhino/user-onboarding-profile
 clawhub install NanoRhino/weight-loss-planner
+clawhub install NanoRhino/weekly-report
 ```
 
 ### OpenClaw (manual)
@@ -31,6 +32,7 @@ cp -r weight-loss-skill/daily-notification-skill   ~/.openclaw/skills/
 cp -r weight-loss-skill/diet-tracking-analysis      ~/.openclaw/skills/
 cp -r weight-loss-skill/user-onboarding-profile     ~/.openclaw/skills/
 cp -r weight-loss-skill/weight-loss-planner         ~/.openclaw/skills/
+cp -r weight-loss-skill/weekly-report               ~/.openclaw/skills/
 ```
 
 ### Claude Code (plugin)
@@ -47,6 +49,7 @@ cp -r weight-loss-skill/daily-notification-skill   ~/.claude/skills/
 cp -r weight-loss-skill/diet-tracking-analysis      ~/.claude/skills/
 cp -r weight-loss-skill/user-onboarding-profile     ~/.claude/skills/
 cp -r weight-loss-skill/weight-loss-planner         ~/.claude/skills/
+cp -r weight-loss-skill/weekly-report               ~/.claude/skills/
 ```
 
 ## Skills
@@ -57,6 +60,7 @@ cp -r weight-loss-skill/weight-loss-planner         ~/.claude/skills/
 | `diet-tracking-analysis` | Log food, estimate calories/macros, get practical suggestions |
 | `daily-notification` | Proactive meal-time reminders and weight-logging nudges |
 | `weight-loss-planner` | Goal-setting with BMI, TDEE, calorie targets, and milestone roadmaps |
+| `weekly-report` | Personalized weekly progress report with logging streaks, calorie/macro analysis, weight trends, and suggestions |
 
 ## Structure
 
@@ -73,6 +77,9 @@ weight-loss-skill/
 │   └── references/
 ├── user-onboarding-profile/
 │   └── SKILL.md
+├── weekly-report/
+│   ├── SKILL.md
+│   └── references/
 ├── weight-loss-planner/
 │   ├── SKILL.md
 │   └── references/
