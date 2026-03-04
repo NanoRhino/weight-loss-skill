@@ -188,7 +188,7 @@ When user describes what they ate:
 6. **Estimate nutrition per food item** — use USDA data for each food's kcal / protein g / carbs g / fat g
 7. **Call save** — persist this meal (with food details)
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
-9. **Reply in format** — meal details + checkpoint progress + suggestion (use eaten status to select `right_now` vs. `next_meal` — see Response Format)
+9. **Reply in format** — meal details + nutrition summary + suggestion (use eaten status to select `right_now` vs. `next_meal` — see Response Format)
 
 ### Missing Meal Handling
 
@@ -257,7 +257,21 @@ Every food log reply must contain up to three sections:
 · Food 2 — portion — XXX kcal
 ```
 
-**② Suggestion** (based on evaluate output + eaten-meal detection — only one suggestion type per meal)
+**② Nutrition Summary** (cumulative intake evaluation up to this checkpoint — always show, based on `evaluate` output)
+
+```
+📊 So far today: XXX / YYYY kcal [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+[1-sentence overall comment]
+```
+
+- Show cumulative `actual` values from `evaluate` against `checkpoint_target` values
+- Status indicators: ✅ on track, ⬆️ high, ⬇️ low (mapped from `status` field)
+- The 1-sentence comment summarizes the overall picture concisely — e.g. "Protein is solid, carbs running a bit low — easy to make up at dinner." or "Everything looks balanced so far, keep it up!"
+- When adjustment is needed, the comment can naturally lead into the suggestion below — keep the two sections complementary, not repetitive
+- Language consistency: write the comment entirely in the user's language — do not mix languages (e.g. no "蛋白质on track" or "Protein达标"). Use localized nutrient names when replying in non-English (e.g. 蛋白质, 碳水, 脂肪 for Chinese)
+- For forgotten/assumed meals: only show real recorded values (consistent with existing rule)
+
+**③ Suggestion** (based on evaluate output + eaten-meal detection — only one suggestion type per meal)
 
 **Case A: Currently eating + adjustment needed** (`needs_adjustment: true` and meal NOT already eaten):
 ```
@@ -284,7 +298,7 @@ Every food log reply must contain up to three sections:
 💡 Next time: [habit tip or next-meal pairing suggestion — specific food + amount, no calorie listing]
 ```
 
-**✨ Nice work** (optional, before the suggestion):
+**✨ Nice work** (optional, between nutrition summary and suggestion):
 ```
 ✨ [1–2 genuine lines tied to their actual food choices, or omit if nothing noteworthy]
 ```
