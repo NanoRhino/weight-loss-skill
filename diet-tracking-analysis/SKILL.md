@@ -204,23 +204,12 @@ Every food log reply must contain up to three sections:
 ```
 📝 [Meal type] logged!
 
-🍽 This meal:
+🍽 This meal total: XXX kcal | Protein Xg | Carbs Xg | Fat Xg
 · Food 1 — portion — XXX kcal
 · Food 2 — portion — XXX kcal
-This meal total: XXX kcal | Protein Xg | Carbs Xg | Fat Xg
 ```
 
-**② Checkpoint Progress** (values from evaluate script output)
-```
-📊 Phase progress (should reach XX% by [checkpoint]):
-Intake: XXX / XXX kcal (checkpoint target)
-Protein: Xg / Xg
-Carbs: Xg / Xg
-Fat: Xg / Xg
-Status: Calories on track ✅ / Protein low ⚠️ ...
-```
-
-**③ Suggestion** (based on evaluate output — `right_now` and `next_time` are mutually exclusive)
+**② Suggestion** (based on evaluate output — `right_now` and `next_time` are mutually exclusive)
 
 If adjustment needed (`needs_adjustment: true`):
 ```
