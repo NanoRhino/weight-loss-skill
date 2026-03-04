@@ -254,6 +254,20 @@ Once you present the diet template, add the following message (adapt to the user
 
 > **Gate:** Only enter this step if the user explicitly requests a 7-day meal plan (either in response to the Step 3 question, or by asking for it directly). Do not auto-generate.
 
+### Time Estimate Notice
+
+**Before starting generation**, send the user a brief heads-up about the expected wait time (adapt to the user's language):
+
+> 没问题！7 天食谱内容比较多，生成大约需要 1–2 分钟，请稍等一下 ⏳
+
+English equivalent:
+
+> Sure! A full 7-day meal plan is quite detailed — it'll take about 1–2 minutes to generate. Hang tight ⏳
+
+**Why:** The 7-day plan involves designing 21+ unique meals with precise macros, storage-tier considerations, and locale-appropriate foods. This takes noticeably longer than a normal chat reply. Setting expectations upfront prevents users from thinking something went wrong.
+
+Send this message **immediately** after confirming the user wants the plan, **before** you begin generating the HTML file.
+
 ### Output as HTML File (Not Chat Text)
 
 **CRITICAL: Generate the 7-day meal plan as a self-contained HTML file — NOT as chat text.** The meal plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
