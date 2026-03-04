@@ -104,6 +104,26 @@ When planning meals, use the **midpoint** of each range as the planning target. 
 
 **Why this matters:** A meal plan full of chicken breast and sweet potatoes is useless for someone in Shanghai who eats rice, tofu, and bok choy daily. The plan must reflect foods the user can actually buy and wants to eat.
 
+### Western Diet Acceptance Check (Chinese Users Only)
+
+When the user's locale resolves to **China** (via explicit statement, USER.md, or language inference), ask **before proceeding to diet mode or meal planning** whether they are open to Western-style foods:
+
+> 您的饮食计划默认会以中式饮食为主。请问您是否也接受西式饮食（如全麦面包、意面、牛排、沙拉、燕麦、希腊酸奶等）？
+>
+> 1. **纯中式** — 完全以中餐为主，食材和烹饪方式都按中式来
+> 2. **以中式为主，可以搭配一些西式** — 大部分是中餐，偶尔穿插西式选项（比如早餐来个燕麦、加餐来个酸奶）
+> 3. **中西结合，都可以** — 中餐西餐混搭，只要好吃方便就行
+
+**How to use the answer:**
+
+| Choice | Meal Plan Behavior |
+|--------|-------------------|
+| **纯中式** | All meals use Chinese ingredients, cooking methods, and meal structures. No Western staples (oatmeal, pasta, Greek yogurt, cheese, whole-wheat bread, etc.). Snacks use Chinese options (fruit, nuts, soy milk, boiled eggs, whole-grain buns). |
+| **以中式为主，可以搭配一些西式** | Default to Chinese meals for lunch and dinner. Allow Western-style options for breakfast and snacks where convenient (e.g., oatmeal, yogurt, whole-wheat toast). Never force Western items into main meals. |
+| **中西结合，都可以** | Freely mix Chinese and Western foods across all meals. Optimize for nutrition, variety, and convenience without cuisine restrictions. |
+
+If the user has already expressed a preference in `USER.md` (e.g., a prior `[date] 只吃中餐` or `[date] 中西餐都可以` entry in the Preferences section), respect that and skip this question. When the user answers, **silently append** their choice to `USER.md`'s `## Preferences → ### Dietary` section (e.g., `- [YYYY-MM-DD] 饮食风格：以中式为主，可搭配西式`).
+
 ### Dietary Preferences & Practical Constraints
 
 Check USER.md first. If not available, ask the user. You need:
