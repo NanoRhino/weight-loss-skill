@@ -324,6 +324,8 @@ Once you present the diet pattern, add the following message (adapt to the user'
 
 > **Gate:** Only enter this step if the user explicitly requests a 7-day meal plan (either in response to the Step 3 question, or by asking for it directly). Do not auto-generate.
 
+> **Performance:** The 7-day plan uses a **compact format** and is output in **two consecutive messages** to avoid interruption and reduce generation time. See Step 6 for details.
+
 Build a 7-day meal plan based on the confirmed calories, macros, diet mode, and user preferences.
 
 ### Meal Structure
@@ -426,39 +428,59 @@ The user may want to:
 
 Once confirmed, generate the final meal plan report. **Adapt the template to the user's locale** — use appropriate language, units, local food categories in the grocery list, and culturally relevant references. **Do NOT mention "Markdown", filenames, or `.md` to the user** — just present the plan content directly.
 
-### Output Format Rules
+### Output Performance Strategy
 
-**CRITICAL: The 7-day meal plan MUST follow the exact format shown in the locale-specific examples below. Do not deviate from the structure, heading hierarchy, or line format. Every generated plan must match the template precisely — same heading levels, same emoji prefixes, same "dish summary + indented item list" layout.**
+**The 7-day meal plan uses a compact format and split output to ensure reliable, fast delivery. This is critical — the detailed multi-line format is too long for a 7-day plan and causes message interruption.**
 
-The meal plan uses a **day → meal → food items** hierarchy. Each level shows calories and macros (P/C/F).
+**1. Split into two messages:**
+- **Message 1:** Plan header + Days 1–4
+- **Message 2:** Days 5–7 + closing question ("How does this look? Any meals you'd want to swap out?")
+- End Message 1 with a brief transition in the user's language (e.g., "⏳ Generating the rest..." / "⏳ 后面几天马上来...")
+- This prevents message interruption and lets the user start reading immediately
+
+**2. Compact single-line meal format (mandatory for 7-day plans):**
+- Each self-cooked meal is **two lines**: a bold heading line + one line listing all food items separated by ` · `
+- This replaces the multi-line bullet list format, cutting output length by ~60%
+- All nutritional information (calories, macros, portions, weights) is preserved — nothing is lost
+
+**3. Batch-prep deduplication:**
+- When a batch-prep dish repeats on consecutive days, use a single-line reference instead of listing all items again
+- Format: `**[emoji] [Meal] [cal] kcal** | P Xg · C Xg · F Xg ← same as [Day]`
+- This further reduces output and makes the batch-prep structure visually obvious
+
+### Compact Format Rules
+
+**CRITICAL: The 7-day meal plan MUST follow the compact format shown in the locale-specific examples below. Every generated plan must match the template precisely.**
 
 **1. Day level:** `## [Day] — X,XXX kcal | P Xg · C Xg · F Xg` — daily total calories and P/C/F. Day names use the user's locale.
 
-**2. Meal level:** `### [emoji] [Meal name] — XXX kcal | P Xg · C Xg · F Xg` — meal emoji + meal name + calories + P/C/F. Meal names use the user's locale. Two types of meals with different formats:
+**2. Self-cooked meal — two lines:**
+- **Line 1 (heading):** `**[emoji] [Meal name] [calories] kcal** | P Xg · C Xg · F Xg`
+- **Line 2 (foods):** All food items in a single line, separated by ` · `. Each item format: `[food name] [natural portion]([precise weight])`.
+- "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado". Always include precise weight in parentheses.
 
-- **Self-cooked meal:** First line after heading = **dish summary** (concise dish names joined by " + "). Below it = indented food items, each on its own line: `- [food name] — [natural portion] ([precise weight])`. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
+**3. Eating-out meal — two or three lines:**
+- **Line 1:** `**[emoji] [Meal name] [calories] kcal** | P Xg · C Xg · F Xg [Eating out]` (use locale-appropriate tag: `[外卖]`, `[Takeout]`, `[Konbini]`, etc.)
+- **Line 2:** `[Platform/Restaurant] — [dish name]([ordering details])`
+- **Line 3 (optional):** `💡 [tip]` — only if genuinely non-obvious. No need to break down individual ingredients — the user is ordering, not cooking.
 
-- **Eating-out meal:** Heading includes a locale-appropriate tag (e.g., `[Eating out]`, `[Takeout]`, `[Konbini]`). First line = **platform/restaurant — dish name**. Below it = ordering details as a bullet. Add a **💡** tip line only if there's genuinely useful advice (e.g., "ask for sauce on the side", "request less oil and salt"). If there's nothing non-obvious to say, omit the tip. No need to break down individual ingredients — the user is ordering, not cooking.
+**4. Snack — single line:** `**🍎 [Snack] [calories] kcal** — [item1] · [item2]` (per-meal macros optional for snacks to save space).
 
-**3. Portion descriptions:** Use the most natural, everyday way people describe that specific food in their locale:
-- Countable items: "2 slices", "1 egg", "3 dumplings", "1 banana"
-- Bowls/cups: "1 small bowl", "half a cup"
-- Weight-based (when no natural unit exists): "a thin slice (~30g)"
-- Always include precise weight in parentheses after the natural description
+**5. Batch-prep repeat — single line:** `**[emoji] [Meal] [calories] kcal** | P Xg · C Xg · F Xg ← same as [Day]` — no need to list food items again. Only use this when the meal is truly identical (same batch-prep dish + same sides).
 
-**4. No repetition:** Don't use the same main dish twice in 7 days. Rotate proteins, cooking styles, and cuisines. Breakfast can repeat a few times (most people prefer routine), but lunch and dinner should be distinct every day. Batch-prep dishes may appear on 2–3 consecutive days (this is expected and practical), but they count as a single dish — don't use the same batch-prep dish in two different batches within the same week.
+**6. Portion precision:** Minimum granularity 0.5. Valid: 0.5, 1, 1.5, 2. Never use 0.3 or 0.7.
 
-**5. Readability:** Use whitespace and indentation to make the plan scannable. Each day should be visually distinct. Keep food item lines short — one item per line.
+**7. No repetition:** Don't use the same main dish twice in 7 days. Rotate proteins, cooking styles, and cuisines. Breakfast can repeat a few times (most people prefer routine), but lunch and dinner should be distinct every day. Batch-prep dishes may appear on 2–3 consecutive days (this is expected and practical), but they count as a single dish — don't use the same batch-prep dish in two different batches within the same week.
 
-**6. Snacks:** `### 🍎 [Snack]` (locale-appropriate name) — list items directly, no dish summary line needed.
+**8. Tips must be non-obvious.** Only include tips that provide genuine, actionable value. Never state common-sense steps like "grab a bowl," "eat it," "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth." If a meal has no non-obvious tip, skip it entirely.
 
-**7. Tips must be non-obvious.** Only include tips that provide genuine, actionable value — things the user likely doesn't already know. Never state common-sense steps like "grab a bowl," "eat it," "finish the food," or "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth," "marinate chicken the night before." Bad tips: "put oatmeal in a bowl," "eat the eggs," "drink the soy milk." If a meal has no non-obvious tip worth mentioning, skip the tip line entirely.
+### 7-Day Meal Plan — Mandatory Compact Template
 
-### 7-Day Meal Plan — Mandatory Template
-
-Below is the **canonical 7-day meal plan format**. The output **must** follow this structure exactly. All text adapts to the user's language at runtime. Three representative days are shown in full (cook day, weekday with batch-prep, eat-out day) to illustrate the pattern.
+Below is the **canonical compact format**. The output **must** follow this structure exactly. All text adapts to the user's language at runtime. Three representative days shown (cook day, batch-prep weekday, eat-out day) to illustrate the pattern.
 
 > **China locale example** — demonstrates Chinese-style dishes, Meituan/Ele.me ordering, and batch-prep rotation. For other locales, swap in locale-appropriate foods and restaurants while keeping the identical structure.
+
+**— Message 1 —**
 
 ```markdown
 # 🍽️ Your Weekly Meal Plan
@@ -472,90 +494,75 @@ Below is the **canonical 7-day meal plan format**. The output **must** follow th
 
 ## Sunday — 1,610 kcal | P 102g · C 178g · F 48g
 
-### 🍳 Breakfast — 380 kcal | P 22g · C 48g · F 11g
-Soy milk + boiled egg + veggie buns
-- Unsweetened soy milk — 1 cup (300ml)
-- Boiled egg — 1 (50g)
-- Veggie buns — 2 (120g)
+**🍳 Breakfast 380 kcal** | P 22g · C 48g · F 11g
+Unsweetened soy milk 1 cup(300ml) · Boiled egg 1(50g) · Veggie buns 2(120g)
 
-### 🥗 Lunch — 540 kcal | P 36g · C 60g · F 16g
-Steamed sea bass + garlic lettuce + rice
-- Steamed sea bass — half fish (150g)
-- Garlic sautéed lettuce — 1 plate (120g)
-- White rice — 1 small bowl (120g cooked)
+**🥗 Lunch 540 kcal** | P 36g · C 60g · F 16g
+Steamed sea bass half fish(150g) · Garlic sautéed lettuce 1 plate(120g) · White rice 1 small bowl(120g)
 
-### 🍽️ Dinner — 510 kcal | P 35g · C 52g · F 17g
-Curry chicken leg + mixed-grain rice + smashed cucumber
-- Curry chicken leg (skinless) — 1 (120g)
-- Mixed-grain rice — 1 small bowl (120g cooked)
-- Smashed cucumber salad — 1 small dish (80g)
+**🍽️ Dinner 510 kcal** | P 35g · C 52g · F 17g
+Curry chicken leg(skinless) 1(120g) · Mixed-grain rice 1 small bowl(120g) · Smashed cucumber 1 small dish(80g)
 
-### 🍎 Snack — 180 kcal | P 9g · C 18g · F 4g
-- Unsweetened yogurt — 1 small cup (130g)
-- Mandarin orange — 1
+**🍎 Snack 180 kcal** — Unsweetened yogurt 1 small cup(130g) · Mandarin 1
 
 ---
 
 ## Monday — 1,590 kcal | P 100g · C 172g · F 52g
 
-### 🍳 Breakfast — 380 kcal | P 24g · C 46g · F 12g
-Whole-wheat toast + boiled egg + milk
-- Whole-wheat toast — 2 slices (100g)
-- Boiled egg — 1 (50g)
-- Low-fat cheese — 1 slice (20g)
-- Whole milk — 1 carton (250ml)
+**🍳 Breakfast 380 kcal** | P 24g · C 46g · F 12g
+Whole-wheat toast 2 slices(100g) · Boiled egg 1(50g) · Low-fat cheese 1 slice(20g) · Whole milk 1 carton(250ml)
 
-### 🥗 Lunch — 530 kcal | P 38g · C 58g · F 16g
-Braised chicken leg + mixed-grain rice + blanched broccoli
-- Braised chicken leg (skinless) — 1 (120g)
-- Mixed-grain rice — 1 small bowl (120g cooked)
-- Blanched broccoli — 1 serving (100g)
-- Seaweed egg-drop soup — 1 small bowl (200ml)
+**🥗 Lunch 530 kcal** | P 38g · C 58g · F 16g
+Braised chicken leg(skinless) 1(120g) · Mixed-grain rice 1 small bowl(120g) · Blanched broccoli 1 serving(100g) · Seaweed egg-drop soup 1 small bowl(200ml)
 
-### 🍽️ Dinner — 500 kcal | P 30g · C 52g · F 18g [Takeout]
-Meituan/Ele.me — Steamed sea bass set meal
-- Order: steamed sea bass + garlic broccoli + rice (small)
-- 💡 Request "less oil, less salt." Half a bowl of rice is enough — don't force yourself to finish it.
+**🍽️ Dinner 500 kcal** | P 30g · C 52g · F 18g [Takeout]
+Meituan/Ele.me — Steamed sea bass set (sea bass + garlic broccoli + rice small)
+💡 Request "less oil, less salt." Half a bowl of rice is enough.
 
-### 🍎 Snack — 180 kcal | P 8g · C 16g · F 6g
-- Unsweetened yogurt — 1 small cup (130g)
-- Plain cashews — 1 small handful (15g)
-- Apple — 1
+**🍎 Snack 180 kcal** — Unsweetened yogurt 1 small cup(130g) · Plain cashews 1 small handful(15g) · Apple 1
 
 ---
 
 ## Tuesday — 1,600 kcal | P 98g · C 180g · F 50g
 
-### 🍳 Breakfast — 370 kcal | P 20g · C 50g · F 10g
-Mixed-grain congee + tea egg + milk
-- Mixed-grain congee — 1 bowl (250ml)
-- Tea egg — 1 (50g)
-- Whole milk — 1 carton (250ml)
+**🍳 Breakfast 370 kcal** | P 20g · C 50g · F 10g
+Mixed-grain congee 1 bowl(250ml) · Tea egg 1(50g) · Whole milk 1 carton(250ml)
 
-### 🥗 Lunch — 540 kcal | P 36g · C 62g · F 16g
-Curry beef + rice + roasted pumpkin
-- Curry beef — 1 serving (130g)
-- White rice — 1 small bowl (120g cooked)
-- Roasted pumpkin — 1 serving (100g)
+**🥗 Lunch 540 kcal** | P 36g · C 62g · F 16g
+Curry beef 1 serving(130g) · White rice 1 small bowl(120g) · Roasted pumpkin 1 serving(100g)
 
-### 🍽️ Dinner — 510 kcal | P 34g · C 50g · F 18g [Eating out]
-Lanzhou Noodle Shop — Beef noodle soup
-- Order: beef noodle soup + braised beef side dish
-- 💡 The broth is oily — go easy on the soup. Eat the noodles, meat, and veggies, skip the rest.
+**🍽️ Dinner 510 kcal** | P 34g · C 50g · F 18g [Eating out]
+Lanzhou Noodle Shop — Beef noodle soup + braised beef side
+💡 Broth is oily — eat noodles, meat, and veggies first, skip most of the soup.
 
-### 🍎 Snack — 180 kcal | P 8g · C 18g · F 6g
-- Plain almonds — 10 (15g)
-- Banana — 1
+**🍎 Snack 180 kcal** — Plain almonds 10(15g) · Banana 1
 
 ---
 
-## Wednesday through Saturday
+## Wednesday — X,XXX kcal | P Xg · C Xg · F Xg
 
-[Same structure, different main dishes each day, following these rules:]
-[Wednesday = second cook day — batch-prep new Tier A dishes to cover Thu/Fri]
-[Fish, leafy stir-fries, and other low-storage foods only on cook days or eat-out days]
-[Noodle soups only on eat-out days]
-[Daily calories fluctuate within the target range; 7-day average hits the target]
+[Second cook day — batch-prep new Tier A dishes for Thu/Fri]
+[Same compact format as above]
+
+⏳ Generating the rest...
+```
+
+**— Message 2 —**
+
+```markdown
+## Thursday — X,XXX kcal | P Xg · C Xg · F Xg
+
+**🥗 Lunch 530 kcal** | P 38g · C 58g · F 16g ← same as Wed
+[Batch-prep repeat: single line, no food list needed]
+
+[...continue Thu/Fri/Sat in same compact format...]
+
+---
+
+## Saturday — X,XXX kcal | P Xg · C Xg · F Xg
+
+[Weekend day — fresh-cook or eat-out; Tier C foods allowed]
+[Same compact format]
 ```
 
 > **US locale example** — demonstrates American-style dishes with imperial measurements and restaurant chains.
@@ -563,30 +570,17 @@ Lanzhou Noodle Shop — Beef noodle soup
 ```markdown
 ## Monday — X,XXX cal | P Xg · C Xg · F Xg
 
-### 🍳 Breakfast — XXX cal | P Xg · C Xg · F Xg
-Oatmeal with protein powder and banana
-- Rolled oats — 1/2 cup (40g)
-- Whey protein — 1 scoop (30g)
-- Banana — 1 medium (~120g)
-- Peanut butter — 1 teaspoon (7g)
+**🍳 Breakfast XXX cal** | P Xg · C Xg · F Xg
+Rolled oats 1/2 cup(40g) · Whey protein 1 scoop(30g) · Banana 1 medium(120g) · Peanut butter 1 tsp(7g)
 
-### 🥗 Lunch — XXX cal | P Xg · C Xg · F Xg
-Grilled chicken breast with brown rice and broccoli
-- Chicken breast — 1 palm-sized piece (150g)
-- Brown rice — 1 small bowl (100g cooked)
-- Steamed broccoli — 1 cup (80g)
-- Olive oil — 1 teaspoon (5ml)
+**🥗 Lunch XXX cal** | P Xg · C Xg · F Xg
+Chicken breast 1 palm-sized piece(150g) · Brown rice 1 small bowl(100g) · Steamed broccoli 1 cup(80g) · Olive oil 1 tsp(5ml)
 
-### 🍽️ Dinner — XXX cal | P Xg · C Xg · F Xg [Eating out]
-Chipotle — Chicken burrito bowl
-- Order: chicken, brown rice, black beans, fajita veggies, salsa, lettuce. Skip sour cream and cheese.
-- 💡 Ask for half rice to save ~100 cal. Extra veggies are free.
+**🍽️ Dinner XXX cal** | P Xg · C Xg · F Xg [Eating out]
+Chipotle — Chicken burrito bowl (chicken, brown rice, black beans, fajita veggies, salsa, lettuce; skip sour cream and cheese)
+💡 Ask for half rice to save ~100 cal. Extra veggies are free.
 
-### 🍎 Snack — XXX cal | P Xg · C Xg · F Xg
-- Greek yogurt — 1 small tub (150g)
-- Blueberries — a small handful (50g)
-
-[...same structure through Sunday]
+**🍎 Snack XXX cal** — Greek yogurt 1 small tub(150g) · Blueberries 1 small handful(50g)
 ```
 
 > **Japan locale example** — demonstrates konbini-based meals and IF 16:8 skipped breakfast.
@@ -594,21 +588,15 @@ Chipotle — Chicken burrito bowl
 ```markdown
 ## Monday — 1,520 kcal | P 104g · C 170g · F 36g
 
-### 🍳 Breakfast — skipped (IF 16:8)
+**🍳 Breakfast** — skipped (IF 16:8)
 
-### 🥗 Lunch 12:00 — 620 kcal | P 40g · C 72g · F 12g [Konbini]
-7-Eleven — Salad chicken + onigiri set
-- Salad chicken — 1 pack (115g)
-- Onigiri — 2 (salmon, kelp)
-- Cup miso soup — 1
-- 💡 The "protein-packed" series has macros printed on the label — easy to track.
+**🥗 Lunch 12:00 620 kcal** | P 40g · C 72g · F 12g [Konbini]
+7-Eleven — Salad chicken 1 pack(115g) + onigiri 2(salmon, kelp) + cup miso soup 1
+💡 The "protein-packed" series has macros printed on the label — easy to track.
 
-### 🍽️ Dinner 19:00 — 590 kcal | P 42g · C 60g · F 14g
-Teriyaki chicken breast + brown rice + broccoli
-- Chicken breast — 1 piece (150g)
-- Brown rice — 1 rice-bowl (150g)
-- Frozen broccoli — 1 cup (100g)
-- 💡 Microwave broccoli 2 min. Marinate chicken the night before for easier prep.
+**🍽️ Dinner 19:00 590 kcal** | P 42g · C 60g · F 14g
+Chicken breast 1 piece(150g) · Brown rice 1 bowl(150g) · Frozen broccoli 1 cup(100g)
+💡 Marinate chicken the night before for easier prep.
 ```
 
 ---
