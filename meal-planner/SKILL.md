@@ -217,96 +217,14 @@ Snack:
 ● Plain Greek yogurt 1 cup (8 fl oz)
 ```
 
-### Chinese Pattern Template
+### Locale Adaptation
 
-> For Chinese-speaking users. Output in the user's language; English shown here for skill readability.
+For non-US locales, follow the same **pattern (portion guide) + one-day example** structure, but adapt to the user's food culture:
 
-```markdown
-[Meal Pattern]
-Breakfast: 1 fist starch + 1 egg + 200–500ml unsweetened protein drink
-Lunch: 1 fist starch + 1–2 fists vegetables + 1 fist meat/tofu
-Dinner: 1 fist starch + 1–2 fists vegetables + 1 fist meat/tofu
-Snack: 200–350g fruit + 10–15g nuts
-
-[Example]
-Breakfast:
-● Soy milk 1 cup
-● Boiled egg 1
-● Veggie buns 2
-Lunch:
-● Rice 1 bowl
-● Green pepper chicken breast stir-fry 1 plate
-● Garlic broccoli 1 plate
-Dinner:
-● Mixed-grain congee 1 bowl
-● Garlic shrimp stir-fry 1 plate
-● Steamed fish half
-Snack:
-● Almonds 10
-● Apple 1
-```
-
-### Japanese Pattern Template
-
-> For Japanese-speaking users. Output in Japanese; English shown here for skill readability.
-
-```markdown
-[Meal Pattern — Hand Portion Guide]
-Breakfast: 0.5–1 fist starch + 1 palm protein + 1 cup dairy
-Lunch: 0.5–1 fist starch + 2 fists vegetables + 1 palm protein
-Dinner: 0.5–1 fist starch + 2 fists vegetables + 1 palm protein
-Snack: 1–2 fruits + nuts 10–15g
-
-[Example]
-Breakfast:
-● Brown rice half bowl (75g)
-● Boiled egg 1
-● Unsweetened yogurt 1 cup (200ml)
-Lunch:
-● Brown rice 1 bowl (150g)
-● Sautéed chicken breast 1 piece (120g)
-● Warm broccoli & carrot salad 2 cups
-Dinner:
-● Soba noodles (cooked) 0.5 serving (100g)
-● Grilled salmon 1 fillet (100g)
-● Spinach & mushroom ohitashi 2 cups
-Snack:
-● Apple 1
-● Plain roasted almonds 10
-```
-
-### Korean Pattern Template
-
-> For Korean-speaking users. Output in Korean; English shown here for skill readability.
-
-```markdown
-[Meal Pattern — Hand Portion Guide]
-Breakfast: 0.5–1 fist carbs + 1 palm protein + 1 cup dairy/soy milk
-Lunch: 0.5–1 fist carbs + 2 fists vegetables + 1 palm protein
-Dinner: 0.5–1 fist carbs + 2 fists vegetables + 1 palm protein
-Snack: 1–2 fists fruit + nuts 10–15g
-
-[Example]
-Breakfast:
-● Brown rice half bowl (75g)
-● Boiled egg 1
-● Unsweetened soy milk 1 cup (200ml)
-Lunch:
-● Brown rice 1 bowl (150g)
-● Grilled chicken breast 1 piece (120g)
-● Broccoli & carrot stir-fry 2 cups
-Dinner:
-● Mixed-grain rice half bowl (75g)
-● Grilled mackerel 1 fillet (100g)
-● Spinach & bean sprout sides 2 cups
-Snack:
-● Apple 1
-● Almonds 10
-```
-
-### Other Languages
-
-For other locales, follow the same structure: **pattern (portion guide) + one-day example**. Adapt foods to local staples, use local measurement conventions, and ensure the foods match what the user can easily find and typically eats.
+- **Use local staple foods** — e.g., rice/congee/soy milk/tofu for Chinese users, soba/natto/miso for Japanese users, mixed-grain rice/kimchi for Korean users
+- **Use local portion conventions** — bowls, plates, and metric grams where appropriate instead of cups/oz
+- **Reflect local meal structures** — e.g., Chinese breakfast (soy milk + eggs + buns) differs significantly from American breakfast (oatmeal + eggs + milk)
+- **Match foods the user can actually buy and typically eats** at their local grocery stores or markets
 
 ### After Presenting the Diet Pattern
 
@@ -456,9 +374,7 @@ The meal plan uses a **day → meal → food items** hierarchy. Each level shows
 
 ### 7-Day Meal Plan — Mandatory Template
 
-Below is the **canonical 7-day meal plan format**. The output **must** follow this structure exactly. All text adapts to the user's language at runtime. Three representative days are shown in full (cook day, weekday with batch-prep, eat-out day) to illustrate the pattern.
-
-> **China locale example** — demonstrates Chinese-style dishes, Meituan/Ele.me ordering, and batch-prep rotation. For other locales, swap in locale-appropriate foods and restaurants while keeping the identical structure.
+Below is the **canonical 7-day meal plan format**. The output **must** follow this structure exactly. All text adapts to the user's language at runtime. Three representative days are shown in full (cook day, weekday with batch-prep, eat-out day) to illustrate the pattern. For non-US locales, swap in locale-appropriate foods, restaurants, and portion conventions while keeping the identical structure.
 
 ```markdown
 # 🍽️ Your Weekly Meal Plan
@@ -473,26 +389,27 @@ Below is the **canonical 7-day meal plan format**. The output **must** follow th
 ## Sunday — 1,610 kcal | P 102g · C 178g · F 48g
 
 ### 🍳 Breakfast — 380 kcal | P 22g · C 48g · F 11g
-Soy milk + boiled egg + veggie buns
-- Unsweetened soy milk — 1 cup (300ml)
+Oatmeal + boiled egg + milk
+- Rolled oats (cooked) — 1/2 cup (40g dry)
 - Boiled egg — 1 (50g)
-- Veggie buns — 2 (120g)
+- Whole milk — 1 cup (240ml)
 
 ### 🥗 Lunch — 540 kcal | P 36g · C 60g · F 16g
-Steamed sea bass + garlic lettuce + rice
-- Steamed sea bass — half fish (150g)
-- Garlic sautéed lettuce — 1 plate (120g)
-- White rice — 1 small bowl (120g cooked)
+Baked salmon + roasted vegetables + brown rice
+- Baked salmon — 1 fillet (5 oz / 140g)
+- Roasted zucchini & bell peppers — 2 cups (200g)
+- Brown rice (cooked) — 1/2 cup (100g)
 
 ### 🍽️ Dinner — 510 kcal | P 35g · C 52g · F 17g
-Curry chicken leg + mixed-grain rice + smashed cucumber
-- Curry chicken leg (skinless) — 1 (120g)
-- Mixed-grain rice — 1 small bowl (120g cooked)
-- Smashed cucumber salad — 1 small dish (80g)
+Turkey meatballs + whole-wheat pasta + side salad
+- Turkey meatballs — 4 (120g)
+- Whole-wheat pasta (cooked) — 1 cup (140g)
+- Marinara sauce — 1/4 cup (60g)
+- Mixed green salad — 2 cups (60g)
 
 ### 🍎 Snack — 180 kcal | P 9g · C 18g · F 4g
-- Unsweetened yogurt — 1 small cup (130g)
-- Mandarin orange — 1
+- Plain Greek yogurt — 3/4 cup (170g)
+- 1 medium apple
 
 ---
 
@@ -500,52 +417,54 @@ Curry chicken leg + mixed-grain rice + smashed cucumber
 
 ### 🍳 Breakfast — 380 kcal | P 24g · C 46g · F 12g
 Whole-wheat toast + boiled egg + milk
-- Whole-wheat toast — 2 slices (100g)
+- Whole-wheat toast — 2 slices (60g)
 - Boiled egg — 1 (50g)
-- Low-fat cheese — 1 slice (20g)
-- Whole milk — 1 carton (250ml)
+- Cheddar cheese — 1 slice (28g)
+- Whole milk — 1 cup (240ml)
 
 ### 🥗 Lunch — 530 kcal | P 38g · C 58g · F 16g
-Braised chicken leg + mixed-grain rice + blanched broccoli
-- Braised chicken leg (skinless) — 1 (120g)
-- Mixed-grain rice — 1 small bowl (120g cooked)
-- Blanched broccoli — 1 serving (100g)
-- Seaweed egg-drop soup — 1 small bowl (200ml)
+Grilled chicken breast + brown rice + steamed broccoli
+- Grilled chicken breast — 1 palm-sized piece (5 oz / 140g)
+- Brown rice (cooked) — 1/2 cup (100g)
+- Steamed broccoli — 1.5 cups (130g)
+- Olive oil — 1 teaspoon (5ml)
 
 ### 🍽️ Dinner — 500 kcal | P 30g · C 52g · F 18g [Takeout]
-Meituan/Ele.me — Steamed sea bass set meal
-- Order: steamed sea bass + garlic broccoli + rice (small)
-- 💡 Request "less oil, less salt." Half a bowl of rice is enough — don't force yourself to finish it.
+Chipotle — Chicken burrito bowl
+- Order: chicken, brown rice, black beans, fajita veggies, salsa, lettuce. Skip sour cream and cheese.
+- 💡 Ask for half rice to save ~100 cal. Extra veggies are free.
 
 ### 🍎 Snack — 180 kcal | P 8g · C 16g · F 6g
-- Unsweetened yogurt — 1 small cup (130g)
-- Plain cashews — 1 small handful (15g)
-- Apple — 1
+- Plain Greek yogurt — 3/4 cup (170g)
+- Plain almonds — 1 small handful (15g)
+- 1 medium banana
 
 ---
 
 ## Tuesday — 1,600 kcal | P 98g · C 180g · F 50g
 
 ### 🍳 Breakfast — 370 kcal | P 20g · C 50g · F 10g
-Mixed-grain congee + tea egg + milk
-- Mixed-grain congee — 1 bowl (250ml)
-- Tea egg — 1 (50g)
-- Whole milk — 1 carton (250ml)
+Overnight oats + banana + milk
+- Rolled oats — 1/2 cup (40g dry)
+- Chia seeds — 1 teaspoon (5g)
+- 1 medium banana (~120g)
+- Whole milk — 1 cup (240ml)
 
 ### 🥗 Lunch — 540 kcal | P 36g · C 62g · F 16g
-Curry beef + rice + roasted pumpkin
-- Curry beef — 1 serving (130g)
-- White rice — 1 small bowl (120g cooked)
-- Roasted pumpkin — 1 serving (100g)
+Ground turkey stir-fry + rice + roasted sweet potato
+- Ground turkey — 4 oz (113g)
+- Brown rice (cooked) — 1/2 cup (100g)
+- Roasted sweet potato — 1 medium wedge (100g)
+- Mixed vegetables — 1 cup (80g)
 
 ### 🍽️ Dinner — 510 kcal | P 34g · C 50g · F 18g [Eating out]
-Lanzhou Noodle Shop — Beef noodle soup
-- Order: beef noodle soup + braised beef side dish
-- 💡 The broth is oily — go easy on the soup. Eat the noodles, meat, and veggies, skip the rest.
+Subway — Turkey breast sub
+- Order: 6-inch turkey breast on wheat, all veggies, mustard. Skip mayo and cheese.
+- 💡 Load up on veggies — they're free and fill you up. Vinegar & oil dressing is lower cal than ranch.
 
 ### 🍎 Snack — 180 kcal | P 8g · C 18g · F 6g
 - Plain almonds — 10 (15g)
-- Banana — 1
+- 1 medium apple
 
 ---
 
@@ -553,62 +472,8 @@ Lanzhou Noodle Shop — Beef noodle soup
 
 [Same structure, different main dishes each day, following these rules:]
 [Wednesday = second cook day — batch-prep new Tier A dishes to cover Thu/Fri]
-[Fish, leafy stir-fries, and other low-storage foods only on cook days or eat-out days]
-[Noodle soups only on eat-out days]
+[Fish and leafy salads only on cook days or eat-out days]
 [Daily calories fluctuate within the target range; 7-day average hits the target]
-```
-
-> **US locale example** — demonstrates American-style dishes with imperial measurements and restaurant chains.
-
-```markdown
-## Monday — X,XXX cal | P Xg · C Xg · F Xg
-
-### 🍳 Breakfast — XXX cal | P Xg · C Xg · F Xg
-Oatmeal with protein powder and banana
-- Rolled oats — 1/2 cup (40g)
-- Whey protein — 1 scoop (30g)
-- Banana — 1 medium (~120g)
-- Peanut butter — 1 teaspoon (7g)
-
-### 🥗 Lunch — XXX cal | P Xg · C Xg · F Xg
-Grilled chicken breast with brown rice and broccoli
-- Chicken breast — 1 palm-sized piece (150g)
-- Brown rice — 1 small bowl (100g cooked)
-- Steamed broccoli — 1 cup (80g)
-- Olive oil — 1 teaspoon (5ml)
-
-### 🍽️ Dinner — XXX cal | P Xg · C Xg · F Xg [Eating out]
-Chipotle — Chicken burrito bowl
-- Order: chicken, brown rice, black beans, fajita veggies, salsa, lettuce. Skip sour cream and cheese.
-- 💡 Ask for half rice to save ~100 cal. Extra veggies are free.
-
-### 🍎 Snack — XXX cal | P Xg · C Xg · F Xg
-- Greek yogurt — 1 small tub (150g)
-- Blueberries — a small handful (50g)
-
-[...same structure through Sunday]
-```
-
-> **Japan locale example** — demonstrates konbini-based meals and IF 16:8 skipped breakfast.
-
-```markdown
-## Monday — 1,520 kcal | P 104g · C 170g · F 36g
-
-### 🍳 Breakfast — skipped (IF 16:8)
-
-### 🥗 Lunch 12:00 — 620 kcal | P 40g · C 72g · F 12g [Konbini]
-7-Eleven — Salad chicken + onigiri set
-- Salad chicken — 1 pack (115g)
-- Onigiri — 2 (salmon, kelp)
-- Cup miso soup — 1
-- 💡 The "protein-packed" series has macros printed on the label — easy to track.
-
-### 🍽️ Dinner 19:00 — 590 kcal | P 42g · C 60g · F 14g
-Teriyaki chicken breast + brown rice + broccoli
-- Chicken breast — 1 piece (150g)
-- Brown rice — 1 rice-bowl (150g)
-- Frozen broccoli — 1 cup (100g)
-- 💡 Microwave broccoli 2 min. Marinate chicken the night before for easier prep.
 ```
 
 ---
