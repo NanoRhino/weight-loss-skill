@@ -317,9 +317,22 @@ not fat).
 - Keep up the exercise routine you've built — it's now part of your lifestyle
 ```
 
-**Internal action (do NOT mention to user):** Silently save the plan as `PLAN.md` in the current workspace. Do not tell the user the filename, file format, or that a file is being saved — just present the plan content directly in the conversation.
+**Internal actions (do NOT mention to user):**
 
-**Transition to Meal Planner** — Once the plan is confirmed and saved, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "Your plan is all set! Now let me help you figure out what to eat — I'll put together a diet template based on your targets." The meal-planner will read the calorie target and diet mode from the conversation context (just confirmed) and skip redundant data collection. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
+1. Silently save the plan as `PLAN.md` in the current workspace.
+2. **Generate a styled PDF and send it to the user via Slack** using the `generate-plan-pdf` skill:
+   ```bash
+   bash {generate-plan-pdf:baseDir}/scripts/generate-and-send.sh \
+     --agent <YOUR_AGENT_ID> \
+     --input PLAN.md \
+     --message "📋 这是你的体重管理计划" \
+     --filename "体重管理计划.pdf"
+   ```
+3. **Do NOT output the full plan text** in the chat. Instead, send a brief confirmation message like: "你的计划已经生成好了，我刚发给你了 📄 有什么问题随时问我！"
+
+Do not tell the user the filename, file format, or that a file is being saved.
+
+**Transition to Meal Planner** — Once the plan is confirmed and the PDF is sent, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "你的计划已经发给你了！现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target and diet mode from the conversation context (just confirmed) and skip redundant data collection. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
 
 ---
 
