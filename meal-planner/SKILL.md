@@ -40,7 +40,7 @@ USER.md (body stats, preferences)
 
 ## Preference Awareness
 
-**Before generating any meal plan, diet pattern, or food suggestion, read the `## Preferences` section in `USER.md`.** This section contains user preferences accumulated across all conversations — food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more.
+**Before generating any meal plan, diet template, or food suggestion, read the `## Preferences` section in `USER.md`.** This section contains user preferences accumulated across all conversations — food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more.
 
 ### How to Apply Preferences
 
@@ -181,31 +181,31 @@ Then ask the user to confirm or adjust.
 
 ---
 
-## Step 3: Present the Diet Pattern
+## Step 3: Present the Diet Template
 
-After confirming macros, **always present a Diet Pattern first** — before generating a full 7-day meal plan. The Diet Pattern gives the user an immediately actionable eating framework: a portion-based pattern for each meal slot plus a concrete one-day example with specific foods and amounts.
+After confirming macros, **always present a Diet Template first** — before generating a full 7-day meal plan. The Diet Template gives the user an immediately actionable eating framework: a portion-based template for each meal slot plus a concrete one-day example with specific foods and amounts.
 
-### Why Pattern First, Not Plan First
+### Why Template First, Not Plan First
 
-Most users don't need a detailed 7-day plan to start eating better. A clear pattern ("this is roughly what each meal looks like") plus one concrete example is enough to act on immediately. The 7-day plan is a nice-to-have — offer it, but only generate it if the user explicitly asks.
+Most users don't need a detailed 7-day plan to start eating better. A clear template ("this is roughly what each meal looks like") plus one concrete example is enough to act on immediately. The 7-day plan is a nice-to-have — offer it, but only generate it if the user explicitly asks.
 
-### Selecting the Diet Pattern by Locale
+### Selecting the Diet Template by Locale
 
-Match the diet pattern to the user's language/locale (resolved in Step 1). The pattern should reflect:
+Match the diet template to the user's language/locale (resolved in Step 1). The template should reflect:
 - **Local foods** the user actually eats daily
 - **Local portion conventions** (hand portions, bowls, cups, etc.)
 - **Local meal structure** (e.g., Chinese breakfast is very different from American breakfast)
 
-Use the templates below as defaults. If the user's diet mode is non-standard (e.g., keto, IF 16:8), adapt the pattern accordingly — change the food types and portion ratios to match, but keep the same "pattern + example" format.
+Use the templates below as defaults. If the user's diet mode is non-standard (e.g., keto, IF 16:8), adapt the template accordingly — change the food types and portion ratios to match, but keep the same "template + example" format.
 
 ### Precision Rule
 
 When specifying amounts, the **minimum granularity is 0.5** — never use values like 0.3 or 0.7. Valid values: 0.5, 1, 1.5, 2, 2.5, etc. Ranges use the same granularity (e.g., "0.5–1 fist", "1–2 cups").
 
-### English (US/Western) Pattern Template
+### English (US/Western) Diet Template
 
 ```markdown
-🇺🇸[Meal Pattern — Hand Portion Guide]
+🇺🇸[Meal Template — Hand Portion Guide]
 Breakfast: 0.5–1 fist grains + 1 palm protein + 1 cup dairy/protein drink
 Lunch: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
 Dinner: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
@@ -231,22 +231,22 @@ Snack:
 
 ### Locale Adaptation
 
-For non-US locales, follow the same **pattern (portion guide) + one-day example** structure, but adapt to the user's food culture:
+For non-US locales, follow the same **template (portion guide) + one-day example** structure, but adapt to the user's food culture:
 
 - **Use local staple foods** — e.g., rice/congee/soy milk/tofu for Chinese users, soba/natto/miso for Japanese users, mixed-grain rice/kimchi for Korean users
 - **Use local portion conventions** — bowls, plates, and metric grams where appropriate instead of cups/oz
 - **Reflect local meal structures** — e.g., Chinese breakfast (soy milk + eggs + buns) differs significantly from American breakfast (oatmeal + eggs + milk)
 - **Match foods the user can actually buy and typically eats** at their local grocery stores or markets
 
-### After Presenting the Diet Pattern
+### After Presenting the Diet Template
 
-Once you present the diet pattern, add the following message (adapt to the user's language):
+Once you present the diet template, add the following message (adapt to the user's language):
 
-> Going forward, just follow this pattern for your meals. Don't stress about getting it perfect — eat according to the pattern and send me what you had. I'll help you fine-tune from there.
+> Going forward, just follow this template for your meals. Don't stress about getting it perfect — eat according to the template and send me what you had. I'll help you fine-tune from there.
 >
 > Would you like me to create a detailed 7-day meal plan as well?
 
-**Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user doesn't ask for it, stop here — the diet pattern is sufficient to start.
+**Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user doesn't ask for it, stop here — the diet template is sufficient to start.
 
 ---
 

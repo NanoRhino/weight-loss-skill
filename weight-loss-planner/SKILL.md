@@ -319,7 +319,7 @@ not fat).
 
 **Internal action (do NOT mention to user):** Silently save the plan as `PLAN.md` in the current workspace. Do not tell the user the filename, file format, or that a file is being saved — just present the plan content directly in the conversation.
 
-**Transition to Meal Planner** — Once the plan is confirmed and saved, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "Your plan is all set! Now let me help you figure out what to eat — I'll put together a diet pattern based on your targets." The meal-planner will read the calorie target and diet mode from the conversation context (just confirmed) and skip redundant data collection. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
+**Transition to Meal Planner** — Once the plan is confirmed and saved, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "Your plan is all set! Now let me help you figure out what to eat — I'll put together a diet template based on your targets." The meal-planner will read the calorie target and diet mode from the conversation context (just confirmed) and skip redundant data collection. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
 
 ---
 

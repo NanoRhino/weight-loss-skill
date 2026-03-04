@@ -335,4 +335,4 @@ Carbohydrate (derived — fills remaining calories):
 - **Fat** should not drop below 20% of total calories — essential for hormone production (especially important during sustained calorie restriction)
 - **Carbohydrates** are the flexible macro that fills remaining calories after protein and fat targets are met
 - When recalculating at a new weight, update protein target using the new current weight; fat % stays anchored to total calories
-- These targets are for the overall daily total — individual meal distribution should follow the user's meal pattern (see diet-tracking-analysis skill for per-meal checkpoint logic)
+- These targets are for the overall daily total — individual meal distribution should follow the user's meal template (see diet-tracking-analysis skill for per-meal checkpoint logic)
