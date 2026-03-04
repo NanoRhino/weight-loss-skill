@@ -17,6 +17,7 @@ weight reminder.
     "value": 162.5,
     "unit": "lbs"
   },
+  "fasting": true,
   "recorded_at": "2025-02-26T07:18:00Z",
   "reminder_sent_at": "2025-02-26T07:00:00Z",
   "source": "daily-notification"
@@ -27,6 +28,7 @@ weight reminder.
 |-------|-------------|
 | `weight.value` | User-reported number |
 | `weight.unit` | `"lbs"` or `"kg"` based on user preference |
+| `fasting` | `true` if user weighed before eating, `false` if user had already eaten. Used for trend accuracy — fasting readings are more comparable. |
 | `recorded_at` | Timestamp when user actually replied |
 | `reminder_sent_at` | Timestamp when the reminder was sent |
 | `source` | Always `"daily-notification"` (distinguishes from other logging sources) |
