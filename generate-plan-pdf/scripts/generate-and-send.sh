@@ -44,7 +44,7 @@ if [[ -z "$FILENAME" ]]; then
 fi
 
 echo "=== Step 1: Generating PDF ==="
-bash "$SCRIPT_DIR/generate-pdf.sh" "$INPUT" "$OUTPUT"
+python3 "$SCRIPT_DIR/generate-pdf.py" "$INPUT" "$OUTPUT"
 
 echo ""
 echo "=== Step 2: Sending to Slack ==="

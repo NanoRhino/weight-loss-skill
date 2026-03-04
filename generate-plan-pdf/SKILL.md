@@ -34,7 +34,7 @@ Parameters:
 - `--filename` (optional): Display name for the file in Slack (defaults to input filename with .pdf extension)
 
 The script will:
-1. Convert Markdown to a styled PDF (professional formatting with Inter + Noto Sans SC fonts)
+1. Convert Markdown to a styled PDF via WeasyPrint (professional formatting with Inter + Noto Sans SC fonts, colored section headers, styled tables)
 2. Upload the PDF to the user's Slack DM (auto-resolves Slack user ID from agent binding)
 
 ## After Sending
@@ -59,8 +59,8 @@ bash {baseDir}/scripts/send-to-slack.sh --agent <id> --file <path> [--message <t
 
 ## Notes
 
-- The stylesheet uses Google Fonts — requires internet access
-- Supports Chinese, English, and mixed-language content
-- Output is A4 format with colored section headers and styled tables
+- Uses WeasyPrint (Python) — no Chrome/browser dependency
+- Supports Chinese, English, and mixed-language content (Inter + Noto Sans SC fonts)
+- Output is A4 format with colored section headers, styled tables, and page numbers
 - Agent-to-Slack-user mapping is auto-resolved from `openclaw.json` bindings
 - The generated PDF is also saved in the workspace as `<input-basename>.pdf` for reference
