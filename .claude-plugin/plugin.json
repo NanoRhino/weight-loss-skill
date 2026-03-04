@@ -23,6 +23,7 @@
     "./chat-greeting",
     "./daily-notification-skill",
     "./diet-tracking-analysis",
+    "./meal-planner",
     "./user-onboarding-profile",
     "./weight-loss-planner"
   ]

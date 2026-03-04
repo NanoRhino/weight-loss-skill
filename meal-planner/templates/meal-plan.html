@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7-Day Meal Plan</title>
+<!--
+  MEAL PLAN HTML TEMPLATE — Reference for Claude Code Skill
+  ============================================================
+  This is the canonical HTML template for generating 7-day meal plan exports.
+  When generating a meal plan, follow this structure and replace placeholder
+  content with actual user data. Keep ALL CSS inline (single-file, no external
+  dependencies).
+
+  KEY RULES:
+  - Replace {{LANG}} with "en" or "zh" (or other locale code)
+  - Replace {{DIR}} with "ltr" (default) or "rtl" if needed
+  - Replace all {{PLACEHOLDER}} values with actual data
+  - Repeat the .day-card section for each day (7 total)
+  - Repeat .meal-block sections within each day as needed
+  - For eating-out meals, add class "eating-out" to .meal-block
+  - Adapt food names, units, and language to user's locale
+  - The HTML must be fully self-contained (no external CSS/JS/fonts)
+-->
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #f5f5f0;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* ===== Page Container ===== */
+  .page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* ===== Header ===== */
+  .plan-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e0ddd5;
+  }
+
+  .plan-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2d5016;
+    margin-bottom: 0.4rem;
+  }
+
+  .plan-header .subtitle {
+    font-size: 0.95rem;
+    color: #666;
+  }
+
+  /* ===== Summary Card ===== */
+  .summary-card {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem 2rem;
+  }
+
+  .summary-card .item {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    align-items: baseline;
+  }
+
+  .summary-card .label {
+    color: #888;
+    white-space: nowrap;
+  }
+
+  .summary-card .value {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .summary-card .full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* ===== Day Card ===== */
+  .day-card {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+
+  .day-header {
+    background: #2d5016;
+    color: #fff;
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .day-header h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .day-header .day-macros {
+    font-size: 0.82rem;
+    opacity: 0.9;
+    font-weight: 400;
+  }
+
+  .day-body {
+    padding: 0.2rem 0;
+  }
+
+  /* ===== Meal Block ===== */
+  .meal-block {
+    padding: 0.8rem 1.2rem;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .meal-block:last-child {
+    border-bottom: none;
+  }
+
+  .meal-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .meal-title h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d5016;
+    margin: 0;
+  }
+
+  .meal-title .meal-macros {
+    font-size: 0.78rem;
+    color: #888;
+    white-space: nowrap;
+  }
+
+  .meal-title .tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  .dish-summary {
+    font-size: 0.88rem;
+    color: #555;
+    margin-bottom: 0.4rem;
+    font-style: italic;
+  }
+
+  .food-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .food-list li {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.15rem 0;
+    padding-left: 1.2rem;
+    position: relative;
+  }
+
+  .food-list li::before {
+    content: "·";
+    position: absolute;
+    left: 0.3rem;
+    color: #aaa;
+    font-weight: 700;
+  }
+
+  .food-list .portion {
+    color: #888;
+  }
+
+  .meal-tip {
+    font-size: 0.82rem;
+    color: #b45309;
+    margin-top: 0.3rem;
+    padding-left: 1.2rem;
+  }
+
+  /* ===== Eating-out Meal ===== */
+  .meal-block.eating-out .order-info {
+    font-size: 0.88rem;
+    color: #444;
+    padding-left: 1.2rem;
+    margin-bottom: 0.2rem;
+  }
+
+  /* ===== Grocery List (optional section) ===== */
+  .grocery-section {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .grocery-section h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #2d5016;
+    margin-bottom: 0.8rem;
+  }
+
+  .grocery-category h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #555;
+    margin: 0.8rem 0 0.3rem 0;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .grocery-category ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    columns: 2;
+    column-gap: 2rem;
+  }
+
+  .grocery-category li {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.12rem 0;
+    break-inside: avoid;
+  }
+
+  /* ===== Footer ===== */
+  .plan-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0ddd5;
+    font-size: 0.8rem;
+    color: #aaa;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 600px) {
+    html { font-size: 14px; }
+    .page { padding: 1rem; }
+    .summary-card { grid-template-columns: 1fr; }
+    .day-header { flex-direction: column; align-items: flex-start; }
+    .meal-title { flex-direction: column; }
+    .grocery-category ul { columns: 1; }
+  }
+
+  /* ===== Print ===== */
+  @media print {
+    body { background: #fff; font-size: 11pt; }
+    .page { max-width: none; padding: 0; }
+    .day-card { break-inside: avoid; border: 1px solid #ccc; margin-bottom: 1rem; }
+    .day-header { background: #2d5016 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .plan-footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="plan-header">
+    <h1>🍽️ Your Weekly Meal Plan</h1>
+    <p class="subtitle">{{DATE}} · Personalized for {{USER_NAME}}</p>
+  </header>
+
+  <!-- ==================== SUMMARY ==================== -->
+  <div class="summary-card">
+    <div class="item">
+      <span class="label">Daily Target:</span>
+      <span class="value">{{CALORIE_TARGET}} kcal ({{CALORIE_RANGE}})</span>
+    </div>
+    <div class="item">
+      <span class="label">Diet Mode:</span>
+      <span class="value">{{DIET_MODE}}</span>
+    </div>
+    <div class="item full-width">
+      <span class="label">Macros:</span>
+      <span class="value">{{PROTEIN}}g protein · {{CARBS}}g carbs · {{FAT}}g fat</span>
+    </div>
+  </div>
+
+  <!-- ==================== DAY 1 (Cook Day Example) ==================== -->
+  <div class="day-card">
+    <div class="day-header">
+      <h2>Sunday</h2>
+      <span class="day-macros">1,610 kcal · P 102g · C 178g · F 48g</span>
+    </div>
+    <div class="day-body">
+
+      <div class="meal-block">
+        <div class="meal-title">
+          <h3>🍳 Breakfast</h3>
+          <span class="meal-macros">380 kcal · P 22g · C 48g · F 11g</span>
+        </div>
+        <p class="dish-summary">Oatmeal + boiled egg + milk</p>
+        <ul class="food-list">
+          <li>Rolled oats (cooked) — 1/2 cup <span class="portion">(40g dry)</span></li>
+          <li>Boiled egg — 1 <span class="portion">(50g)</span></li>
+          <li>Whole milk — 1 cup <span class="portion">(240ml)</span></li>
+        </ul>
+      </div>
+
+      <div class="meal-block">
+        <div class="meal-title">
+          <h3>🥗 Lunch</h3>
+          <span class="meal-macros">540 kcal · P 36g · C 60g · F 16g</span>
+        </div>
+        <p class="dish-summary">Baked salmon + roasted vegetables + brown rice</p>
+        <ul class="food-list">
+          <li>Baked salmon — 1 fillet <span class="portion">(5 oz / 140g)</span></li>
+          <li>Roasted zucchini &amp; bell peppers — 2 cups <span class="portion">(200g)</span></li>
+          <li>Brown rice (cooked) — 1/2 cup <span class="portion">(100g)</span></li>
+        </ul>
+      </div>
+
+      <div class="meal-block">
+        <div class="meal-title">
+          <h3>🍽️ Dinner</h3>
+          <span class="meal-macros">510 kcal · P 35g · C 52g · F 17g</span>
+        </div>
+        <p class="dish-summary">Turkey meatballs + whole-wheat pasta + side salad</p>
+        <ul class="food-list">
+          <li>Turkey meatballs — 4 <span class="portion">(120g)</span></li>
+          <li>Whole-wheat pasta (cooked) — 1 cup <span class="portion">(140g)</span></li>
+          <li>Marinara sauce — 1/4 cup <span class="portion">(60g)</span></li>
+          <li>Mixed green salad — 2 cups <span class="portion">(60g)</span></li>
+        </ul>
+      </div>
+
+      <div class="meal-block">
+        <div class="meal-title">
+          <h3>🍎 Snack</h3>
+          <span class="meal-macros">180 kcal · P 9g · C 18g · F 4g</span>
+        </div>
+        <ul class="food-list">
+          <li>Plain Greek yogurt — 3/4 cup <span class="portion">(170g)</span></li>
+          <li>1 medium apple</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== DAY 2 (Eat-out Example) ==================== -->
+  <div class="day-card">
+    <div class="day-header">
+      <h2>Monday</h2>
+      <span class="day-macros">1,590 kcal · P 100g · C 172g · F 52g</span>
+    </div>
+    <div class="day-body">
+
+      <div class="meal-block">
+        <div class="meal-title">
+          <h3>🍳 Breakfast</h3>
+          <span class="meal-macros">380 kcal · P 24g · C 46g · F 12g</span>
+        </div>
+        <p class="dish-summary">Whole-wheat toast + boiled egg + milk</p>
+        <ul class="food-list">
+          <li>Whole-wheat toast — 2 slices <span class="portion">(60g)</span></li>
+          <li>Boiled egg — 1 <span class="portion">(50g)</span></li>
+          <li>Cheddar cheese — 1 slice <span class="portion">(28g)</span></li>
+          <li>Whole milk — 1 cup <span class="portion">(240ml)</span></li>
+        </ul>
+      </div>
+
+      <div class="meal-block">
+        <div class="meal-title">
+          <h3>🥗 Lunch</h3>
+          <span class="meal-macros">530 kcal · P 38g · C 58g · F 16g</span>
+        </div>
+        <p class="dish-summary">Grilled chicken breast + brown rice + steamed broccoli</p>
+        <ul class="food-list">
+          <li>Grilled chicken breast — 1 palm-sized piece <span class="portion">(5 oz / 140g)</span></li>
+          <li>Brown rice (cooked) — 1/2 cup <span class="portion">(100g)</span></li>
+          <li>Steamed broccoli — 1.5 cups <span class="portion">(130g)</span></li>
+          <li>Olive oil — 1 teaspoon <span class="portion">(5ml)</span></li>
+        </ul>
+      </div>
+
+      <div class="meal-block eating-out">
+        <div class="meal-title">
+          <h3>🍽️ Dinner <span class="tag">Takeout</span></h3>
+          <span class="meal-macros">500 kcal · P 30g · C 52g · F 18g</span>
+        </div>
+        <p class="order-info">Chipotle — Chicken burrito bowl</p>
+        <ul class="food-list">
+          <li>Order: chicken, brown rice, black beans, fajita veggies, salsa, lettuce. Skip sour cream and cheese.</li>
+        </ul>
+        <p class="meal-tip">💡 Ask for half rice to save ~100 cal. Extra veggies are free.</p>
+      </div>
+
+      <div class="meal-block">
+        <div class="meal-title">
+          <h3>🍎 Snack</h3>
+          <span class="meal-macros">180 kcal · P 8g · C 16g · F 6g</span>
+        </div>
+        <ul class="food-list">
+          <li>Plain Greek yogurt — 3/4 cup <span class="portion">(170g)</span></li>
+          <li>Plain almonds — 1 small handful <span class="portion">(15g)</span></li>
+          <li>1 medium banana</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ====================
+    DAY 3–7: Repeat .day-card structure for each remaining day.
+    Follow the same pattern. Vary main dishes daily.
+  ==================== -->
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="plan-footer">
+    Generated by AI Nutrition Coach · For reference only — consult a dietitian for medical dietary needs
+  </footer>
+
+</div>
+</body>
+</html>
