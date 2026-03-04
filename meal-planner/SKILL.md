@@ -106,23 +106,21 @@ When planning meals, use the **midpoint** of each range as the planning target. 
 
 ### Western Diet Acceptance Check (Chinese Users Only)
 
-When the user's locale resolves to **China** (via explicit statement, USER.md, or language inference), ask **before proceeding to diet mode or meal planning** whether they are open to Western-style foods:
+When the user's locale resolves to **China** (via explicit statement, USER.md, or language inference), ask **before proceeding to diet mode or meal planning** whether they are open to Western-style foods. Present three options (in the user's language, i.e., Chinese) with concrete examples so the user understands what "Western-style" means in this context — e.g., whole-wheat bread, pasta, steak, salad, oatmeal, Greek yogurt:
 
-> 您的饮食计划默认会以中式饮食为主。请问您是否也接受西式饮食（如全麦面包、意面、牛排、沙拉、燕麦、希腊酸奶等）？
->
-> 1. **纯中式** — 完全以中餐为主，食材和烹饪方式都按中式来
-> 2. **以中式为主，可以搭配一些西式** — 大部分是中餐，偶尔穿插西式选项（比如早餐来个燕麦、加餐来个酸奶）
-> 3. **中西结合，都可以** — 中餐西餐混搭，只要好吃方便就行
+1. **Chinese only** — All ingredients and cooking methods are Chinese. No Western staples.
+2. **Mostly Chinese, some Western OK** — Mainly Chinese meals, but Western options are fine occasionally (e.g., oatmeal for breakfast, yogurt as a snack).
+3. **Mixed, anything goes** — Freely combine Chinese and Western foods, whatever is tasty and convenient.
 
 **How to use the answer:**
 
 | Choice | Meal Plan Behavior |
 |--------|-------------------|
-| **纯中式** | All meals use Chinese ingredients, cooking methods, and meal structures. No Western staples (oatmeal, pasta, Greek yogurt, cheese, whole-wheat bread, etc.). Snacks use Chinese options (fruit, nuts, soy milk, boiled eggs, whole-grain buns). |
-| **以中式为主，可以搭配一些西式** | Default to Chinese meals for lunch and dinner. Allow Western-style options for breakfast and snacks where convenient (e.g., oatmeal, yogurt, whole-wheat toast). Never force Western items into main meals. |
-| **中西结合，都可以** | Freely mix Chinese and Western foods across all meals. Optimize for nutrition, variety, and convenience without cuisine restrictions. |
+| **Chinese only** | All meals use Chinese ingredients, cooking methods, and meal structures. No Western staples (oatmeal, pasta, Greek yogurt, cheese, whole-wheat bread, etc.). Snacks use Chinese options (fruit, nuts, soy milk, boiled eggs, whole-grain buns). |
+| **Mostly Chinese, some Western OK** | Default to Chinese meals for lunch and dinner. Allow Western-style options for breakfast and snacks where convenient (e.g., oatmeal, yogurt, whole-wheat toast). Never force Western items into main meals. |
+| **Mixed, anything goes** | Freely mix Chinese and Western foods across all meals. Optimize for nutrition, variety, and convenience without cuisine restrictions. |
 
-If the user has already expressed a preference in `USER.md` (e.g., a prior `[date] 只吃中餐` or `[date] 中西餐都可以` entry in the Preferences section), respect that and skip this question. When the user answers, **silently append** their choice to `USER.md`'s `## Preferences → ### Dietary` section (e.g., `- [YYYY-MM-DD] 饮食风格：以中式为主，可搭配西式`).
+If the user has already expressed a cuisine-style preference in `USER.md` (e.g., a prior entry like "Chinese food only" or "OK with Western food" in the Preferences section), respect that and skip this question. When the user answers, **silently append** their choice to `USER.md`'s `## Preferences → ### Dietary` section with a date stamp (e.g., `- [YYYY-MM-DD] Cuisine style: mostly Chinese, some Western OK`).
 
 ### Dietary Preferences & Practical Constraints
 
