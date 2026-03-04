@@ -38,6 +38,32 @@ USER.md (body stats, preferences)
     → meal-planner (food plan, portions, grocery list) ← YOU ARE HERE
 ```
 
+## Preference Awareness
+
+**Before generating any meal plan, diet pattern, or food suggestion, read `PREFERENCES.md` from the workspace.** This file contains user preferences accumulated across all conversations — food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more.
+
+### How to Apply Preferences
+
+| Preference Type | Action |
+|----------------|--------|
+| **Food dislikes** (e.g., "doesn't like fish") | Never include that food in any meal plan. Don't mention it. |
+| **Food loves** (e.g., "loves spicy food") | Favor these foods within macro targets. Build meals around what they enjoy. |
+| **Allergies / intolerances** (e.g., "lactose intolerant") | Strictly exclude. Use safe alternatives (e.g., oat milk instead of dairy). |
+| **Cooking & kitchen** (e.g., "only has a microwave") | Match meal complexity to their kitchen situation. |
+| **Scheduling** (e.g., "works late on Wednesdays") | Suggest quick meals or eating-out options on busy days. |
+| **Diet style** (e.g., "prefers Mediterranean") | Align the plan's flavor profile and food choices. |
+
+If `PREFERENCES.md` doesn't exist, proceed normally — preferences from `USER.md` and conversation context are still valid.
+
+### Detecting New Preferences During Meal Planning
+
+While building a meal plan, the user may reveal new preferences (e.g., "swap the salmon — I don't like fish"). When this happens:
+1. Accommodate the request immediately
+2. **Silently** append the preference to `PREFERENCES.md` under the appropriate category (e.g., `- [YYYY-MM-DD] Doesn't like fish (from: meal-planner)`)
+3. Do not mention the file or storage mechanism to the user — just acknowledge naturally: "Got it, no fish!"
+
+---
+
 ## Step 1: Resolve Calorie Target & User Context (Conditional)
 
 Before planning any meals, you need three things: a daily calorie target, the user's locale context, and their dietary preferences.

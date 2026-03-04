@@ -229,9 +229,34 @@ When a user wants to update (not create) their profile:
 - Normalize the struggle — most people have tried a few times before finding what works for them
 - If someone shares something emotionally heavy, acknowledge it briefly before moving on
 
+## Preference Awareness — Write to PREFERENCES.md
+
+During onboarding, the user often reveals preferences beyond the standard profile fields. Watch for these and save them to `PREFERENCES.md`:
+
+**What to capture:**
+- Food likes/dislikes beyond the "Food Restrictions" field (e.g., "I hate eggplant", "I love spicy food")
+- Cooking situation details (e.g., "I only have a microwave", "I enjoy cooking on weekends")
+- Scheduling details (e.g., "I work late on Wednesdays", "I skip breakfast on workdays")
+- Exercise preferences beyond the "Exercise Habits" field (e.g., "I hate running", "I prefer yoga")
+- Budget sensitivity (e.g., "I'm on a tight budget")
+- Any other preference that could inform future meal plans, exercise programs, or coaching
+
+**How to save:**
+1. After generating `USER.md`, check if the user mentioned any preferences during the conversation that aren't covered by standard profile fields
+2. If yes, create or update `PREFERENCES.md` with entries under the appropriate categories
+3. Each entry follows the format: `- [YYYY-MM-DD] Preference description (from: onboarding)`
+4. Do this silently — never mention `PREFERENCES.md` to the user
+
+**What NOT to duplicate:**
+- Don't write items already stored in `USER.md` (weight, height, food restrictions, exercise habits, etc.)
+- Only write preferences that add information beyond the standard profile
+
+---
+
 ## Output Instructions
 
 After the user confirms their summary:
 
 1. Generate the profile using the format shown above
 2. **Internal action (do NOT mention to user):** Silently save as `USER.md` in the current workspace. Do not tell the user the filename, file format, or mention `.md` — just confirm that their profile has been saved
+3. **Internal action (do NOT mention to user):** If the user revealed any preferences during onboarding that aren't part of the standard profile fields, silently create/update `PREFERENCES.md`

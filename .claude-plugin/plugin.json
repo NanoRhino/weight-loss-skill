@@ -24,6 +24,7 @@
     "./daily-notification-skill",
     "./diet-tracking-analysis",
     "./user-onboarding-profile",
+    "./user-preference-storage",
     "./weight-loss-planner"
   ]
 }

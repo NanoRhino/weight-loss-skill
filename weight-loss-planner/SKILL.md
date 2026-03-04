@@ -66,6 +66,15 @@ If USER.md already contains the target weight, don't ask for it again — use it
 
 Once all values are resolved, proceed directly to Step 2 (Generate Milestone Plan) — no questions needed in this step.
 
+### Preference Awareness
+
+Before recommending a diet mode or generating a plan, **read `PREFERENCES.md`** (if it exists). Stored preferences may influence:
+- **Diet mode selection** — if the user previously expressed interest in a specific diet style (e.g., "wants to try Mediterranean"), default to that instead of Balanced
+- **Macro adjustments** — dietary preferences may inform fat/carb balance (e.g., "loves high-fat foods" might suit a higher fat range)
+- **General coaching notes** — preferences like "prefers gradual changes" should inform how you present the plan
+
+If the user states new preferences during the planning conversation (e.g., "I want to do keto" or "I don't want to count every calorie"), **silently append them to `PREFERENCES.md`** under the appropriate category.
+
 ### Diet Mode Selection
 
 See `references/diet-modes.md` for the full specification of each mode. The **Healthy U.S.-Style** mode follows the USDA Dietary Guidelines for Americans (AMDR ranges). Other modes intentionally deviate from AMDR based on their specific goals.
