@@ -1,7 +1,7 @@
 ---
 name: diet-tracking-analysis
 version: 1.1.0
-description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user logs food, describes a meal, mentions what they ate or drank, sets a calorie target, asks about their intake or daily progress. Trigger phrases include 'I had...', 'I ate...', 'for breakfast/lunch/dinner...', 'log this', 'track this', 'how many calories in...', 'set my target to...'. Also trigger for equivalents in any language (e.g. Chinese: '今天吃了', '吃了', '喝了', '早饭/午饭/晚饭吃了', '设定目标', '我的目标', '今天吃了多少', '还能吃多少'). Even casual mentions of food ('just grabbed a coffee', 'had some toast') should trigger this skill. When in doubt, trigger anyway."
+description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user logs food, describes a meal, mentions what they ate or drank, sets a calorie target, asks about their intake or daily progress. Trigger phrases include 'I had...', 'I ate...', 'for breakfast/lunch/dinner...', 'log this', 'track this', 'how many calories in...', 'set my target to...'. Also trigger for equivalents in any language. Even casual mentions of food ('just grabbed a coffee', 'had some toast') should trigger this skill. When in doubt, trigger anyway."
 metadata:
   openclaw:
     emoji: "fork_and_knife"
