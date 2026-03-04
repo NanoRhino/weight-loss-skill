@@ -147,6 +147,24 @@ Time-of-day fallback (only if user doesn't specify):
 
 ---
 
+## Eaten-Meal Detection
+
+Before generating suggestions, determine whether the user is **currently eating** or has **already finished**. Already-eaten meals get `next_meal` / `next_time` suggestions only — never `right_now`.
+
+### Detection Priority
+
+Evaluate in order — stop at the first conclusive signal:
+
+**1. Explicit statement** — user says they finished or are still eating (e.g., past tense "I had…" vs. present "I'm having…"). Use directly, skip time checks.
+
+**2. Time vs. meal window** — when language is ambiguous, compare current time to the meal's window. Use custom times from `USER.md > Goals > Meal Times` if available; otherwise fall back to the windows in the Meal Type Assignment table above. Past the window end → already eaten; within the window → may still be eating.
+
+**3. Scheduling habits** — `USER.md > Preferences > Scheduling & Lifestyle` patterns can shift windows (e.g., "works late on Wednesdays" extends dinner window) or mark meals as always retroactive (e.g., "always skips breakfast on workdays").
+
+Backfilled meals from missing-meal handling are always "already eaten."
+
+---
+
 ## Workflow
 
 ### Setting a Target
@@ -161,13 +179,14 @@ When user says "set my target" or provides weight/calorie goal:
 When user describes what they ate:
 
 1. **Determine meal type** — user's statement takes priority; otherwise use time-of-day fallback
-2. **Call load** — get today's existing records
-3. **Call check-missing** — check for skipped meals before current one (see Missing Meal Handling below)
-4. **Check portion clarity** — see Portion Follow-Up Rule below
-5. **Estimate nutrition per food item** — use USDA data for each food's kcal / protein g / carbs g / fat g
-6. **Call save** — persist this meal (with food details)
-7. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
-8. **Reply in format** — meal details + checkpoint progress + suggestion
+2. **Detect eaten status** — determine if the user is currently eating or has already finished (see Eaten-Meal Detection above)
+3. **Call load** — get today's existing records
+4. **Call check-missing** — check for skipped meals before current one (see Missing Meal Handling below)
+5. **Check portion clarity** — see Portion Follow-Up Rule below
+6. **Estimate nutrition per food item** — use USDA data for each food's kcal / protein g / carbs g / fat g
+7. **Call save** — persist this meal (with food details)
+8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
+9. **Reply in format** — meal details + checkpoint progress + suggestion (use eaten status to select `right_now` vs. `next_meal` — see Response Format)
 
 ### Missing Meal Handling
 
@@ -181,7 +200,7 @@ When `check-missing` returns missing meals:
 
 **After resolving the missing meal, always continue to log the meal the user originally mentioned** — do not make them repeat themselves.
 
-**Backfilled meals** (meals reported after the fact): since the user has already eaten, do NOT give `right_now` suggestions. Only `next_time` suggestions are appropriate.
+**Backfilled meals** (meals reported after the fact): these are always "already eaten" — apply the eaten-meal detection outcome accordingly (no `right_now`, use `next_meal` or `next_time` instead — see Response Format).
 
 ### Weekly Low-Calorie Check
 
@@ -236,22 +255,29 @@ Every food log reply must contain up to three sections:
 · Food 2 — portion — XXX kcal
 ```
 
-**② Suggestion** (based on evaluate output — `right_now` and `next_time` are mutually exclusive)
+**② Suggestion** (based on evaluate output + eaten-meal detection — only one suggestion type per meal)
 
-If adjustment needed (`needs_adjustment: true`):
+**Case A: Currently eating + adjustment needed** (`needs_adjustment: true` and meal NOT already eaten):
 ```
 ⚡ Right now: [specific food + amount adjustment for current meal]
 ```
 - Foods currently in the bowl/on the plate, or something that can be added right now
 - Cannot split mixed/cooked dishes or adjust pre-cooking amounts
 - Do NOT list per-item calories in the suggestion
-- **Never use for backfilled meals** — use next_time instead
 - Content must be user-facing — no internal reasoning exposed
 - Single option → one clear suggestion. End with: "After adjustment, this meal would total ~X kcal, protein Xg, carbs Xg, fat Xg."
 - Multiple options → list each on its own line, ask which they prefer
 - Overshoot + may have finished → still give a practical tip, but add: "If you've already finished, no worries — one meal over won't ruin things, just balance it out tomorrow."
 
-If on track (`needs_adjustment: false`):
+**Case B: Already eaten + adjustment needed** (`needs_adjustment: true` and meal already eaten):
+```
+💡 Next meal: [forward-looking compensatory advice for the next upcoming meal]
+```
+- Give a concrete suggestion for the **next meal** to compensate — do NOT suggest modifying the current meal
+- Frame as planning ahead, not fixing a mistake
+- Last meal of the day (dinner): keep it brief — "A bit over today, totally normal — aim for your usual pattern tomorrow."
+
+**Case C: On track** (`needs_adjustment: false`, regardless of eaten status):
 ```
 💡 Next time: [habit tip or next-meal pairing suggestion — specific food + amount, no calorie listing]
 ```

@@ -29,7 +29,7 @@ Start logging your first meal!
 💡 Next time: Try adding half a cup of quinoa to your salad for an extra carb boost.
 ```
 
-## Food Log with Adjustment Needed
+## Food Log with Adjustment Needed (Currently Eating)
 
 ```
 📝 Lunch logged!
@@ -39,6 +39,18 @@ Start logging your first meal!
 · Bubble tea — 1 cup — 380 kcal
 
 ⚡ Right now: Add a side of grilled chicken (~100g) to boost protein. For dinner, go lighter — steamed fish + veggies, skip the rice. If you've already finished, no worries — one meal over won't ruin things, just balance it out tomorrow.
+```
+
+## Food Log with Adjustment Needed (Already Eaten)
+
+```
+📝 Lunch logged!
+
+🍽 This meal total: 900 kcal | Protein 15g | Carbs 128g | Fat 35g
+· Fried rice — ~1 bowl — 520 kcal
+· Bubble tea — 1 cup — 380 kcal
+
+💡 Next meal: Dinner idea — go heavier on protein and lighter on carbs to balance out. Try grilled chicken breast + steamed veggies, keep rice to half a bowl.
 ```
 
 ## Daily Summary
