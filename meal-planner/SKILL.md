@@ -138,22 +138,16 @@ For the full list of supported diet modes, fat ranges, and detailed food guidanc
 
 ### Macro Calculation
 
-Use the diet mode's fat range + the body weight protein formula from `weight-loss-planner/formulas.md`:
+Use the planner-calc script to compute macros for the user's diet mode:
 
+```bash
+python3 {weightLossPlannerDir}/scripts/planner-calc.py macro-targets \
+  --weight <kg> --cal <daily_cal> --mode balanced [--meals 3]
 ```
-Protein:
-  range   = weight_kg × 1.2 – 1.6 g
-  display = weight_kg × 1.4 g (midpoint)
 
-Fat (from diet mode — see weight-loss-planner/formulas.md §Diet Mode Fat Ranges):
-  range   = totalCal × fat_pct_low ÷ 9  to  totalCal × fat_pct_high ÷ 9 g
-  display = totalCal × fat_pct_mid ÷ 9 g
+Supported `--mode` values: `usda`, `balanced`, `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2`.
 
-Carbs (fills remaining calories):
-  display = (totalCal − protein_display×4 − fat_display×9) ÷ 4 g
-  max     = (totalCal − protein_min×4 − fat_min×9) ÷ 4 g
-  min     = (totalCal − protein_max×4 − fat_max×9) ÷ 4 g
-```
+The script returns protein/fat/carb ranges with min/target/max values and per-meal allocation. See `weight-loss-planner/references/formulas.md` for the underlying formulas.
 
 Present this clearly:
 

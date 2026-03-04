@@ -1,28 +1,37 @@
 # Quick TDEE Estimation (Standalone Mode)
 
-When this skill is used without a prior weight-loss-planner session, and the user doesn't have a calorie target, use this quick inline estimation. This is a simplified version — for a thorough plan with milestones, recommend the weight-loss-planner skill.
+When this skill is used without a prior weight-loss-planner session, and the user doesn't have a calorie target, use the planner-calc script for a quick inline estimation. This is a simplified version — for a thorough plan with milestones, recommend the weight-loss-planner skill.
 
 ## Quick Flow
 
 1. Ask: height, weight, age, sex, activity level
-2. Calculate BMR (Mifflin-St Jeor):
-   - Male: BMR = (10 × weight_kg) + (6.25 × height_cm) - (5 × age) + 5
-   - Female: BMR = (10 × weight_kg) + (6.25 × height_cm) - (5 × age) - 161
-3. Multiply by activity factor:
-   - Sedentary: ×1.2
-   - Lightly Active: ×1.375
-   - Moderately Active: ×1.55
-   - Very Active: ×1.725
-4. Subtract a standard deficit:
-   - Gentle (0.5 lb/week): -250 cal
-   - Moderate (1 lb/week): -500 cal
-   - Aggressive (1.5 lb/week): -750 cal
-5. Check against safe floors: 1,200 (women) / 1,500 (men)
+2. Run the planner-calc script to compute TDEE and calorie target:
+
+```bash
+# Get TDEE:
+python3 {weightLossPlannerDir}/scripts/planner-calc.py tdee \
+  --weight <kg> --height <cm> --age <years> --sex male|female \
+  --activity sedentary|lightly_active|moderately_active|very_active|extremely_active
+
+# Get calorie target with a deficit:
+python3 {weightLossPlannerDir}/scripts/planner-calc.py calorie-target \
+  --tdee <tdee_value> --rate-kg 0.5
+
+# Or do it all at once if you have a target weight:
+python3 {weightLossPlannerDir}/scripts/planner-calc.py forward-calc \
+  --weight <kg> --height <cm> --age <years> --sex male|female \
+  --activity <level> --target-weight <kg> --mode balanced
+```
+
+The script automatically handles BMR (Mifflin-St Jeor), activity multipliers, safety floors (max(BMR, 1000)), and rate recommendations.
+
+3. Present the calorie target to the user and proceed with meal planning.
 
 ## Unit Conversions
-```
-weight_kg = weight_lbs / 2.205
-height_cm = (feet × 12 + inches) × 2.54
+
+```bash
+python3 {weightLossPlannerDir}/scripts/planner-calc.py unit-convert --value 170 --from lbs --to kg
+python3 {weightLossPlannerDir}/scripts/planner-calc.py unit-convert --value 65 --from in --to cm
 ```
 
 ## When to Recommend the Full Skill Instead

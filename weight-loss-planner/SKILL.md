@@ -50,13 +50,35 @@ If no USER.md is found, this skill works independently. Gather the user's physic
 - Biological sex (male / female — needed for metabolic formulas)
 - Daily activity description (not just a dropdown — ask them to describe their typical day and exercise habits so you can estimate more accurately)
 
-#### After resolving data (both paths): Calculate TDEE internally
+#### After resolving data (both paths): Calculate TDEE via script
 
-Calculate the following — do not ask the user for confirmation at this stage. These values will be presented to the user as part of the plan in Step 2.
+Calculate the following using the planner-calc script — do not ask the user for confirmation at this stage. These values will be presented to the user as part of the plan in Step 2.
 
-1. **BMR** using the Mifflin-St Jeor equation (see `references/formulas.md`)
-2. **TDEE** = BMR × activity multiplier. Use the best estimate based on available data. If activity data is missing, default to Sedentary (×1.2). Internally store TDEE as a point estimate ± 100 kcal range.
-3. **BMI** with the appropriate regional standard (see `references/formulas.md` for WHO vs Asian classification).
+**Use the calculation script** (`python3 {baseDir}/scripts/planner-calc.py`) instead of computing manually. Available commands:
+
+```bash
+# Individual calculations:
+python3 {baseDir}/scripts/planner-calc.py bmi --weight <kg> --height <cm> [--standard who|asian]
+python3 {baseDir}/scripts/planner-calc.py bmr --weight <kg> --height <cm> --age <years> --sex male|female
+python3 {baseDir}/scripts/planner-calc.py tdee --weight <kg> --height <cm> --age <years> --sex male|female --activity <level>
+
+# Full plan calculation (recommended — produces all values at once):
+python3 {baseDir}/scripts/planner-calc.py forward-calc \
+  --weight <kg> --height <cm> --age <years> --sex male|female \
+  --activity sedentary|lightly_active|moderately_active|very_active|extremely_active \
+  --target-weight <kg> --mode balanced [--bmi-standard who|asian]
+```
+
+The `forward-calc` command returns: BMI (current + target with classification), BMR, TDEE (with ±100 range), calorie floor, recommended rate, daily calorie target, macro ranges (protein/fat/carb), per-meal allocation, estimated weeks, completion date, and maintenance TDEE.
+
+If the user provides a deadline, use `reverse-calc` instead:
+```bash
+python3 {baseDir}/scripts/planner-calc.py reverse-calc \
+  --weight <kg> --height <cm> --age <years> --sex male|female \
+  --activity <level> --target-weight <kg> --deadline YYYY-MM-DD --mode balanced
+```
+
+The script handles safety floors (max(BMR, 1000)), rate clamping, and all edge cases automatically. See `references/formulas.md` for the underlying science.
 
 **Timeline:** Do NOT ask the user for a timeline. Based on your professional judgment, select the most appropriate weekly loss rate from the rate guidelines in Step 2 and derive the timeline automatically. If the user later wants to adjust the pace, they can do so in Step 3.
 
