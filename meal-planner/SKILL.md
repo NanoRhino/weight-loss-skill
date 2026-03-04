@@ -254,6 +254,24 @@ Once you present the diet pattern, add the following message (adapt to the user'
 
 > **Gate:** Only enter this step if the user explicitly requests a 7-day meal plan (either in response to the Step 3 question, or by asking for it directly). Do not auto-generate.
 
+### Output as HTML File (Not Chat Text)
+
+**CRITICAL: Generate the 7-day meal plan as a self-contained HTML file — NOT as chat text.** The meal plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
+
+1. **Write the meal plan to an HTML file** using the Write tool. Save to: `/mnt/user-data/uploads/meal-plan.html`
+2. **In the chat message**, give a brief 3–4 line summary (daily calorie target, diet mode, macro split) and tell the user you've generated a file they can open in their browser and print/save as PDF.
+3. Use the HTML template at `templates/meal-plan.html` as the structural and styling reference. Keep **all CSS inline** in a `<style>` block — the file must be fully self-contained with no external dependencies.
+4. Set the `<html lang>` attribute to match the user's locale (e.g., `"zh"` for Chinese, `"en"` for English).
+5. Adapt all content (food names, meal names, day names, tips, footer text) to the user's language.
+
+**Chat message template** (adapt to user's language):
+
+> Your 7-day meal plan is ready! I've saved it as an HTML file that you can open in your browser.
+>
+> **Summary:** [X,XXX] kcal/day · [Diet Mode] · P [X]g / C [X]g / F [X]g
+>
+> Open the file in your browser to view, and use Ctrl+P (or Cmd+P) to save as PDF. Let me know if you'd like any adjustments!
+
 Build a 7-day meal plan based on the confirmed calories, macros, diet mode, and user preferences.
 
 ### Meal Structure
@@ -334,7 +352,7 @@ Don't moralize about snacks. A 200-cal cookie that fits the macro budget is fine
 
 ## Step 5: Present the Plan & Let User Customize
 
-Present the 7-day plan in a clean, structured format. See the template below. **Do NOT mention "Markdown", filenames, or `.md` to the user** — these are internal implementation details.
+The meal plan has been saved as an HTML file (see Step 4). In the chat, provide the brief summary and ask for feedback. **Do NOT mention "Markdown", `.md`, or internal implementation details to the user.** You may mention the HTML file naturally (e.g., "I've generated your meal plan file").
 
 After presenting, ask:
 - "How does this look? Any meals you'd want to swap out?"
@@ -344,149 +362,49 @@ After presenting, ask:
 ### Customization Options
 
 The user may want to:
-- **Swap a meal** → replace with an alternative at similar macros
-- **Simplify** → "I want to eat the same breakfast every day" — totally fine, reduce variety in that slot
-- **Add restaurant/fast-food options** → include calorie-smart choices from common chains (Chipotle, Subway, Chick-fil-A, etc.)
-- **Adjust for a specific day** → "Saturday is date night" → build in a higher-cal dinner and offset elsewhere
-- **Get a grocery list** → generate from the final plan
+- **Swap a meal** → replace with an alternative at similar macros. **Regenerate the HTML file** with the updated plan.
+- **Simplify** → "I want to eat the same breakfast every day" — totally fine, reduce variety in that slot. Regenerate the file.
+- **Add restaurant/fast-food options** → include calorie-smart choices from common chains (Chipotle, Subway, Chick-fil-A, etc.). Regenerate the file.
+- **Adjust for a specific day** → "Saturday is date night" → build in a higher-cal dinner and offset elsewhere. Regenerate the file.
+- **Get a grocery list** → add a grocery list section to the HTML file and regenerate.
+
+For any customization, **always regenerate the HTML file** so the user has an up-to-date, complete document.
 
 ---
 
-## Step 6: Output Final Meal Plan
+## Step 6: HTML Content Rules
 
-Once confirmed, generate the final meal plan report. **Adapt the template to the user's locale** — use appropriate language, units, local food categories in the grocery list, and culturally relevant references. **Do NOT mention "Markdown", filenames, or `.md` to the user** — just present the plan content directly.
+The HTML file replaces the old chat-based output. **All content rules below still apply** — they now govern what goes inside the HTML file.
 
-### Output Format Rules
+**Adapt the HTML template to the user's locale** — use appropriate language, units, local food categories, and culturally relevant references.
 
-**CRITICAL: The 7-day meal plan MUST follow the exact format shown in the locale-specific examples below. Do not deviate from the structure, heading hierarchy, or line format. Every generated plan must match the template precisely — same heading levels, same emoji prefixes, same "dish summary + indented item list" layout.**
+### Content Structure Rules
 
-The meal plan uses a **day → meal → food items** hierarchy. Each level shows calories and macros (P/C/F).
+**CRITICAL: The HTML meal plan MUST follow the structure defined in `templates/meal-plan.html`. Do not deviate from the CSS classes, nesting, or element hierarchy. Every generated plan must match the template precisely.**
 
-**1. Day level:** `## [Day] — X,XXX kcal | P Xg · C Xg · F Xg` — daily total calories and P/C/F. Day names use the user's locale.
+The meal plan uses a **day-card → meal-block → food-list** hierarchy. Each level shows calories and macros (P/C/F).
 
-**2. Meal level:** `### [emoji] [Meal name] — XXX kcal | P Xg · C Xg · F Xg` — meal emoji + meal name + calories + P/C/F. Meal names use the user's locale. Two types of meals with different formats:
+**1. Day level:** `.day-card` with `.day-header` showing day name + daily totals (`X,XXX kcal · P Xg · C Xg · F Xg`). Day names use the user's locale.
 
-- **Self-cooked meal:** First line after heading = **dish summary** (concise dish names joined by " + "). Below it = indented food items, each on its own line: `- [food name] — [natural portion] ([precise weight])`. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
+**2. Meal level:** `.meal-block` with `.meal-title` showing emoji + meal name + macros. Two types:
 
-- **Eating-out meal:** Heading includes a locale-appropriate tag (e.g., `[Eating out]`, `[Takeout]`, `[Konbini]`). First line = **platform/restaurant — dish name**. Below it = ordering details as a bullet. Add a **💡** tip line only if there's genuinely useful advice (e.g., "ask for sauce on the side", "request less oil and salt"). If there's nothing non-obvious to say, omit the tip. No need to break down individual ingredients — the user is ordering, not cooking.
+- **Self-cooked meal:** `.dish-summary` paragraph (concise dish names joined by " + "). Below it = `.food-list` with `<li>` for each food item: `[food name] — [natural portion] <span class="portion">([precise weight])</span>`. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
+
+- **Eating-out meal:** Add class `eating-out` to `.meal-block`. Add `<span class="tag">` after meal name in `<h3>` (e.g., Takeout, Eating out, Konbini). Use `.order-info` for restaurant + dish, `.food-list` for ordering details, `.meal-tip` for tips.
 
 **3. Portion descriptions:** Use the most natural, everyday way people describe that specific food in their locale:
 - Countable items: "2 slices", "1 egg", "3 dumplings", "1 banana"
 - Bowls/cups: "1 small bowl", "half a cup"
 - Weight-based (when no natural unit exists): "a thin slice (~30g)"
-- Always include precise weight in parentheses after the natural description
+- Always include precise weight in `<span class="portion">` after the natural description
 
 **4. No repetition:** Don't use the same main dish twice in 7 days. Rotate proteins, cooking styles, and cuisines. Breakfast can repeat a few times (most people prefer routine), but lunch and dinner should be distinct every day. Batch-prep dishes may appear on 2–3 consecutive days (this is expected and practical), but they count as a single dish — don't use the same batch-prep dish in two different batches within the same week.
 
-**5. Readability:** Use whitespace and indentation to make the plan scannable. Each day should be visually distinct. Keep food item lines short — one item per line.
+**5. All 7 days must be fully generated.** Every day must have complete meals with specific foods and portions. Do not abbreviate remaining days with placeholders like "same structure" or "continue pattern." The HTML file is the user's complete reference.
 
-**6. Snacks:** `### 🍎 [Snack]` (locale-appropriate name) — list items directly, no dish summary line needed.
+**6. Snacks:** `.meal-block` with emoji 🍎 and locale-appropriate snack name — list items directly in `.food-list`, no `.dish-summary` needed.
 
-**7. Tips must be non-obvious.** Only include tips that provide genuine, actionable value — things the user likely doesn't already know. Never state common-sense steps like "grab a bowl," "eat it," "finish the food," or "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth," "marinate chicken the night before." Bad tips: "put oatmeal in a bowl," "eat the eggs," "drink the soy milk." If a meal has no non-obvious tip worth mentioning, skip the tip line entirely.
-
-### 7-Day Meal Plan — Mandatory Template
-
-Below is the **canonical 7-day meal plan format**. The output **must** follow this structure exactly. All text adapts to the user's language at runtime. Three representative days are shown in full (cook day, weekday with batch-prep, eat-out day) to illustrate the pattern. For non-US locales, swap in locale-appropriate foods, restaurants, and portion conventions while keeping the identical structure.
-
-```markdown
-# 🍽️ Your Weekly Meal Plan
-
-**Date:** [Current date]
-**Daily Calorie Target:** X,XXX kcal (range: X,XXX – X,XXX)
-**Diet Mode:** [Mode]
-**Macros:** Xg protein (weight × X.Xg/kg) / Xg carbs / Xg fat
-
----
-
-## Sunday — 1,610 kcal | P 102g · C 178g · F 48g
-
-### 🍳 Breakfast — 380 kcal | P 22g · C 48g · F 11g
-Oatmeal + boiled egg + milk
-- Rolled oats (cooked) — 1/2 cup (40g dry)
-- Boiled egg — 1 (50g)
-- Whole milk — 1 cup (240ml)
-
-### 🥗 Lunch — 540 kcal | P 36g · C 60g · F 16g
-Baked salmon + roasted vegetables + brown rice
-- Baked salmon — 1 fillet (5 oz / 140g)
-- Roasted zucchini & bell peppers — 2 cups (200g)
-- Brown rice (cooked) — 1/2 cup (100g)
-
-### 🍽️ Dinner — 510 kcal | P 35g · C 52g · F 17g
-Turkey meatballs + whole-wheat pasta + side salad
-- Turkey meatballs — 4 (120g)
-- Whole-wheat pasta (cooked) — 1 cup (140g)
-- Marinara sauce — 1/4 cup (60g)
-- Mixed green salad — 2 cups (60g)
-
-### 🍎 Snack — 180 kcal | P 9g · C 18g · F 4g
-- Plain Greek yogurt — 3/4 cup (170g)
-- 1 medium apple
-
----
-
-## Monday — 1,590 kcal | P 100g · C 172g · F 52g
-
-### 🍳 Breakfast — 380 kcal | P 24g · C 46g · F 12g
-Whole-wheat toast + boiled egg + milk
-- Whole-wheat toast — 2 slices (60g)
-- Boiled egg — 1 (50g)
-- Cheddar cheese — 1 slice (28g)
-- Whole milk — 1 cup (240ml)
-
-### 🥗 Lunch — 530 kcal | P 38g · C 58g · F 16g
-Grilled chicken breast + brown rice + steamed broccoli
-- Grilled chicken breast — 1 palm-sized piece (5 oz / 140g)
-- Brown rice (cooked) — 1/2 cup (100g)
-- Steamed broccoli — 1.5 cups (130g)
-- Olive oil — 1 teaspoon (5ml)
-
-### 🍽️ Dinner — 500 kcal | P 30g · C 52g · F 18g [Takeout]
-Chipotle — Chicken burrito bowl
-- Order: chicken, brown rice, black beans, fajita veggies, salsa, lettuce. Skip sour cream and cheese.
-- 💡 Ask for half rice to save ~100 cal. Extra veggies are free.
-
-### 🍎 Snack — 180 kcal | P 8g · C 16g · F 6g
-- Plain Greek yogurt — 3/4 cup (170g)
-- Plain almonds — 1 small handful (15g)
-- 1 medium banana
-
----
-
-## Tuesday — 1,600 kcal | P 98g · C 180g · F 50g
-
-### 🍳 Breakfast — 370 kcal | P 20g · C 50g · F 10g
-Overnight oats + banana + milk
-- Rolled oats — 1/2 cup (40g dry)
-- Chia seeds — 1 teaspoon (5g)
-- 1 medium banana (~120g)
-- Whole milk — 1 cup (240ml)
-
-### 🥗 Lunch — 540 kcal | P 36g · C 62g · F 16g
-Ground turkey stir-fry + rice + roasted sweet potato
-- Ground turkey — 4 oz (113g)
-- Brown rice (cooked) — 1/2 cup (100g)
-- Roasted sweet potato — 1 medium wedge (100g)
-- Mixed vegetables — 1 cup (80g)
-
-### 🍽️ Dinner — 510 kcal | P 34g · C 50g · F 18g [Eating out]
-Subway — Turkey breast sub
-- Order: 6-inch turkey breast on wheat, all veggies, mustard. Skip mayo and cheese.
-- 💡 Load up on veggies — they're free and fill you up. Vinegar & oil dressing is lower cal than ranch.
-
-### 🍎 Snack — 180 kcal | P 8g · C 18g · F 6g
-- Plain almonds — 10 (15g)
-- 1 medium apple
-
----
-
-## Wednesday through Saturday
-
-[Same structure, different main dishes each day, following these rules:]
-[Wednesday = second cook day — batch-prep new Tier A dishes to cover Thu/Fri]
-[Fish and leafy salads only on cook days or eat-out days]
-[Daily calories fluctuate within the target range; 7-day average hits the target]
-```
+**7. Tips must be non-obvious.** Only include tips that provide genuine, actionable value — things the user likely doesn't already know. Never state common-sense steps like "grab a bowl," "eat it," "finish the food," or "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth," "marinate chicken the night before." Bad tips: "put oatmeal in a bowl," "eat the eggs," "drink the soy milk." If a meal has no non-obvious tip worth mentioning, skip the `.meal-tip` element entirely.
 
 ---
 
