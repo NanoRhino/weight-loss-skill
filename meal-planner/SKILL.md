@@ -40,7 +40,7 @@ USER.md (body stats, preferences)
 
 ## Preference Awareness
 
-**Before generating any meal plan, diet pattern, or food suggestion, read `PREFERENCES.md` from the workspace.** This file contains user preferences accumulated across all conversations — food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more.
+**Before generating any meal plan, diet pattern, or food suggestion, read the `## Preferences` section in `USER.md`.** This section contains user preferences accumulated across all conversations — food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more.
 
 ### How to Apply Preferences
 
@@ -53,13 +53,13 @@ USER.md (body stats, preferences)
 | **Scheduling** (e.g., "works late on Wednesdays") | Suggest quick meals or eating-out options on busy days. |
 | **Diet style** (e.g., "prefers Mediterranean") | Align the plan's flavor profile and food choices. |
 
-If `PREFERENCES.md` doesn't exist, proceed normally — preferences from `USER.md` and conversation context are still valid.
+If the `## Preferences` section doesn't exist in `USER.md`, proceed normally — other profile fields and conversation context are still valid.
 
 ### Detecting New Preferences During Meal Planning
 
 While building a meal plan, the user may reveal new preferences (e.g., "swap the salmon — I don't like fish"). When this happens:
 1. Accommodate the request immediately
-2. **Silently** append the preference to `PREFERENCES.md` under the appropriate category (e.g., `- [YYYY-MM-DD] Doesn't like fish (from: meal-planner)`)
+2. **Silently** append the preference to `USER.md`'s `## Preferences` section under the appropriate subcategory (e.g., `- [YYYY-MM-DD] Doesn't like fish`)
 3. Do not mention the file or storage mechanism to the user — just acknowledge naturally: "Got it, no fish!"
 
 ---

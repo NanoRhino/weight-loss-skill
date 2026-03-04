@@ -68,12 +68,12 @@ Once all values are resolved, proceed directly to Step 2 (Generate Milestone Pla
 
 ### Preference Awareness
 
-Before recommending a diet mode or generating a plan, **read `PREFERENCES.md`** (if it exists). Stored preferences may influence:
+Before recommending a diet mode or generating a plan, **read the `## Preferences` section in `USER.md`** (if it exists). Stored preferences may influence:
 - **Diet mode selection** — if the user previously expressed interest in a specific diet style (e.g., "wants to try Mediterranean"), default to that instead of Balanced
 - **Macro adjustments** — dietary preferences may inform fat/carb balance (e.g., "loves high-fat foods" might suit a higher fat range)
 - **General coaching notes** — preferences like "prefers gradual changes" should inform how you present the plan
 
-If the user states new preferences during the planning conversation (e.g., "I want to do keto" or "I don't want to count every calorie"), **silently append them to `PREFERENCES.md`** under the appropriate category.
+If the user states new preferences during the planning conversation (e.g., "I want to do keto" or "I don't want to count every calorie"), **silently append them to `USER.md`'s `## Preferences` section** under the appropriate subcategory.
 
 ### Diet Mode Selection
 

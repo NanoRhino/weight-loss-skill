@@ -27,6 +27,28 @@ The skill should be flexible when parsing — field names may vary slightly, and
 - Dietary Restrictions: [vegetarian, allergies, etc.]
 ```
 
+### Preferences section (accumulated over time)
+```markdown
+## Preferences
+
+### Dietary
+- [YYYY-MM-DD] Food likes, dislikes, allergies, flavor preferences
+
+### Exercise
+- [YYYY-MM-DD] Activity preferences, dislikes, physical limitations
+
+### Scheduling & Lifestyle
+- [YYYY-MM-DD] Work schedule, busy days, eating patterns
+
+### Cooking & Kitchen
+- [YYYY-MM-DD] Equipment, cooking skill, meal prep willingness
+
+### General Notes
+- [YYYY-MM-DD] Motivation details, communication preferences, pace
+```
+
+This section is appended to over time as users reveal preferences during conversations. Not all entries will be present from onboarding — preferences accumulate across sessions. All skills that read USER.md should check for and use this section when generating personalized content.
+
 ## Parsing Guidelines
 
 - If the USER.md uses different section headers (e.g., "Profile" instead of "Basic Info"), that's fine — look for the data fields, not the headers.

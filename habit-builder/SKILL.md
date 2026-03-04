@@ -92,8 +92,8 @@ Bad: `"Did you complete your habit today?"` · `"Remember your commitment!"`
 
 ### How to choose the right habit
 
-Read `user_profile.json` + `PREFERENCES.md` + recent `logs.*` to build a picture of the user's
-current lifestyle. **`PREFERENCES.md` is especially valuable here** — it contains accumulated preferences across all conversations that reveal what the user enjoys, dislikes, and finds practical. Design habits that align with these preferences for maximum adherence (e.g., if the user loves cooking on weekends, a meal-prep habit is a natural fit; if they hate mornings, don't suggest a morning routine habit). Then find the **smallest behavior change with the biggest
+Read `USER.md` (including its `## Preferences` section) + recent `logs.*` to build a picture of the user's
+current lifestyle. **The `## Preferences` section in `USER.md` is especially valuable here** — it contains accumulated preferences across all conversations that reveal what the user enjoys, dislikes, and finds practical. Design habits that align with these preferences for maximum adherence (e.g., if the user loves cooking on weekends, a meal-prep habit is a natural fit; if they hate mornings, don't suggest a morning routine habit). Then find the **smallest behavior change with the biggest
 impact.**
 
 **Step 1: Identify lifestyle gaps**

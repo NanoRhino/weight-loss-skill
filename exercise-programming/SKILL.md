@@ -28,13 +28,13 @@ On every user message, determine if the message is exercise/training-related. If
 
 ## Preference Awareness
 
-Before collecting user info or designing a program, **read `PREFERENCES.md`** (if it exists). Stored preferences may already contain:
+Before collecting user info or designing a program, **read the `## Preferences` section in `USER.md`** (if it exists). Stored preferences may already contain:
 - Exercise likes/dislikes (e.g., "prefers yoga", "hates running")
 - Physical limitations (e.g., "has bad knees")
 - Equipment available (e.g., "has dumbbells at home")
 - Schedule constraints (e.g., "works late on Wednesdays", "prefers morning workouts")
 
-Use these to skip redundant questions and build a program that aligns with what the user has already told you. If the user states new exercise preferences during this conversation, **silently append them to `PREFERENCES.md`**.
+Use these to skip redundant questions and build a program that aligns with what the user has already told you. If the user states new exercise preferences during this conversation, **silently append them to `USER.md`'s `## Preferences` section**.
 
 ---
 

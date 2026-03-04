@@ -24,7 +24,7 @@ Auto-detect the user's language from their first reply and mirror it throughout.
 
 ## Preference Awareness
 
-When greeting a returning user, **read `PREFERENCES.md`** (if it exists) alongside `USER.md`. Use stored preferences to personalize the greeting:
+When greeting a returning user, **read the `## Preferences` section in `USER.md`** (if it exists). Use stored preferences to personalize the greeting:
 
 - Reference food preferences casually: "Ready to log today's meals? I remember you love spicy food — maybe a spicy lunch today?"
 - Use scheduling info: if the user works late on certain days, acknowledge it
@@ -181,9 +181,8 @@ Keep the entire greeting under 4 sentences. Don't list every feature — keep it
 
 | Path | Purpose |
 |------|---------|
-| `USER.md` | Check if user exists; read name, language |
+| `USER.md` | Check if user exists; read name, language, and `## Preferences` section for personalized greeting |
 | `PLAN.md` | Check if plan exists |
-| `PREFERENCES.md` | Read stored preferences for personalized greeting |
 | `engagement.notification_stage` | Detect inactive users (Stage 2/3/4) |
 
 ### Writes
