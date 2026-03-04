@@ -53,7 +53,7 @@ Ask naturally and briefly — one question only. Match the user's language. Alwa
 
 After resolving the missing meal, **always continue to log the meal the user originally mentioned** in the next response — do not make the user repeat themselves. This takes two separate responses: first the backfilled meal, then the original meal.
 
-**Backfilled meals** (meals the user is reporting after the fact): since the user has already eaten, `right_now` suggestions must NOT be given. Only `next_time` suggestions are appropriate. `nice_work` can still be used if warranted.
+**Backfilled meals** (meals the user is reporting after the fact): these are always classified as "already eaten" by the Eaten-Meal Detection rules in SKILL.md. Do NOT give `right_now` suggestions — use `next_meal` (if adjustment needed) or `next_time` (if on track) instead. `nice_work` can still be used if warranted.
 
 ---
 
