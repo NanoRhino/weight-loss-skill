@@ -52,7 +52,8 @@ Run in order. Any fail = don't send.
 3. This meal already logged today? (check `logs.meals.{date}`) → skip
 4. User in active conversation? → delay 30 min, re-check
 5. Number of reminders per day must not exceed `goals.meals_per_day`.
-6. All clear → send
+6. Check `USER.md > Preferences > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
+7. All clear → send
 
 ### Lifecycle: Active → Recall → Silent
 
@@ -268,6 +269,13 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 ---
 
 ## Workspace
+
+### Reads from `USER.md > Preferences`
+
+| Section | Purpose |
+|---------|---------|
+| `Preferences > Scheduling & Lifestyle` | Adjust reminder timing (e.g., skip breakfast reminders if user always skips, delay dinner on busy days) |
+| `Preferences > Dietary` | Inform personalization tips (e.g., don't suggest foods user dislikes) |
 
 ### Reads from `USER.md`
 

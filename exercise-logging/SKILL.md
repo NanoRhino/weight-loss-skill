@@ -34,6 +34,17 @@ When logging exercise, data sources are prioritized as follows:
 
 ---
 
+## Preference Awareness
+
+At conversation start, **read the `## Preferences` section in `USER.md`** (if it exists). Use stored exercise preferences to:
+- Tailor feedback to preferred activities (e.g., if user loves running, encourage running progress)
+- Avoid suggesting disliked activities in feedback or next-week recommendations
+- Factor in schedule constraints for weekly summary suggestions
+
+If the user reveals new exercise preferences during logging (e.g., "I'm getting into swimming" or "I hate treadmills"), **silently append them to `USER.md`'s `## Preferences > Exercise` section**.
+
+---
+
 ## User Profile
 
 Read from `USER.md` at conversation start. Required fields for this skill:

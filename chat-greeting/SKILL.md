@@ -22,6 +22,18 @@ Auto-detect the user's language from their first reply and mirror it throughout.
 
 ---
 
+## Preference Awareness
+
+When greeting a returning user, **read the `## Preferences` section in `USER.md`** (if it exists). Use stored preferences to personalize the greeting:
+
+- Reference food preferences casually: "Ready to log today's meals? I remember you love spicy food — maybe a spicy lunch today?"
+- Use scheduling info: if the user works late on certain days, acknowledge it
+- Reference exercise preferences when suggesting activities
+
+Don't dump preferences back at the user — just let them inform your tone and suggestions naturally.
+
+---
+
 ## Trigger
 
 Fire this skill when:
@@ -169,7 +181,7 @@ Keep the entire greeting under 4 sentences. Don't list every feature — keep it
 
 | Path | Purpose |
 |------|---------|
-| `USER.md` | Check if user exists; read name, language |
+| `USER.md` | Check if user exists; read name, language, and `## Preferences` section for personalized greeting |
 | `PLAN.md` | Check if plan exists |
 | `engagement.notification_stage` | Detect inactive users (Stage 2/3/4) |
 

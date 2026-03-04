@@ -152,7 +152,26 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 ## Coach Notes
 
 - **Recommended Approach:** [initial high-level recommendation based on collected data]
+
+## Preferences
+
+### Dietary
+[Food likes/dislikes, flavor preferences, allergies beyond Food Restrictions — or empty if none mentioned]
+
+### Exercise
+[Activity preferences/dislikes, physical limitations beyond Exercise Habits — or empty if none mentioned]
+
+### Scheduling & Lifestyle
+[Work schedule details, busy days, eating-out patterns — or empty if none mentioned]
+
+### Cooking & Kitchen
+[Kitchen equipment, cooking skill, meal prep willingness, grocery access — or empty if none mentioned]
+
+### General Notes
+[Motivation details, communication preferences, pace preferences — or empty if none mentioned]
 ```
+
+> **Note:** The `## Preferences` section starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-logging, etc.) detect and append new preferences during future conversations.
 
 ## Meal Check-in Reminder — Trigger Strategy
 
@@ -229,9 +248,33 @@ When a user wants to update (not create) their profile:
 - Normalize the struggle — most people have tried a few times before finding what works for them
 - If someone shares something emotionally heavy, acknowledge it briefly before moving on
 
+## Preference Awareness — Write to USER.md Preferences Section
+
+During onboarding, the user often reveals preferences beyond the standard profile fields. Capture these in the `## Preferences` section at the bottom of `USER.md`.
+
+**What to capture:**
+- Food likes/dislikes beyond the "Food Restrictions" field (e.g., "I hate eggplant", "I love spicy food")
+- Cooking situation details (e.g., "I only have a microwave", "I enjoy cooking on weekends")
+- Scheduling details (e.g., "I work late on Wednesdays", "I skip breakfast on workdays")
+- Exercise preferences beyond the "Exercise Habits" field (e.g., "I hate running", "I prefer yoga")
+- Budget sensitivity (e.g., "I'm on a tight budget")
+- Any other preference that could inform future meal plans, exercise programs, or coaching
+
+**How to save:**
+1. After generating `USER.md`, check if the user mentioned any preferences during the conversation that aren't covered by standard profile fields
+2. If yes, write them to the `## Preferences` section of `USER.md` under the appropriate subcategory (Dietary / Exercise / Scheduling & Lifestyle / Cooking & Kitchen / General Notes)
+3. Each entry follows the format: `- [YYYY-MM-DD] Preference description`
+4. Do this silently — never mention internal file details to the user
+
+**What NOT to duplicate:**
+- Don't write items already stored in other `USER.md` sections (weight, height, food restrictions, exercise habits, etc.)
+- Only write preferences that add information beyond the standard profile fields
+
+---
+
 ## Output Instructions
 
 After the user confirms their summary:
 
 1. Generate the profile using the format shown above
-2. **Internal action (do NOT mention to user):** Silently save as `USER.md` in the current workspace. Do not tell the user the filename, file format, or mention `.md` — just confirm that their profile has been saved
+2. **Internal action (do NOT mention to user):** Silently save as `USER.md` in the current workspace (including the `## Preferences` section with any preferences detected during onboarding). Do not tell the user the filename, file format, or mention `.md` — just confirm that their profile has been saved.
