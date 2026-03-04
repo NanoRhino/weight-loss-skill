@@ -158,6 +158,70 @@ def test_save_and_load(tmp_dir: str):
     print("✅ test_save_and_load passed")
 
 
+def test_weekly_low_cal_check_below(tmp_dir: str):
+    """Test weekly-low-cal-check when average is below BMR."""
+    # Create 5 days of low-calorie data (800 cal/day, BMR=1400)
+    for offset in range(5):
+        day = f"2026-02-{20 + offset:02d}"
+        meals = [{"name": "lunch", "cal": 500, "p": 30, "c": 60, "f": 15},
+                 {"name": "dinner", "cal": 300, "p": 20, "c": 30, "f": 10}]
+        run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(meals[0]), "--date", day])
+        run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(meals[1]), "--date", day])
+
+    r = run_cmd(["weekly-low-cal-check", "--data-dir", tmp_dir, "--bmr", "1400",
+                 "--date", "2026-02-24"])
+    assert r["logged_days"] == 5
+    assert r["weekly_avg_cal"] == 800.0
+    assert r["calorie_floor"] == 1400
+    assert r["below_floor"] == True
+    assert r["days_below_count"] == 5
+    print("✅ test_weekly_low_cal_check_below passed")
+
+
+def test_weekly_low_cal_check_above(tmp_dir: str):
+    """Test weekly-low-cal-check when average is above BMR."""
+    # Create 3 days of adequate-calorie data (1600 cal/day, BMR=1400)
+    for offset in range(3):
+        day = f"2026-03-{1 + offset:02d}"
+        meals = [{"name": "breakfast", "cal": 400, "p": 25, "c": 48, "f": 13},
+                 {"name": "lunch", "cal": 600, "p": 35, "c": 70, "f": 18},
+                 {"name": "dinner", "cal": 600, "p": 35, "c": 60, "f": 22}]
+        for m in meals:
+            run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(m), "--date", day])
+
+    r = run_cmd(["weekly-low-cal-check", "--data-dir", tmp_dir, "--bmr", "1400",
+                 "--date", "2026-03-03"])
+    assert r["logged_days"] == 3
+    assert r["weekly_avg_cal"] == 1600.0
+    assert r["below_floor"] == False
+    assert r["days_below_count"] == 0
+    print("✅ test_weekly_low_cal_check_above passed")
+
+
+def test_weekly_low_cal_check_no_data(tmp_dir: str):
+    """Test weekly-low-cal-check with no logged days."""
+    r = run_cmd(["weekly-low-cal-check", "--data-dir", tmp_dir, "--bmr", "1400",
+                 "--date", "2026-04-01"])
+    assert r["logged_days"] == 0
+    assert r["below_floor"] == False
+    print("✅ test_weekly_low_cal_check_no_data passed")
+
+
+def test_weekly_low_cal_check_floor_minimum(tmp_dir: str):
+    """Test that calorie floor is at least 1000 even when BMR is lower."""
+    # Create 2 days with 900 cal/day, BMR=900 → floor should be 1000
+    for offset in range(2):
+        day = f"2026-04-{10 + offset:02d}"
+        meal = {"name": "lunch", "cal": 900, "p": 50, "c": 100, "f": 25}
+        run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(meal), "--date", day])
+
+    r = run_cmd(["weekly-low-cal-check", "--data-dir", tmp_dir, "--bmr", "900",
+                 "--date", "2026-04-11"])
+    assert r["calorie_floor"] == 1000  # max(900, 1000)
+    assert r["below_floor"] == True    # 900 < 1000
+    print("✅ test_weekly_low_cal_check_floor_minimum passed")
+
+
 def main():
     import tempfile
     tmp_dir = tempfile.mkdtemp()
@@ -172,6 +236,20 @@ def main():
     test_check_missing()
     test_snack_types()
     test_save_and_load(tmp_dir)
+
+    # Weekly low-calorie check tests (each uses isolated subdirectories)
+    wlc_dir_below = os.path.join(tmp_dir, "wlc_below")
+    wlc_dir_above = os.path.join(tmp_dir, "wlc_above")
+    wlc_dir_empty = os.path.join(tmp_dir, "wlc_empty")
+    wlc_dir_floor = os.path.join(tmp_dir, "wlc_floor")
+    os.makedirs(wlc_dir_below, exist_ok=True)
+    os.makedirs(wlc_dir_above, exist_ok=True)
+    os.makedirs(wlc_dir_empty, exist_ok=True)
+    os.makedirs(wlc_dir_floor, exist_ok=True)
+    test_weekly_low_cal_check_below(wlc_dir_below)
+    test_weekly_low_cal_check_above(wlc_dir_above)
+    test_weekly_low_cal_check_no_data(wlc_dir_empty)
+    test_weekly_low_cal_check_floor_minimum(wlc_dir_floor)
 
     print("\n🎉 All tests passed!")
 

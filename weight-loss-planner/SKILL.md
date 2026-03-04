@@ -128,6 +128,7 @@ Default to the **midpoint** of the recommended range unless user preference, age
 
 - Weekly loss rate should not exceed 1 kg / 2 lbs per week for extended periods (>2 weeks)
 - Daily calorie intake must not go below **max(BMR, 1,000 cal/day)** — if the math pushes below this floor, flag it clearly, set intake to the floor, and adjust the rate/timeline accordingly. See `references/formulas.md` for detailed floor calculation.
+- **Below-BMR compliance is checked weekly, not per-meal.** During daily tracking, per-meal checkpoints evaluate calorie/macro balance against the daily target. Whether the user is consistently eating below the calorie floor is assessed once per week via the `weekly-low-cal-check` command in `diet-tracking-analysis`. This avoids noisy day-to-day alerts while still catching sustained under-eating.
 - If the user's target BMI would be below 18.5, express concern and suggest they discuss with a healthcare provider
 - Deficit reference: 0.5 kg (1 lb)/week ≈ 500 cal/day; 0.7 kg (1.5 lbs)/week ≈ 750; 1 kg (2 lbs)/week ≈ 1,000
 
@@ -142,7 +143,7 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 • Target BMI: [X.X] ([classification])
 • Daily expenditure (TDEE): ~[X,XXX] cal/day ([brief activity level explanation — e.g., "estimated for sedentary lifestyle since you didn't mention exercise habits"])
 
-**[Safety floor explanation]** — One sentence explaining that BMR is [X,XXX] cal/day and daily intake must not drop below this number for safety. Use this to naturally justify the calorie target that follows.
+**[Safety floor explanation]** — One sentence explaining that BMR is [X,XXX] cal/day and daily intake should not consistently drop below this number for safety. Mention that this will be checked on a weekly basis. Use this to naturally justify the calorie target that follows.
 
 **[Plan details block]** — "So here's your plan:" followed by bullet list:
 • Daily calorie target: [X,XXX] cal (rounded, single value — not a range)
@@ -233,6 +234,9 @@ Use this template structure (adapt content based on the user's specific numbers)
   program, especially if you have existing health conditions.
 - TDEE decreases as you lose weight. Your calorie targets will be recalculated
   periodically as needed.
+- Your calorie floor (BMR) compliance is reviewed weekly. If your weekly average
+  intake falls below BMR, you'll receive a gentle heads-up with suggestions —
+  an occasional low day is normal, but a sustained pattern needs attention.
 - Weight fluctuates daily due to water, sodium, and hormones. Trust the weekly
   trend, not the daily number.
 - Plateaus of 2–3 weeks are normal. If progress stalls beyond 4 weeks, consider
