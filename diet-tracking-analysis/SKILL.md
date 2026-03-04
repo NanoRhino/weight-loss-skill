@@ -149,52 +149,19 @@ Time-of-day fallback (only if user doesn't specify):
 
 ## Eaten-Meal Detection
 
-Before generating suggestions, determine whether the user is **currently eating** the meal or has **already finished** it. Already-eaten meals should only receive `next_time` suggestions — `right_now` adjustments are pointless if the food is gone.
+Before generating suggestions, determine whether the user is **currently eating** or has **already finished**. Already-eaten meals get `next_meal` / `next_time` suggestions only — never `right_now`.
 
 ### Detection Priority
 
-Evaluate in this order — stop at the first conclusive signal:
+Evaluate in order — stop at the first conclusive signal:
 
-**1. Explicit statement (highest priority)**
+**1. Explicit statement** — user says they finished or are still eating (e.g., past tense "I had…" vs. present "I'm having…"). Use directly, skip time checks.
 
-The user says they already finished or are still eating:
-- Already eaten: "I had…", "I ate…", "just finished…", "吃了…", "吃完了"
-- Still eating: "I'm having…", "I'm eating…", "正在吃…", "在吃…"
+**2. Time vs. meal window** — when language is ambiguous, compare current time to the meal's window. Use custom times from `USER.md > Goals > Meal Times` if available; otherwise fall back to the windows in the Meal Type Assignment table above. Past the window end → already eaten; within the window → may still be eating.
 
-If the user's statement is clear, use it directly — skip time-based checks.
+**3. Scheduling habits** — `USER.md > Preferences > Scheduling & Lifestyle` patterns can shift windows (e.g., "works late on Wednesdays" extends dinner window) or mark meals as always retroactive (e.g., "always skips breakfast on workdays").
 
-**2. Time vs. meal window**
-
-When the user's language is ambiguous (e.g., "log this", "午饭是…"), compare the current time to the meal's expected time window:
-
-- **Custom meal times** — read from `USER.md > Goals > Meal Times` (e.g., `07:00 breakfast, 12:00 lunch, 18:00 dinner`). Each meal's window runs from its start time to the next meal's start time (last meal's window extends 3 hours from its start).
-- **Default meal windows** — if no custom times exist, use the same windows as the Meal Type Assignment table:
-
-| Meal | Window |
-|------|--------|
-| breakfast | 05:00–10:00 |
-| lunch | 11:00–14:00 |
-| dinner | 17:00–21:00 |
-| snack_am | 10:00–11:00 |
-| snack_pm | 14:00–17:00 |
-
-**Rule:** If the current time is **past the meal's window end**, the meal is considered already eaten. If the current time is **within the meal's window**, assume the user may still be eating.
-
-**3. Scheduling habits**
-
-Check `USER.md > Preferences > Scheduling & Lifestyle` for patterns that override the time check:
-- "Always skips breakfast on workdays" → weekday breakfast logged at any time is retroactive
-- "Works late on Wednesdays" → Wednesday dinner window may extend
-- "Eats lunch at 11:00" → shifts the lunch window earlier
-
-### Outcome
-
-| Detection result | Suggestion behavior |
-|-----------------|---------------------|
-| Currently eating | `⚡ Right now` if adjustment needed; otherwise `💡 Next time` |
-| Already eaten | `💡 Next meal` with forward-looking compensatory advice if adjustment needed; otherwise `💡 Next time` |
-
-The detection result is also used for backfilled meals from missing-meal handling — those are always "already eaten" by definition.
+Backfilled meals from missing-meal handling are always "already eaten."
 
 ---
 
@@ -306,10 +273,9 @@ Every food log reply must contain up to three sections:
 ```
 💡 Next meal: [forward-looking compensatory advice for the next upcoming meal]
 ```
-- The user can no longer modify this meal — do NOT suggest adding/removing food from it
-- Instead, give a concrete suggestion for the **next meal** to compensate (e.g., "Dinner idea: go heavier on protein — grilled chicken breast + veggies, keep rice to half a bowl")
-- Frame positively as planning ahead, not as fixing a mistake
-- If this is the last meal of the day (dinner), keep it brief: "A bit over today, but totally normal — just aim for your usual pattern tomorrow."
+- Give a concrete suggestion for the **next meal** to compensate — do NOT suggest modifying the current meal
+- Frame as planning ahead, not fixing a mistake
+- Last meal of the day (dinner): keep it brief — "A bit over today, totally normal — aim for your usual pattern tomorrow."
 
 **Case C: On track** (`needs_adjustment: false`, regardless of eaten status):
 ```
