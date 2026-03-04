@@ -82,16 +82,32 @@ The script handles safety floors (max(BMR, 1000)), rate clamping, and all edge c
 
 **Timeline:** Do NOT ask the user for a timeline. Based on your professional judgment, select the most appropriate weekly loss rate from the rate guidelines in Step 2 and derive the timeline automatically. If the user later wants to adjust the pace, they can do so in Step 3.
 
-**Diet mode:** Default to **Balanced / Flexible** without asking. This is the most sustainable and broadly suitable mode. The user can request a different mode at any time; if they do, switch accordingly.
+**Diet mode:** Before calculating macros, **ask the user which diet mode they'd like to follow**. Present the available modes briefly and **proactively recommend Balanced / Flexible** as the default. Use a concise format like:
+
+> Your diet mode determines how protein, fat, and carbs are balanced. Here are the options:
+>
+> 1. **Balanced / Flexible** — 25–35% fat, no food restrictions, easiest to sustain *(Recommended — works for most people)*
+> 2. **Healthy U.S.-Style (USDA)** — 20–35% fat, follows Dietary Guidelines for Americans
+> 3. **High-Protein** — 25–35% fat, ideal for gym-goers preserving muscle
+> 4. **Low-Carb** — 40–50% fat, better appetite control with fewer carbs
+> 5. **Keto** — 65–75% fat, extreme carb restriction (<30g/day)
+> 6. **Mediterranean** — 25–35% fat, heart-health focus with olive oil and fish
+> 7. **Plant-Based** — 20–30% fat, for vegetarian or vegan users
+> 8. **Intermittent Fasting (16:8)** — 8-hour eating window, layers on any macro split
+> 9. **Intermittent Fasting (5:2)** — 2 very-low-cal days per week, layers on any macro split
+>
+> I'd suggest starting with **Balanced / Flexible** — it's the most sustainable and gives you the most freedom with food choices. Which one appeals to you?
+
+Adapt the wording to the user's language and tone. If the user has no strong preference, confirm Balanced / Flexible and proceed. If USER.md `## Preferences` already records a previously chosen diet mode, present that as the default recommendation instead of Balanced.
 
 If USER.md already contains the target weight, don't ask for it again — use it directly.
 
-Once all values are resolved, proceed directly to Step 2 (Generate Milestone Plan) — no questions needed in this step.
+Once the user confirms their diet mode and all values are resolved, proceed to Step 2 (Generate Milestone Plan).
 
 ### Preference Awareness
 
-Before recommending a diet mode or generating a plan, **read the `## Preferences` section in `USER.md`** (if it exists). Stored preferences may influence:
-- **Diet mode selection** — if the user previously expressed interest in a specific diet style (e.g., "wants to try Mediterranean"), default to that instead of Balanced
+Before presenting the diet mode options or generating a plan, **read the `## Preferences` section in `USER.md`** (if it exists). Stored preferences may influence:
+- **Diet mode selection** — if the user previously expressed interest in a specific diet style (e.g., "wants to try Mediterranean"), highlight that mode as the recommended option when asking about diet mode (instead of defaulting to Balanced)
 - **Macro adjustments** — dietary preferences may inform fat/carb balance (e.g., "loves high-fat foods" might suit a higher fat range)
 - **General coaching notes** — preferences like "prefers gradual changes" should inform how you present the plan
 
