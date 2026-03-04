@@ -52,13 +52,11 @@ If no USER.md is found, this skill works independently. Gather the user's physic
 
 #### After resolving data (both paths): Calculate TDEE internally
 
-Calculate the following silently — do NOT present these numbers to the user or ask for confirmation:
+Calculate the following — do not ask the user for confirmation at this stage. These values will be presented to the user as part of the plan in Step 2.
 
 1. **BMR** using the Mifflin-St Jeor equation (see `references/formulas.md`)
 2. **TDEE** = BMR × activity multiplier. Use the best estimate based on available data. If activity data is missing, default to Sedentary (×1.2). Internally store TDEE as a point estimate ± 100 kcal range.
 3. **BMI** with the appropriate regional standard (see `references/formulas.md` for WHO vs Asian classification).
-
-These values are used in later steps for calorie targets and milestone planning — the user does not need to see or confirm them.
 
 **Timeline:** Do NOT ask the user for a timeline. Based on your professional judgment, select the most appropriate weekly loss rate from the rate guidelines in Step 2 and derive the timeline automatically. If the user later wants to adjust the pace, they can do so in Step 3.
 
@@ -135,19 +133,38 @@ Default to the **midpoint** of the recommended range unless user preference, age
 
 #### Plan Presentation
 
-Present the plan as a single, clear summary — no phased milestones. Include:
+Present the plan following this exact structure. Use bullet points (•), not tables. Adapt language to match the user (see Language policy).
 
-- Weekly loss rate — **with a brief explanation of why this rate is appropriate.** Frame it from the user's perspective: what they'll feel and experience, not internal nutrition logic. For example: "At your current weight, losing X kg per week won't leave you feeling starved, and it's much less likely to bounce back — you'd reach your goal in about X months." Keep it to 1–2 sentences, warm and practical.
-- Daily calorie target (midpoint)
-- Per-meal calorie split: breakfast ~30%, lunch ~40%, dinner ~30%. Show as inline text, not a table (e.g., "Breakfast ~450 kcal / Lunch ~600 kcal / Dinner ~450 kcal").
-- Daily macronutrient targets: protein (weight_kg × 1.2–1.6g), fat (25–35% of calories), carbs (remainder). See `references/formulas.md` for full calculation.
-- Estimated completion date — calculate from today's date + total weeks and show a specific date (e.g., "August 15, 2026"), not just "about X months"
+**[Opening]** — One warm sentence: greet the user by name (if known), acknowledge their data is ready, and transition to the plan.
+
+**[Body metrics block]** — "Based on your data, here's what I calculated:" followed by bullet list:
+• Current BMI: [X.X] ([classification per regional standard])
+• Target BMI: [X.X] ([classification])
+• Daily expenditure (TDEE): ~[X,XXX] cal/day ([brief activity level explanation — e.g., "estimated for sedentary lifestyle since you didn't mention exercise habits"])
+
+**[Safety floor explanation]** — One sentence explaining that BMR is [X,XXX] cal/day and daily intake must not drop below this number for safety. Use this to naturally justify the calorie target that follows.
+
+**[Plan details block]** — "So here's your plan:" followed by bullet list:
+• Daily calorie target: [X,XXX] cal (rounded, single value — not a range)
+• Weekly loss rate: ~[X.X] kg/week ([X.X] lbs/week)
+• Per-meal split: Breakfast ~[XXX] cal / Lunch ~[XXX] cal / Dinner ~[XXX] cal (30% / 40% / 30%)
+• Daily nutrition targets: Protein [XX–XXX]g / Fat [XX–XX]g / Carbs [XXX–XXX]g (show ranges)
+• Estimated completion: [Specific month + year, e.g., "June 2027"]
+
+**[Rate explanation]** — 1–2 sentences explaining why this rate was chosen. Frame from the user's perspective — what they'll experience, not nutrition theory. If activity level is low/sedentary, mention that adding exercise would increase TDEE and speed up progress. Use *italics* for emphasis where appropriate.
+
+**[Follow-up questions]** — Ask 1–2 questions:
+1. "Does this pace feel right? Want to speed up or is this OK?"
+2. If activity data was assumed or missing: invite the user to share their exercise habits for a more accurate recalculation.
+
+**Formatting rules:**
+- Bullet points (•), not tables — keep it conversational
+- Round numbers for readability (e.g., "~1,700 cal" not "1,697 cal")
+- Show ranges for macros (e.g., "96–128g"), single rounded value for daily calorie target
+- Maximum one emoji (at the end of the closing line)
+- No phased milestones — present as a single plan
 
 **Note:** TDEE will decrease as weight drops. The plan will be recalculated every 4 weeks or when weight drops by 4 kg, whichever comes first — but don't present this to the user upfront. Handle recalculations as they come.
-
-Then ask:
-- "Does this pace feel right to you? Would you like to speed things up or slow things down?"
-- "If this looks good, we can look at your diet plan next."
 
 ---
 
