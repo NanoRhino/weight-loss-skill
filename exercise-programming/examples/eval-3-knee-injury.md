@@ -15,9 +15,15 @@ Completely understood. I've designed a safe and gentle home program for you. All
 
 ## Weekly Overview
 
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Walk 10–15 min | Full Body + Yoga | Walk 10–15 min | Rest | Walk 10–15 min | Full Body + Yoga | Rest |
+| Day | Training |
+|-----|----------|
+| Mon | Walk 10–15 min |
+| Tue | Full Body + Yoga |
+| Wed | Walk 10–15 min |
+| Thu | Rest |
+| Fri | Walk 10–15 min |
+| Sat | Full Body + Yoga |
+| Sun | Rest |
 
 ---
 
@@ -31,8 +37,7 @@ Completely understood. I've designed a safe and gentle home program for you. All
 ### Tuesday: Full Body + Yoga Cool-down
 Estimated duration: ~45 minutes
 
-Follow-along video reference:
-[▶ Low-Impact Full Body Dumbbell Workout (No Squats, No Jumping)](https://www.youtube.com/results?search_query=low+impact+full+body+dumbbell+workout+no+squats+no+jumping+fitnessblender)
+Follow-along video: [▶ Low-Impact Full Body Dumbbell Workout (No Squats, No Jumping)](https://www.youtube.com/results?search_query=low+impact+full+body+dumbbell+workout+no+squats+no+jumping+fitnessblender)
 
 #### Warm-up (~5 minutes)
 
@@ -43,47 +48,20 @@ Follow-along video reference:
 
 #### Main Workout
 
-**Exercise 1: Glute Bridge | RPE 6**
-Knee-friendly, activates the glutes
-Set 1 ×12–15
-Rest 60 seconds
-Set 2 ×12–15
-Rest 60 seconds
-Set 3 ×12–15
-Rest 90 seconds → move to next exercise
+**Exercise 1: Glute Bridge | light effort (should feel pretty easy after each set)**
+3 sets ×12–15 reps, rest 60s between sets
 
-**Exercise 2: DB Romanian Deadlift | RPE 6–7**
-Slight knee bend held steady, push hips back
-Set 1 ×10–12
-Rest 90 seconds
-Set 2 ×10–12
-Rest 90 seconds
-Set 3 ×10–12
-Rest 60 seconds → move to next exercise
+**Exercise 2: DB Romanian Deadlift | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
-**Exercise 3: Kneeling Push-up | RPE 6–7**
-Do these on the yoga mat to protect your knees
-Set 1 ×8–10
-Rest 60 seconds
-Set 2 ×8–10
-Rest 60 seconds
-Set 3 ×8–10
-Rest 60 seconds → move to next exercise
+**Exercise 3: Kneeling Push-up | moderate effort (could do ~3 more reps)**
+3 sets ×8–10 reps, rest 60s between sets
 
-**Exercise 4: Single-Arm DB Row | RPE 6–7**
-One hand on a chair (place chair against a wall to prevent sliding)
-Set 1 Left ×10 → Right ×10
-Rest 60 seconds
-Set 2 Left ×10 → Right ×10
-Rest 60 seconds
-Set 3 Left ×10 → Right ×10
-Rest 60 seconds → move to next exercise
+**Exercise 4: Single-Arm DB Row | moderate effort (could do ~3 more reps)**
+3 sets ×10 each arm, rest 60s between sets
 
 **Exercise 5: Supine Straight-Leg Raise**
-Gently works the quads, maintaining muscle strength around the knee
-Set 1 Left leg ×10 → Right leg ×10
-Rest 60 seconds
-Set 2 Left leg ×10 → Right leg ×10
+2 sets ×10 each leg, rest 60s between sets
 
 #### Yoga Cool-down (~12 minutes)
 
@@ -93,8 +71,7 @@ All poses below avoid positions that put pressure on the knee:
 2. Knees to Chest — 1 minute
 3. Supine Twist — left side 1 minute
 4. Supine Twist — right side 1 minute
-5. Reclined Figure-4 Stretch — left side 1 minute
-   **Replaces Pigeon Pose**, much less knee pressure
+5. Reclined Figure-4 Stretch — left side 1 minute (replaces Pigeon Pose, much less knee pressure)
 6. Reclined Figure-4 Stretch — right side 1 minute
 7. Supine Hamstring Stretch — use a towel looped around the foot, left side 1 minute
 8. Supine Hamstring Stretch — right side 1 minute
@@ -123,8 +100,7 @@ All poses below avoid positions that put pressure on the knee:
 ### Saturday: Full Body + Yoga Cool-down
 Estimated duration: ~45 minutes
 
-Follow-along video reference:
-[▶ Low-Impact Home Workout (Beginner-Friendly)](https://www.youtube.com/results?search_query=low+impact+home+workout+dumbbells+no+jumping+no+squats+megsquats)
+Follow-along video: [▶ Low-Impact Home Workout (Beginner-Friendly)](https://www.youtube.com/results?search_query=low+impact+home+workout+dumbbells+no+jumping+no+squats+megsquats)
 
 #### Warm-up (~5 minutes)
 
@@ -135,52 +111,24 @@ Follow-along video reference:
 
 #### Main Workout
 
-**Exercise 1: DB Hip Thrust | RPE 6–7**
-Back against the couch (push it against the wall to prevent sliding), dumbbell on hips
-Set 1 ×12–15
-Rest 60 seconds
-Set 2 ×12–15
-Rest 60 seconds
-Set 3 ×12–15
-Rest 90 seconds → move to next exercise
+**Exercise 1: DB Hip Thrust | moderate effort (could do ~3 more reps)**
+3 sets ×12–15 reps, rest 60s between sets
 
-**Exercise 2: DB Deadlift | RPE 6–7**
-From the floor — a different movement pattern from Tuesday's RDL
-Set 1 ×10–12
-Rest 90 seconds
-Set 2 ×10–12
-Rest 90 seconds
-Set 3 ×10–12
-Rest 60 seconds → move to next exercise
+**Exercise 2: DB Deadlift | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
-**Exercise 3: Seated DB Shoulder Press | RPE 6–7**
-Sit on a chair
-Set 1 ×10–12
-Rest 60 seconds
-Set 2 ×10–12
-Rest 60 seconds
-Set 3 ×10–12
-Rest 60 seconds → move to next exercise
+**Exercise 3: Seated DB Shoulder Press | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 60s between sets
 
-**Exercise 4: DB Reverse Fly | RPE 6–7**
-Improves rounded-shoulder posture
-Set 1 ×12–15
-Rest 60 seconds
-Set 2 ×12–15
-Rest 60 seconds
-Set 3 ×12–15
-Rest 60 seconds → move to next exercise
+**Exercise 4: DB Reverse Fly | moderate effort (could do ~3 more reps)**
+3 sets ×12–15 reps, rest 60s between sets
 
 **Exercise 5: Clamshell**
-Gluteus medius training, helps with knee joint stability
-Set 1 Left ×12 → Right ×12
-Rest 60 seconds
-Set 2 Left ×12 → Right ×12
+2 sets ×12 each side, rest 60s between sets
 
 #### Yoga Cool-down (~12 minutes)
 
-1. Child's Pose — 1 minute
-   If deep knee flexion is uncomfortable, place a pillow between your thighs and calves
+1. Child's Pose — 1 minute (if deep knee flexion is uncomfortable, place a pillow between your thighs and calves)
 2. Seated Forward Fold — 1 minute
 3. Seated Twist — left side 1 minute
 4. Seated Twist — right side 1 minute
@@ -202,7 +150,7 @@ Set 2 Left ×12 → Right ×12
 
 | Phase | Details |
 |-------|---------|
-| **Weeks 1–2** | Light dumbbells, RPE 6, focus on learning the movements |
+| **Weeks 1–2** | Light dumbbells, easy effort, focus on learning the movements |
 | **Weeks 3–4** | Feeling easier → add 2 reps per set, or slow down the tempo (3-second lowering phase) |
 | **Week 5 (Deload)** | Only do 2 sets per exercise, more yoga cool-down |
 | **Week 6 onward** | New cycle: single-leg glute bridge instead of double-leg, increase reps, or slightly increase weight |
@@ -213,6 +161,8 @@ Set 2 Left ×12 → Right ×12
 - Progress to single-leg variations (double-leg glute bridge → single-leg glute bridge)
 - Reduce rest between sets (60 sec → 45 sec)
 
+> If any exercise is unfamiliar, just ask me and I'll explain it in detail!
+
 ## Important Reminders
 
 - Muscle soreness (glutes or hamstrings feeling sore) = normal
@@ -221,15 +171,6 @@ Set 2 Left ×12 → Right ×12
 ---
 
 ## Appendix
-
-### Intensity Rating Guide (RPE)
-
-| RPE | Meaning |
-|-----|---------|
-| 6 | Could do 4+ more reps — fairly easy |
-| 7 | Could do 3 more reps — moderate |
-
-For the first two weeks, aim for RPE 6. If it feels "still pretty easy," you're on track.
 
 ### Starting Weight Reference
 

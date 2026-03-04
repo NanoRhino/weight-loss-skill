@@ -15,17 +15,22 @@ Going from zero to 5K in 3 months is absolutely doable! I've designed a comprehe
 
 ## Weekly Overview
 
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Run/Walk intervals | Strength training | Rest · Walk | Run/Walk intervals | Flexibility + Core | Long slow run/walk | Full rest |
+| Day | Training |
+|-----|----------|
+| Mon | Run/Walk intervals |
+| Tue | Strength training |
+| Wed | Rest · Walk |
+| Thu | Run/Walk intervals |
+| Fri | Flexibility + Core |
+| Sat | Long slow run/walk |
+| Sun | Full rest |
 
 ---
 
 ### Monday: Run/Walk Interval Training
 Estimated duration: ~35 minutes
 
-Follow-along reference:
-[▶ Couch to 5K Run/Walk Intervals (Week 1)](https://www.youtube.com/results?search_query=couch+to+5k+week+1+run+walk+interval+beginner)
+Follow-along video: [▶ Couch to 5K Run/Walk Intervals (Week 1)](https://www.youtube.com/results?search_query=couch+to+5k+week+1+run+walk+interval+beginner)
 
 #### Warm-up (~5 minutes)
 
@@ -39,7 +44,7 @@ Follow-along reference:
 **Run/Walk Intervals (Weeks 1–2 plan)**
 Keep the entire session at a conversational intensity — when running, slightly winded but able to speak in full sentences
 
-Jog 1 min → brisk walk 2 min, repeat 8 rounds (total ~24 minutes)
+Jog 1 min → brisk walk 2 min, repeat ×8 rounds (total ~24 minutes)
 
 > When running, there's no need to go fast. "Being able to chat with a friend while running" is the correct pace. If you can't keep running, walk. Alternating between walking and running is the most scientific way to start.
 
@@ -56,8 +61,7 @@ Jog 1 min → brisk walk 2 min, repeat 8 rounds (total ~24 minutes)
 ### Tuesday: Strength Training (Bodyweight)
 Estimated duration: ~30 minutes
 
-Follow-along reference:
-[▶ Bodyweight Strength Training for Runners (No Equipment)](https://www.youtube.com/results?search_query=bodyweight+strength+training+for+runners+no+equipment+fitnessblender)
+Follow-along video: [▶ Bodyweight Strength Training for Runners (No Equipment)](https://www.youtube.com/results?search_query=bodyweight+strength+training+for+runners+no+equipment+fitnessblender)
 
 #### Warm-up (~5 minutes)
 
@@ -69,102 +73,22 @@ Follow-along reference:
 #### Main Workout
 
 **Exercise 1: Glute Bridge**
-The glutes are the engine of running
-
-Set 1 ×15
-
-Rest 45 seconds
-
-Set 2 ×15
-
-Rest 45 seconds
-
-Set 3 ×15
-
-Rest 60 seconds → move to next exercise
-
----
+3 sets ×15 reps, rest 45s between sets
 
 **Exercise 2: Bodyweight Lunges**
-Single-leg strength + balance, directly improves running stability
-
-Set 1 ×10 each side
-
-Rest 45 seconds
-
-Set 2 ×10 each side
-
-Rest 45 seconds
-
-Set 3 ×10 each side
-
-Rest 60 seconds → move to next exercise
-
----
+3 sets ×10 each side, rest 45s between sets
 
 **Exercise 3: Push-up**
-Upper body and core — running arm swing requires upper body support. If you can't do standard, start from kneeling.
-
-Set 1 ×8–10
-
-Rest 45 seconds
-
-Set 2 ×8–10
-
-Rest 45 seconds
-
-Set 3 ×8–10
-
-Rest 60 seconds → move to next exercise
-
----
+3 sets ×8–10 reps, rest 45s between sets
 
 **Exercise 4: Single-Leg Glute Bridge**
-Running is alternating single-leg force production — this exercise directly mimics the running power pattern
-
-Set 1 ×8 each side
-
-Rest 45 seconds
-
-Set 2 ×8 each side
-
-Rest 45 seconds
-
-Set 3 ×8 each side
-
-Rest 60 seconds → move to next exercise
-
----
+3 sets ×8 each side, rest 45s between sets
 
 **Exercise 5: Plank**
-The core of trunk stability while running
-
-Set 1 ×20–30 sec
-
-Rest 45 seconds
-
-Set 2 ×20–30 sec
-
-Rest 45 seconds
-
-Set 3 ×20–30 sec
-
-Rest 60 seconds → move to next exercise
-
----
+3 sets ×20–30 sec, rest 45s between sets
 
 **Exercise 6: Calf Raises**
-Find a step or curb, place the front half of your foot on the edge
-
-Set 1 ×15
-
-Rest 45 seconds
-
-Set 2 ×15
-
-Rest 45 seconds
-
-Set 3 ×15
+3 sets ×15 reps, rest 45s between sets
 
 #### Cool-down (~5 minutes)
 
@@ -211,8 +135,7 @@ Same content as Monday (use the run/walk ratio for the current week — see prog
 ### Friday: Flexibility + Core
 Estimated duration: ~30 minutes
 
-Follow-along reference:
-[▶ Yoga for Runners 30 Minutes](https://www.youtube.com/results?search_query=yoga+for+runners+30+minutes+flexibility+yoga+with+adriene)
+Follow-along video: [▶ Yoga for Runners 30 Minutes](https://www.youtube.com/results?search_query=yoga+for+runners+30+minutes+flexibility+yoga+with+adriene)
 
 #### Dynamic Warm-up (~3 minutes)
 
@@ -223,28 +146,22 @@ Follow-along reference:
 #### Flexibility Training
 
 **Area 1: Hip Flexors**
-The area most likely to get tight from running
-
 Half-kneeling Hip Flexor Stretch — 45 sec each side, 2 rounds (15 sec rest between rounds)
 
 ---
 
 **Area 2: Hamstrings**
-
 Supine Single-Leg Straight-Leg Stretch (can use a towel for assistance) — 45 sec each side, 2 rounds
 
 ---
 
 **Area 3: Calves + Achilles Tendon**
-
 Wall Calf Stretch (straight leg version) — 30 sec each side
-
 Wall Calf Stretch (bent knee version · soleus) — 30 sec each side
 
 ---
 
 **Area 4: IT Band / Outer Hip**
-
 Supine Cross-Leg Stretch — 45 sec each side
 
 ---
@@ -252,44 +169,13 @@ Supine Cross-Leg Stretch — 45 sec each side
 #### Core Training
 
 **Exercise 1: Dead Bug**
-
-Set 1 ×8 each side
-
-Rest 30 seconds
-
-Set 2 ×8 each side
-
-Rest 30 seconds
-
-Set 3 ×8 each side
-
-Rest 45 seconds → move to next exercise
-
----
+3 sets ×8 each side, rest 30s between sets
 
 **Exercise 2: Side Plank**
-
-Set 1 Left ×15–20 sec → Right ×15–20 sec
-
-Rest 30 seconds
-
-Set 2 Left ×15–20 sec → Right ×15–20 sec
-
-Rest 45 seconds → move to next exercise
-
----
+2 sets ×15–20 sec each side, rest 30s between sets
 
 **Exercise 3: Bird Dog**
-
-Set 1 ×8 each side
-
-Rest 30 seconds
-
-Set 2 ×8 each side
-
-Rest 30 seconds
-
-Set 3 ×8 each side
+3 sets ×8 each side, rest 30s between sets
 
 #### Cool-down (~3 minutes)
 
@@ -313,7 +199,7 @@ Estimated duration: ~35–45 minutes
 **Long Distance Run/Walk (Weeks 1–2 plan)**
 Today's goal is distance and time, not speed. Keep the entire session easy.
 
-Brisk walk 5 min (transition) → Jog 2 min / brisk walk 3 min, repeat 5 rounds (total ~25 min) → Brisk walk 5 min (cool-down walk)
+Brisk walk 5 min (transition) → Jog 2 min / brisk walk 3 min, repeat ×5 rounds (total ~25 min) → Brisk walk 5 min (cool-down walk)
 
 > Don't worry about pace. If you feel "I could keep going," you're doing it right.
 
@@ -346,6 +232,8 @@ Brisk walk 5 min (transition) → Jog 2 min / brisk walk 3 min, repeat 5 rounds 
 | **Week 12** | Easy jog 15 min × 2 (taper) | 5K! |
 
 **Strength training (Tuesday) progression**: Starting week 5, add 1 set or 3–5 more reps per exercise. Starting week 9, you can add plyometric exercises (jump squats, jump lunges) to boost running explosiveness.
+
+> If any exercise is unfamiliar, just ask me and I'll explain it in detail!
 
 ---
 

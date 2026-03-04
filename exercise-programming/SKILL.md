@@ -66,8 +66,8 @@ Before designing any program, gather information across these categories. Ask co
 
 When user doesn't provide information, use these sensible defaults rather than asking endless questions:
 
-- **No stats given** → design program without load prescriptions; use RPE instead
-- **No strength numbers** → prescribe by RPE/RIR, not %1RM
+- **No stats given** → design program without load prescriptions; use intuitive intensity descriptions instead
+- **No strength numbers** → prescribe by intuitive intensity descriptions (e.g., "中等力度"), not %1RM
 - **No aerobic assessment** → start with conservative cardio prescriptions
 - **No preference stated** → default to a balanced strength + conditioning approach
 - **No injuries mentioned** → proceed normally but include a reminder about proper form
@@ -95,15 +95,38 @@ The core design principles are:
 
 MUST always start with a **full week view from Monday to Sunday**. Every day MUST appear — training days AND rest days. Rest days MUST include cardio or active recovery recommendations.
 
+**MUST use vertical (2-column) table format** to ensure day names and training content are clearly aligned and never mismatched. Do NOT use horizontal 7-column tables — they cause alignment issues when content varies in length.
+
+```
+## 一周总览
+
+| 日期 | 训练内容 |
+|------|---------|
+| 周一 | 全身训练 A |
+| 周二 | 休息 · 散步30分钟 |
+| 周三 | 全身训练 B |
+| 周四 | 休息 · 散步30分钟 |
+| 周五 | 全身训练 C |
+| 周六 | 休息 · 可选轻度活动 |
+| 周日 | 完全休息 |
+```
+
+English equivalent:
 ```
 ## Weekly Overview
 
-| Mon | Tue | Wed | Thu | Fri | Sat | Sun |
-|-----|-----|-----|-----|-----|-----|-----|
-| Full Body A | Rest · Walk 30min | Full Body B | Rest · Walk 30min | Full Body C | Rest · Optional light activity | Rest |
+| Day | Training |
+|-----|----------|
+| Mon | Full Body A |
+| Tue | Rest · Walk 30min |
+| Wed | Full Body B |
+| Thu | Rest · Walk 30min |
+| Fri | Full Body C |
+| Sat | Rest · Optional light activity |
+| Sun | Full rest |
 ```
 
-> **Locale adaptation:** Use the user's language for all output text (day names, exercise names, instructions). The structure above is the canonical format.
+> **Locale adaptation:** Use the user's language for all output text (day names, exercise names, instructions).
 
 Then write out each day (Mon through Sun) in order, including rest days.
 
@@ -116,117 +139,116 @@ Write the plan in **sequential order** — the user reads top to bottom and foll
 **Training day structure:**
 
 ```
-### Monday: Full Body A
-Estimated duration: ~55 min
+### 周一：全身训练 A
+预计时长：约55分钟
 
-#### Warm-up (~8 min)
+#### 热身（约8分钟）
 
-1. Elliptical easy pace 3 min
-2. Cat-cow ×10
-3. World's greatest stretch ×5 each side
-4. Bodyweight squat ×10
+1. 椭圆机慢速 3分钟
+2. 猫牛式 ×10
+3. 世界最佳拉伸 ×每侧5次
+4. 徒手深蹲 ×10
 
-#### Main Training
+#### 正式训练
 
-**Exercise 1: Goblet Squat | RPE 6-7**
+**动作1：高脚杯深蹲 | 中等力度（做完感觉还能再做3次左右）**
+3组 ×10-12次，组间休息90秒
 
-Set 1 ×10-12
-
-Rest 90s
-
-Set 2 ×10-12
-
-Rest 90s
-
-Set 3 ×10-12
-
-Rest 90s → move to next exercise
-
-**Exercise 2: DB Bench Press | RPE 6-7**
-
-Set 1 ×10-12
-
-Rest 90s
-
-Set 2 ×10-12
-
-Rest 90s
-
-Set 3 ×10-12
-
-Rest 90s → move to next exercise
+**动作2：哑铃卧推 | 中等力度（做完感觉还能再做3次左右）**
+3组 ×10-12次，组间休息90秒
 
 ...
 
-#### Cooldown (~5 min)
+#### 拉伸放松（约5分钟）
 
-1. Quad stretch 20s each side
-2. Hamstring stretch 20s each side
+1. 股四头肌拉伸 每侧20秒
+2. 腘绳肌拉伸 每侧20秒
 ...
 ```
+
+When sets of an exercise all use the same reps and rest, MUST use the compact format: "3组 ×10-12次，组间休息90秒" (or locale equivalent like "3 sets ×10-12 reps, rest 90s between sets"). Do NOT write out each set and rest line individually. Only write sets out individually when they differ (e.g., different weights, reps, or rest periods across sets).
 
 **Mandatory format rules (MUST follow, not optional):**
 
 1. **Straight sets** — MUST complete ALL sets of one exercise before moving to the next. This is the required default. NEVER use circuit-style unless user specifically requests it.
-2. **Each exercise MUST be a bold block** with name, English name, and RPE on the header line
-3. **Sets and rests MUST each get their own line with a blank line between them** — every set line, every rest line MUST be visually separated by a blank line. No exceptions.
-4. **Rest between exercises** — the last rest line MUST indicate transition (e.g., "Rest 90s → move to next exercise")
-5. **No timestamps** — MUST use sequential order from top to bottom only
-6. **Form cues** MUST go under the exercise header, before Set 1 (e.g., "Slight knee bend, push hips back")
-7. **Warm-up and cooldown** MUST use numbered lists (simpler, no sets/reps structure needed)
-8. **Merge identical repeating rounds** — when the same action repeats identically multiple times (e.g., run/walk intervals, stretch hold × 2 sides), MUST write it once with a repeat count instead of listing each round individually. Example: "Jog 1 min → brisk walk 2 min, repeat ×8 rounds" instead of writing out all 8 rounds. Strength training sets with rest between them MUST still be written out individually since the user needs to track each set.
+2. **Each exercise MUST be a bold block** with exercise name and intensity description on the header line. Use the user's language only — do NOT add English translations when writing in Chinese (e.g., write "高脚杯深蹲" not "高脚杯深蹲 Goblet Squat").
+3. **Compact set format** — when all sets of an exercise use the same reps and rest, MUST write as one line: "3组 ×10-12次，组间休息90秒". Do NOT list each set individually. Only expand to per-set lines when sets differ in weight, reps, or rest.
+4. **No timestamps** — MUST use sequential order from top to bottom only.
+5. **No form cues or technique tips** — do NOT include form cues, movement tips, or technique descriptions under exercise headers. Instead, after the complete training plan, add a closing note: "如果有不熟悉的动作，随时问我，我可以详细讲解！" (or locale equivalent). This keeps the plan clean and readable.
+6. **Warm-up and cooldown** MUST use numbered lists (simpler, no sets/reps structure needed).
+7. **Merge identical repeating rounds** — when the same action repeats identically multiple times (e.g., run/walk intervals, stretch hold × 2 sides), MUST write it once with a repeat count instead of listing each round individually. Example: "慢跑1分钟 → 快走2分钟，重复×8轮" instead of writing out all 8 rounds.
+8. **Intensity description** — do NOT use "RPE" terminology. Replace with intuitive Chinese descriptions (or locale equivalent) that ordinary users can understand:
+   - RPE 6 → "轻松力度（做完感觉还很轻松，能再做4次以上）"
+   - RPE 6-7 → "中等力度（做完感觉还能再做3次左右）"
+   - RPE 7 → "中等力度（做完感觉还能再做3次左右）"
+   - RPE 7-8 → "中等偏上力度（做完感觉还能再做2-3次）"
+   - RPE 8 → "较大力度（做完感觉还能再做2次）"
+   - RPE 8-9 → "大力度（做完感觉最多还能再做1-2次）"
+   - RPE 9 → "接近极限（做完感觉最多还能再做1次）"
+   In English output, use equivalent phrasing like "moderate effort (could do ~3 more reps)" instead of "RPE 7".
 
 **Rest day structure:**
 
 ```
-### Tuesday: Rest Day
-- Elliptical or brisk walk 25-30 min, easy pace
-- Or full rest is fine too
+### 周二：休息日
+- 椭圆机或快走 25-30分钟，轻松不喘的强度
+- 或者完全休息也可以
 ```
 
 ### Video Links (Mandatory)
 
-**Rule: MUST prefer one follow-along video per session over per-exercise links.**
+**Rule: MUST provide ONE complete follow-along course/video link per training day, NOT individual per-exercise links.**
 
-- **Home / bodyweight / yoga / beginner sessions**: MUST search for a single follow-along video matching the session. MUST present it at the top of the day: "Follow-along video: [▶ link](link)"
-  - If no single video matches, provide 2-3 grouped by section, NEVER one per exercise
-- **Gym / strength sessions**: MUST provide a curated list of reference videos AFTER the full day's timeline. Required format: "Exercise reference videos: Squat [▶](link) | Bench Press [▶](link) | Row [▶](link)"
+- For EVERY training day (gym, home, bodyweight, yoga, etc.), MUST search for a single complete follow-along workout video that matches the session's overall theme (e.g., "full body beginner gym workout", "upper body strength training", "30 min bodyweight workout for runners").
+- Present it at the TOP of each training day, right after the day title and estimated duration: "跟练视频：[▶ Video Title](link)" (or locale equivalent: "Follow-along video: [▶ Video Title](link)")
+- Do NOT provide individual video links for each exercise. The goal is one cohesive video the user can follow along with, not a fragmented list.
+- If no single video matches perfectly, find the closest match for the session type.
 
 Match channel to user level:
-- **Beginners / Home**: FitnessBlender, MegSquats
+- **Beginners / Home**: FitnessBlender, MegSquats, Pamela Reif, 周六野Zoey, 帕梅拉
 - **Intermediate / Strength**: Jeff Nippard, Renaissance Periodization
 - **Injury / Mobility**: Squat University
 - **Injury-friendly**: AthleanX
-- Mix channels — don't link every exercise to the same creator
+- Mix channels — don't link every day to the same creator
 
 Use YouTube search links (can't verify direct URLs):
-`https://www.youtube.com/results?search_query=exercise+name+channel+name`
+`https://www.youtube.com/results?search_query=full+body+beginner+gym+workout+channel+name`
 
 ### Solo / Home Training Safety
 
 If user trains at home alone, include these safety notes:
 - Set safety pins/spotter arms in squat rack to just below depth
-- Never test true 1RM alone; cap at RPE 9
+- Never test true 1RM alone; cap at "接近极限（最多还能再做1次）" intensity
 - Learn how to safely bail from a squat and bench press
 - For bench press: use dumbbells if no spotter or safety catch is available
 
 ### Workout Tracking
 
-Include a brief note encouraging users to track their workouts — even just a notes app works. Tracking weights, reps, and RPE is essential for applying progressive overload.
+Include a brief note encouraging users to track their workouts — even just a notes app works. Tracking weights, reps, and perceived effort is essential for applying progressive overload.
 
 ### Supplementary Info Position (Mandatory)
 
-RPE scale explanation, starting weight guidance, and other reference material MUST come AFTER the training plan, NEVER before. The user wants to see the actual plan first. MUST place supplementary info at the end under a clear heading like "Reference" (or locale equivalent).
+Starting weight guidance and other reference material MUST come AFTER the training plan, NEVER before. The user wants to see the actual plan first. MUST place supplementary info at the end under a clear heading like "附录" / "Reference" (or locale equivalent). Do NOT include an RPE scale table — the intensity descriptions are already written in plain language in the plan itself.
+
+### Closing Note (Mandatory)
+
+After the complete training plan (after progression plan and before appendix), MUST include a note inviting the user to ask about unfamiliar exercises:
+
+```
+> 如果有不熟悉的动作，随时问我，我可以详细讲解！
+```
+
+English equivalent: "If any exercise is unfamiliar, just ask me and I'll explain it in detail!"
 
 ### Progression Overview (Mandatory)
 
 After the weekly schedule, MUST include a brief progression plan:
 
 ```
-## Progression Plan (Weeks 1–4)
-- Week 1–2: Learn movement patterns, use moderate loads (RPE 6–7)
-- Week 3–4: Begin progressive overload — add weight or reps each session
-- Week 5 (Deload): Reduce volume by 40%, maintain intensity
+## 进阶计划（第1-4周）
+- 第1-2周：熟悉动作，使用中等力度（做完感觉还能再做3次左右）
+- 第3-4周：开始渐进超负荷——每次训练加一点重量或多做几次
+- 第5周（减载周）：训练量减少40%，强度不变
 ```
 
 ---

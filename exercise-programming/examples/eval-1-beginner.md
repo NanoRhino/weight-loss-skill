@@ -15,14 +15,22 @@ Based on your situation, I've designed a 3-day-per-week full-body training plan.
 
 ## Weekly Overview
 
-| Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday |
-|--------|---------|-----------|----------|--------|----------|--------|
-| Full Body A | Rest · Cardio 25 min | Full Body B | Rest · Cardio 25 min | Full Body C | Rest · Optional walk | Full rest |
+| Day | Training |
+|-----|----------|
+| Mon | Full Body A |
+| Tue | Rest · Cardio 25 min |
+| Wed | Full Body B |
+| Thu | Rest · Cardio 25 min |
+| Fri | Full Body C |
+| Sat | Rest · Optional walk |
+| Sun | Full rest |
 
 ---
 
 ### Monday: Full Body A
 Estimated duration: ~55 minutes
+
+Follow-along video: [▶ Full Body Beginner Gym Workout](https://www.youtube.com/results?search_query=full+body+beginner+gym+workout+megsquats)
 
 #### Warm-up (~8 minutes)
 
@@ -34,86 +42,20 @@ Estimated duration: ~55 minutes
 
 #### Main Workout
 
-**Exercise 1: Goblet Squat | RPE 6–7**
-Can transition to Barbell Squat by weeks 3–4
+**Exercise 1: Goblet Squat | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
-Set 1 ×10–12
+**Exercise 2: DB Bench Press | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
-Rest 90 seconds
+**Exercise 3: Seated Cable Row | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
-Set 2 ×10–12
-
-Rest 90 seconds
-
-Set 3 ×10–12
-
-Rest 90 seconds → move to next exercise
-
----
-
-**Exercise 2: DB Bench Press | RPE 6–7**
-Alternative: Machine Chest Press
-
-Set 1 ×10–12
-
-Rest 90 seconds
-
-Set 2 ×10–12
-
-Rest 90 seconds
-
-Set 3 ×10–12
-
-Rest 90 seconds → move to next exercise
-
----
-
-**Exercise 3: Seated Cable Row | RPE 6–7**
-Chest up, squeeze shoulder blades back
-
-Set 1 ×10–12
-
-Rest 90 seconds
-
-Set 2 ×10–12
-
-Rest 90 seconds
-
-Set 3 ×10–12
-
-Rest 90 seconds → move to next exercise
-
----
-
-**Exercise 4: DB Romanian Deadlift | RPE 6–7**
-Slight knee bend, push hips back, feel the stretch along the posterior chain
-
-Set 1 ×10–12
-
-Rest 90 seconds
-
-Set 2 ×10–12
-
-Rest 90 seconds
-
-Set 3 ×10–12
-
-Rest 60 seconds → move to next exercise
-
----
+**Exercise 4: DB Romanian Deadlift | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
 **Exercise 5: Plank**
-Gradually increase from 20 seconds to 45–60 seconds
-
-Set 1 ×20–30 sec
-
-Rest 60 seconds
-
-Set 2 ×20–30 sec
-
-Rest 60 seconds
-
-Set 3 ×20–30 sec
+3 sets ×20–30 sec, rest 60s between sets
 
 #### Cool-down (~5 minutes)
 
@@ -121,8 +63,6 @@ Set 3 ×20–30 sec
 2. Hamstring stretch 20 sec each side
 3. Chest doorway stretch 20 sec
 4. Lat stretch 20 sec each side
-
-Exercise reference videos: Goblet Squat [▶](https://www.youtube.com/results?search_query=goblet+squat+form+megsquats) | DB Bench Press [▶](https://www.youtube.com/results?search_query=dumbbell+bench+press+form+jeff+nippard) | Cable Row [▶](https://www.youtube.com/results?search_query=seated+cable+row+form+renaissance+periodization) | DB RDL [▶](https://www.youtube.com/results?search_query=dumbbell+romanian+deadlift+form+jeff+nippard) | Plank [▶](https://www.youtube.com/results?search_query=plank+form+squat+university)
 
 ---
 
@@ -136,6 +76,8 @@ Exercise reference videos: Goblet Squat [▶](https://www.youtube.com/results?se
 ### Wednesday: Full Body B
 Estimated duration: ~55 minutes
 
+Follow-along video: [▶ Full Body Gym Workout for Beginners](https://www.youtube.com/results?search_query=full+body+gym+workout+beginner+fitnessblender)
+
 #### Warm-up (~8 minutes)
 
 1. Stationary bike easy spin 3 minutes
@@ -145,86 +87,20 @@ Estimated duration: ~55 minutes
 
 #### Main Workout
 
-**Exercise 1: Leg Press | RPE 6–7**
-Feet centered, don't let knees cave in
+**Exercise 1: Leg Press | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
-Set 1 ×10–12
+**Exercise 2: Seated DB Shoulder Press | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
-Rest 90 seconds
+**Exercise 3: Lat Pulldown | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 60s between sets
 
-Set 2 ×10–12
-
-Rest 90 seconds
-
-Set 3 ×10–12
-
-Rest 90 seconds → move to next exercise
-
----
-
-**Exercise 2: Seated DB Shoulder Press | RPE 6–7**
-Alternative: Machine Shoulder Press
-
-Set 1 ×10–12
-
-Rest 90 seconds
-
-Set 2 ×10–12
-
-Rest 90 seconds
-
-Set 3 ×10–12
-
-Rest 90 seconds → move to next exercise
-
----
-
-**Exercise 3: Lat Pulldown | RPE 6–7**
-Grip slightly wider than shoulder width
-
-Set 1 ×10–12
-
-Rest 90 seconds
-
-Set 2 ×10–12
-
-Rest 90 seconds
-
-Set 3 ×10–12
-
-Rest 60 seconds → move to next exercise
-
----
-
-**Exercise 4: Glute Bridge | RPE 6–7**
-Once comfortable, add a dumbbell on your hips
-
-Set 1 ×15
-
-Rest 60 seconds
-
-Set 2 ×15
-
-Rest 60 seconds
-
-Set 3 ×15
-
-Rest 60 seconds → move to next exercise
-
----
+**Exercise 4: Glute Bridge | moderate effort (could do ~3 more reps)**
+3 sets ×15 reps, rest 60s between sets
 
 **Exercise 5: Dead Bug**
-Core stability training
-
-Set 1 ×8 each side
-
-Rest 60 seconds
-
-Set 2 ×8 each side
-
-Rest 60 seconds
-
-Set 3 ×8 each side
+3 sets ×8 each side, rest 60s between sets
 
 #### Cool-down (~5 minutes)
 
@@ -232,8 +108,6 @@ Set 3 ×8 each side
 2. Shoulder stretch 20 sec each side
 3. Lat stretch 20 sec each side
 4. Glute stretch 20 sec each side
-
-Exercise reference videos: Leg Press [▶](https://www.youtube.com/results?search_query=leg+press+form+renaissance+periodization) | DB Shoulder Press [▶](https://www.youtube.com/results?search_query=seated+dumbbell+shoulder+press+megsquats) | Lat Pulldown [▶](https://www.youtube.com/results?search_query=lat+pulldown+form+jeff+nippard) | Glute Bridge [▶](https://www.youtube.com/results?search_query=glute+bridge+form+fitnessblender) | Dead Bug [▶](https://www.youtube.com/results?search_query=dead+bug+exercise+squat+university)
 
 ---
 
@@ -247,6 +121,8 @@ Exercise reference videos: Leg Press [▶](https://www.youtube.com/results?searc
 ### Friday: Full Body C
 Estimated duration: ~55 minutes
 
+Follow-along video: [▶ Full Body Strength Workout Beginner](https://www.youtube.com/results?search_query=full+body+strength+workout+beginner+gym+renaissance+periodization)
+
 #### Warm-up (~8 minutes)
 
 1. Elliptical 3 minutes
@@ -257,85 +133,20 @@ Estimated duration: ~55 minutes
 
 #### Main Workout
 
-**Exercise 1: DB Lunges | RPE 6–7**
-Can upgrade to Bulgarian Split Squat by weeks 3–4
+**Exercise 1: DB Lunges | moderate effort (could do ~3 more reps)**
+3 sets ×10 each side, rest 90s between sets
 
-Set 1 ×10 each side
+**Exercise 2: Push-up | moderate effort (could do ~3 more reps)**
+3 sets ×8–12 reps, rest 90s between sets
 
-Rest 90 seconds
+**Exercise 3: Single-Arm DB Row | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 each arm, rest 60s between sets
 
-Set 2 ×10 each side
-
-Rest 90 seconds
-
-Set 3 ×10 each side
-
-Rest 90 seconds → move to next exercise
-
----
-
-**Exercise 2: Push-up | RPE 7**
-If you can't do standard, start from kneeling position
-
-Set 1 ×8–12
-
-Rest 90 seconds
-
-Set 2 ×8–12
-
-Rest 90 seconds
-
-Set 3 ×8–12
-
-Rest 60 seconds → move to next exercise
-
----
-
-**Exercise 3: Single-Arm DB Row | RPE 6–7**
-One hand on bench, keep back flat
-
-Set 1 Left ×10–12 → Right ×10–12
-
-Rest 60 seconds
-
-Set 2 Left ×10–12 → Right ×10–12
-
-Rest 60 seconds
-
-Set 3 Left ×10–12 → Right ×10–12
-
-Rest 90 seconds → move to next exercise
-
----
-
-**Exercise 4: KB/DB Deadlift | RPE 6–7**
-
-Set 1 ×10–12
-
-Rest 90 seconds
-
-Set 2 ×10–12
-
-Rest 90 seconds
-
-Set 3 ×10–12
-
-Rest 60 seconds → move to next exercise
-
----
+**Exercise 4: KB/DB Deadlift | moderate effort (could do ~3 more reps)**
+3 sets ×10–12 reps, rest 90s between sets
 
 **Exercise 5: Farmer's Walk**
-Full-body coordination + grip strength training
-
-Set 1 30 meters
-
-Rest 60 seconds
-
-Set 2 30 meters
-
-Rest 60 seconds
-
-Set 3 30 meters
+3 sets ×30 meters, rest 60s between sets
 
 #### Cool-down (~5 minutes)
 
@@ -343,8 +154,6 @@ Set 3 30 meters
 2. Quad stretch 20 sec each side
 3. Chest stretch 20 sec
 4. Hip flexor stretch 20 sec each side
-
-Exercise reference videos: DB Lunges [▶](https://www.youtube.com/results?search_query=dumbbell+lunges+form+megsquats) | Push-up Progression [▶](https://www.youtube.com/results?search_query=push+up+progression+athleanx) | Single-Arm Row [▶](https://www.youtube.com/results?search_query=single+arm+dumbbell+row+jeff+nippard) | KB Deadlift [▶](https://www.youtube.com/results?search_query=kettlebell+deadlift+form+fitnessblender) | Farmer's Walk [▶](https://www.youtube.com/results?search_query=farmers+walk+form+renaissance+periodization)
 
 ---
 
@@ -363,26 +172,18 @@ Exercise reference videos: DB Lunges [▶](https://www.youtube.com/results?searc
 
 | Phase | Details |
 |-------|---------|
-| **Weeks 1–2** | Learn the movements, RPE 6–7, don't rush to add weight |
-| **Weeks 3–4** | Progressive overload: if RPE ≤7 → add 2.5 kg or do 1–2 more reps. Exercise upgrades: Goblet Squat → Barbell Squat, Lunges → Bulgarian Split Squat |
+| **Weeks 1–2** | Learn the movements, moderate effort (could do ~3 more reps after each set), don't rush to add weight |
+| **Weeks 3–4** | Progressive overload: if effort feels too easy → add 2.5 kg or do 1–2 more reps. Exercise upgrades: Goblet Squat → Barbell Squat, Lunges → Bulgarian Split Squat |
 | **Week 5 (Deload)** | Only do 2 sets per exercise, same weight |
 | **Week 6 onward** | Start a new cycle from a higher baseline |
+
+> If any exercise is unfamiliar, just ask me and I'll explain it in detail!
 
 I recommend using your phone's notes app to log each session's exercises, weights, and reps — this is the key to making progress.
 
 ---
 
 ## Appendix
-
-### Intensity Rating Guide (RPE)
-
-| RPE | Meaning |
-|-----|---------|
-| 6 | Could do 4+ more reps — fairly easy |
-| 7 | Could do 3 more reps — moderate |
-| 8 | Could do 2 more reps — challenging |
-
-For the first two weeks, aim for RPE 6–7 on all exercises. If you finish a set feeling like "I still had more in me," you're on track.
 
 ### Starting Weight Reference
 
