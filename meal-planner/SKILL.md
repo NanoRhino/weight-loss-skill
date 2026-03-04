@@ -324,7 +324,7 @@ Once you present the diet pattern, add the following message (adapt to the user'
 
 > **Gate:** Only enter this step if the user explicitly requests a 7-day meal plan (either in response to the Step 3 question, or by asking for it directly). Do not auto-generate.
 
-> **Performance:** The 7-day plan uses a **compact format** and is output in **two consecutive messages** to avoid interruption and reduce generation time. See Step 6 for details.
+> **Performance:** The 7-day plan is generated as an **HTML file** — only compact JSON data is produced, then a script renders the styled webpage. See Step 6 for details.
 
 Build a 7-day meal plan based on the confirmed calories, macros, diet mode, and user preferences.
 
@@ -426,177 +426,168 @@ The user may want to:
 
 ## Step 6: Output Final Meal Plan
 
-Once confirmed, generate the final meal plan report. **Adapt the template to the user's locale** — use appropriate language, units, local food categories in the grocery list, and culturally relevant references. **Do NOT mention "Markdown", filenames, or `.md` to the user** — just present the plan content directly.
+Once confirmed, generate the final meal plan as an **HTML file** using the generator script. **Adapt to the user's locale** — use appropriate language, units, and local foods in the data. **Do NOT dump the full plan into chat** — the chat message is just a brief summary.
 
-### Output Performance Strategy
+### Why HTML File Output
 
-**The 7-day meal plan uses a compact format and split output to ensure reliable, fast delivery. This is critical — the detailed multi-line format is too long for a 7-day plan and causes message interruption.**
+Outputting a 7-day plan as a long chat message is slow (many tokens) and often gets interrupted mid-stream. Generating an HTML file instead:
+- **Eliminates message interruption** — file writing has no length limit
+- **Drastically reduces generation time** — only compact JSON data (~60 lines) is produced instead of formatted text (~200 lines)
+- **Beautiful, readable layout** — styled cards with colour-coded days, print-friendly
+- **Easy to save and share** — users can open in browser, print to PDF, or send the file directly
 
-**1. Split into two messages:**
-- **Message 1:** Plan header + Days 1–4
-- **Message 2:** Days 5–7 + closing question ("How does this look? Any meals you'd want to swap out?")
-- End Message 1 with a brief transition in the user's language (e.g., "⏳ Generating the rest..." / "⏳ 后面几天马上来...")
-- This prevents message interruption and lets the user start reading immediately
+### Generation Steps
 
-**2. Compact single-line meal format (mandatory for 7-day plans):**
-- Each self-cooked meal is **two lines**: a bold heading line + one line listing all food items separated by ` · `
-- This replaces the multi-line bullet list format, cutting output length by ~60%
-- All nutritional information (calories, macros, portions, weights) is preserved — nothing is lost
+1. **Write the JSON data file** with the meal plan data (see format below):
+   ```
+   Write tool → /tmp/meal-plan-data.json
+   ```
 
-**3. Batch-prep deduplication:**
-- When a batch-prep dish repeats on consecutive days, use a single-line reference instead of listing all items again
-- Format: `**[emoji] [Meal] [cal] kcal** | P Xg · C Xg · F Xg ← same as [Day]`
-- This further reduces output and makes the batch-prep structure visually obvious
+2. **Run the generator script:**
+   ```
+   python3 meal-planner/scripts/generate-meal-plan.py /tmp/meal-plan-data.json meal-plan-YYYY-MM-DD.html
+   ```
+   The script path is relative to the project root. If the path doesn't resolve, search for `generate-meal-plan.py` in the workspace. The script prints the output file path to stdout.
 
-### Compact Format Rules
+3. **Output a brief chat summary** (see "Chat Summary Format" below). Do NOT repeat the full meal plan in chat.
 
-**CRITICAL: The 7-day meal plan MUST follow the compact format shown in the locale-specific examples below. Every generated plan must match the template precisely.**
+### JSON Data Format
 
-**1. Day level:** `## [Day] — X,XXX kcal | P Xg · C Xg · F Xg` — daily total calories and P/C/F. Day names use the user's locale.
+Write a JSON file with the following structure. **Use short key names** to minimize tokens. All text values use the user's locale language.
 
-**2. Self-cooked meal — two lines:**
-- **Line 1 (heading):** `**[emoji] [Meal name] [calories] kcal** | P Xg · C Xg · F Xg`
-- **Line 2 (foods):** All food items in a single line, separated by ` · `. Each item format: `[food name] [natural portion]([precise weight])`.
-- "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado". Always include precise weight in parentheses.
-
-**3. Eating-out meal — two or three lines:**
-- **Line 1:** `**[emoji] [Meal name] [calories] kcal** | P Xg · C Xg · F Xg [Eating out]` (use locale-appropriate tag: `[外卖]`, `[Takeout]`, `[Konbini]`, etc.)
-- **Line 2:** `[Platform/Restaurant] — [dish name]([ordering details])`
-- **Line 3 (optional):** `💡 [tip]` — only if genuinely non-obvious. No need to break down individual ingredients — the user is ordering, not cooking.
-
-**4. Snack — single line:** `**🍎 [Snack] [calories] kcal** — [item1] · [item2]` (per-meal macros optional for snacks to save space).
-
-**5. Batch-prep repeat — single line:** `**[emoji] [Meal] [calories] kcal** | P Xg · C Xg · F Xg ← same as [Day]` — no need to list food items again. Only use this when the meal is truly identical (same batch-prep dish + same sides).
-
-**6. Portion precision:** Minimum granularity 0.5. Valid: 0.5, 1, 1.5, 2. Never use 0.3 or 0.7.
-
-**7. No repetition:** Don't use the same main dish twice in 7 days. Rotate proteins, cooking styles, and cuisines. Breakfast can repeat a few times (most people prefer routine), but lunch and dinner should be distinct every day. Batch-prep dishes may appear on 2–3 consecutive days (this is expected and practical), but they count as a single dish — don't use the same batch-prep dish in two different batches within the same week.
-
-**8. Tips must be non-obvious.** Only include tips that provide genuine, actionable value. Never state common-sense steps like "grab a bowl," "eat it," "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth." If a meal has no non-obvious tip, skip it entirely.
-
-### 7-Day Meal Plan — Mandatory Compact Template
-
-Below is the **canonical compact format**. The output **must** follow this structure exactly. All text adapts to the user's language at runtime. Three representative days shown (cook day, batch-prep weekday, eat-out day) to illustrate the pattern.
-
-> **China locale example** — demonstrates Chinese-style dishes, Meituan/Ele.me ordering, and batch-prep rotation. For other locales, swap in locale-appropriate foods and restaurants while keeping the identical structure.
-
-**— Message 1 —**
-
-```markdown
-# 🍽️ Your Weekly Meal Plan
-
-**Date:** [Current date]
-**Daily Calorie Target:** X,XXX kcal (range: X,XXX – X,XXX)
-**Diet Mode:** [Mode]
-**Macros:** Xg protein (weight × X.Xg/kg) / Xg carbs / Xg fat
-
----
-
-## Sunday — 1,610 kcal | P 102g · C 178g · F 48g
-
-**🍳 Breakfast 380 kcal** | P 22g · C 48g · F 11g
-Unsweetened soy milk 1 cup(300ml) · Boiled egg 1(50g) · Veggie buns 2(120g)
-
-**🥗 Lunch 540 kcal** | P 36g · C 60g · F 16g
-Steamed sea bass half fish(150g) · Garlic sautéed lettuce 1 plate(120g) · White rice 1 small bowl(120g)
-
-**🍽️ Dinner 510 kcal** | P 35g · C 52g · F 17g
-Curry chicken leg(skinless) 1(120g) · Mixed-grain rice 1 small bowl(120g) · Smashed cucumber 1 small dish(80g)
-
-**🍎 Snack 180 kcal** — Unsweetened yogurt 1 small cup(130g) · Mandarin 1
-
----
-
-## Monday — 1,590 kcal | P 100g · C 172g · F 52g
-
-**🍳 Breakfast 380 kcal** | P 24g · C 46g · F 12g
-Whole-wheat toast 2 slices(100g) · Boiled egg 1(50g) · Low-fat cheese 1 slice(20g) · Whole milk 1 carton(250ml)
-
-**🥗 Lunch 530 kcal** | P 38g · C 58g · F 16g
-Braised chicken leg(skinless) 1(120g) · Mixed-grain rice 1 small bowl(120g) · Blanched broccoli 1 serving(100g) · Seaweed egg-drop soup 1 small bowl(200ml)
-
-**🍽️ Dinner 500 kcal** | P 30g · C 52g · F 18g [Takeout]
-Meituan/Ele.me — Steamed sea bass set (sea bass + garlic broccoli + rice small)
-💡 Request "less oil, less salt." Half a bowl of rice is enough.
-
-**🍎 Snack 180 kcal** — Unsweetened yogurt 1 small cup(130g) · Plain cashews 1 small handful(15g) · Apple 1
-
----
-
-## Tuesday — 1,600 kcal | P 98g · C 180g · F 50g
-
-**🍳 Breakfast 370 kcal** | P 20g · C 50g · F 10g
-Mixed-grain congee 1 bowl(250ml) · Tea egg 1(50g) · Whole milk 1 carton(250ml)
-
-**🥗 Lunch 540 kcal** | P 36g · C 62g · F 16g
-Curry beef 1 serving(130g) · White rice 1 small bowl(120g) · Roasted pumpkin 1 serving(100g)
-
-**🍽️ Dinner 510 kcal** | P 34g · C 50g · F 18g [Eating out]
-Lanzhou Noodle Shop — Beef noodle soup + braised beef side
-💡 Broth is oily — eat noodles, meat, and veggies first, skip most of the soup.
-
-**🍎 Snack 180 kcal** — Plain almonds 10(15g) · Banana 1
-
----
-
-## Wednesday — X,XXX kcal | P Xg · C Xg · F Xg
-
-[Second cook day — batch-prep new Tier A dishes for Thu/Fri]
-[Same compact format as above]
-
-⏳ Generating the rest...
+```json
+{
+  "title": "🍽️ 本周饮食计划",
+  "date": "2026-03-04",
+  "target": "1,600 kcal",
+  "range": "1,500 – 1,700",
+  "mode": "均衡饮食",
+  "macros": "105g蛋白质(75kg×1.4g/kg) / 196g碳水 / 62g脂肪",
+  "days": [
+    {
+      "d": "周日", "cal": 1610, "p": 102, "c": 178, "f": 48,
+      "m": [
+        {"n": "🍳 早餐", "cal": 380, "p": 22, "c": 48, "f": 11,
+         "items": "无糖豆浆1杯(300ml) · 水煮蛋1个(50g) · 菜包2个(120g)"},
+        {"n": "🥗 午餐", "cal": 540, "p": 36, "c": 60, "f": 16,
+         "items": "清蒸鲈鱼半条(150g) · 蒜蓉生菜1盘(120g) · 白米饭1小碗(120g)"},
+        {"n": "🍽️ 晚餐", "cal": 510, "p": 35, "c": 52, "f": 17,
+         "tag": "外卖",
+         "items": "美团/饿了么 — 清蒸鲈鱼套餐(鲈鱼+蒜蓉西兰花+米饭少量)",
+         "tip": "备注少油少盐，米饭吃半碗就够"},
+        {"n": "🍎 加餐", "cal": 180,
+         "items": "无糖酸奶1小杯(130g) · 橘子1个"}
+      ]
+    },
+    {
+      "d": "周四", "cal": 1580, "p": 100, "c": 170, "f": 50,
+      "m": [
+        {"n": "🍳 早餐", "cal": 370, "p": 20, "c": 50, "f": 10,
+         "items": "杂粮粥1碗(250ml) · 茶叶蛋1个(50g) · 全脂牛奶1盒(250ml)"},
+        {"n": "🥗 午餐", "cal": 530, "p": 38, "c": 56, "f": 16,
+         "ref": "同周三（番茄炖牛腩套餐）"},
+        {"n": "🍽️ 晚餐", "cal": 500, "p": 34, "c": 48, "f": 18,
+         "tag": "外卖",
+         "items": "美团 — 照烧鸡腿饭(鸡腿+西兰花+米饭少量)",
+         "tip": "备注少酱汁"},
+        {"n": "🍎 加餐", "cal": 180,
+         "items": "苹果1个 · 原味核桃2个(15g)"}
+      ]
+    }
+  ]
+}
 ```
 
-**— Message 2 —**
+> Two representative days shown. The actual file contains all 7 days.
 
-```markdown
-## Thursday — X,XXX kcal | P Xg · C Xg · F Xg
+**Field reference:**
 
-**🥗 Lunch 530 kcal** | P 38g · C 58g · F 16g ← same as Wed
-[Batch-prep repeat: single line, no food list needed]
+| Field | Required | Description |
+|-------|----------|-------------|
+| `d` | ✅ | Day name in user's locale |
+| `cal`, `p`, `c`, `f` | ✅ | Day totals: calories, protein, carbs, fat |
+| `m` | ✅ | Array of meals |
+| `n` | ✅ | Meal name with emoji prefix (🍳/🥗/🍽️/🍎) |
+| `cal` (meal) | ✅ | Meal calories |
+| `p`, `c`, `f` (meal) | ❌ | Meal macros — optional for snacks |
+| `items` | ❌ | Food items, ` · ` separated. Format: `[food][portion]([weight])` |
+| `tag` | ❌ | Eating-out tag in user's locale: "外卖" / "堂食" / "Takeout" / "Konbini" |
+| `tip` | ❌ | Non-obvious tip. Omit if nothing useful to say |
+| `ref` | ❌ | Batch-prep reference, e.g. "同周一（红烧鸡腿套餐）". Replaces `items` |
+| `skip` | ❌ | Skipped meal reason, e.g. "IF 16:8". Replaces `items` |
 
-[...continue Thu/Fri/Sat in same compact format...]
+**Locale adaptation:** All string values (`title`, `d`, `n`, `items`, `tag`, `tip`, `ref`, `macros`, etc.) are written in the user's language. The HTML template renders whatever text the data contains — no hardcoded language in the template.
 
----
-
-## Saturday — X,XXX kcal | P Xg · C Xg · F Xg
-
-[Weekend day — fresh-cook or eat-out; Tier C foods allowed]
-[Same compact format]
+**US locale example** (one day):
+```json
+{"d": "Monday", "cal": 1650, "p": 110, "c": 185, "f": 55,
+ "m": [
+   {"n": "🍳 Breakfast", "cal": 420, "p": 28, "c": 48, "f": 14,
+    "items": "Rolled oats 1/2 cup(40g) · Whey protein 1 scoop(30g) · Banana 1 medium(120g) · Peanut butter 1 tsp(7g)"},
+   {"n": "🥗 Lunch", "cal": 540, "p": 38, "c": 56, "f": 16,
+    "items": "Chicken breast 1 palm-sized(150g) · Brown rice 1 small bowl(100g) · Steamed broccoli 1 cup(80g) · Olive oil 1 tsp(5ml)"},
+   {"n": "🍽️ Dinner", "cal": 510, "p": 36, "c": 55, "f": 19, "tag": "Eating out",
+    "items": "Chipotle — Chicken burrito bowl (chicken, brown rice, black beans, fajita veggies, salsa, lettuce; skip sour cream & cheese)",
+    "tip": "Ask for half rice to save ~100 cal. Extra veggies are free."},
+   {"n": "🍎 Snack", "cal": 180,
+    "items": "Greek yogurt 1 small tub(150g) · Blueberries 1 handful(50g)"}
+ ]}
 ```
 
-> **US locale example** — demonstrates American-style dishes with imperial measurements and restaurant chains.
-
-```markdown
-## Monday — X,XXX cal | P Xg · C Xg · F Xg
-
-**🍳 Breakfast XXX cal** | P Xg · C Xg · F Xg
-Rolled oats 1/2 cup(40g) · Whey protein 1 scoop(30g) · Banana 1 medium(120g) · Peanut butter 1 tsp(7g)
-
-**🥗 Lunch XXX cal** | P Xg · C Xg · F Xg
-Chicken breast 1 palm-sized piece(150g) · Brown rice 1 small bowl(100g) · Steamed broccoli 1 cup(80g) · Olive oil 1 tsp(5ml)
-
-**🍽️ Dinner XXX cal** | P Xg · C Xg · F Xg [Eating out]
-Chipotle — Chicken burrito bowl (chicken, brown rice, black beans, fajita veggies, salsa, lettuce; skip sour cream and cheese)
-💡 Ask for half rice to save ~100 cal. Extra veggies are free.
-
-**🍎 Snack XXX cal** — Greek yogurt 1 small tub(150g) · Blueberries 1 small handful(50g)
+**Japan locale example** (IF 16:8, one day):
+```json
+{"d": "月曜日", "cal": 1520, "p": 104, "c": 170, "f": 36,
+ "m": [
+   {"n": "🍳 朝食", "skip": "IF 16:8"},
+   {"n": "🥗 昼食 12:00", "cal": 620, "p": 40, "c": 72, "f": 12, "tag": "コンビニ",
+    "items": "セブンイレブン — サラダチキン1パック(115g) + おにぎり2個(鮭・昆布) + カップ味噌汁1",
+    "tip": "「たんぱく質が摂れる」シリーズはマクロがラベルに書いてあって便利"},
+   {"n": "🍽️ 夕食 19:00", "cal": 590, "p": 42, "c": 60, "f": 14,
+    "items": "鶏むね肉1枚(150g) · 玄米1膳(150g) · 冷凍ブロッコリー1カップ(100g)",
+    "tip": "鶏肉は前の晩に漬けておくと楽"},
+   {"n": "🍎 間食", "cal": 310, "p": 22, "c": 38, "f": 10,
+    "items": "プロテインバー1本 · バナナ1本"}
+ ]}
 ```
 
-> **Japan locale example** — demonstrates konbini-based meals and IF 16:8 skipped breakfast.
+### Food Item Rules
 
-```markdown
-## Monday — 1,520 kcal | P 104g · C 170g · F 36g
+These rules apply to the `items` string in the JSON data:
 
-**🍳 Breakfast** — skipped (IF 16:8)
+1. **Format:** `[food name][natural portion]([precise weight])` items separated by ` · `
+2. **Natural portions:** How people actually describe the food — "2 slices", "1 bowl", "1 egg", "half an avocado". Always include precise weight in parentheses.
+3. **Portion precision:** Minimum granularity 0.5. Valid: 0.5, 1, 1.5, 2. Never use 0.3 or 0.7.
+4. **No repetition:** No same main dish twice in 7 days. Rotate proteins, cooking styles, cuisines. Breakfast can repeat 2–3×; lunch and dinner must be distinct daily. Batch-prep dishes on 2–3 consecutive days are fine but count as one dish per week.
+5. **Batch-prep repeats:** Use the `ref` field instead of `items` when a meal is identical to a previous day's batch-prep.
+6. **Tips must be non-obvious.** Only include tips with genuine actionable value. Good: "备注少油少盐". Bad: "把饭吃完".
+7. **Eating-out meals:** Set `tag` field. `items` is: `[platform/restaurant] — [dish]([ordering details])`.
 
-**🥗 Lunch 12:00 620 kcal** | P 40g · C 72g · F 12g [Konbini]
-7-Eleven — Salad chicken 1 pack(115g) + onigiri 2(salmon, kelp) + cup miso soup 1
-💡 The "protein-packed" series has macros printed on the label — easy to track.
+### Chat Summary Format
 
-**🍽️ Dinner 19:00 590 kcal** | P 42g · C 60g · F 14g
-Chicken breast 1 piece(150g) · Brown rice 1 bowl(150g) · Frozen broccoli 1 cup(100g)
-💡 Marinate chicken the night before for easier prep.
+After generating the HTML file, output a **brief summary** in chat. Adapt language and style to the user's locale.
+
+**Chinese example:**
+```
+📋 7日饮食计划已生成！
+
+🎯 每日目标：1,600 kcal | 蛋白质 105g · 碳水 196g · 脂肪 62g
+📋 饮食模式：均衡饮食
+🔄 备餐日：周日 & 周三
+
+👉 打开 meal-plan-2026-03-04.html 查看完整计划，可直接打印或保存为 PDF。
+有什么想换的菜随时说！
+```
+
+**English example:**
+```
+📋 Your 7-day meal plan is ready!
+
+🎯 Daily target: 1,650 cal | P 110g · C 185g · F 55g
+📋 Mode: Balanced
+🔄 Prep days: Sunday & Wednesday
+
+👉 Open meal-plan-2026-03-04.html to view. You can print it or save as PDF.
+Want to swap any meals? Just let me know!
 ```
 
 ---
