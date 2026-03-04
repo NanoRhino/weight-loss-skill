@@ -141,6 +141,26 @@ across users). Write soft-restart status to `engagement.reminder_config`.
 | Never replies to breakfast (2+ weeks) | Stop breakfast reminders |
 | Weekend pattern differs | Adjust weekend timing separately |
 
+### Weekly Low-Calorie Check
+
+Once per week (default: Monday, at first meal reminder time), run the
+`weekly-low-cal-check` command from `diet-tracking-analysis` to verify the
+user's weekly average calorie intake is not consistently below their BMR.
+
+```bash
+python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
+  --data-dir {workspaceDir}/data/meals \
+  --bmr <user BMR from PLAN.md or USER.md>
+```
+
+- If `below_floor` is `true`: include a gentle note in the next meal reminder
+  (see diet-tracking-analysis SKILL.md "Weekly Low-Calorie Check" for wording).
+- If `below_floor` is `false`: no action.
+- If `Health Flags` contains `history_of_ed` → skip this check entirely.
+- This replaces any per-meal below-BMR warnings. Per-meal checkpoints still
+  evaluate calorie/macro balance against daily targets; the BMR safety-floor
+  check is weekly only.
+
 ### Weight Reminder Rules
 
 - Max 2x/week. Always framed as optional.

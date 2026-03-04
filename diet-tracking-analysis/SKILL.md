@@ -84,6 +84,21 @@ python3 {baseDir}/scripts/nutrition-calc.py check-missing --meals <2|3> \
 
 Returns list of main meals missing before the current one.
 
+### 7. Weekly Low-Calorie Check — `weekly-low-cal-check`
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
+  --data-dir {workspaceDir}/data/meals \
+  --bmr <kcal> \
+  [--date 2026-03-04]
+```
+
+Loads the past 7 days of meal records ending on the given date (default today), computes each day's total calorie intake, and compares the weekly average against the calorie floor (`max(BMR, 1000)`).
+
+Returns: `logged_days`, `daily_totals`, `weekly_avg_cal`, `bmr`, `calorie_floor`, `days_below_floor`, `days_below_count`, `below_floor`
+
+**When to run:** Once per week (e.g. every Monday), or whenever reviewing weekly progress. This replaces per-meal below-BMR warnings — the per-meal `evaluate` command focuses on checkpoint-level calorie/macro balance, while this command handles the safety-floor check on a weekly cadence.
+
 ---
 
 ## Meal Type Assignment
@@ -140,6 +155,23 @@ When `check-missing` returns missing meals:
 **After resolving the missing meal, always continue to log the meal the user originally mentioned** — do not make them repeat themselves.
 
 **Backfilled meals** (meals reported after the fact): since the user has already eaten, do NOT give `right_now` suggestions. Only `next_time` suggestions are appropriate.
+
+### Weekly Low-Calorie Check
+
+The below-BMR safety check runs **weekly** (not per-meal). This avoids noisy daily alerts while still catching sustained under-eating patterns.
+
+**Trigger:** Run `weekly-low-cal-check` once per week — either on a fixed day (e.g. Monday) via the daily-notification system, or whenever the user asks for a weekly summary.
+
+**Inputs needed:** `--bmr` from the user's profile (PLAN.md or USER.md). If unavailable, calculate using Mifflin-St Jeor (see `weight-loss-planner/references/formulas.md`).
+
+**When `below_floor` is true** (weekly average < calorie floor):
+1. Gently flag the pattern — never guilt or alarm:
+   > "Looking at this past week, your average daily intake (~X kcal) was below your body's resting energy needs (~Y kcal). Eating below this level consistently can slow your metabolism and make it harder to get enough nutrients. Want to look at some easy ways to add a few hundred calories?"
+2. Show the `days_below_floor` list so the user can see which days were low
+3. Offer concrete suggestions (e.g. add a snack, increase portion at one meal)
+4. Do NOT block or override the user — this is informational, not a hard stop
+
+**When `below_floor` is false:** No action needed. The weekly check passes silently.
 
 ### Querying Progress
 

@@ -12,6 +12,7 @@ Commands:
   load         — Load today's (or a given date's) meal records.
   evaluate     — Evaluate cumulative intake at a meal checkpoint (range-based).
   check-missing — Check which main meals are missing before the current meal.
+  weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
 
 Usage:
   python3 nutrition-calc.py target  --weight 65 --cal 1500 [--meals 3]
@@ -23,13 +24,14 @@ Usage:
   python3 nutrition-calc.py evaluate --weight 65 --cal 1500 --meals 3 \
       --current-meal lunch --log '[...]'
   python3 nutrition-calc.py check-missing --meals 3 --current-meal lunch --log '[...]'
+  python3 nutrition-calc.py weekly-low-cal-check --data-dir /path/to/data --bmr 1400
 """
 
 import argparse
 import json
 import os
 import sys
-from datetime import date
+from datetime import date, timedelta
 
 
 # Meal blocks define the structure and percentage allocation for each checkpoint.
@@ -348,6 +350,54 @@ def check_missing(meals: int, current_meal: str, log: list) -> dict:
     }
 
 
+def weekly_low_cal_check(data_dir: str, bmr: float,
+                         ref_date: str = None) -> dict:
+    """Check if the user's weekly average calorie intake is below BMR.
+
+    Loads the past 7 days of meal data (ending on *ref_date*, default today),
+    computes total daily calories for each day that has records, and compares
+    the average against the BMR-based calorie floor (max(BMR, 1000)).
+
+    Returns a summary with per-day totals, the weekly average, the floor,
+    and a boolean flag indicating whether intervention is warranted.
+    """
+    end = date.fromisoformat(ref_date) if ref_date else date.today()
+    calorie_floor = max(bmr, 1000)
+
+    daily_totals: list[dict] = []
+    days_below: list[str] = []
+
+    for offset in range(7):
+        day = (end - timedelta(days=offset)).isoformat()
+        path = get_log_path(data_dir, day)
+        if not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            meals = json.load(f)
+        day_cal = round(sum(m.get("cal", 0) for m in meals), 1)
+        daily_totals.append({"date": day, "cal": day_cal})
+        if day_cal < calorie_floor:
+            days_below.append(day)
+
+    logged_days = len(daily_totals)
+    avg_cal = round(sum(d["cal"] for d in daily_totals) / logged_days, 1) if logged_days else 0
+
+    # Flag a warning when the weekly average is below the floor
+    below_floor = avg_cal < calorie_floor if logged_days > 0 else False
+
+    return {
+        "period_end": end.isoformat(),
+        "logged_days": logged_days,
+        "daily_totals": sorted(daily_totals, key=lambda d: d["date"]),
+        "weekly_avg_cal": avg_cal,
+        "bmr": bmr,
+        "calorie_floor": calorie_floor,
+        "days_below_floor": days_below,
+        "days_below_count": len(days_below),
+        "below_floor": below_floor,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Nutrition calculator")
     sub = parser.add_subparsers(dest="cmd")
@@ -389,6 +439,15 @@ def main():
     cm.add_argument("--current-meal", type=str, required=True)
     cm.add_argument("--log", type=str, required=True,
                    help="JSON array of all logged meals today")
+
+    wlc = sub.add_parser("weekly-low-cal-check",
+                          help="Check if weekly average calorie intake is below BMR")
+    wlc.add_argument("--data-dir", type=str, required=True,
+                     help="Directory with daily JSON logs")
+    wlc.add_argument("--bmr", type=float, required=True,
+                     help="User's BMR in kcal/day")
+    wlc.add_argument("--date", type=str, default=None,
+                     help="End date for the 7-day window (YYYY-MM-DD), default today")
 
     args = parser.parse_args()
 
@@ -432,6 +491,8 @@ def main():
             print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
             sys.exit(1)
         result = check_missing(args.meals, args.current_meal, log)
+    elif args.cmd == "weekly-low-cal-check":
+        result = weekly_low_cal_check(args.data_dir, args.bmr, args.date)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
