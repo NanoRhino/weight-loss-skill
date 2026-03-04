@@ -48,6 +48,19 @@ MEAL_BLOCKS_2 = [
     {"label": "meal_2", "pct": 50, "meals": ["meal_2", "snack_2"]},
 ]
 
+# Diet mode → fat percentage range (low%, high%)
+DIET_MODE_FAT = {
+    "usda":          (20, 35),
+    "balanced":      (25, 35),
+    "high_protein":  (25, 35),
+    "low_carb":      (40, 50),
+    "keto":          (65, 75),
+    "mediterranean": (25, 35),
+    "plant_based":   (20, 30),
+    "if_16_8":       (25, 35),
+    "if_5_2":        (25, 35),
+}
+
 
 def get_meal_blocks(meals: int) -> list:
     return MEAL_BLOCKS_3 if meals == 3 else MEAL_BLOCKS_2
@@ -61,15 +74,22 @@ def find_block_index(meal_name: str, meals: int) -> int:
     return None
 
 
-def calc_targets(weight: float, daily_cal: int, meals: int = 3) -> dict:
-    """Compute daily macro targets with min/max ranges."""
+def calc_targets(weight: float, daily_cal: int, meals: int = 3,
+                 mode: str = "balanced") -> dict:
+    """Compute daily macro targets with min/max ranges.
+
+    Fat ranges are determined by the diet mode (see DIET_MODE_FAT).
+    """
     protein = round(weight * 1.4, 1)
     protein_lo = round(weight * 1.2, 1)
     protein_hi = round(weight * 1.6, 1)
 
-    fat = round(daily_cal * 0.275 / 9, 1)
-    fat_lo = round(daily_cal * 0.20 / 9, 1)
-    fat_hi = round(daily_cal * 0.35 / 9, 1)
+    fat_lo_pct, fat_hi_pct = DIET_MODE_FAT.get(mode, (25, 35))
+    fat_mid_pct = (fat_lo_pct + fat_hi_pct) / 2
+
+    fat = round(daily_cal * fat_mid_pct / 100 / 9, 1)
+    fat_lo = round(daily_cal * fat_lo_pct / 100 / 9, 1)
+    fat_hi = round(daily_cal * fat_hi_pct / 100 / 9, 1)
 
     carb = round((daily_cal - protein * 4 - fat * 9) / 4, 1)
     carb_lo = round((daily_cal - protein_hi * 4 - fat_hi * 9) / 4, 1)
@@ -111,9 +131,10 @@ def _range_status(value: float, lo: float, hi: float) -> str:
     return "on_track"
 
 
-def analyze(weight: float, daily_cal: int, meals: int, log: list) -> dict:
+def analyze(weight: float, daily_cal: int, meals: int, log: list,
+            mode: str = "balanced") -> dict:
     """Analyze cumulative intake against daily targets."""
-    targets = calc_targets(weight, daily_cal, meals)
+    targets = calc_targets(weight, daily_cal, meals, mode)
 
     cum = {"cal": 0, "p": 0, "c": 0, "f": 0}
     meal_details = []
@@ -211,7 +232,8 @@ def _sum_macros(meal_list: list) -> dict:
 
 def evaluate(weight: float, daily_cal: int, meals: int,
              current_meal: str, log: list,
-             assumed_meals: list = None) -> dict:
+             assumed_meals: list = None,
+             mode: str = "balanced") -> dict:
     """Evaluate cumulative intake at the checkpoint for *current_meal*.
 
     Uses range-based evaluation:
@@ -228,7 +250,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     (e.g. forgotten lunch in 30:40:30 = 40% of daily targets, NOT the cumulative checkpoint).
     Included in suggestions but NOT in progress/actual numbers.
     """
-    targets = calc_targets(weight, daily_cal, meals)
+    targets = calc_targets(weight, daily_cal, meals, mode)
     blocks = get_meal_blocks(meals)
 
     block_idx = find_block_index(current_meal, meals)
@@ -406,11 +428,16 @@ def main():
     t.add_argument("--weight", type=float, required=True, help="Body weight in kg")
     t.add_argument("--cal", type=int, required=True, help="Daily calorie target (kcal)")
     t.add_argument("--meals", type=int, default=3, choices=[2, 3], help="Meals per day")
+    t.add_argument("--mode", type=str, default="balanced",
+                   choices=list(DIET_MODE_FAT.keys()),
+                   help="Diet mode (determines fat %% range)")
 
     a = sub.add_parser("analyze", help="Analyze cumulative intake")
     a.add_argument("--weight", type=float, required=True)
     a.add_argument("--cal", type=int, required=True)
     a.add_argument("--meals", type=int, default=3, choices=[2, 3])
+    a.add_argument("--mode", type=str, default="balanced",
+                   choices=list(DIET_MODE_FAT.keys()))
     a.add_argument("--log", type=str, required=True,
                    help='JSON array of meals')
 
@@ -427,6 +454,8 @@ def main():
     e.add_argument("--weight", type=float, required=True)
     e.add_argument("--cal", type=int, required=True)
     e.add_argument("--meals", type=int, default=3, choices=[2, 3])
+    e.add_argument("--mode", type=str, default="balanced",
+                   choices=list(DIET_MODE_FAT.keys()))
     e.add_argument("--current-meal", type=str, required=True,
                    help="Meal being evaluated (e.g. breakfast, lunch, dinner, snack_am, snack_pm)")
     e.add_argument("--log", type=str, required=True,
@@ -452,14 +481,14 @@ def main():
     args = parser.parse_args()
 
     if args.cmd == "target":
-        result = calc_targets(args.weight, args.cal, args.meals)
+        result = calc_targets(args.weight, args.cal, args.meals, args.mode)
     elif args.cmd == "analyze":
         try:
             log = json.loads(args.log)
         except json.JSONDecodeError as e:
             print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
             sys.exit(1)
-        result = analyze(args.weight, args.cal, args.meals, log)
+        result = analyze(args.weight, args.cal, args.meals, log, args.mode)
     elif args.cmd == "save":
         try:
             meal = json.loads(args.meal)
@@ -483,7 +512,7 @@ def main():
                 print(f"Error: invalid --assumed JSON: {e}", file=sys.stderr)
                 sys.exit(1)
         result = evaluate(args.weight, args.cal, args.meals,
-                          args.current_meal, log, assumed)
+                          args.current_meal, log, assumed, args.mode)
     elif args.cmd == "check-missing":
         try:
             log = json.loads(args.log)

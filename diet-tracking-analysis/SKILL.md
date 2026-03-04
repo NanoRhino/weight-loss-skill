@@ -54,8 +54,10 @@ Data directory: `{workspaceDir}/data/meals`
 ### 1. Set Target — `target`
 
 ```bash
-python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3]
+python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3] [--mode balanced]
 ```
+
+Supported `--mode` values: `usda`, `balanced` (default), `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2`. The mode determines the fat percentage range used for macro calculations — see `weight-loss-planner/references/diet-modes.md` for details.
 
 ### 2. Save Entry — `save` (must call on every food log)
 

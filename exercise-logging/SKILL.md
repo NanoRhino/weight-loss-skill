@@ -91,20 +91,41 @@ When user logs exercise, follow these steps:
 
 ## Calorie Estimation
 
-### MET Formula
+### Calculation Script
 
+**Use the exercise-calc script** (`python3 {baseDir}/scripts/exercise-calc.py`) for all calorie estimations instead of computing manually. This ensures consistent and accurate MET lookups and interpolation.
+
+```bash
+# Single exercise with speed (running, cycling):
+python3 {baseDir}/scripts/exercise-calc.py calc \
+  --activity running --weight <kg> --duration <minutes> --speed <km/h>
+
+# Single exercise with intensity:
+python3 {baseDir}/scripts/exercise-calc.py calc \
+  --activity basketball --weight <kg> --duration <minutes> --intensity high
+
+# Swimming with pace:
+python3 {baseDir}/scripts/exercise-calc.py calc \
+  --activity swimming --weight <kg> --duration <minutes> --pace-100m <minutes>
+
+# Multiple exercises at once:
+python3 {baseDir}/scripts/exercise-calc.py batch --weight <kg> \
+  --exercises '[{"activity":"running","duration":30,"speed":10},{"activity":"yoga_vinyasa","duration":20,"intensity":"moderate"}]'
 ```
-Calories (kcal) = MET × weight (kg) × duration (hours)
-```
+
+The script handles:
+- MET-based calorie formula: `MET × weight_kg × duration_hours`
+- Running/cycling speed → MET via linear interpolation between anchor points
+- Swimming pace → MET classification
+- Discrete MET table lookup for 60+ activities across all categories
+- Default intensity fallback when not specified (e.g., HIIT defaults to "high")
 
 ### MET Reference Table
 
-Read `references/met-table.md` for the full MET value table. Key principles:
+See `references/met-table.md` for the full MET value table and interpolation anchor points. Key principles:
 
-- Select MET based on **activity + intensity** (e.g., running 8km/h = MET 8.3, running 12km/h = MET 12.8)
 - If user provides heart rate, cross-reference with intensity to select more accurate MET
-- If user provides distance + time, calculate pace first to determine MET
-- For running pace-to-MET continuous mapping, use linear interpolation between known data points (see `references/met-table.md` Continuous Mapping section)
+- If user provides distance + time, calculate pace first and pass `--speed` to the script
 - Device-reported calories take priority over MET estimates
 - Always mark MET-estimated calories with `≈`
 
