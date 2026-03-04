@@ -55,4 +55,9 @@ fi
 bash "$SCRIPT_DIR/send-to-slack.sh" "${SEND_ARGS[@]}"
 
 echo ""
-echo "✅ Done! PDF generated and sent via Slack."
+echo "=== Step 3: Cleaning up local PDF ==="
+rm -f "$OUTPUT"
+echo "Deleted: $OUTPUT"
+
+echo ""
+echo "✅ Done! PDF generated, sent via Slack, and local copy removed."
