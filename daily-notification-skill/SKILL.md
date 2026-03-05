@@ -179,9 +179,11 @@ across users). Write soft-restart status to `engagement.reminder_config`.
 
 | Signal | Action |
 |--------|--------|
-| Consistently replies 30+ min late | Shift that meal's reminder time |
+| Consistently replies 30+ min late | Shift that meal's reminder time — update `USER.md > Goals > Meal Times` and the cron job |
 | Never replies to breakfast (2+ weeks) | Stop breakfast reminders |
 | Weekend pattern differs | Adjust weekend timing separately |
+
+**Important:** Whenever a meal time changes (user request or adaptive shift), always update **both** `USER.md > Goals > Meal Times` and the corresponding cron job so they stay in sync.
 
 ### Weekly Low-Calorie Check
 
@@ -290,7 +292,7 @@ Users may ask to change reminders in natural language. Handle inline:
 | User says | Action |
 |-----------|--------|
 | "Stop breakfast reminders" | Stop that meal's reminders. Update `engagement.reminder_config`. Confirm: `"Done — no more breakfast reminders. Let me know if you change your mind."` |
-| "Change dinner to 8 PM" | Update schedule. Confirm: `"Got it — dinner reminders moved to 7:45 PM."` |
+| "Change dinner to 8 PM" | Update `USER.md > Goals > Meal Times` with the new time, then update the cron job. Confirm: `"Got it — dinner reminders moved to 7:45 PM."` |
 | "Stop all reminders" | Stop everything, move to Stage 4. `"All reminders off. I'm still here if you want to chat. 💛"` |
 | "Remind me more" / "Can you also remind me for snacks" | Outside current scope — acknowledge and note for future: `"I can only do meals and weight for now, but I'll keep that in mind."` |
 | "Resume reminders" / "Start reminding me again" | Restart Stage 1 with previous config. Confirm schedule. |
