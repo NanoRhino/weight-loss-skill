@@ -59,6 +59,7 @@ cp -r weight-loss-skill/weekly-report               ~/.claude/skills/
 | `user-onboarding-profile` | Build a user profile through natural conversation (height, weight, goals, etc.) |
 | `diet-tracking-analysis` | Log food, estimate calories/macros, get practical suggestions |
 | `daily-notification` | Proactive meal-time reminders and weight-logging nudges |
+| `emotional-support` | Detect and respond to negative emotions — body image distress, food guilt, hopelessness |
 | `weight-loss-planner` | Goal-setting with BMI, TDEE, calorie targets, and milestone roadmaps |
 | `weekly-report` | Personalized weekly progress report with logging streaks, calorie/macro analysis, weight trends, and suggestions |
 
@@ -75,6 +76,8 @@ weight-loss-skill/
 ├── diet-tracking-analysis/
 │   ├── SKILL.md
 │   └── references/
+├── emotional-support/
+│   └── SKILL.md
 ├── user-onboarding-profile/
 │   └── SKILL.md
 ├── weekly-report/

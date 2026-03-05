@@ -380,7 +380,7 @@ meal conversations. Weekly Review reads `habits.*` for progress summaries.
 |--------|--------|
 | User proposes extreme habit (fasting 20h, 2h daily exercise) | Redirect to sustainable alternative. Don't enable overexercise or restriction. |
 | Habit is triggering disordered behavior (obsessive tracking, guilt over misses) | Scale back. Reduce mention frequency. Consider pausing habit tracking. Write `flags.habit_anxiety: true`. |
-| User expresses self-hatred over not completing habits | **Stay with the emotion first — do not rush to reassure or close the conversation.** Acknowledge the feeling (`"That sounds really frustrating."`), ask an open question (`"Want to talk about it?"`), and let the user lead the pace. Only normalize or offer perspective once they seem receptive. Never immediately counter with `"But you did X well!"` or push to end with `"Rest well, tomorrow is a new day."` See `daily-notification > Emotional Support` for full guidelines. Write `flags.body_image_distress: true` if severe. |
+| User expresses self-hatred over not completing habits | **Defer to `emotional-support` skill.** Stay with the emotion first — do not rush to reassure or close the conversation. Acknowledge the feeling, ask an open question, and let the user lead the pace. Only normalize or offer perspective once they seem receptive. Never immediately counter with `"But you did X well!"` or push to end with `"Rest well, tomorrow is a new day."` See `emotional-support` SKILL.md for full detection signals, conversation flow, and intervention guidelines. Write `flags.body_image_distress: true` if severe. |
 
 ---
 
