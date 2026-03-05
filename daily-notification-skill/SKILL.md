@@ -297,13 +297,35 @@ Users may ask to change reminders in natural language. Handle inline:
 
 ---
 
+## Emotional Support
+
+When the user expresses negative emotions (body image distress, food guilt,
+self-criticism, hopelessness), **pause all notification workflows and defer
+to the `emotional-support` skill.** See its SKILL.md for full detection
+signals, conversation flow, and intervention guidelines.
+
+**Key rules for this skill:**
+- Detect emotional signals in meal replies, weight replies, and any user message
+- Pause data collection — don't ask about food or log while the user is distressed
+- Defer the next scheduled reminder if an emotional conversation is ongoing
+- The "max 2 turns" reply handling rule does NOT apply during emotional support
+- Resume normal workflows only after the user signals readiness
+
+**Quick detection reference** (full list in `emotional-support` SKILL.md):
+- Body image: `"我好胖"` · `"好丑"` · `"I hate how I look"`
+- Food guilt: `"又吃多了"` · `"管不住嘴"` · `"I have no self-control"`
+- Hopelessness: `"没用的"` · `"减不下来"` · `"算了"`
+- Context clues: weight up + flat replies, binge log + silence, `"随便"` after junk food
+
+---
+
 ## Safety
 
 | Signal | Action |
 |--------|--------|
 | Extended fasting + binge/restriction context | Write `flags.possible_restriction: true`. Express concern. |
 | Purging mentioned | Write `flags.purging_mentioned: true`. Provide NEDA: 1-800-931-2237 |
-| "I hate my body" / extreme self-criticism | Empathize. Write `flags.body_image_distress: true` |
+| "I hate my body" / extreme self-criticism | Defer to `emotional-support` skill. Write `flags.body_image_distress: true` |
 | Suicidal ideation (direct or indirect) | **988 Lifeline immediately. Stop conversation.** |
 | Dizziness, fainting | `"Please see a doctor."` Write `flags.medical_concern: true` |
 
