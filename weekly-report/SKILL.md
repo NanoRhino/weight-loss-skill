@@ -30,8 +30,9 @@ things to focus on next week.
 ### Schedule
 
 Auto-generate every **Monday at 9:00 AM** (user's local time), covering the
-previous Monday–Sunday. If the user's quiet hours extend past 9 AM, delay to
-end of quiet hours.
+previous Monday–Sunday. Read `timezone.json` to determine the user's local
+time and correctly calculate the Mon–Sun date range. If the user's quiet hours
+extend past 9 AM, delay to end of quiet hours.
 
 ### Manual Trigger
 
@@ -54,7 +55,6 @@ User can request a report at any time:
 
 | Field | Purpose |
 |-------|---------|
-| `Language` | Report language (`zh-CN` → Chinese, `en` → English) |
 | `Basic Info > Name` | Greeting / header personalization |
 | `Basic Info > Weight` | Baseline reference (initial weight) |
 | `Goals > Target Weight` | Progress percentage calculation |
@@ -96,7 +96,7 @@ user's actual data — skip or simplify sections with no data.
 {Mon date} – {Sun date}
 ```
 
-Use the user's language. Chinese example: `📊 本周报告  2月10日 – 2月16日`
+Use the language from locale.json. Chinese example: `📊 本周报告  2月10日 – 2月16日`
 
 If user's name is available, add: `Hi {Name}! Here's your week.` /
 `{Name}，这是你这周的总结！`
@@ -293,9 +293,8 @@ Specific, actionable improvements for next week. Based on the week's gaps.
 
 ---
 
-## Language & Formatting Rules
+## Formatting Rules
 
-- **Language:** Match `USER.md > Language`. If `zh-CN` → entire report in Chinese. If `en` → English. Never mix.
 - **Units:** Use the user's preferred system consistently. Read from existing weight logs or `PLAN.md`. Never show dual units.
 - **Numbers:** Use locale-appropriate formatting. English: `1,620 kcal`. Chinese: `1620 kcal`.
 - **Tone:** Warm, data-driven, encouraging. Like a supportive coach reviewing game tape with an athlete.
@@ -334,7 +333,7 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 | Path | Purpose |
 |------|---------|
-| `USER.md` | User profile, language, name, goals, health flags |
+| `USER.md` | User profile, name, goals, health flags |
 | `PLAN.md` | Calorie targets, macro ranges, weekly loss rate, diet mode |
 | `logs.meals.{date}.{meal_type}` | Meal logging status, food descriptions, calories, macros |
 | `logs.weight.{date}` | Weight readings |

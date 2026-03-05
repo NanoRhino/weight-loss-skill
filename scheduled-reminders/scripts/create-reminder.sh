@@ -17,7 +17,8 @@ NAME=""
 MESSAGE=""
 AT=""
 CRON_EXPR=""
-TZ="Asia/Shanghai"
+TZ=""
+TZ_EXPLICIT=false
 DELETE_AFTER_RUN=""
 
 while [[ $# -gt 0 ]]; do
@@ -27,7 +28,7 @@ while [[ $# -gt 0 ]]; do
     --message) MESSAGE="$2"; shift 2 ;;
     --at)      AT="$2"; shift 2 ;;
     --cron)    CRON_EXPR="$2"; shift 2 ;;
-    --tz)      TZ="$2"; shift 2 ;;
+    --tz)      TZ="$2"; TZ_EXPLICIT=true; shift 2 ;;
     --keep)    DELETE_AFTER_RUN="--no-delete-after-run"; shift ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
@@ -38,6 +39,27 @@ if [[ -z "$AGENT" ]]; then echo "ERROR: --agent is required" >&2; exit 1; fi
 if [[ -z "$NAME" ]]; then echo "ERROR: --name is required" >&2; exit 1; fi
 if [[ -z "$MESSAGE" ]]; then echo "ERROR: --message is required" >&2; exit 1; fi
 if [[ -z "$AT" && -z "$CRON_EXPR" ]]; then echo "ERROR: --at or --cron is required" >&2; exit 1; fi
+
+# Auto-detect timezone from workspace timezone.json if --tz not explicitly provided
+if [[ "$TZ_EXPLICIT" == "false" && -n "$CRON_EXPR" ]]; then
+  TZ_FILE="$HOME/.openclaw/workspace-nutritionist/$AGENT/timezone.json"
+  if [[ -f "$TZ_FILE" ]]; then
+    AUTO_TZ=$(python3 -c "
+import json
+with open('$TZ_FILE') as f:
+    print(json.load(f).get('tz', ''))
+" 2>/dev/null || echo "")
+    if [[ -n "$AUTO_TZ" ]]; then
+      TZ="$AUTO_TZ"
+      echo "Auto-detected timezone from timezone.json: $TZ"
+    fi
+  fi
+  # Fallback if still empty
+  if [[ -z "$TZ" ]]; then
+    TZ="Asia/Shanghai"
+    echo "WARNING: No timezone.json found, falling back to $TZ"
+  fi
+fi
 
 CONFIG="$HOME/.openclaw/openclaw.json"
 

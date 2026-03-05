@@ -11,7 +11,7 @@ description: >
   another skill (daily-notification, diet-tracking, habit-builder, etc.)
   detects emotional signals and defers here. This skill takes priority over
   data collection, logging, and meal reminders — emotional presence comes
-  first. Always reply in the same language the user is writing in.
+  first.
 metadata:
   openclaw:
     emoji: "heart"

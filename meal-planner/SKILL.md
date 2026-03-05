@@ -94,13 +94,13 @@ When planning meals, use the **midpoint** of each range as the planning target. 
 
 1. **User tells you directly** — "I'm in Tokyo" / "I live in Texas" / "I'm Chinese" → always takes priority
 2. **USER.md** — May contain country, city, or cultural background
-3. **Language inference** — If neither of the above is available, infer from the user's language:
-   - English → default to US (American foods, imperial units)
-   - Chinese (zh) → default to China (Chinese foods, metric units)
-   - Japanese (ja) → default to Japan
-   - Korean (ko) → default to South Korea
-   - Spanish (es) → ask whether US-based or Latin America
-   - Other languages → ask the user
+3. **Language inference** — If neither of the above is available, infer from `locale.json > lang`:
+   - `en` → default to US (American foods, imperial units)
+   - `zh-CN` → default to China (Chinese foods, metric units)
+   - `ja` → default to Japan
+   - `ko` → default to South Korea
+   - `es` → ask whether US-based or Latin America
+   - Other → ask the user
 
 **Why this matters:** A meal plan full of chicken breast and sweet potatoes is useless for someone in Shanghai who eats rice, tofu, and bok choy daily. The plan must reflect foods the user can actually buy and wants to eat.
 
