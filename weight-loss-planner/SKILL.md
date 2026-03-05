@@ -213,9 +213,9 @@ Each adjustment triggers a recalculation. Re-present the updated plan and confir
 
 ### Step 3.5: Collect Diet Preferences (After Plan Acceptance)
 
-Once the user accepts the calorie-based plan, **before generating the final structured plan**, collect the following information to enable macro calculation and diet template generation. Ask these in 1–2 conversational rounds:
+Once the user accepts the calorie-based plan, **before generating the final structured plan**, collect the following information to enable macro calculation and diet template generation. Ask these across **3 separate rounds** — one question per round, keeping each round focused and conversational:
 
-#### 1. Diet Mode
+#### Round 1: Diet Mode
 
 Ask which diet mode the user would like to follow. Instead of listing all available modes, **select the 2 most suitable options** based on the user's profile, preferences, activity level, and goals. Use your professional judgment — consider:
 - USER.md preferences (if available)
@@ -238,19 +238,25 @@ Present concisely:
 
 If the user wants to see all options, provide the full list. If USER.md `## Preferences` already records a diet mode, include it as one recommendation.
 
-#### 2. Meal Schedule & Taste Preferences
+**Wait for the user to choose before proceeding to Round 2.**
 
-In the same round (or the next), ask about:
-- **Meal schedule** — How many meals per day, and roughly what times? Explain you'll use this to send check-in reminders 15 minutes before each meal.
-- **Taste preferences & food restrictions** — Any foods they can't eat (allergies/restrictions)? Any flavor preferences (e.g., loves spicy, hates sweet)?
+#### Round 2: Meal Schedule
 
-Keep it conversational — don't make it feel like a form:
+After the user confirms their diet mode, ask about their meal schedule:
 
-> Also — how many meals do you eat per day, and roughly what times? I'll send you a check-in reminder before each meal so you can plan ahead.
->
-> And any foods you can't eat, or strong flavor preferences? (Totally optional — just helps me build a better diet template for you.)
+> 你一天通常吃几餐，大概什么时间？我会在每餐前 15 分钟提醒你，帮你提前规划。
 
-**After collecting:** Update USER.md with the meal times and any new preferences (silently append to `## Preferences` and `## Goals` sections). Then calculate macros using the confirmed diet mode and proceed to Step 4.
+**Wait for the user to answer before proceeding to Round 3.**
+
+#### Round 3: Taste Preferences & Food Restrictions
+
+After the user provides their meal schedule, ask about taste and restrictions:
+
+> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
+
+**Wait for the user to answer (or skip) before proceeding.**
+
+**After collecting all three rounds:** Update USER.md with the diet mode, meal times, and any new preferences (silently append to `## Preferences` and `## Goals` sections). Then calculate macros using the confirmed diet mode and proceed to Step 4.
 
 ---
 
