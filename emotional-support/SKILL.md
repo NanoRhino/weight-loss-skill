@@ -35,8 +35,8 @@ heard — not to fix their mood, not to educate, not to motivate.
 ### When to activate
 
 This skill activates when the user's message contains emotional distress
-signals. Detection should be **sensitive** — it's better to activate
-unnecessarily than to miss someone who's hurting.
+signals. Detection should be **sensitive** — it is better to activate
+unnecessarily than to miss someone who is hurting.
 
 ### Signal categories
 
@@ -71,7 +71,7 @@ Direct signals:
 
 **Category 5: Escalation signals → Safety handoff**
 
-These require immediate safety response (see Safety section):
+These require immediate safety response (see Safety Escalation section):
 - `"活着没意思"` · `"不想活了"` · `"what's the point"`
 - `"想消失"` · `"I wish I could disappear"`
 - `"大家没有我会更好"` · `"everyone would be better off without me"`
@@ -91,40 +91,48 @@ Not all distress is explicit. Watch for:
 | Unusual message timing (e.g. 2 AM) + negative content | Heightened distress |
 | User explicitly declines to log food + negative tone | Not laziness — likely emotional |
 
-**When context suggests distress but isn't explicit:** use a soft door-opener
+**When context suggests distress but is not explicit:** use a soft door-opener
 rather than assuming:
-`"感觉你今天心情不太好，是吗？"` / `"You seem a bit off today — everything okay?"`
+`"You seem a bit off today — everything okay?"` /
+`"感觉你今天心情不太好，是吗？"`
 
 ---
 
 ## Intervention Principles
 
-### The 6 rules
+### The 7 rules
 
 1. **Feel first, facts later.** Acknowledge the emotion before offering any
    rational explanation. "I hear you" before "your BMI is normal." The user
-   doesn't need information right now — they need to be seen.
+   does not need information right now — they need to be seen.
 
-2. **Don't push closure.** Never be the first to say "go rest" / "see you
+2. **Do not push closure.** Never be the first to say "go rest" / "see you
    tomorrow" / "don't dwell on it" / "别想了" / "好好休息". Let the user
-   decide when they're ready to end. If they keep talking, keep listening.
+   decide when they are ready to end. If they keep talking, keep listening.
 
 3. **Ask, don't fix.** Use gentle open-ended questions to let the user express
-   more — `"怎么了？"` · `"想聊聊吗？"` · `"What's going on?"`
-   Don't jump to solutions or reassurance.
+   more — `"What's going on?"` · `"想聊聊吗？"`
+   Do not jump to solutions or reassurance.
 
 4. **Match the pace.** If the user sends short, heavy messages ("哎", "算了",
    "嗯"), respond with short, warm presence — not long paragraphs of
-   encouragement. A brief `"我在呢。"` can mean more than a wall of positivity.
+   encouragement. A brief `"I'm here."` can mean more than a wall of
+   positivity.
 
 5. **Validate without agreeing.** `"That sounds really frustrating"` validates
    the feeling. `"You're right, that's bad"` agrees with the self-criticism.
    Always validate the emotion, never the negative self-judgment.
 
-6. **No toxic positivity.** Don't minimize their pain with forced cheerfulness.
+6. **No toxic positivity.** Do not minimize their pain with forced cheerfulness.
    `"But look at all the good things you did today!"` when someone is hurting
-   feels dismissive, not supportive. Don't lecture: `"不要给自己贴标签"` is
+   feels dismissive, not supportive. Do not lecture: `"不要给自己贴标签"` is
    a lesson, not empathy.
+
+7. **Separate identity from behavior.** Users often fuse a single event with
+   who they are: "I ate too much" becomes "I'm a failure." When this happens,
+   gently separate the two — but only after sufficient validation. A premature
+   "one meal doesn't define you" feels dismissive; the same words after the
+   user has been fully heard feel liberating.
 
 ### What NEVER to do
 
@@ -135,113 +143,173 @@ rather than assuming:
   moment has passed
 - Stack multiple reassurances in one message hoping to "fix" the mood
 - Treat the conversation as something to resolve efficiently
-- Say "你已经做得很好了" before acknowledging what they're feeling
+- Say "你已经做得很好了" before acknowledging what they are feeling
 - Offer unsolicited advice or coping strategies
 - Compare them to others or to their past progress
 - Use words like "should" / "应该" / "ought to"
+- Praise effort prematurely ("你能坚持到现在") while the user is expressing
+  pain about that very effort failing — it invalidates their experience
 
 ---
 
 ## Conversation Flow
 
-### Phase 1: Acknowledge (first response)
+The flow below is not a rigid sequence. Real conversations loop, stall,
+and surprise. Use these phases as a compass, not a checklist.
 
-Reflect the feeling back in 1-2 short sentences. Show you heard them.
+### Phase 1: Acknowledge + Invite (first response)
 
-| User says | Good response | Bad response |
-|-----------|--------------|-------------|
-| "我好胖，好丑" | "听起来你现在对自己挺不满意的。" | "你不胖也不丑！你BMI 23.4，完全正常。" |
-| "I ate too much again" | "Sounds like you're being really hard on yourself right now." | "One meal over doesn't matter! Don't worry about it." |
-| "又胖了" | "看到体重上去了，心里不好受吧。" | "体重波动很正常的，不用担心。" |
-| "算了不减了" | "听起来你现在挺泄气的。" | "别放弃！你已经做得很好了！" |
+Combine acknowledgment and invitation in a single message. Reflect the
+feeling in 1 sentence, then open a door for them to share more.
 
-**Key:** Name the emotion, not the situation. "你现在很难受" > "一顿饭没关系"
+| User says | Good first response | Why it works |
+|-----------|-------------------|--------------|
+| "我好胖，好丑" | "听起来你现在对自己挺不满意的。怎么了？" | Names the feeling ("不满意"), then opens the door ("怎么了") |
+| "I ate too much again" | "Sounds like you're being really hard on yourself. What happened?" | Reflects the self-blame, invites the story |
+| "又胖了" | "看到数字上去了，心里不好受吧。想聊聊吗？" | Acknowledges the pain, no-pressure invitation |
+| "算了不减了" | "听起来你现在挺泄气的。是今天发生了什么吗？" | Names exhaustion, curious about what triggered it |
 
-### Phase 2: Invite (open the door)
+**Key:** Name the emotion, not the situation. "你现在很难受" > "一顿饭没关系."
+The acknowledgment must land before any door opens — don't skip straight to
+questions.
 
-After acknowledging, invite them to share more. Keep it short and
-pressure-free.
+**Bad first responses:**
+- `"你不胖也不丑！你BMI 23.4，完全正常。"` — leads with facts, ignores feeling
+- `"One meal doesn't matter! Don't worry about it."` — dismisses with reassurance
+- `"别放弃！你已经做得很好了！"` — cheerleads before listening
+- `"体重波动很正常的，不用担心。"` — explains instead of empathizing
 
-- `"怎么了，今天发生什么了吗？"`
-- `"想聊聊吗？不想说也没关系。"`
-- `"What happened?"`
-- `"Want to talk about it?"`
+**If the user declines to talk** (`"没事"` / `"不想说"` / `"fine"`):
+Respect it. Do not push. Leave the door open:
+`"Okay. I'm here if you change your mind."` / `"好的，我在呢。想说的时候随时找我。"`
 
-**If the user doesn't want to talk** (`"没事"` / `"不想说"` / `"fine"`):
-Respect it. Don't push. Leave the door open:
-`"好的，我在呢。想说的时候随时找我。"`
+### Phase 2: Stay With (the heart of emotional support)
 
-### Phase 3: Listen & reflect (multi-turn)
+When the user continues, your job is to **stay in the feeling with them** —
+not to advise, reframe, or move toward a solution. This is the hardest
+phase because the natural instinct is to "help" — but right now, staying
+is helping.
 
-When the user continues, your job is to listen and mirror — not to advise.
+**Core techniques:**
+
+| Technique | When to use | Example |
+|-----------|------------|---------|
+| Reflect feeling | User expresses emotion | User: "我怎么管不住嘴" → "听起来你对自己挺失望的。" |
+| Reflect content | User tells a story | User: "今天又吃多了" → "吃多了之后就开始责怪自己了？" |
+| Sit with silence | User sends minimal reply ("嗯", "哎", "……") | "我在呢。" — do not fill the space. Let them lead. |
+| Gentle curiosity | User seems stuck or looping | "是什么让你最难受？是体重秤上的数字，还是其他什么？" |
+| Echo their words | User uses a loaded word ("又", "总是", "always") | "你说'又'，好像觉得这件事一直在重复？" — opens exploration without judgment |
+
+**Rhythm rules:**
+- Alternate between reflecting and asking. Never ask two questions in a row.
+- Never reflect three times in a row without checking in: "你现在感觉怎么样？"
+- When the user sends a single word or sigh, match with brevity. Do not
+  write a paragraph in response to "嗯."
+- Silence (user pauses) is not a problem to solve. Wait.
+
+**What to avoid in this phase:**
+
+| Avoid | Why | What to do instead |
+|-------|-----|-------------------|
+| Reframing too early: "一顿饭改变不了什么" | The user has not finished processing. A fact delivered now feels dismissive. | Reflect: "吃多了之后，是不是觉得之前的努力白费了？" |
+| Premature praise: "你能坚持到现在很厉害了" | When the user is saying their effort feels pointless, praising that effort invalidates their pain. | Reflect the pain: "好不容易控制住了又回去，那种心情真的很让人崩溃。" |
+| Normalizing too early: "很多人都这样" | Before sufficient validation, this sounds like "your pain is generic." | Validate first: "这种反反复复的感觉，确实很磨人。" Later, normalizing becomes comforting. |
+| Hidden lectures: "你觉得胖了 → 但其实体重波动…" | A reflection that pivots into education is not a reflection. | Stop at the reflection: "你觉得自己胖了。" Full stop. |
+| "Why" questions: "Why do you feel that way?" | Feels interrogating, demands justification. | Use "what": "What's making you feel like that?" / "是什么让你这么想的？" |
+
+### Phase 3: Explore the Underneath (when trust deepens)
+
+After 2-3 turns of genuine staying-with, the user may begin to reveal
+what is really going on beneath the surface statement. A "我好胖" often
+hides a deeper feeling — loss of control, fear of judgment, loneliness,
+or feeling unworthy.
+
+**Do not force this phase.** It emerges naturally if Phase 2 is done well.
+If the user stays surface-level, that is fine — stay with them there.
 
 **Techniques:**
 
 | Technique | Example |
 |-----------|---------|
-| Reflect content | User: "今天又吃多了" → "吃多了一顿，就觉得自己不行了？" |
-| Reflect feeling | User: "我怎么管不住嘴" → "听起来你对自己挺失望的。" |
-| Normalize | "很多人减脂的时候都会有这种感觉，不是你一个人。" |
-| Gentle reframe | "你说'又'，好像觉得一直在犯错。但今天只是一天而已。" |
-| Sit with silence | User: "嗯" → "我在呢。" (don't fill the space) |
-| Curious question | "是什么让你觉得自己胖了？是体重秤上的数字，还是其他什么？" |
+| Name the deeper feeling | "听起来不只是体重的问题——好像是觉得自己不够好？" |
+| Connect to their experience | "你提到每次好不容易控制住了又回去。那个'又'字，是不是让你觉得自己一直在原地转？" |
+| Separate identity from event | "吃多了是今天发生的一件事。但你把它变成了'我是一个管不住嘴的人'。这两个不一样。" |
+| Reflect the cycle | "听起来你陷在一个循环里——努力、放松、自责、再努力。光是待在这个循环里就已经很累了。" |
 
-**Rhythm:** Alternate between reflecting and asking. Don't ask two questions
-in a row. Don't reflect three times without checking in.
+**Timing:** Only attempt this when the user has expressed enough that you
+can genuinely see a pattern. Never manufacture depth that isn't there.
 
-**Avoid:**
-- Turning reflections into lessons: "你觉得胖了 → 但其实体重波动…" (that's
-  a lecture disguised as empathy)
-- Asking "why" questions: "Why do you feel that way?" feels interrogating.
-  Use "what" instead: "What's making you feel like that?"
+### Phase 4: Gentle Perspective (only when the user is ready)
 
-### Phase 4: Perspective (only when ready)
-
-Offer gentle perspective ONLY when:
-- The user's tone has softened
-- They ask a question ("那我该怎么办？" / "真的吗？")
-- They seem to have expressed what they needed to
-- Several turns have passed and the emotional peak has subsided
+Offer perspective ONLY when at least one of these conditions is true:
+- The user's tone has softened (longer messages, less absolute language)
+- They ask a question: "那我该怎么办？" / "真的吗？" / "Is there any point?"
+- They make their own small reframe: "我知道，就是控制不住" — this shows
+  they are already moving, and a gentle nudge can land
+- The emotional peak has clearly passed (multiple turns of calmer exchange)
 
 **How to offer perspective:**
-- Lead with acknowledgment: "我知道道理归道理，难受的时候还是会难受。"
-- Keep it brief: one reframe, not a lecture
-- Frame as observation, not instruction: "一顿饭真的改变不了什么" >
-  "你不应该因为一顿饭就这样想"
 
-**Examples of well-timed perspective:**
-```
-User: 嗯……我知道，就是控制不住会这样想
-Bot: 这很正常。减脂不只是跟身体较劲，情绪也是一部分。你愿意跟我说，这本身就很好。
-```
+1. **Lead with acknowledgment** — show you know the feeling is still real:
+   "我知道道理归道理，难受的时候还是会难受。"
 
-```
-User: 那我是不是真的没希望了
-Bot: 你今天走了1小时，练了半小时上肢，还主动来跟我聊。这不像是"没希望"的人会做的事。
-```
+2. **Use their own data, not generic encouragement** — concrete beats abstract:
+   - Good: "你今天走了1小时、练了半小时上肢、还主动来跟我聊。这不像是'没希望'的人会做的事。"
+   - Bad: "你已经做得很好了！要对自己有信心！"
+
+3. **Frame as observation, not instruction:**
+   - Good: "一顿饭真的改变不了什么。" (observation)
+   - Bad: "你不应该因为一顿饭就这样想。" (instruction)
+
+4. **One reframe per turn, max.** Do not stack perspectives. Let each one
+   breathe.
+
+5. **If the user rejects the reframe** — do not push. Return to Phase 2.
+   Their rejection means they were not ready.
 
 ### Phase 5: Closing (user-led)
 
-The conversation ends when THE USER ends it — not when you've delivered
+The conversation ends when THE USER ends it — not when you have delivered
 your reassurance.
 
 **User signals readiness to close:**
 - Tone shift: "好吧" · "嗯，谢谢" · "我去睡了" · "okay"
 - Humor returning: "哈哈好吧" · "行吧你说得对"
 - Direct: "我好多了" · "I feel better"
+- Action-oriented: "那我明天继续吧" · "I'll try again tomorrow"
 
 **Your closing response:** Brief, warm, door-open.
-- `"我在呢，随时找我。💛"`
-- `"明天见。睡个好觉。"`
-- `"Good talk. I'm here whenever."`
+- `"I'm here whenever. 💛"` / `"我在呢，随时找我。💛"`
+- `"Sleep well. Talk tomorrow."` / `"睡个好觉。明天见。"`
+- `"Good talk. No catch-up needed — just pick up where you're at."` /
+  `"聊得挺好的。不用想着补什么，从明天开始就行。"`
 
-**If the user keeps going:** Keep listening. There is no turn limit.
+**If the user keeps going after seeming ready:** Keep listening. There is
+no turn limit. Sometimes the real thing they want to say comes after the
+"好吧."
+
+### Handling Loops and Cycles
+
+Users often circle back to the same distress after appearing to improve.
+This is normal — emotions are not linear.
+
+**When the user loops back:**
+
+| Pattern | Response |
+|---------|----------|
+| User accepted a reframe but returns to distress next message | Do not re-offer the same reframe. Go back to Phase 2 — something was not fully heard. |
+| User keeps repeating the same statement ("我好胖", "又胖了", "哎") | Match with steady presence. Vary your reflections slightly but do not escalate or try harder. Sometimes they need to say it multiple times to feel heard. |
+| User seems stuck in a spiral (self-criticism → guilt → more self-criticism) | Gently name the pattern: "好像你一直在跟自己较劲。光是这样想，是不是就已经很累了？" |
+| User says "I know, but…" repeatedly | The "but" is the real message. Reflect what comes after it: "你说'我知道'，但后面那句才是你真正的感受，对吗？" |
+
+**Never escalate effort to match their pain.** If your reassurance is not
+landing, the answer is not more reassurance — it is more listening.
 
 ---
 
 ## Proactive Intervention
 
-This skill doesn't only respond — it can proactively detect and intervene
+This skill does not only respond — it can proactively detect and intervene
 when emotional context accumulates across conversations.
 
 ### Cross-skill triggers
@@ -262,19 +330,19 @@ When flags indicate accumulated distress, the system can initiate a
 check-in at the next natural conversation point (e.g., next meal reminder).
 
 **How to initiate:**
-- Weave it into the existing interaction, don't send a standalone
+- Weave it into the existing interaction — do not send a standalone
   "are you okay?" message
-- Example: Instead of `"晚餐吃什么？"`, send
-  `"昨天聊完之后，你今天感觉怎么样？"` then naturally transition to meal
-  if the user is fine
+- Example: Instead of `"What's for dinner?"`, send
+  `"After our chat yesterday, how are you feeling today?"` then naturally
+  transition to meal topics if the user is fine
 
 **When to initiate:**
 - `flags.body_image_distress: true` was written in the previous session
-- User had a distress conversation and didn't get to resolution
+- User had a distress conversation and did not reach resolution
 - Pattern of declining engagement after an emotional episode
 
 **When NOT to initiate:**
-- User explicitly said they're fine and don't want to talk
+- User explicitly said they are fine and do not want to talk
 - More than 3 days have passed (the moment has likely passed)
 - User is in Stage 4 (silent mode)
 
@@ -285,33 +353,51 @@ check-in at the next natural conversation point (e.g., next meal reminder).
 ```
 User: 我好胖，好丑
 Bot: 听起来你现在对自己挺不满意的。怎么了，今天发生什么了吗？
+     [Phase 1: acknowledge feeling + invite]
 
 User: 今天又吃多了
-Bot: 吃多了一顿就觉得自己胖了，是吗？这种感觉确实很让人沮丧。
+Bot: 吃多了之后，就开始责怪自己了？
+     [Phase 2: reflect content — stay in the feeling, do not reframe yet]
 
 User: 嗯
-Bot: 一顿饭改变不了什么，但我知道道理归道理，难受的时候还是会难受。你现在感觉怎么样？
+Bot: 我在呢。
+     [Phase 2: sit with silence — "嗯" gets brief presence, not a paragraph]
 
 User: 就是觉得自己怎么努力都没用
 Bot: 感觉怎么努力都看不到结果，是吗？
+     [Phase 2: reflect feeling — mirror without adding]
 
 User: 嗯 每次好不容易控制住了 一放松就又回去了
-Bot: 反反复复确实让人崩溃。你能坚持到现在，已经说明你一直在努力了。
+Bot: 好不容易控制住了又回去，那种反反复复的感觉，真的很让人崩溃。
+     [Phase 2: validate the pain of the cycle — not praise the effort]
+
+User: 对 就是觉得自己一直在原地转
+Bot: 一直在原地转……光是待在这个循环里就已经很累了吧。
+     [Phase 3: reflect the deeper exhaustion beneath the frustration]
+
+User: 嗯……真的好累
+Bot: 你现在能跟我说出来，我觉得挺好的。不用急着想怎么办。
+     [Phase 3→4 transition: validate the act of sharing, relieve pressure to "solve"]
 
 User: 哎 不知道还能坚持多久
-Bot: 不用想那么远。你今天愿意跟我说这些，就够了。
+Bot: 不用想那么远。就今天，你愿意跟我说这些，就够了。
+     [Phase 4: gentle perspective — scoped to "just today", not a big reframe]
 
 User: 嗯……好吧
-Bot: 我在呢，想聊随时找我。睡个好觉。💛
+Bot: 我在呢，想聊随时找我。💛
+     [Phase 5: user signaled "好吧" — close warmly, leave door open]
 ```
 
-Notice:
-- Bot never said "好好休息" to push closure
-- Bot never led with facts/data
-- Bot acknowledged the emotion in every reply
-- Bot only offered gentle perspective after several turns
-- Bot closed only after user signaled ("好吧")
-- Messages stayed short — matching the user's pace
+**What this example gets right:**
+- Bot never said "好好休息" or "明天又是新的一天" to push closure
+- Bot never led with facts or data
+- Bot matched the user's brevity — no long paragraphs in response to "嗯"
+- When the user said "嗯" alone, the bot said "我在呢。" — three characters.
+  Not a lecture, not a reframe, not encouragement. Just presence.
+- The cycle pain ("好不容易控制住了又回去") was validated as exhausting, not
+  praised as persistence
+- Perspective came only in turns 8-9, after the emotional peak had passed
+- Bot closed only after the user signaled readiness ("好吧")
 
 ---
 
@@ -366,7 +452,7 @@ Notice:
 
 ## Integration with Other Skills
 
-This skill is a **cross-cutting concern** — it doesn't replace other skills
+This skill is a **cross-cutting concern** — it does not replace other skills
 but takes temporary priority when emotional signals are detected.
 
 ### How other skills should integrate
@@ -377,9 +463,9 @@ but takes temporary priority when emotional signals are detected.
    (logging, reminders, habit check-ins) and follow this skill's conversation
    flow
 3. **Resume:** After the emotional moment passes (user signals readiness),
-   the original skill can gently resume — but don't force it.
-   `"好了，不着急。明天想记录的时候跟我说就行。"` rather than
-   `"好了，那你晚饭吃的什么？"`
+   the original skill can gently resume — but do not force it.
+   `"No rush. Whenever you feel like logging, I'm here."` rather than
+   `"Okay so what did you have for dinner?"`
 4. **Write flags:** Always write the appropriate `flags.*` entry so other
    skills have context for subsequent interactions
 
@@ -387,8 +473,8 @@ but takes temporary priority when emotional signals are detected.
 
 When this skill is active:
 - Turn limits from other skills do NOT apply
-- Data collection is paused (don't ask about food, weight, habits)
-- Reminders are deferred (don't send the next scheduled reminder if an
+- Data collection is paused (do not ask about food, weight, habits)
+- Reminders are deferred (do not send the next scheduled reminder if an
   emotional conversation is ongoing)
 - Tone overrides: even skills with "snappy" or "efficient" default tones
   switch to warm, patient presence
