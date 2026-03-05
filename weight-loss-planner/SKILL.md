@@ -335,7 +335,11 @@ not fat).
 
 Do not tell the user the filename, file format, or that a file is being saved.
 
+**Do NOT repeat meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled separately by the `daily-notification-skill` and were already configured during onboarding. Do not mention, summarize, or re-confirm any reminder schedule after the plan is generated — this information is redundant and disrupts the flow.
+
 **Transition to Meal Planner** — Once the plan is confirmed and the PDF is sent, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "你的计划已经发给你了！现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target and diet mode from the conversation context (just confirmed) and skip redundant data collection. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
+
+**If the user wants to adjust the plan** after seeing it, help them modify it (go back to Step 3). **If the plan is confirmed**, transition directly to the diet template topic — do not detour into reminders or other topics.
 
 ---
 
