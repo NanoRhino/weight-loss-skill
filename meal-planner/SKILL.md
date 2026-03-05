@@ -202,6 +202,8 @@ Use the templates below as defaults. If the user's diet mode is non-standard (e.
 
 When specifying amounts, the **minimum granularity is 0.5** — never use values like 0.3 or 0.7. Valid values: 0.5, 1, 1.5, 2, 2.5, etc. Ranges use the same granularity (e.g., "0.5–1 fist", "1–2 cups").
 
+**Example portions should prefer whole numbers.** In the one-day example section, use whole-number portions (1, 2, 3…) whenever possible — non-integer amounts like "0.5 cup" are harder for users to measure and follow in practice. Reserve 0.5 increments for the template portion guide (ranges), not for the concrete example.
+
 ### English (US/Western) Diet Template
 
 ```markdown
@@ -209,11 +211,11 @@ When specifying amounts, the **minimum granularity is 0.5** — never use values
 Breakfast: 0.5–1 fist grains + 1 palm protein + 1 cup dairy/protein drink
 Lunch: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
 Dinner: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
-Snack: 1–2 fists fruit + 1–2 cups dairy/protein drink
+Snack: 1–2 fists fruit + 1–2 cups dairy/protein
 
 🥣[Example]
 Breakfast:
-● Oatmeal (cooked) 0.5 cup
+● Oatmeal (cooked) 1 cup
 ● 1 large egg
 ● Milk 1 cup (8 fl oz)
 Lunch:
@@ -221,7 +223,7 @@ Lunch:
 ● Grilled chicken breast 4 oz
 ● Steamed broccoli & carrots 2 cups
 Dinner:
-● Whole-wheat pasta (cooked) 0.5 cup
+● Whole-wheat pasta (cooked) 1 cup
 ● Baked salmon 4 oz
 ● Roasted bell peppers & asparagus 2 cups
 Snack:
