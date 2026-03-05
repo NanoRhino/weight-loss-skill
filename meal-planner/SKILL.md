@@ -198,7 +198,9 @@ Match the diet template to the user's language/locale (resolved in Step 1). The 
 
 Use the templates below as defaults. If the user's diet mode is non-standard (e.g., keto, IF 16:8), adapt the template accordingly — change the food types and portion ratios to match, but keep the same "template + example" format.
 
-**Example must match the template categories.** Every food category listed in the Meal Template must have a corresponding item in the Example, and vice versa. For instance, if the template says "grains + vegetables + protein" for lunch, the example must include exactly one grain item, one vegetable item, and one protein item — no extra categories, no missing categories. This ensures the user can clearly map template → example → their own meals.
+**Example must strictly match the template structure.** The example is a concrete instantiation of the template — the number of items and their types must correspond exactly:
+- Each food category in the template maps to exactly one item in the example.
+- If the template uses "or" to list alternatives (e.g., "nuts or yogurt"), the example must pick **one** of them, not combine both. For instance, if the template says `Snack ~140 cal: handful of nuts or 1 small cup yogurt`, a correct example is `● Walnuts 2 pieces` or `● Plain Greek yogurt 100g` — **not** `● Plain Greek yogurt 100g + Walnuts 2 pieces`.
 
 ### Precision Rule
 
