@@ -198,11 +198,13 @@ Match the diet template to the user's language/locale (resolved in Step 1). The 
 
 Use the templates below as defaults. If the user's diet mode is non-standard (e.g., keto, IF 16:8), adapt the template accordingly — change the food types and portion ratios to match, but keep the same "template + example" format.
 
+**Example must match the template categories.** Every food category listed in the Meal Template must have a corresponding item in the Example, and vice versa. For instance, if the template says "grains + vegetables + protein" for lunch, the example must include exactly one grain item, one vegetable item, and one protein item — no extra categories, no missing categories. This ensures the user can clearly map template → example → their own meals.
+
 ### Precision Rule
 
 When specifying amounts, the **minimum granularity is 0.5** — never use values like 0.3 or 0.7. Valid values: 0.5, 1, 1.5, 2, 2.5, etc. Ranges use the same granularity (e.g., "0.5–1 fist", "1–2 cups").
 
-**Example portions should prefer whole numbers.** In the one-day example section, use whole-number portions (1, 2, 3…) whenever possible — non-integer amounts like "0.5 cup" are harder for users to measure and follow in practice. Reserve 0.5 increments for the template portion guide (ranges), not for the concrete example.
+**Prefer whole numbers for naturally countable items.** For discrete foods (eggs, slices of bread, apples, buns, dumplings, etc.), always use whole numbers — e.g., "1 large egg", "2 slices bread", never "0.5 egg" or "1.5 apples". Fractional amounts are fine for measurable quantities like cups, oz, grams (e.g., "0.5 cup oatmeal" is OK because a cup is easy to divide).
 
 ### English (US/Western) Diet Template
 
@@ -215,7 +217,7 @@ Snack: 1–2 fists fruit + 1–2 cups dairy/protein
 
 🥣[Example]
 Breakfast:
-● Oatmeal (cooked) 1 cup
+● Oatmeal (cooked) 0.5 cup
 ● 1 large egg
 ● Milk 1 cup (8 fl oz)
 Lunch:
@@ -223,7 +225,7 @@ Lunch:
 ● Grilled chicken breast 4 oz
 ● Steamed broccoli & carrots 2 cups
 Dinner:
-● Whole-wheat pasta (cooked) 1 cup
+● Whole-wheat pasta (cooked) 0.5 cup
 ● Baked salmon 4 oz
 ● Roasted bell peppers & asparagus 2 cups
 Snack:
