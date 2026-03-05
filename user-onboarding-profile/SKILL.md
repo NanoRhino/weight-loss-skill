@@ -176,7 +176,7 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 [Motivation details, communication preferences, pace preferences — or empty if none mentioned]
 ```
 
-> **Note:** The `## Preferences` section starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-logging, etc.) detect and append new preferences during future conversations.
+> **Note:** The `## Preferences` section starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-tracking-planning, etc.) detect and append new preferences during future conversations.
 
 ---
 
