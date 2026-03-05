@@ -26,10 +26,6 @@ This is a conversation, not a questionnaire. Keep it light, keep it fast. Every 
 
 ## Conversation Flow
 
-### Important: Language Adaptation
-
-The examples below are written in English for readability. **You must translate and adapt them to match the user's language** (determined by the Language rule in AGENTS.md). Never copy English examples verbatim when the user is speaking another language.
-
 ### Step 1 — Required Fields (3–4 rounds)
 
 These are the only fields you MUST collect before moving on. Each round focuses on one topic.
