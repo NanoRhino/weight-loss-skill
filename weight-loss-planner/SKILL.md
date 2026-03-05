@@ -82,34 +82,15 @@ The script handles safety floors (max(BMR, 1000)), rate clamping, and all edge c
 
 **Timeline:** Do NOT ask the user for a timeline. Based on your professional judgment, select the most appropriate weekly loss rate from the rate guidelines in Step 2 and derive the timeline automatically. If the user later wants to adjust the pace, they can do so in Step 3.
 
-**Diet mode:** Before calculating macros, **ask the user which diet mode they'd like to follow**. Instead of listing all available modes, **select the 2 most suitable options** based on the user's profile, preferences, activity level, and goals, then present them concisely. Use your professional judgment to pick the best two — consider factors like:
-- USER.md preferences (if available)
-- Activity level and exercise habits (e.g., gym-goers → High-Protein; sedentary → Balanced)
-- Dietary restrictions mentioned in conversation (e.g., vegetarian → Plant-Based)
-- Health goals beyond weight loss (e.g., heart health → Mediterranean)
-- Experience level (beginners → Balanced / Flexible; experienced dieters → more specialized modes)
-- Cultural context and food availability
-
-Available modes to choose from: Balanced / Flexible, Healthy U.S.-Style (USDA), High-Protein, Low-Carb, Keto, Mediterranean, Plant-Based, Intermittent Fasting (16:8), Intermittent Fasting (5:2). See the Diet Mode Selection table below and `references/diet-modes.md` for details.
-
-Present the two recommended options in a concise format like:
-
-> Based on your profile, I think these two diet modes would work best for you:
->
-> 1. **[Mode A]** — [one-line reason why it suits this user]
-> 2. **[Mode B]** — [one-line reason why it suits this user]
->
-> I'd recommend **[Mode A]** as your starting point. Which one appeals to you? (If neither fits, just tell me what you're looking for and I'll suggest alternatives.)
-
-Adapt the wording to the user's language and tone. If the user wants to see all options or asks about a mode not listed, provide the full list. If USER.md `## Preferences` already records a previously chosen diet mode, include that as one of the two recommendations.
+**Diet mode:** Do NOT ask about diet mode at this stage. The initial plan focuses on calorie targets, BMI, TDEE, and timeline only — no macro breakdown yet. Diet mode will be asked later, after the user accepts the weight loss plan.
 
 If USER.md already contains the target weight, don't ask for it again — use it directly.
 
-Once the user confirms their diet mode and all values are resolved, proceed to Step 2 (Generate Milestone Plan).
+Once all body data and TDEE values are resolved, proceed to Step 2 (Generate Milestone Plan).
 
 ### Preference Awareness
 
-Before presenting the diet mode options or generating a plan, **read the `## Preferences` section in `USER.md`** (if it exists). Stored preferences may influence:
+Before presenting diet mode options in Step 3.5 or generating a plan, **read the `## Preferences` section in `USER.md`** (if it exists). Stored preferences may influence:
 - **Diet mode selection** — if the user previously expressed interest in a specific diet style (e.g., "wants to try Mediterranean"), highlight that mode as the recommended option when asking about diet mode (instead of defaulting to Balanced)
 - **Macro adjustments** — dietary preferences may inform fat/carb balance (e.g., "loves high-fat foods" might suit a higher fat range)
 - **General coaching notes** — preferences like "prefers gradual changes" should inform how you present the plan
@@ -198,20 +179,20 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 **[Plan details block]** — "So here's your plan:" followed by bullet list:
 • Daily calorie target: [X,XXX] cal (rounded, single value — not a range)
 • Weekly loss rate: ~[X.X] kg/week ([X.X] lbs/week)
-• Per-meal split: Breakfast ~[XXX] cal / Lunch ~[XXX] cal / Dinner ~[XXX] cal (30% / 40% / 30%)
-• Daily nutrition targets: Protein [XX–XXX]g / Fat [XX–XX]g / Carbs [XXX–XXX]g (show ranges)
 • Estimated completion: [Specific month + year, e.g., "June 2027"]
+
+> **Note:** Do NOT include per-meal split or macro targets (protein/fat/carb) at this stage. Those will be calculated after the user accepts the plan and chooses a diet mode.
 
 **[Rate explanation]** — 1–2 sentences explaining why this rate was chosen. Frame from the user's perspective — what they'll experience, not nutrition theory. If activity level is low/sedentary, mention that adding exercise would increase TDEE and speed up progress. Use *italics* for emphasis where appropriate.
 
-**[Follow-up questions]** — Ask 1–2 questions:
-1. "Does this pace feel right? Want to speed up or is this OK?"
-2. If activity data was assumed or missing: invite the user to share their exercise habits for a more accurate recalculation.
+**[Follow-up question]** — Ask whether the user accepts this plan:
+"Does this pace feel right, or would you like to adjust?"
+If activity data was assumed or missing, also invite the user to share their exercise habits for a more accurate recalculation.
 
 **Formatting rules:**
 - Bullet points (•), not tables — keep it conversational
 - Round numbers for readability (e.g., "~1,700 cal" not "1,697 cal")
-- Show ranges for macros (e.g., "96–128g"), single rounded value for daily calorie target
+- Single rounded value for daily calorie target
 - Maximum one emoji (at the end of the closing line)
 - No phased milestones — present as a single plan
 
@@ -227,6 +208,49 @@ The user may want to:
 - **Change the goal weight** → recalculate everything
 
 Each adjustment triggers a recalculation. Re-present the updated plan and confirm. Repeat until the user is satisfied. If they push for an unsafe rate, stand firm kindly — health first, always.
+
+---
+
+### Step 3.5: Collect Diet Preferences (After Plan Acceptance)
+
+Once the user accepts the calorie-based plan, **before generating the final structured plan**, collect the following information to enable macro calculation and diet template generation. Ask these in 1–2 conversational rounds:
+
+#### 1. Diet Mode
+
+Ask which diet mode the user would like to follow. Instead of listing all available modes, **select the 2 most suitable options** based on the user's profile, preferences, activity level, and goals. Use your professional judgment — consider:
+- USER.md preferences (if available)
+- Activity level and exercise habits (e.g., gym-goers → High-Protein; sedentary → Balanced)
+- Dietary restrictions (e.g., vegetarian → Plant-Based)
+- Health goals beyond weight loss (e.g., heart health → Mediterranean)
+- Experience level (beginners → Balanced / Flexible; experienced → more specialized)
+- Cultural context and food availability
+
+Available modes: Balanced / Flexible, Healthy U.S.-Style (USDA), High-Protein, Low-Carb, Keto, Mediterranean, Plant-Based, Intermittent Fasting (16:8), Intermittent Fasting (5:2). See Diet Mode Selection table and `references/diet-modes.md`.
+
+Present concisely:
+
+> Now let's figure out how you'd like to eat. Based on your profile, I think these two approaches would work best:
+>
+> 1. **[Mode A]** — [one-line reason]
+> 2. **[Mode B]** — [one-line reason]
+>
+> I'd recommend **[Mode A]** as your starting point. Which one appeals to you?
+
+If the user wants to see all options, provide the full list. If USER.md `## Preferences` already records a diet mode, include it as one recommendation.
+
+#### 2. Meal Schedule & Taste Preferences
+
+In the same round (or the next), ask about:
+- **Meal schedule** — How many meals per day, and roughly what times? Explain you'll use this to send check-in reminders 15 minutes before each meal.
+- **Taste preferences & food restrictions** — Any foods they can't eat (allergies/restrictions)? Any flavor preferences (e.g., loves spicy, hates sweet)?
+
+Keep it conversational — don't make it feel like a form:
+
+> Also — how many meals do you eat per day, and roughly what times? I'll send you a check-in reminder before each meal so you can plan ahead.
+>
+> And any foods you can't eat, or strong flavor preferences? (Totally optional — just helps me build a better diet template for you.)
+
+**After collecting:** Update USER.md with the meal times and any new preferences (silently append to `## Preferences` and `## Goals` sections). Then calculate macros using the confirmed diet mode and proceed to Step 4.
 
 ---
 
