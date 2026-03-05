@@ -82,23 +82,26 @@ The script handles safety floors (max(BMR, 1000)), rate clamping, and all edge c
 
 **Timeline:** Do NOT ask the user for a timeline. Based on your professional judgment, select the most appropriate weekly loss rate from the rate guidelines in Step 2 and derive the timeline automatically. If the user later wants to adjust the pace, they can do so in Step 3.
 
-**Diet mode:** Before calculating macros, **ask the user which diet mode they'd like to follow**. Present the available modes briefly and **proactively recommend Balanced / Flexible** as the default. Use a concise format like:
+**Diet mode:** Before calculating macros, **ask the user which diet mode they'd like to follow**. Instead of listing all available modes, **select the 2 most suitable options** based on the user's profile, preferences, activity level, and goals, then present them concisely. Use your professional judgment to pick the best two — consider factors like:
+- USER.md preferences (if available)
+- Activity level and exercise habits (e.g., gym-goers → High-Protein; sedentary → Balanced)
+- Dietary restrictions mentioned in conversation (e.g., vegetarian → Plant-Based)
+- Health goals beyond weight loss (e.g., heart health → Mediterranean)
+- Experience level (beginners → Balanced / Flexible; experienced dieters → more specialized modes)
+- Cultural context and food availability
 
-> Your diet mode determines how protein, fat, and carbs are balanced. Here are the options:
->
-> 1. **Balanced / Flexible** — 25–35% fat, no food restrictions, easiest to sustain *(Recommended — works for most people)*
-> 2. **Healthy U.S.-Style (USDA)** — 20–35% fat, follows Dietary Guidelines for Americans
-> 3. **High-Protein** — 25–35% fat, ideal for gym-goers preserving muscle
-> 4. **Low-Carb** — 40–50% fat, better appetite control with fewer carbs
-> 5. **Keto** — 65–75% fat, extreme carb restriction (<30g/day)
-> 6. **Mediterranean** — 25–35% fat, heart-health focus with olive oil and fish
-> 7. **Plant-Based** — 20–30% fat, for vegetarian or vegan users
-> 8. **Intermittent Fasting (16:8)** — 8-hour eating window, layers on any macro split
-> 9. **Intermittent Fasting (5:2)** — 2 very-low-cal days per week, layers on any macro split
->
-> I'd suggest starting with **Balanced / Flexible** — it's the most sustainable and gives you the most freedom with food choices. Which one appeals to you?
+Available modes to choose from: Balanced / Flexible, Healthy U.S.-Style (USDA), High-Protein, Low-Carb, Keto, Mediterranean, Plant-Based, Intermittent Fasting (16:8), Intermittent Fasting (5:2). See the Diet Mode Selection table below and `references/diet-modes.md` for details.
 
-Adapt the wording to the user's language and tone. If the user has no strong preference, confirm Balanced / Flexible and proceed. If USER.md `## Preferences` already records a previously chosen diet mode, present that as the default recommendation instead of Balanced.
+Present the two recommended options in a concise format like:
+
+> Based on your profile, I think these two diet modes would work best for you:
+>
+> 1. **[Mode A]** — [one-line reason why it suits this user]
+> 2. **[Mode B]** — [one-line reason why it suits this user]
+>
+> I'd recommend **[Mode A]** as your starting point. Which one appeals to you? (If neither fits, just tell me what you're looking for and I'll suggest alternatives.)
+
+Adapt the wording to the user's language and tone. If the user wants to see all options or asks about a mode not listed, provide the full list. If USER.md `## Preferences` already records a previously chosen diet mode, include that as one of the two recommendations.
 
 If USER.md already contains the target weight, don't ask for it again — use it directly.
 
