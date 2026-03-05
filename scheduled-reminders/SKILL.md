@@ -1,7 +1,7 @@
 ---
 name: scheduled-reminders
 version: 1.0.0
-description: "Create and manage scheduled reminders via cron. Provides a wrapper script that auto-resolves Slack delivery config from agent bindings. Use when any skill needs to schedule one-shot or recurring reminders. Other skills (daily-notification, habit-builder, exercise-programming, etc.) should use this skill for all scheduling needs."
+description: "Create and manage scheduled reminders via cron. Provides a wrapper script that auto-resolves Slack delivery config from agent bindings. Use when any skill needs to schedule one-shot or recurring reminders. Other skills (daily-notification, habit-builder, exercise-tracking-planning, etc.) should use this skill for all scheduling needs."
 metadata:
   openclaw:
     emoji: "alarm_clock"

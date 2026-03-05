@@ -3,7 +3,7 @@
 # dependencies = []
 # ///
 """
-Exercise calorie calculator for exercise-logging skill.
+Exercise calorie calculator for exercise-tracking-planning skill.
 
 Codifies the MET-based calorie estimation and continuous mapping
 (linear interpolation for running, cycling, swimming) from
