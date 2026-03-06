@@ -17,9 +17,9 @@ Commands:
 Usage:
   python3 nutrition-calc.py target  --weight 65 --cal 1500 [--meals 3]
   python3 nutrition-calc.py analyze --weight 65 --cal 1500 --meals 3 \
-      --log '[{"name":"breakfast","cal":379,"p":24,"c":45,"f":12}]'
+      --log '[{"name":"breakfast","calories":379,"protein":24,"carbs":45,"fat":12}]'
   python3 nutrition-calc.py save --data-dir /path/to/data \
-      --meal '{"name":"breakfast","cal":379,"p":24,"c":45,"f":12,"foods":[{"name":"boiled eggs x2","cal":144}]}'
+      --meal '{"name":"breakfast","meal_type":"breakfast","calories":379,"protein":24,"carbs":45,"fat":12,"foods":[{"name":"boiled eggs x2","calories":144}]}'
   python3 nutrition-calc.py load --data-dir /path/to/data [--date 2026-02-27]
   python3 nutrition-calc.py evaluate --weight 65 --cal 1500 --meals 3 \
       --current-meal lunch --log '[...]'
@@ -34,8 +34,41 @@ import sys
 from datetime import date, timedelta
 
 
-# Meal blocks define the structure and percentage allocation for each checkpoint.
-# Each block has a label, percentage of daily targets, and which meal types belong to it.
+# ---------------------------------------------------------------------------
+# Backward compatibility: migrate old short field names to full names
+# ---------------------------------------------------------------------------
+
+# Mapping from old short keys to new full keys
+_SHORT_TO_LONG = {"cal": "calories", "p": "protein", "c": "carbs", "f": "fat"}
+
+
+def _migrate_meal(meal: dict) -> dict:
+    """Convert old short-key meal dicts to full-name keys.
+
+    Handles both top-level fields and nested foods list.
+    If both short and long keys exist, long key takes precedence.
+    """
+    out = {}
+    for k, v in meal.items():
+        new_key = _SHORT_TO_LONG.get(k, k)
+        # Don't overwrite if the long name already exists
+        if new_key in out:
+            continue
+        if k == "foods" and isinstance(v, list):
+            out[k] = [_migrate_meal(f) for f in v]
+        else:
+            out[new_key] = v
+    return out
+
+
+def _migrate_meals(meals: list) -> list:
+    """Migrate a list of meal dicts."""
+    return [_migrate_meal(m) for m in meals]
+
+
+# ---------------------------------------------------------------------------
+# Meal blocks & aliases
+# ---------------------------------------------------------------------------
 
 MEAL_BLOCKS_3 = [
     {"label": "breakfast", "pct": 30, "meals": ["breakfast", "snack_am"]},
@@ -49,7 +82,6 @@ MEAL_BLOCKS_2 = [
 ]
 
 # Alias map: traditional 3-meal names → 2-meal equivalents.
-# In 2-meal mode users may still say "breakfast", "lunch", or "dinner".
 MEAL_ALIAS_2 = {
     "breakfast": "meal_1",
     "snack_am":  "snack_1",
@@ -58,7 +90,10 @@ MEAL_ALIAS_2 = {
     "dinner":    "meal_2",
 }
 
-# Diet mode → fat percentage range (low%, high%)
+# ---------------------------------------------------------------------------
+# Diet mode configurations
+# ---------------------------------------------------------------------------
+
 DIET_MODE_FAT = {
     "usda":          (20, 35),
     "balanced":      (25, 35),
@@ -71,19 +106,20 @@ DIET_MODE_FAT = {
     "if_5_2":        (25, 35),
 }
 
-# Diet mode → full macro percentage ranges for pattern detection.
-# protein (low%, high%), carb (low%, high%), fat (low%, high%)
-# IF modes are timing strategies; their macro profile matches balanced.
 DIET_MODE_MACROS = {
-    "usda":          {"p": (10, 35), "c": (45, 65), "f": (20, 35)},
-    "balanced":      {"p": (25, 35), "c": (35, 45), "f": (25, 35)},
-    "high_protein":  {"p": (35, 45), "c": (25, 35), "f": (25, 35)},
-    "low_carb":      {"p": (30, 40), "c": (15, 25), "f": (40, 50)},
-    "keto":          {"p": (20, 25), "c": (5, 10),  "f": (65, 75)},
-    "mediterranean": {"p": (20, 30), "c": (40, 50), "f": (25, 35)},
-    "plant_based":   {"p": (20, 30), "c": (45, 55), "f": (20, 30)},
+    "usda":          {"protein": (10, 35), "carbs": (45, 65), "fat": (20, 35)},
+    "balanced":      {"protein": (25, 35), "carbs": (35, 45), "fat": (25, 35)},
+    "high_protein":  {"protein": (35, 45), "carbs": (25, 35), "fat": (25, 35)},
+    "low_carb":      {"protein": (30, 40), "carbs": (15, 25), "fat": (40, 50)},
+    "keto":          {"protein": (20, 25), "carbs": (5, 10),  "fat": (65, 75)},
+    "mediterranean": {"protein": (20, 30), "carbs": (40, 50), "fat": (25, 35)},
+    "plant_based":   {"protein": (20, 30), "carbs": (45, 55), "fat": (20, 30)},
 }
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def get_meal_blocks(meals: int) -> list:
     return MEAL_BLOCKS_3 if meals == 3 else MEAL_BLOCKS_2
@@ -105,12 +141,39 @@ def find_block_index(meal_name: str, meals: int) -> int:
     return None
 
 
+def _in_range(value: float, lo: float, hi: float) -> bool:
+    return lo <= value <= hi
+
+
+def _range_status(value: float, lo: float, hi: float) -> str:
+    if value < lo:
+        return "low"
+    elif value > hi:
+        return "high"
+    return "on_track"
+
+
+def _sum_macros(meal_list: list) -> dict:
+    s = {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
+    for m in meal_list:
+        s["calories"] += m.get("calories", 0)
+        s["protein"] += m.get("protein", 0)
+        s["carbs"] += m.get("carbs", 0)
+        s["fat"] += m.get("fat", 0)
+    return {k: round(v, 1) for k, v in s.items()}
+
+
+def get_log_path(data_dir: str, day: str = None) -> str:
+    day = day or date.today().isoformat()
+    return os.path.join(data_dir, f"{day}.json")
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
 def calc_targets(weight: float, daily_cal: int, meals: int = 3,
                  mode: str = "balanced") -> dict:
-    """Compute daily macro targets with min/max ranges.
-
-    Fat ranges are determined by the diet mode (see DIET_MODE_FAT).
-    """
     protein = round(weight * 1.4, 1)
     protein_lo = round(weight * 1.2, 1)
     protein_hi = round(weight * 1.6, 1)
@@ -126,7 +189,6 @@ def calc_targets(weight: float, daily_cal: int, meals: int = 3,
     carb_lo = round((daily_cal - protein_hi * 4 - fat_hi * 9) / 4, 1)
     carb_hi = round((daily_cal - protein_lo * 4 - fat_lo * 9) / 4, 1)
 
-    # Daily calorie range: ±100 kcal
     cal_lo = daily_cal - 100
     cal_hi = daily_cal + 100
 
@@ -134,11 +196,11 @@ def calc_targets(weight: float, daily_cal: int, meals: int = 3,
     alloc = []
     for b in blocks:
         alloc.append({"meal": b["label"], "pct": b["pct"],
-                       "cal": round(daily_cal * b["pct"] / 100)})
+                       "calories": round(daily_cal * b["pct"] / 100)})
 
     return {
-        "daily_cal": daily_cal,
-        "cal_range": {"min": cal_lo, "max": cal_hi},
+        "daily_calories": daily_cal,
+        "calories_range": {"min": cal_lo, "max": cal_hi},
         "weight": weight,
         "meals": meals,
         "protein": {"target": protein, "min": protein_lo, "max": protein_hi},
@@ -148,82 +210,65 @@ def calc_targets(weight: float, daily_cal: int, meals: int = 3,
     }
 
 
-def _in_range(value: float, lo: float, hi: float) -> bool:
-    """Check if a value falls within [lo, hi]."""
-    return lo <= value <= hi
-
-
-def _range_status(value: float, lo: float, hi: float) -> str:
-    """Return status label based on range comparison."""
-    if value < lo:
-        return "low"
-    elif value > hi:
-        return "high"
-    return "on_track"
-
-
 def analyze(weight: float, daily_cal: int, meals: int, log: list,
             mode: str = "balanced") -> dict:
-    """Analyze cumulative intake against daily targets."""
+    log = _migrate_meals(log)
     targets = calc_targets(weight, daily_cal, meals, mode)
 
-    cum = {"cal": 0, "p": 0, "c": 0, "f": 0}
+    cum = {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
     meal_details = []
     for entry in log:
-        cum["cal"] += entry.get("cal", 0)
-        cum["p"] += entry.get("p", 0)
-        cum["c"] += entry.get("c", 0)
-        cum["f"] += entry.get("f", 0)
+        cum["calories"] += entry.get("calories", 0)
+        cum["protein"] += entry.get("protein", 0)
+        cum["carbs"] += entry.get("carbs", 0)
+        cum["fat"] += entry.get("fat", 0)
         meal_details.append({
             "name": entry.get("name", ""),
-            "cal": entry.get("cal", 0),
-            "p": entry.get("p", 0),
-            "c": entry.get("c", 0),
-            "f": entry.get("f", 0),
+            "meal_type": entry.get("meal_type", ""),
+            "calories": entry.get("calories", 0),
+            "protein": entry.get("protein", 0),
+            "carbs": entry.get("carbs", 0),
+            "fat": entry.get("fat", 0),
         })
 
     for k in cum:
         cum[k] = round(cum[k], 1)
 
-    pct_cal = round(cum["cal"] / daily_cal * 100) if daily_cal else 0
+    pct_cal = round(cum["calories"] / daily_cal * 100) if daily_cal else 0
     remain = {
-        "cal": round(daily_cal - cum["cal"], 1),
-        "p": round(targets["protein"]["target"] - cum["p"], 1),
-        "c": round(targets["carb"]["target"] - cum["c"], 1),
-        "f": round(targets["fat"]["target"] - cum["f"], 1),
+        "calories": round(daily_cal - cum["calories"], 1),
+        "protein": round(targets["protein"]["target"] - cum["protein"], 1),
+        "carbs": round(targets["carb"]["target"] - cum["carbs"], 1),
+        "fat": round(targets["fat"]["target"] - cum["fat"], 1),
     }
 
     status = {
-        "cal": _range_status(cum["cal"], targets["cal_range"]["min"], targets["cal_range"]["max"]),
-        "p": _range_status(cum["p"], targets["protein"]["min"], targets["protein"]["max"]),
-        "c": _range_status(cum["c"], targets["carb"]["min"], targets["carb"]["max"]),
-        "f": _range_status(cum["f"], targets["fat"]["min"], targets["fat"]["max"]),
+        "calories": _range_status(cum["calories"], targets["calories_range"]["min"], targets["calories_range"]["max"]),
+        "protein": _range_status(cum["protein"], targets["protein"]["min"], targets["protein"]["max"]),
+        "carbs": _range_status(cum["carbs"], targets["carb"]["min"], targets["carb"]["max"]),
+        "fat": _range_status(cum["fat"], targets["fat"]["min"], targets["fat"]["max"]),
     }
 
     return {
         "targets": targets,
         "meals": meal_details,
         "cumulative": cum,
-        "pct_cal": pct_cal,
+        "pct_calories": pct_cal,
         "remaining": remain,
         "status": status,
     }
 
 
-def get_log_path(data_dir: str, day: str = None) -> str:
-    day = day or date.today().isoformat()
-    return os.path.join(data_dir, f"{day}.json")
-
-
 def save_meal(data_dir: str, meal: dict, day: str = None) -> dict:
     """Save a meal to the daily log. Same meal name overwrites (supports corrections)."""
     os.makedirs(data_dir, exist_ok=True)
+    meal = _migrate_meal(meal)
     path = get_log_path(data_dir, day)
 
     existing: list = []
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
-            existing = json.load(f)
+            existing = _migrate_meals(json.load(f))
 
     meal_name = meal.get("name", "")
     replaced = False
@@ -242,23 +287,13 @@ def save_meal(data_dir: str, meal: dict, day: str = None) -> dict:
 
 
 def load_meals(data_dir: str, day: str = None) -> dict:
-    """Load all meals for a given day."""
+    """Load all meals for a given day, migrating old format if needed."""
     path = get_log_path(data_dir, day)
     if not os.path.exists(path):
         return {"date": day or date.today().isoformat(), "meals": [], "meals_count": 0}
     with open(path, "r", encoding="utf-8") as f:
-        meals = json.load(f)
+        meals = _migrate_meals(json.load(f))
     return {"date": day or date.today().isoformat(), "meals": meals, "meals_count": len(meals)}
-
-
-def _sum_macros(meal_list: list) -> dict:
-    s = {"cal": 0, "p": 0, "c": 0, "f": 0}
-    for m in meal_list:
-        s["cal"] += m.get("cal", 0)
-        s["p"] += m.get("p", 0)
-        s["c"] += m.get("c", 0)
-        s["f"] += m.get("f", 0)
-    return {k: round(v, 1) for k, v in s.items()}
 
 
 def evaluate(weight: float, daily_cal: int, meals: int,
@@ -271,16 +306,11 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     - Each checkpoint scales daily min/max ranges by the checkpoint percentage.
     - Adjustment is needed when: calories outside checkpoint cal range
       OR 2+ macros outside their checkpoint ranges.
-
-    Checkpoint rules (3-meal, 30:40:30):
-      - Evaluating breakfast/snack_am block → compare to 30% of daily ranges
-      - Evaluating lunch/snack_pm block    → compare to 70% of daily ranges (cumulative)
-      - Evaluating dinner block            → compare to 100% of daily ranges
-
-    *assumed_meals*: meals the user forgot; their standard ratio of daily targets
-    (e.g. forgotten lunch in 30:40:30 = 40% of daily targets, NOT the cumulative checkpoint).
-    Included in suggestions but NOT in progress/actual numbers.
     """
+    log = _migrate_meals(log)
+    if assumed_meals:
+        assumed_meals = _migrate_meals(assumed_meals)
+
     targets = calc_targets(weight, daily_cal, meals, mode)
     blocks = get_meal_blocks(meals)
 
@@ -288,21 +318,17 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     if block_idx is None:
         return {"error": f"Unknown meal name: {current_meal}"}
 
-    # Cumulative checkpoint percentage
     checkpoint_pct = sum(blocks[i]["pct"] for i in range(block_idx + 1))
 
-    # All meal types included up to this checkpoint
     checkpoint_meal_names: set[str] = set()
     for i in range(block_idx + 1):
         checkpoint_meal_names.update(blocks[i]["meals"])
 
     logged_names = {resolve_meal_name(m.get("name", ""), meals) for m in log}
 
-    # Only count meals that belong to the checkpoint window
     checkpoint_log = [m for m in log
                       if resolve_meal_name(m.get("name", ""), meals) in checkpoint_meal_names]
 
-    # Missing main meals before this checkpoint
     missing_meals: list = []
     for i in range(block_idx + 1):
         main_meal = blocks[i]["meals"][0]
@@ -311,57 +337,50 @@ def evaluate(weight: float, daily_cal: int, meals: int,
 
     actual = _sum_macros(checkpoint_log)
 
-    # Checkpoint targets (midpoint)
     cp_target = {
-        "cal": round(daily_cal * checkpoint_pct / 100),
-        "p": round(targets["protein"]["target"] * checkpoint_pct / 100, 1),
-        "c": round(targets["carb"]["target"] * checkpoint_pct / 100, 1),
-        "f": round(targets["fat"]["target"] * checkpoint_pct / 100, 1),
+        "calories": round(daily_cal * checkpoint_pct / 100),
+        "protein": round(targets["protein"]["target"] * checkpoint_pct / 100, 1),
+        "carbs": round(targets["carb"]["target"] * checkpoint_pct / 100, 1),
+        "fat": round(targets["fat"]["target"] * checkpoint_pct / 100, 1),
     }
 
-    # Checkpoint ranges (min/max scaled by checkpoint percentage)
     cp_range = {
-        "cal_min": round(targets["cal_range"]["min"] * checkpoint_pct / 100),
-        "cal_max": round(targets["cal_range"]["max"] * checkpoint_pct / 100),
-        "p_min": round(targets["protein"]["min"] * checkpoint_pct / 100, 1),
-        "p_max": round(targets["protein"]["max"] * checkpoint_pct / 100, 1),
-        "c_min": round(targets["carb"]["min"] * checkpoint_pct / 100, 1),
-        "c_max": round(targets["carb"]["max"] * checkpoint_pct / 100, 1),
-        "f_min": round(targets["fat"]["min"] * checkpoint_pct / 100, 1),
-        "f_max": round(targets["fat"]["max"] * checkpoint_pct / 100, 1),
+        "calories_min": round(targets["calories_range"]["min"] * checkpoint_pct / 100),
+        "calories_max": round(targets["calories_range"]["max"] * checkpoint_pct / 100),
+        "protein_min": round(targets["protein"]["min"] * checkpoint_pct / 100, 1),
+        "protein_max": round(targets["protein"]["max"] * checkpoint_pct / 100, 1),
+        "carbs_min": round(targets["carb"]["min"] * checkpoint_pct / 100, 1),
+        "carbs_max": round(targets["carb"]["max"] * checkpoint_pct / 100, 1),
+        "fat_min": round(targets["fat"]["min"] * checkpoint_pct / 100, 1),
+        "fat_max": round(targets["fat"]["max"] * checkpoint_pct / 100, 1),
     }
 
-    # Adjusted = actual + assumed (for generating suggestions when meals forgotten)
     adjusted = dict(actual)
     if assumed_meals:
         for m in assumed_meals:
             if resolve_meal_name(m.get("name", ""), meals) in checkpoint_meal_names:
-                adjusted["cal"] = round(adjusted["cal"] + m.get("cal", 0), 1)
-                adjusted["p"] = round(adjusted["p"] + m.get("p", 0), 1)
-                adjusted["c"] = round(adjusted["c"] + m.get("c", 0), 1)
-                adjusted["f"] = round(adjusted["f"] + m.get("f", 0), 1)
+                adjusted["calories"] = round(adjusted["calories"] + m.get("calories", 0), 1)
+                adjusted["protein"] = round(adjusted["protein"] + m.get("protein", 0), 1)
+                adjusted["carbs"] = round(adjusted["carbs"] + m.get("carbs", 0), 1)
+                adjusted["fat"] = round(adjusted["fat"] + m.get("fat", 0), 1)
 
-    # Status per macro using range-based comparison
     status = {
-        "cal": _range_status(actual["cal"], cp_range["cal_min"], cp_range["cal_max"]),
-        "p": _range_status(actual["p"], cp_range["p_min"], cp_range["p_max"]),
-        "c": _range_status(actual["c"], cp_range["c_min"], cp_range["c_max"]),
-        "f": _range_status(actual["f"], cp_range["f_min"], cp_range["f_max"]),
+        "calories": _range_status(actual["calories"], cp_range["calories_min"], cp_range["calories_max"]),
+        "protein": _range_status(actual["protein"], cp_range["protein_min"], cp_range["protein_max"]),
+        "carbs": _range_status(actual["carbs"], cp_range["carbs_min"], cp_range["carbs_max"]),
+        "fat": _range_status(actual["fat"], cp_range["fat_min"], cp_range["fat_max"]),
     }
 
-    # Determine if adjustment is needed:
-    # calories outside range OR 2+ macros outside range
-    cal_outside = not _in_range(actual["cal"], cp_range["cal_min"], cp_range["cal_max"])
-    macros_outside = sum(1 for k in ["p", "c", "f"] if status[k] != "on_track")
+    cal_outside = not _in_range(actual["calories"], cp_range["calories_min"], cp_range["calories_max"])
+    macros_outside = sum(1 for k in ["protein", "carbs", "fat"] if status[k] != "on_track")
     needs_adjustment = cal_outside or macros_outside >= 2
 
-    # Diff for suggestions (based on adjusted values if assumed meals exist)
     suggestion_base = adjusted if assumed_meals else actual
     diff = {
-        "cal": round(cp_target["cal"] - suggestion_base["cal"], 1),
-        "p": round(cp_target["p"] - suggestion_base["p"], 1),
-        "c": round(cp_target["c"] - suggestion_base["c"], 1),
-        "f": round(cp_target["f"] - suggestion_base["f"], 1),
+        "calories": round(cp_target["calories"] - suggestion_base["calories"], 1),
+        "protein": round(cp_target["protein"] - suggestion_base["protein"], 1),
+        "carbs": round(cp_target["carbs"] - suggestion_base["carbs"], 1),
+        "fat": round(cp_target["fat"] - suggestion_base["fat"], 1),
     }
 
     return {
@@ -381,7 +400,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
 
 
 def check_missing(meals: int, current_meal: str, log: list) -> dict:
-    """Check which main meals are missing before the current meal's block."""
+    log = _migrate_meals(log)
     blocks = get_meal_blocks(meals)
     block_idx = find_block_index(current_meal, meals)
     if block_idx is None:
@@ -407,15 +426,6 @@ def check_missing(meals: int, current_meal: str, log: list) -> dict:
 
 def weekly_low_cal_check(data_dir: str, bmr: float,
                          ref_date: str = None) -> dict:
-    """Check if the user's weekly average calorie intake is below BMR.
-
-    Loads the past 7 days of meal data (ending on *ref_date*, default today),
-    computes total daily calories for each day that has records, and compares
-    the average against the BMR-based calorie floor (max(BMR, 1000)).
-
-    Returns a summary with per-day totals, the weekly average, the floor,
-    and a boolean flag indicating whether intervention is warranted.
-    """
     end = date.fromisoformat(ref_date) if ref_date else date.today()
     calorie_floor = max(bmr, 1000)
 
@@ -428,23 +438,22 @@ def weekly_low_cal_check(data_dir: str, bmr: float,
         if not os.path.exists(path):
             continue
         with open(path, "r", encoding="utf-8") as f:
-            meals = json.load(f)
-        day_cal = round(sum(m.get("cal", 0) for m in meals), 1)
-        daily_totals.append({"date": day, "cal": day_cal})
+            meals = _migrate_meals(json.load(f))
+        day_cal = round(sum(m.get("calories", 0) for m in meals), 1)
+        daily_totals.append({"date": day, "calories": day_cal})
         if day_cal < calorie_floor:
             days_below.append(day)
 
     logged_days = len(daily_totals)
-    avg_cal = round(sum(d["cal"] for d in daily_totals) / logged_days, 1) if logged_days else 0
+    avg_cal = round(sum(d["calories"] for d in daily_totals) / logged_days, 1) if logged_days else 0
 
-    # Flag a warning when the weekly average is below the floor
     below_floor = avg_cal < calorie_floor if logged_days > 0 else False
 
     return {
         "period_end": end.isoformat(),
         "logged_days": logged_days,
         "daily_totals": sorted(daily_totals, key=lambda d: d["date"]),
-        "weekly_avg_cal": avg_cal,
+        "weekly_avg_calories": avg_cal,
         "bmr": bmr,
         "calorie_floor": calorie_floor,
         "days_below_floor": days_below,
@@ -453,41 +462,36 @@ def weekly_low_cal_check(data_dir: str, bmr: float,
     }
 
 
-def _calc_macro_pcts(meals: list):
-    """Calculate macro percentage split from a list of meals.
+# ---------------------------------------------------------------------------
+# Diet pattern detection
+# ---------------------------------------------------------------------------
 
-    Returns {"cal": total, "p_pct": ..., "c_pct": ..., "f_pct": ...}
-    or None if total calories are too low (< 500) for meaningful analysis.
-    """
-    total_cal = sum(m.get("cal", 0) for m in meals)
-    total_p = sum(m.get("p", 0) for m in meals)
-    total_c = sum(m.get("c", 0) for m in meals)
-    total_f = sum(m.get("f", 0) for m in meals)
+def _calc_macro_pcts(meals: list):
+    meals = _migrate_meals(meals)
+    total_cal = sum(m.get("calories", 0) for m in meals)
+    total_p = sum(m.get("protein", 0) for m in meals)
+    total_c = sum(m.get("carbs", 0) for m in meals)
+    total_f = sum(m.get("fat", 0) for m in meals)
 
     if total_cal < 500:
         return None
 
     return {
-        "cal": round(total_cal, 1),
-        "p_pct": round(total_p * 4 / total_cal * 100, 1),
-        "c_pct": round(total_c * 4 / total_cal * 100, 1),
-        "f_pct": round(total_f * 9 / total_cal * 100, 1),
+        "calories": round(total_cal, 1),
+        "protein_pct": round(total_p * 4 / total_cal * 100, 1),
+        "carbs_pct": round(total_c * 4 / total_cal * 100, 1),
+        "fat_pct": round(total_f * 9 / total_cal * 100, 1),
     }
 
 
 def _mode_distance(p_pct: float, c_pct: float, f_pct: float,
                    mode: str) -> float:
-    """Calculate how far a macro split is from a diet mode's expected ranges.
-
-    Returns 0 if all macros fall within the mode's ranges.
-    Otherwise returns the sum of distances outside each range.
-    """
     ranges = DIET_MODE_MACROS.get(mode)
     if not ranges:
         return float("inf")
 
     dist = 0.0
-    for actual, key in [(p_pct, "p"), (c_pct, "c"), (f_pct, "f")]:
+    for actual, key in [(p_pct, "protein"), (c_pct, "carbs"), (f_pct, "fat")]:
         lo, hi = ranges[key]
         if actual < lo:
             dist += lo - actual
@@ -498,32 +502,13 @@ def _mode_distance(p_pct: float, c_pct: float, f_pct: float,
 
 def _matches_mode(p_pct: float, c_pct: float, f_pct: float,
                   mode: str) -> bool:
-    """Check if a macro split falls within a diet mode's ranges."""
     return _mode_distance(p_pct, c_pct, f_pct, mode) == 0
 
 
 def detect_diet_pattern(data_dir: str, current_mode: str,
                         ref_date: str = None) -> dict:
-    """Detect if the user's actual eating pattern over 3 consecutive days
-    differs from their selected diet mode.
-
-    Loads the most recent 3 days (ending on *ref_date*) that have meal data,
-    within a 7-day lookback window. Calculates macro percentage splits for
-    each day and checks consistency against known diet modes.
-
-    Returns:
-      - detected_mode: the diet mode that best matches the actual pattern
-        (None if no consistent pattern found)
-      - mismatch: True if detected_mode differs from current_mode
-      - daily_splits: per-day macro percentages
-      - avg_split: average macro percentages across the 3 days
-      - current_mode_distance: how far the average is from the current mode
-      - detected_mode_distance: how far the average is from the detected mode
-      - pros / cons: brief descriptions for switching to the detected mode
-    """
     end = date.fromisoformat(ref_date) if ref_date else date.today()
 
-    # Collect up to 3 days with data within a 7-day window
     daily_splits: list[dict] = []
     for offset in range(7):
         day = (end - timedelta(days=offset)).isoformat()
@@ -546,21 +531,17 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
             "daily_splits": sorted(daily_splits, key=lambda d: d["date"]),
         }
 
-    # Average macro percentages
-    avg_p = round(sum(d["p_pct"] for d in daily_splits) / 3, 1)
-    avg_c = round(sum(d["c_pct"] for d in daily_splits) / 3, 1)
-    avg_f = round(sum(d["f_pct"] for d in daily_splits) / 3, 1)
-    avg_split = {"p_pct": avg_p, "c_pct": avg_c, "f_pct": avg_f}
+    avg_p = round(sum(d["protein_pct"] for d in daily_splits) / 3, 1)
+    avg_c = round(sum(d["carbs_pct"] for d in daily_splits) / 3, 1)
+    avg_f = round(sum(d["fat_pct"] for d in daily_splits) / 3, 1)
+    avg_split = {"protein_pct": avg_p, "carbs_pct": avg_c, "fat_pct": avg_f}
 
-    # Normalize current_mode: IF modes use balanced macro profile
     effective_current = current_mode
     if current_mode in ("if_16_8", "if_5_2"):
         effective_current = "balanced"
 
-    # Check if the average already matches the current mode
     current_dist = _mode_distance(avg_p, avg_c, avg_f, effective_current)
 
-    # Find the best-matching mode
     best_mode = None
     best_dist = float("inf")
     for mode in DIET_MODE_MACROS:
@@ -569,20 +550,16 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
             best_dist = dist
             best_mode = mode
 
-    # Check if each individual day also matches the detected mode
-    # (consistency check — pattern must hold across all 3 days)
     all_days_match = all(
-        _mode_distance(d["p_pct"], d["c_pct"], d["f_pct"], best_mode) <=
-        _mode_distance(d["p_pct"], d["c_pct"], d["f_pct"], effective_current)
+        _mode_distance(d["protein_pct"], d["carbs_pct"], d["fat_pct"], best_mode) <=
+        _mode_distance(d["protein_pct"], d["carbs_pct"], d["fat_pct"], effective_current)
         for d in daily_splits
     )
 
-    # Determine mismatch
     mismatch = (best_mode != effective_current
                 and best_dist < current_dist
                 and all_days_match)
 
-    # Generate pros/cons for switching
     pros_cons = _get_pros_cons(effective_current, best_mode) if mismatch else None
 
     return {
@@ -601,7 +578,6 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
 
 
 def _get_pros_cons(current_mode: str, detected_mode: str) -> dict:
-    """Return pros and cons of switching from current_mode to detected_mode."""
     mode_info = {
         "balanced": {
             "name": "Balanced / Flexible",
@@ -705,6 +681,10 @@ def _get_pros_cons(current_mode: str, detected_mode: str) -> dict:
         "cons": detected_info.get("cons", []),
     }
 
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(description="Nutrition calculator")

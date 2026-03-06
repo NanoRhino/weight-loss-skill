@@ -63,8 +63,10 @@ Supported `--mode` values: `usda`, `balanced` (default), `high_protein`, `low_ca
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py save \
   --data-dir {workspaceDir}/data/meals \
-  --meal '{"name":"breakfast","cal":379,"p":24,"c":45,"f":12,"foods":[{"name":"boiled eggs x2","cal":144}]}'
+  --meal '{"name":"breakfast","meal_type":"breakfast","calories":379,"protein":24,"carbs":45,"fat":12,"foods":[{"name":"boiled eggs x2","calories":144}]}'
 ```
+
+`meal_type` records the user's original meal designation (e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). In 2-meal mode, `name` is the system slot (`meal_1`/`meal_2`) while `meal_type` preserves what the user actually said (e.g. `"lunch"`, `"dinner"`).
 
 Saves to `data/meals/YYYY-MM-DD.json`. Same meal name overwrites (supports corrections). Returns all saved meals for the day.
 
@@ -80,7 +82,7 @@ Returns all logged meals for the day. **Always load before logging a new entry.*
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py analyze --weight <kg> --cal <kcal> --meals <2|3> \
-  --log '[{"name":"breakfast","cal":379,"p":24,"c":45,"f":12}]'
+  --log '[{"name":"breakfast","calories":379,"protein":24,"carbs":45,"fat":12}]'
 ```
 
 `--log` takes a JSON array of all logged meals for the day (from load or save output).
@@ -91,12 +93,14 @@ python3 {baseDir}/scripts/nutrition-calc.py analyze --weight <kg> --cal <kcal> -
 python3 {baseDir}/scripts/nutrition-calc.py evaluate --weight <kg> --cal <kcal> --meals <2|3> \
   --current-meal "lunch" \
   --log '[...]' \
-  [--assumed '[{"name":"breakfast","cal":450,"p":27,"c":22,"f":14}]']
+  [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]']
 ```
 
 Evaluates cumulative intake at the current checkpoint against range-based targets. Uses min/max ranges for each macro.
 
 Returns: `checkpoint_pct`, `checkpoint_target`, `checkpoint_range`, `actual`, `adjusted` (if any), `status`, `needs_adjustment`, `diff_for_suggestions`, `missing_meals`
+
+All JSON fields use full names: `calories`, `protein`, `carbs`, `fat`. Old short names (`cal`, `p`, `c`, `f`) are auto-migrated on read for backward compatibility.
 
 **Adjustment trigger**: calories outside checkpoint cal range OR 2+ macros outside their checkpoint ranges.
 
@@ -223,8 +227,8 @@ When user describes what they ate:
 3. **Call load** — get today's existing records
 4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
 5. **Check portion clarity** — see Portion Follow-Up Rule below
-6. **Estimate nutrition per food item** — use USDA data for each food's kcal / protein g / carbs g / fat g
-7. **Call save** — persist this meal (with food details)
+6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g
+7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`)
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
 9. **Reply in format** — meal details + nutrition summary + suggestion (use eaten status to select `right_now` vs. `next_meal` — see Response Format)
 
@@ -351,7 +355,7 @@ Every food log reply must contain up to three sections:
 **② Nutrition Summary** (cumulative intake evaluation up to this checkpoint — always show, based on `evaluate` output)
 
 ```
-📊 So far today: XXX / YYYY kcal [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+📊 So far today: XXX / YYYY calories [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
 [1-sentence overall comment]
 ```
 
