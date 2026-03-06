@@ -298,9 +298,31 @@ For non-US locales, follow the same **template (portion guide) + one-day example
 
 ### After Presenting the Diet Template
 
-Once you present the diet template, add the following message (adapt to the user's language):
+Once you present the diet template, **introduce the daily tracking workflow** so the user knows exactly what to expect going forward. This bridges the planning phase into the daily loop — the user should leave this conversation knowing the rhythm of their days ahead.
 
-> Going forward, just follow this template for your meals. Don't stress about getting it perfect — eat according to the template and send me what you had. I'll help you fine-tune from there.
+Present the following message (adapt to the user's language and meal schedule):
+
+> 模板就绪！接下来每天的节奏是这样的：
+>
+> 1. **餐前提醒** — 每餐前 15 分钟我会发消息提醒你
+> 2. **告诉我你吃了什么** — 拍张照片或者简单描述都行，比如"一碗米饭+炒青菜+鸡胸肉"
+> 3. **我来分析** — 帮你估算热量和营养素，看看和目标比怎么样
+> 4. **按需调整** — 如果某一餐偏高或偏低，我会给下一餐的建议
+>
+> 不用追求完美，照着模板吃、随手告诉我就行。我来帮你微调 👍
+>
+> 要不要我再生成一份详细的 7 天食谱？
+
+English equivalent:
+
+> Template's ready! Here's how each day will work:
+>
+> 1. **Pre-meal reminder** — I'll ping you 15 minutes before each meal
+> 2. **Tell me what you eat** — snap a photo or just describe it, like "rice bowl + stir-fried veggies + chicken breast"
+> 3. **I'll analyze** — estimate calories and macros, and see how you're tracking against your targets
+> 4. **Adjust as needed** — if a meal runs high or low, I'll suggest tweaks for the next one
+>
+> Don't stress about perfection — just follow the template and let me know what you had. I'll fine-tune from there 👍
 >
 > Would you like me to create a detailed 7-day meal plan as well?
 
@@ -476,6 +498,16 @@ The user may want to:
 - **Get a grocery list** → add a grocery list section to the HTML file and regenerate.
 
 For any customization, **always regenerate the HTML file** so the user has an up-to-date, complete document.
+
+### Remind Daily Workflow (if not already introduced)
+
+If the user entered Step 4/5 directly (i.e., they said "yes" to the 7-day plan immediately and the daily workflow was already introduced in Step 3), **do not repeat it**. But if for any reason the daily workflow introduction was skipped (e.g., user jumped directly to meal planning from a prior session), include a brief reminder after the plan is finalized:
+
+> 食谱已就绪！提醒一下每天的节奏：餐前 15 分钟我会提醒你 → 你告诉我吃了什么（拍照或描述都行）→ 我来分析并给建议。轻松跟着走就好 👍
+
+English equivalent:
+
+> Meal plan's ready! Quick reminder of the daily rhythm: I'll remind you 15 min before each meal → you tell me what you ate (photo or description) → I'll analyze and suggest adjustments. Easy does it 👍
 
 ---
 
