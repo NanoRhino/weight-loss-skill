@@ -178,17 +178,17 @@ After the user confirms their diet mode, ask about their meal schedule. **Only a
 
 **Wait for the user to answer.**
 
-After the user provides their meal schedule, **tell them you'll send a reminder 15 minutes before each meal** (adapt to the user's language):
+After the user provides their meal schedule, **in the same reply**, confirm the reminder and ask Round 3's question together (adapt to the user's language):
 
 > 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
+>
+> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
 
-Then proceed to Round 3.
+This combines the reminder confirmation with Round 3 in one message to keep the conversation flowing naturally.
 
 ### Round 3: Taste Preferences & Food Restrictions
 
-After the user provides their meal schedule, ask about taste and restrictions:
-
-> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
+(Already asked above together with the reminder confirmation.)
 
 (Adapt language to match the user.)
 
