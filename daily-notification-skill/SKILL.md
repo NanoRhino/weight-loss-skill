@@ -29,20 +29,8 @@ up to 3x/day, weight reminders 2x/week, delivered as in-app chat.
 
 ### Schedule
 
-Read meal times from workspace file `USER.md` → `Goals > Meal Times`.
+Read meal times from `USER.md` → `Goals > Meal Times`.
 Reminders fire 15 min before each meal.
-
-Example — this user's profile:
-```markdown
-- **Meals per Day:** 3
-- **Meal Times:** 07:00 breakfast, 12:00 lunch, 18:00 dinner
-```
-→ Reminders at 6:45, 11:45, 17:45.
-Weight reminders: Mon & Thu, at breakfast time minus 30 min (6:30).
-Weigh-in must be done on an empty stomach (before eating) for consistency.
-
-First reminder ever → confirm schedule with actual calculated times from the profile.
-(See "First Day Experience" below for the full flow.)
 
 ### Scheduling Reminders
 
@@ -390,8 +378,6 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 
 Status values: `"logged"` / `"skipped"` / `"no_reply"`
 Full JSON schemas: `references/data-schemas.md`
-
----
 
 ---
 
