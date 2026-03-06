@@ -104,24 +104,6 @@ When planning meals, use the **midpoint** of each range as the planning target. 
 
 **Why this matters:** A meal plan full of chicken breast and sweet potatoes is useless for someone in Shanghai who eats rice, tofu, and bok choy daily. The plan must reflect foods the user can actually buy and wants to eat.
 
-### Western Diet Acceptance Check (Chinese Users Only)
-
-When the user's locale resolves to **China** (via explicit statement, USER.md, or language inference), ask **before proceeding to diet mode or meal planning** whether they are open to Western-style foods. Present three options (in the user's language, i.e., Chinese) with concrete examples so the user understands what "Western-style" means in this context — e.g., whole-wheat bread, pasta, steak, salad, oatmeal, Greek yogurt:
-
-1. **Chinese only** — All ingredients and cooking methods are Chinese. No Western staples.
-2. **Mostly Chinese, some Western OK** — Mainly Chinese meals, but Western options are fine occasionally (e.g., oatmeal for breakfast, yogurt as a snack).
-3. **Mixed, anything goes** — Freely combine Chinese and Western foods, whatever is tasty and convenient.
-
-**How to use the answer:**
-
-| Choice | Meal Plan Behavior |
-|--------|-------------------|
-| **Chinese only** | All meals use Chinese ingredients, cooking methods, and meal structures. No Western staples (oatmeal, pasta, Greek yogurt, cheese, whole-wheat bread, etc.). Snacks use Chinese options (fruit, nuts, soy milk, boiled eggs, whole-grain buns). |
-| **Mostly Chinese, some Western OK** | Default to Chinese meals for lunch and dinner. Allow Western-style options for breakfast and snacks where convenient (e.g., oatmeal, yogurt, whole-wheat toast). Never force Western items into main meals. |
-| **Mixed, anything goes** | Freely mix Chinese and Western foods across all meals. Optimize for nutrition, variety, and convenience without cuisine restrictions. |
-
-If the user has already expressed a cuisine-style preference in `health-preferences.md` (e.g., a prior entry like "Chinese food only" or "OK with Western food" in the Dietary section), respect that and skip this question. When the user answers, **silently append** their choice to `health-preferences.md > Dietary` with a date stamp (e.g., `- [YYYY-MM-DD] Cuisine style: mostly Chinese, some Western OK`).
-
 ### Dietary Preferences & Practical Constraints
 
 Check `health-profile.md` and `health-preferences.md` first. If not available, ask the user. You need:
@@ -321,6 +303,41 @@ Once you present the diet template, add the following message (adapt to the user
 > Going forward, just follow this template for your meals. Don't stress about getting it perfect — eat according to the template and send me what you had. I'll help you fine-tune from there.
 >
 > Would you like me to create a detailed 7-day meal plan as well?
+
+### Create Meal Reminders (Silent)
+
+After presenting the diet template, **silently create the meal reminder cron jobs** using the `scheduled-reminders` skill. This is the first point in the flow where `health-profile.md > Meal Schedule` is populated — so this is where the `daily-notification-skill`'s cron jobs must be bootstrapped.
+
+1. Read meal times from `health-profile.md > Meal Schedule` (written in Step 1.5 Round 2).
+2. For each meal, create a recurring cron job firing **15 minutes before** the meal time.
+3. Also create the weight reminder cron job (Mon & Thu, 30 min before breakfast).
+
+```bash
+# Example: user eats breakfast 8:00, lunch 12:00, dinner 18:30
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Breakfast reminder" \
+  --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates, rotating across all 5 techniques." \
+  --cron "45 7 * * *"
+
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Lunch reminder" \
+  --message "Send a friendly lunch reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
+  --cron "45 11 * * *"
+
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Dinner reminder" \
+  --message "Send a friendly dinner reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
+  --cron "15 18 * * *"
+
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Weight check-in reminder" \
+  --message "Today is weigh-in day. Send a casual weight check-in reminder. Keep the tone gentle and emphasize it's optional. Refer to the daily-notification skill weight reminder templates." \
+  --cron "30 7 * * 1,4"
+```
+
+Derive actual cron times from the user's `health-profile.md > Meal Schedule`. **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`.
+
+Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent.
 
 **Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user doesn't ask for it, stop here — the diet template is sufficient to start.
 

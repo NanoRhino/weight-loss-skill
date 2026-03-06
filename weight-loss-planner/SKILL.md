@@ -203,7 +203,7 @@ The Plan Presentation from Step 2 IS the final plan. Present it following the sa
 
 Do not tell the user the filename, file format, or that a file is being saved.
 
-**Do NOT repeat meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled separately by the `daily-notification-skill` and were already configured during onboarding. Do not mention, summarize, or re-confirm any reminder schedule after the plan is generated — this information is redundant and disrupts the flow.
+**Do NOT mention meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled by the `daily-notification-skill` and will be configured automatically when the `meal-planner` skill collects the user's meal schedule. Do not mention, summarize, or set up any reminder schedule during the weight-loss planning phase.
 
 **Transition to Meal Planner** — Once the plan is confirmed, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target from the conversation context and collect diet preferences (diet mode, meal schedule, taste/restrictions) on its own. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
 
