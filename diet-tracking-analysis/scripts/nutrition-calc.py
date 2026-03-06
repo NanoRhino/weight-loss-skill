@@ -71,6 +71,19 @@ DIET_MODE_FAT = {
     "if_5_2":        (25, 35),
 }
 
+# Diet mode → full macro percentage ranges for pattern detection.
+# protein (low%, high%), carb (low%, high%), fat (low%, high%)
+# IF modes are timing strategies; their macro profile matches balanced.
+DIET_MODE_MACROS = {
+    "usda":          {"p": (10, 35), "c": (45, 65), "f": (20, 35)},
+    "balanced":      {"p": (25, 35), "c": (35, 45), "f": (25, 35)},
+    "high_protein":  {"p": (35, 45), "c": (25, 35), "f": (25, 35)},
+    "low_carb":      {"p": (30, 40), "c": (15, 25), "f": (40, 50)},
+    "keto":          {"p": (20, 25), "c": (5, 10),  "f": (65, 75)},
+    "mediterranean": {"p": (20, 30), "c": (40, 50), "f": (25, 35)},
+    "plant_based":   {"p": (20, 30), "c": (45, 55), "f": (20, 30)},
+}
+
 
 def get_meal_blocks(meals: int) -> list:
     return MEAL_BLOCKS_3 if meals == 3 else MEAL_BLOCKS_2
@@ -440,6 +453,259 @@ def weekly_low_cal_check(data_dir: str, bmr: float,
     }
 
 
+def _calc_macro_pcts(meals: list) -> dict | None:
+    """Calculate macro percentage split from a list of meals.
+
+    Returns {"cal": total, "p_pct": ..., "c_pct": ..., "f_pct": ...}
+    or None if total calories are too low (< 500) for meaningful analysis.
+    """
+    total_cal = sum(m.get("cal", 0) for m in meals)
+    total_p = sum(m.get("p", 0) for m in meals)
+    total_c = sum(m.get("c", 0) for m in meals)
+    total_f = sum(m.get("f", 0) for m in meals)
+
+    if total_cal < 500:
+        return None
+
+    return {
+        "cal": round(total_cal, 1),
+        "p_pct": round(total_p * 4 / total_cal * 100, 1),
+        "c_pct": round(total_c * 4 / total_cal * 100, 1),
+        "f_pct": round(total_f * 9 / total_cal * 100, 1),
+    }
+
+
+def _mode_distance(p_pct: float, c_pct: float, f_pct: float,
+                   mode: str) -> float:
+    """Calculate how far a macro split is from a diet mode's expected ranges.
+
+    Returns 0 if all macros fall within the mode's ranges.
+    Otherwise returns the sum of distances outside each range.
+    """
+    ranges = DIET_MODE_MACROS.get(mode)
+    if not ranges:
+        return float("inf")
+
+    dist = 0.0
+    for actual, key in [(p_pct, "p"), (c_pct, "c"), (f_pct, "f")]:
+        lo, hi = ranges[key]
+        if actual < lo:
+            dist += lo - actual
+        elif actual > hi:
+            dist += actual - hi
+    return dist
+
+
+def _matches_mode(p_pct: float, c_pct: float, f_pct: float,
+                  mode: str) -> bool:
+    """Check if a macro split falls within a diet mode's ranges."""
+    return _mode_distance(p_pct, c_pct, f_pct, mode) == 0
+
+
+def detect_diet_pattern(data_dir: str, current_mode: str,
+                        ref_date: str = None) -> dict:
+    """Detect if the user's actual eating pattern over 3 consecutive days
+    differs from their selected diet mode.
+
+    Loads the most recent 3 days (ending on *ref_date*) that have meal data,
+    within a 7-day lookback window. Calculates macro percentage splits for
+    each day and checks consistency against known diet modes.
+
+    Returns:
+      - detected_mode: the diet mode that best matches the actual pattern
+        (None if no consistent pattern found)
+      - mismatch: True if detected_mode differs from current_mode
+      - daily_splits: per-day macro percentages
+      - avg_split: average macro percentages across the 3 days
+      - current_mode_distance: how far the average is from the current mode
+      - detected_mode_distance: how far the average is from the detected mode
+      - pros / cons: brief descriptions for switching to the detected mode
+    """
+    end = date.fromisoformat(ref_date) if ref_date else date.today()
+
+    # Collect up to 3 days with data within a 7-day window
+    daily_splits: list[dict] = []
+    for offset in range(7):
+        day = (end - timedelta(days=offset)).isoformat()
+        path = get_log_path(data_dir, day)
+        if not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            meals = json.load(f)
+        pcts = _calc_macro_pcts(meals)
+        if pcts is not None:
+            daily_splits.append({"date": day, **pcts})
+        if len(daily_splits) >= 3:
+            break
+
+    if len(daily_splits) < 3:
+        return {
+            "has_pattern": False,
+            "reason": "insufficient_data",
+            "days_found": len(daily_splits),
+            "daily_splits": sorted(daily_splits, key=lambda d: d["date"]),
+        }
+
+    # Average macro percentages
+    avg_p = round(sum(d["p_pct"] for d in daily_splits) / 3, 1)
+    avg_c = round(sum(d["c_pct"] for d in daily_splits) / 3, 1)
+    avg_f = round(sum(d["f_pct"] for d in daily_splits) / 3, 1)
+    avg_split = {"p_pct": avg_p, "c_pct": avg_c, "f_pct": avg_f}
+
+    # Normalize current_mode: IF modes use balanced macro profile
+    effective_current = current_mode
+    if current_mode in ("if_16_8", "if_5_2"):
+        effective_current = "balanced"
+
+    # Check if the average already matches the current mode
+    current_dist = _mode_distance(avg_p, avg_c, avg_f, effective_current)
+
+    # Find the best-matching mode
+    best_mode = None
+    best_dist = float("inf")
+    for mode in DIET_MODE_MACROS:
+        dist = _mode_distance(avg_p, avg_c, avg_f, mode)
+        if dist < best_dist:
+            best_dist = dist
+            best_mode = mode
+
+    # Check if each individual day also matches the detected mode
+    # (consistency check — pattern must hold across all 3 days)
+    all_days_match = all(
+        _mode_distance(d["p_pct"], d["c_pct"], d["f_pct"], best_mode) <=
+        _mode_distance(d["p_pct"], d["c_pct"], d["f_pct"], effective_current)
+        for d in daily_splits
+    )
+
+    # Determine mismatch
+    mismatch = (best_mode != effective_current
+                and best_dist < current_dist
+                and all_days_match)
+
+    # Generate pros/cons for switching
+    pros_cons = _get_pros_cons(effective_current, best_mode) if mismatch else None
+
+    return {
+        "has_pattern": mismatch,
+        "current_mode": current_mode,
+        "effective_current_mode": effective_current,
+        "detected_mode": best_mode if mismatch else None,
+        "current_mode_distance": round(current_dist, 1),
+        "detected_mode_distance": round(best_dist, 1),
+        "avg_split": avg_split,
+        "daily_splits": sorted(daily_splits, key=lambda d: d["date"]),
+        "days_found": len(daily_splits),
+        "all_days_consistent": all_days_match,
+        "pros_cons": pros_cons,
+    }
+
+
+def _get_pros_cons(current_mode: str, detected_mode: str) -> dict:
+    """Return pros and cons of switching from current_mode to detected_mode."""
+    mode_info = {
+        "balanced": {
+            "name": "Balanced / Flexible",
+            "pros": [
+                "No food restrictions — highest flexibility and adherence",
+                "Easy to maintain long-term",
+                "Well-suited for beginners",
+            ],
+            "cons": [
+                "Less targeted than specialized modes",
+                "Requires tracking to stay on course",
+            ],
+        },
+        "high_protein": {
+            "name": "High-Protein",
+            "pros": [
+                "Better muscle preservation during calorie deficit",
+                "Higher satiety — feel fuller longer",
+                "Increased thermic effect of food",
+            ],
+            "cons": [
+                "Can feel monotonous — requires rotating protein sources",
+                "May be harder to hit protein targets consistently",
+                "Higher food cost (protein sources tend to be pricier)",
+            ],
+        },
+        "low_carb": {
+            "name": "Low-Carb",
+            "pros": [
+                "Reduced hunger and more stable energy for many people",
+                "Lower insulin response",
+                "Can reduce bloating",
+            ],
+            "cons": [
+                "Fiber intake may drop — need to eat plenty of vegetables",
+                "Can feel restrictive for carb lovers",
+                "May reduce exercise performance initially",
+            ],
+        },
+        "keto": {
+            "name": "Keto",
+            "pros": [
+                "Strong appetite suppression after adaptation",
+                "High fat intake increases meal satisfaction",
+            ],
+            "cons": [
+                "Extremely restrictive — hard to sustain socially",
+                "Keto flu during adaptation (1-2 weeks)",
+                "Risk of nutrient deficiencies without careful planning",
+                "Not recommended below 1,800 cal/day",
+            ],
+        },
+        "mediterranean": {
+            "name": "Mediterranean",
+            "pros": [
+                "Strong evidence for cardiovascular health",
+                "Feels like eating well rather than dieting",
+                "Rich in healthy fats and whole foods",
+            ],
+            "cons": [
+                "Olive oil and nuts are calorie-dense — portions need care",
+                "May require more cooking and meal prep",
+            ],
+        },
+        "plant_based": {
+            "name": "Plant-Based",
+            "pros": [
+                "High fiber naturally increases satiety",
+                "Associated with lower heart disease risk",
+                "Often lower calorie density",
+            ],
+            "cons": [
+                "Hitting protein targets is harder without animal products",
+                "Requires more intentional meal planning",
+                "May need B12 and other supplements",
+            ],
+        },
+        "usda": {
+            "name": "Healthy U.S.-Style (USDA)",
+            "pros": [
+                "Government-backed, evidence-based guidelines",
+                "No food groups excluded — very flexible",
+                "Good baseline for general health",
+            ],
+            "cons": [
+                "Broad ranges may feel too vague for specific goals",
+                "Less targeted for weight loss than specialized modes",
+            ],
+        },
+    }
+
+    detected_info = mode_info.get(detected_mode, {})
+    current_info = mode_info.get(current_mode, {})
+
+    return {
+        "switch_to": detected_mode,
+        "switch_to_name": detected_info.get("name", detected_mode),
+        "switch_from": current_mode,
+        "switch_from_name": current_info.get("name", current_mode),
+        "pros": detected_info.get("pros", []),
+        "cons": detected_info.get("cons", []),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Nutrition calculator")
     sub = parser.add_subparsers(dest="cmd")
@@ -498,6 +764,16 @@ def main():
     wlc.add_argument("--date", type=str, default=None,
                      help="End date for the 7-day window (YYYY-MM-DD), default today")
 
+    ddp = sub.add_parser("detect-diet-pattern",
+                          help="Detect if eating pattern differs from selected diet mode")
+    ddp.add_argument("--data-dir", type=str, required=True,
+                     help="Directory with daily JSON logs")
+    ddp.add_argument("--current-mode", type=str, required=True,
+                     choices=list(DIET_MODE_FAT.keys()),
+                     help="User's currently selected diet mode")
+    ddp.add_argument("--date", type=str, default=None,
+                     help="End date for the 3-day window (YYYY-MM-DD), default today")
+
     args = parser.parse_args()
 
     if args.cmd == "target":
@@ -542,6 +818,8 @@ def main():
         result = check_missing(args.meals, args.current_meal, log)
     elif args.cmd == "weekly-low-cal-check":
         result = weekly_low_cal_check(args.data_dir, args.bmr, args.date)
+    elif args.cmd == "detect-diet-pattern":
+        result = detect_diet_pattern(args.data_dir, args.current_mode, args.date)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

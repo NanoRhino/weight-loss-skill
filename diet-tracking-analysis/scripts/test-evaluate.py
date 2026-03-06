@@ -222,6 +222,104 @@ def test_weekly_low_cal_check_floor_minimum(tmp_dir: str):
     print("✅ test_weekly_low_cal_check_floor_minimum passed")
 
 
+def test_detect_diet_pattern_mismatch(tmp_dir: str):
+    """Detect pattern: user on balanced but eating high-protein for 3 days."""
+    # Create 3 days of high-protein meals (protein ~40%, carbs ~30%, fat ~30%)
+    for offset in range(3):
+        day = f"2026-03-{4 - offset:02d}"
+        meals = [
+            {"name": "breakfast", "cal": 400, "p": 45, "c": 25, "f": 12},
+            {"name": "lunch", "cal": 600, "p": 65, "c": 40, "f": 18},
+            {"name": "dinner", "cal": 500, "p": 55, "c": 35, "f": 15},
+        ]
+        for m in meals:
+            run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(m), "--date", day])
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    assert r["has_pattern"] == True, f"Expected mismatch, got {r}"
+    assert r["detected_mode"] == "high_protein", f"Expected high_protein, got {r['detected_mode']}"
+    assert r["pros_cons"] is not None
+    assert len(r["pros_cons"]["pros"]) > 0
+    assert len(r["pros_cons"]["cons"]) > 0
+    print("✅ test_detect_diet_pattern_mismatch passed")
+
+
+def test_detect_diet_pattern_no_mismatch(tmp_dir: str):
+    """No pattern when eating matches current mode (balanced)."""
+    # Create 3 days of balanced meals (protein ~30%, carbs ~40%, fat ~30%)
+    for offset in range(3):
+        day = f"2026-03-{4 - offset:02d}"
+        meals = [
+            {"name": "breakfast", "cal": 400, "p": 30, "c": 42, "f": 13},
+            {"name": "lunch", "cal": 600, "p": 45, "c": 63, "f": 20},
+            {"name": "dinner", "cal": 500, "p": 38, "c": 52, "f": 17},
+        ]
+        for m in meals:
+            run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(m), "--date", day])
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    assert r["has_pattern"] == False, f"Expected no mismatch, got {r}"
+    print("✅ test_detect_diet_pattern_no_mismatch passed")
+
+
+def test_detect_diet_pattern_insufficient_data(tmp_dir: str):
+    """Insufficient data: less than 3 days with meals."""
+    # Create only 2 days
+    for offset in range(2):
+        day = f"2026-03-{4 - offset:02d}"
+        meals = [{"name": "lunch", "cal": 600, "p": 65, "c": 40, "f": 18}]
+        for m in meals:
+            run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(m), "--date", day])
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    assert r["has_pattern"] == False
+    assert r["reason"] == "insufficient_data"
+    assert r["days_found"] == 2
+    print("✅ test_detect_diet_pattern_insufficient_data passed")
+
+
+def test_detect_diet_pattern_low_carb(tmp_dir: str):
+    """Detect low-carb pattern when user is on balanced."""
+    # Create 3 days of low-carb meals (protein ~35%, carbs ~20%, fat ~45%)
+    for offset in range(3):
+        day = f"2026-03-{4 - offset:02d}"
+        meals = [
+            {"name": "breakfast", "cal": 450, "p": 35, "c": 20, "f": 23},
+            {"name": "lunch", "cal": 600, "p": 48, "c": 28, "f": 30},
+            {"name": "dinner", "cal": 500, "p": 40, "c": 23, "f": 25},
+        ]
+        for m in meals:
+            run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(m), "--date", day])
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    assert r["has_pattern"] == True, f"Expected mismatch, got {r}"
+    assert r["detected_mode"] == "low_carb", f"Expected low_carb, got {r['detected_mode']}"
+    print("✅ test_detect_diet_pattern_low_carb passed")
+
+
+def test_detect_diet_pattern_if_mode(tmp_dir: str):
+    """IF mode uses balanced macro profile for comparison."""
+    # Create 3 days of balanced meals — should NOT trigger for if_16_8
+    for offset in range(3):
+        day = f"2026-03-{4 - offset:02d}"
+        meals = [
+            {"name": "meal_1", "cal": 750, "p": 56, "c": 79, "f": 25},
+            {"name": "meal_2", "cal": 750, "p": 56, "c": 79, "f": 25},
+        ]
+        for m in meals:
+            run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(m), "--date", day])
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "if_16_8", "--date", "2026-03-04"])
+    assert r["has_pattern"] == False, f"Expected no mismatch for IF mode with balanced macros"
+    assert r["effective_current_mode"] == "balanced"
+    print("✅ test_detect_diet_pattern_if_mode passed")
+
+
 def main():
     import tempfile
     tmp_dir = tempfile.mkdtemp()
@@ -250,6 +348,20 @@ def main():
     test_weekly_low_cal_check_above(wlc_dir_above)
     test_weekly_low_cal_check_no_data(wlc_dir_empty)
     test_weekly_low_cal_check_floor_minimum(wlc_dir_floor)
+
+    # Diet pattern detection tests
+    ddp_mismatch = os.path.join(tmp_dir, "ddp_mismatch")
+    ddp_no_mismatch = os.path.join(tmp_dir, "ddp_no_mismatch")
+    ddp_insufficient = os.path.join(tmp_dir, "ddp_insufficient")
+    ddp_low_carb = os.path.join(tmp_dir, "ddp_low_carb")
+    ddp_if_mode = os.path.join(tmp_dir, "ddp_if_mode")
+    for d in [ddp_mismatch, ddp_no_mismatch, ddp_insufficient, ddp_low_carb, ddp_if_mode]:
+        os.makedirs(d, exist_ok=True)
+    test_detect_diet_pattern_mismatch(ddp_mismatch)
+    test_detect_diet_pattern_no_mismatch(ddp_no_mismatch)
+    test_detect_diet_pattern_insufficient_data(ddp_insufficient)
+    test_detect_diet_pattern_low_carb(ddp_low_carb)
+    test_detect_diet_pattern_if_mode(ddp_if_mode)
 
     print("\n🎉 All tests passed!")
 
