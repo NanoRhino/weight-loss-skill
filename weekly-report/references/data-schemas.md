@@ -151,35 +151,35 @@ Stores structured data for cross-week trend analysis and historical reference.
 The weekly report aggregates data from these existing schemas. It does not
 define new input schemas — all inputs are produced by other skills.
 
-| Source | Schema Owner | Path |
-|--------|-------------|------|
-| Meal logs | diet-tracking-analysis, daily-notification | `logs.meals.{date}.{meal_type}` |
-| Weight logs | daily-notification | `logs.weight.{date}` |
-| Daily summaries | daily-notification | `logs.daily_summary.{date}` |
-| User identity | user-onboarding-profile | `USER.md` |
-| Health profile | user-onboarding-profile | `health-profile.md` |
-| Health preferences | user-onboarding-profile + all skills | `health-preferences.md` |
-| Weight loss plan | weight-loss-planner | `PLAN.md` |
-| Previous weekly reports | weekly-report | `logs.weekly_report.{start_date}` |
+| Source | Schema Owner | Path | How to read |
+|--------|-------------|------|-------------|
+| Meal logs | diet-tracking-analysis | `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load --date YYYY-MM-DD` |
+| Weight logs | weight-tracking | `data/weight.json` | `weight-tracker.py load --from <start> --to <end> --display-unit <unit>` |
+| User identity | user-onboarding-profile | `USER.md` | direct read |
+| Health profile | user-onboarding-profile | `health-profile.md` | direct read |
+| Health preferences | user-onboarding-profile + all skills | `health-preferences.md` | direct read |
+| Weight loss plan | weight-loss-planner | `PLAN.md` | direct read |
+| Previous weekly reports | weekly-report | `logs.weekly_report.{start_date}` | direct read |
 
 ### Cross-Reference: Meal Log Fields Used
 
-From `logs.meals.{date}.{meal_type}`:
+From `data/meals/YYYY-MM-DD.json` (array of meal objects):
 
 | Field | Used For |
 |-------|----------|
-| `status` | Logging overview (logged/skipped/no_reply) |
-| `estimated_calories` | Daily calorie totals |
-| `food_description` | Achievement pattern detection (variety, streaks) |
+| `name` | Meal type identification |
+| `cal` | Daily calorie totals |
+| `p`, `c`, `f` | Macro analysis |
+| `foods[].name` | Achievement pattern detection (variety, streaks) |
 
-From `logs.daily_summary.{date}`:
+### Cross-Reference: Weight Log Fields Used
+
+From `data/weight.json` (object keyed by ISO-8601 datetime):
 
 | Field | Used For |
 |-------|----------|
-| `meals.{meal_type}.status` | Logging overview |
-| `meals.{meal_type}.estimated_calories` | Calorie analysis |
-| `weight.value` | Weight progress |
-| `weight.unit` | Unit preference detection |
+| `value` | Weight progress, trend calculation |
+| `unit` | Original unit (converted to display unit by script) |
 
 ### Cross-Reference: PLAN.md Fields Used
 

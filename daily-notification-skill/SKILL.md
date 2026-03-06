@@ -84,7 +84,7 @@ Run in order. Any fail = don't send.
 1. Quiet hours? Read `timezone.json` to get user's local time. Before 6 AM / after 9 PM local time → skip
 2. User in silent mode? (Stage 4) → skip
 3. Soft-restart active? (check `engagement.reminder_config`) → skip if this meal is not yet restored (see Soft Restart)
-4. This meal already logged today? (check `logs.meals.{date}`) → skip
+4. This meal already logged today? (call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal exists) → skip
 5. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
 6. All clear → send
 
@@ -202,10 +202,10 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 ### Weight Reminder Rules
 
 - **Mon & Thu only.** Max 2x/week. Always framed as optional.
-- Reminder time = breakfast time from `Goals > Meal Times` minus 30 min. Always remind user to weigh **on an empty stomach** (before eating). If user has already eaten, still accept the reading but tag it internally as `fasting: false`.
+- Reminder time = breakfast time from `health-profile.md > Meal Schedule` minus 30 min. Always remind user to weigh **on an empty stomach** (before eating). If user has already eaten, still accept the reading but tag it internally as `fasting: false`.
 - If `Health Flags` contains `avoid_weight_focus` or `history_of_ed` → never send.
 - Never show the user's target weight or last weigh-in in the reminder message.
-- Use `Basic Info > Weight` as baseline for internal trend detection only.
+- Check whether user already weighed today: call `weight-tracker.py load --data-dir {workspaceDir}/data --display-unit <unit from health-profile.md> --last 1` and check if the last entry is from today. If so, skip.
 
 ---
 
@@ -373,32 +373,32 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 
 | Field | Purpose |
 |-------|---------|
-| `Body > Current Weight` | Baseline for trend detection (internal only) |
+| `Body > Unit Preference` | Display unit for weight (kg or lb) |
 | `Meal Schedule > Meals per Day` | Max reminders per day (e.g. `3`) |
 | `Meal Schedule > Breakfast/Lunch/Dinner` | Reminder schedule (e.g. `08:00 breakfast, 12:30 lunch, 19:00 dinner`) |
 | `Goals > Target Weight` | Never show to user in reminders |
 | `Diet Config > Food Restrictions` | Respect in tips (e.g. don't suggest pork if restricted) |
 | `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
 
-### Reads from logs (workspace)
+### Reads from data (workspace)
 
-| Path | Purpose |
-|------|---------|
-| `logs.meals.{date}` | Skip reminder if meal already logged |
-| `logs.weight.{date}` | Skip reminder if already weighed |
-| `engagement.last_interaction` | Stage detection |
+| Path | How | Purpose |
+|------|-----|---------|
+| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load` | Skip reminder if meal already logged |
+| `data/weight.json` | `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
+| `engagement.last_interaction` | direct read | Stage detection |
 
 ### Writes
 
-| Path | When |
-|------|------|
-| `logs.weight.{date}` | User reports weight: `{ value, unit, recorded_at, reminder_sent_at }` |
-| `logs.meals.{date}.{meal_type}` | Every reminder: `{ status, food_description, estimated_calories, reminder_sent_at, replied_at }` |
-| `logs.daily_summary.{date}` | 9 PM auto-summary: all records + engagement stats |
-| `flags.*` | Safety signals |
-| `engagement.notification_stage` | Stage 1/2/3/4 |
-| `engagement.reminder_config` | Adaptive timing changes |
-| `engagement.days_since_first_reminder` | Tracks warm-up period (day 1-3 = limited techniques) |
+| Path | How | When |
+|------|-----|------|
+| `data/weight.json` | `weight-tracker.py save --data-dir {workspaceDir}/data --value <v> --unit <u> --tz-offset <offset>` | User reports weight in response to reminder |
+| `flags.*` | direct write | Safety signals |
+| `engagement.notification_stage` | direct write | Stage 1/2/3/4 |
+| `engagement.reminder_config` | direct write | Adaptive timing changes |
+| `engagement.days_since_first_reminder` | direct write | Tracks warm-up period (day 1-3 = limited techniques) |
+
+**Note:** Weight data is managed by the `weight-tracking` skill's `weight-tracker.py` script located at `{weight-tracking:baseDir}/scripts/weight-tracker.py`. Meal data is read via `nutrition-calc.py load` from the `diet-tracking-analysis` skill.
 
 Status values: `"logged"` / `"skipped"` / `"no_reply"`
 Full JSON schemas: `references/data-schemas.md`

@@ -226,8 +226,7 @@ When user describes what they ate:
 6. **Estimate nutrition per food item** — use USDA data for each food's kcal / protein g / carbs g / fat g
 7. **Call save** — persist this meal (with food details)
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
-9. **Update `memory.md`** — read existing file, append or update this meal's record and daily total (see Diet Check-In Memory section)
-10. **Reply in format** — meal details + nutrition summary + suggestion (use eaten status to select `right_now` vs. `next_meal` — see Response Format)
+9. **Reply in format** — meal details + nutrition summary + suggestion (use eaten status to select `right_now` vs. `next_meal` — see Response Format)
 
 ### Missing Meal Handling
 
@@ -400,54 +399,10 @@ Every food log reply must contain up to three sections:
 ## Special Scenarios
 
 - **Forgotten meals**: progress shows actual values only; suggestions use assumed standard values (avoids compensatory overeating)
-- **Correcting a record**: user fixes portion → re-run `save` (overwrites) → re-run `evaluate` → update `memory.md` (overwrite the corrected meal's entry)
+- **Correcting a record**: user fixes portion → re-run `save` (overwrites) → re-run `evaluate`
 - **New day**: starts from zero
 - **Default portions**: rice bowl ≈ 150g, egg ≈ 50g, milk cup ≈ 250ml, vegetable plate ≈ 200g, bread slice ≈ 35g, chicken breast ≈ 120g
 - **Data source**: USDA FoodData Central primary; for regional foods not well-covered by USDA, use local food composition databases (e.g. China CDC for Chinese foods)
-
----
-
-## Diet Check-In Memory (`memory.md`)
-
-After every food log (save), **append or update** the check-in record in `{workspaceDir}/memory.md`. This file serves as a persistent, human-readable diary of all diet check-ins across conversations.
-
-### Format
-
-```markdown
-# Diet Check-In Records
-
-## YYYY-MM-DD
-
-### Breakfast
-- Food 1 — portion — XXX kcal
-- Food 2 — portion — XXX kcal
-- **Total: XXX kcal | P Xg | C Xg | F Xg**
-
-### Lunch
-- Food 1 — portion — XXX kcal
-- **Total: XXX kcal | P Xg | C Xg | F Xg**
-
-### Dinner
-...
-
-**Daily total: XXXX / YYYY kcal | P Xg | C Xg | F Xg**
-
----
-
-## YYYY-MM-DD (older)
-...
-```
-
-### Rules
-
-1. **Write after every save** — whenever `save` is called and succeeds, update `memory.md` to reflect the current state
-2. **Corrections overwrite** — if the user corrects a meal (re-saves with the same meal name), update that meal's section in `memory.md` rather than appending a duplicate
-3. **Skipped meals** — if a meal is marked as skipped, record it as `### [Meal type]\n- Skipped` so the record shows all meals were accounted for
-4. **Assumed/forgotten meals** — do NOT write assumed meals to `memory.md`; only record what the user actually reported
-5. **Daily total** — update the `**Daily total**` line at the bottom of each day's section after every save, reflecting cumulative actual intake
-6. **Date order** — newest dates at the top of the file; within a day, meals appear in chronological order (breakfast → lunch → dinner, with snacks in their time slot)
-7. **Read before write** — always read the existing `memory.md` first to preserve prior records, then update or append as needed
-8. **Create if missing** — if `memory.md` does not exist yet, create it with the `# Diet Check-In Records` header
 
 ---
 
@@ -466,6 +421,7 @@ This skill is **Priority Tier P2 (Data Logging)**. Defer to P0 (safety) and
 P1 (emotional support) when those signals are detected.
 
 ---
+
 
 ## Reference Files
 

@@ -62,7 +62,7 @@ User can request a report at any time:
 
 | Field | Purpose |
 |-------|---------|
-| `Body > Current Weight` | Baseline reference (initial weight) |
+| `Body > Unit Preference` | Display unit for weight (kg or lb) |
 | `Goals > Target Weight` | Progress percentage calculation |
 | `Meal Schedule > Meals per Day` | Expected logs per day (for logging rate calc) |
 | `Meal Schedule` | Which meals to expect |
@@ -80,16 +80,17 @@ User can request a report at any time:
 | `Weight Loss Rate` | Expected weekly loss for progress assessment |
 | `Diet Mode` | Context for suggestions |
 
-### Reads from logs (workspace)
+### Reads from data (workspace)
 
-| Path | Purpose |
-|------|---------|
-| `logs.meals.{date}.{meal_type}` | Logging status, food descriptions, estimated calories per meal |
-| `logs.weight.{date}` | Weight readings for the week |
-| `logs.daily_summary.{date}` | Pre-compiled daily totals and engagement stats |
-| `habits.active` | Current active habits for habit progress section |
-| `habits.daily_log.{date}` | Daily habit completion/miss/no_response records |
-| `habits.graduated` | Recently graduated habits for achievements section |
+| Path | How | Purpose |
+|------|-----|---------|
+| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load --date YYYY-MM-DD` for each day in range | Logging status, food descriptions, estimated calories per meal |
+| `data/weight.json` | `weight-tracker.py load --from YYYY-MM-DD --to YYYY-MM-DD --display-unit <unit>` | Weight readings for the week |
+| `habits.active` | direct read | Current active habits for habit progress section |
+| `habits.daily_log.{date}` | direct read | Daily habit completion/miss/no_response records |
+| `habits.graduated` | direct read | Recently graduated habits for achievements section |
+
+**Note:** Weight data is read via the `weight-tracking` skill's `weight-tracker.py` script at `{weight-tracking:baseDir}/scripts/weight-tracker.py`. Read `health-profile.md > Body > Unit Preference` for the display unit. Meal data is read via `nutrition-calc.py load` from the `diet-tracking-analysis` skill.
 
 ---
 
@@ -118,7 +119,7 @@ Show each day of the week with a status indicator for whether the user logged
 meals that day.
 
 **Data logic:**
-- For each day (Mon–Sun), check `logs.meals.{date}`:
+- For each day (Mon–Sun), call `nutrition-calc.py load --date YYYY-MM-DD` to check:
   - If at least 1 meal has `status: "logged"` → ✅
   - If all meals are `"skipped"` or `"no_reply"` or no log exists → ❌
 - Count total days with ✅ → `{X}/7 days logged`
@@ -148,7 +149,7 @@ meals that day.
 Show daily calorie intake vs the user's target range. Classify each day.
 
 **Data logic:**
-- For each day, sum `estimated_calories` across all logged meals from `logs.meals.{date}` or use `logs.daily_summary.{date}` totals
+- For each day, call `nutrition-calc.py load --date YYYY-MM-DD` and sum `cal` across all meals
 - Compare against `Daily Calorie Range` from `PLAN.md`:
   - Below range min → `📉 Below`
   - Within range → `✅ On Target`
@@ -189,7 +190,7 @@ On Target: 3 days · Below: 1 day · Over: 1 day
 Show weight readings recorded during the week and the net change.
 
 **Data logic:**
-- Collect all entries from `logs.weight.{date}` within the period
+- Call `weight-tracker.py load --from <start> --to <end> --display-unit <unit>` to collect all entries within the period
 - If 2+ readings: calculate change = last reading − first reading
 - If 1 reading: show it, compare to previous week's last reading if available
 - If 0 readings: skip this section entirely, add a gentle note
@@ -375,14 +376,13 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 ### Reads
 
-| Path | Purpose |
-|------|---------|
-| `USER.md` | User identity, name, health flags |
-| `health-profile.md` | Health data, goals, meal schedule, food restrictions |
-| `PLAN.md` | Calorie targets, macro ranges, weekly loss rate, diet mode |
-| `logs.meals.{date}.{meal_type}` | Meal logging status, food descriptions, calories, macros |
-| `logs.weight.{date}` | Weight readings |
-| `logs.daily_summary.{date}` | Pre-compiled daily totals |
+| Path | How | Purpose |
+|------|-----|---------|
+| `USER.md` | direct read | User identity, name, health flags |
+| `health-profile.md` | direct read | Health data, goals, meal schedule, unit preference |
+| `PLAN.md` | direct read | Calorie targets, macro ranges, weekly loss rate, diet mode |
+| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load` | Meal logging status, food descriptions, calories, macros |
+| `data/weight.json` | `weight-tracker.py load` | Weight readings |
 
 ### Writes
 

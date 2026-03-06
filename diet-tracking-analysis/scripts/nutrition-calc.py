@@ -453,7 +453,7 @@ def weekly_low_cal_check(data_dir: str, bmr: float,
     }
 
 
-def _calc_macro_pcts(meals: list) -> dict | None:
+def _calc_macro_pcts(meals: list):
     """Calculate macro percentage split from a list of meals.
 
     Returns {"cal": total, "p_pct": ..., "c_pct": ..., "f_pct": ...}

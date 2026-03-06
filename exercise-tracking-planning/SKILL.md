@@ -38,7 +38,7 @@ Read from `USER.md` and `health-profile.md` at conversation start. Required fiel
 
 | Field | Source | Required | Usage |
 |-------|--------|----------|-------|
-| `weight` | `health-profile.md > Body > Current Weight` | ✅ | MET calorie calculation |
+| `weight` | `data/weight.json` via `weight-tracker.py load --last 1` (from `weight-tracking` skill) | ✅ | MET calorie calculation |
 | `age` | `USER.md > Basic Info > Age` | Recommended | Adjusts calorie estimates |
 | `sex` | `USER.md > Basic Info > Sex` | Recommended | Adjusts calorie estimates |
 | `height` | `USER.md > Basic Info > Height` | Optional | BMR refinement |
@@ -500,7 +500,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 | Path | Purpose |
 |------|---------|
 | `USER.md > Basic Info` | Age, sex, height — calorie estimation, program design |
-| `health-profile.md > Body > Current Weight` | MET calorie calculation |
+| `data/weight.json` | Current weight for MET calorie calculation (via `weight-tracker.py load --last 1` from `weight-tracking` skill) |
 | `health-profile.md > Fitness` | Fitness level, fitness goal — feedback tone, program design |
 | `health-preferences.md > Exercise` | Preferred/disliked activities — tailor feedback, skip redundant questions in planning |
 | `health-preferences.md > Scheduling & Lifestyle` | Schedule constraints for weekly summary suggestions and program scheduling |

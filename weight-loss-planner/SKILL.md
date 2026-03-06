@@ -32,7 +32,8 @@ This step has two paths. Check which one applies before doing anything else.
 
 Another skill may have already collected the user's body data during onboarding and stored it across two files:
 - `USER.md` — identity info: height, age, biological sex
-- `health-profile.md` — health data: current weight, activity level, exercise habits, target weight
+- `health-profile.md` — health data: activity level, exercise habits, target weight, unit preference
+- `data/weight.json` — current weight (read via `weight-tracker.py load --last 1` from the `weight-tracking` skill)
 
 Check whether these files exist in the workspace. If they do, read them for required fields. Field names and formats may vary — look for semantic matches.
 

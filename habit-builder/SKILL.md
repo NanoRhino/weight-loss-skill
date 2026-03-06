@@ -354,14 +354,13 @@ conversational — not a dashboard readout.
 | `USER.md > Health Flags` | Health conditions affecting habit design |
 | `health-profile.md > Goals` | Target weight, motivation |
 | `health-profile.md > Meal Schedule` | Meal times |
-| `health-profile.md > Body` | Current weight |
+| `health-profile.md > Body` | Unit preference |
 | `health-profile.md > Activity & Lifestyle` | Exercise habits |
 | `health-profile.md > Diet Config` | Food restrictions |
 | `health-preferences.md` | All accumulated preferences (dietary, exercise, scheduling, cooking) |
 | `PLAN.md` | BMR, TDEE, calorie targets |
-| `logs.meals.*` | Detect eating patterns for habit recommendations |
-| `logs.weight.*` | Weight trend for context |
-| `logs.daily_summary.*` | Engagement data |
+| `data/meals/YYYY-MM-DD.json` | Detect eating patterns for habit recommendations (read via `nutrition-calc.py load`) |
+| `data/weight.json` | Weight trend for context (read via `weight-tracker.py load` from `weight-tracking` skill) |
 
 ### Writes
 

@@ -153,7 +153,7 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 **Updated:** [ISO-8601 timestamp]
 
 ## Body
-- **Current Weight:** [X kg | —]
+- **Unit Preference:** [kg | lb]
 
 ## Activity & Lifestyle
 - **Work Type:** [sedentary | active | —]
@@ -261,9 +261,17 @@ During onboarding, the user often reveals preferences beyond the standard profil
 After the user confirms their summary:
 
 1. Generate the profile using the formats shown above
-2. **Internal actions (do NOT mention to user):** Silently save all three files in the current workspace:
+2. **Internal actions (do NOT mention to user):** Silently save all files in the current workspace:
    - `USER.md` — identity and communication preferences
-   - `health-profile.md` — health facts and settings
+   - `health-profile.md` — health facts and settings (Body section contains `Unit Preference` only — no weight value)
    - `health-preferences.md` — any accumulated preferences from the conversation
+   - **Initial weight record** — save the user's current weight as the first entry via the `weight-tracking` skill's script:
+     ```bash
+     python3 {weight-tracking:baseDir}/scripts/weight-tracker.py save \
+       --data-dir {workspaceDir}/data \
+       --value <weight_number> --unit <kg|lb> \
+       --tz-offset <from timezone.json>
+     ```
+   - **Unit preference** — infer from the user's weight input (e.g., "80kg" → `kg`, "165 lbs" → `lb`, "130斤" → `kg`) and write to `health-profile.md > Body > Unit Preference`
    Do not tell the user the filenames, file format, or mention `.md` — just confirm that their profile has been saved.
 3. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.

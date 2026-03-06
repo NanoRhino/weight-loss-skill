@@ -22,7 +22,7 @@ Contains basic identity info that is scenario-independent.
 - [list or None]
 ```
 
-**Note:** Weight is NOT stored in USER.md. Read current weight from `health-profile.md`.
+**Note:** Weight is NOT stored in USER.md. Read current weight from `data/weight.json` via `weight-tracker.py load --last 1`.
 
 ---
 
@@ -33,7 +33,7 @@ Contains health-related facts and configuration parameters. These are **inputs**
 ### Fields used by this skill
 ```markdown
 ## Body
-- Current Weight: [X kg]
+- Unit Preference: [kg | lb]
 
 ## Activity & Lifestyle
 - Work Type: [sedentary | active]
