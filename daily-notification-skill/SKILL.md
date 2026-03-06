@@ -36,11 +36,20 @@ Reminders fire 15 min before each meal.
 
 Use the `scheduled-reminders` skill to create all cron jobs. See its SKILL.md for full script usage.
 
-#### Auto-initialization
+#### Auto-sync on activation
 
-**Every time this skill is activated** (by a cron trigger or any interaction), check whether the required cron jobs already exist (use `action: "list"`). If `health-profile.md` contains `Meal Schedule` but the corresponding cron jobs are missing, **silently create them** — do not mention the setup to the user.
+**Every time this skill is activated** (by a cron trigger, by another skill like `meal-planner`, or by any interaction), verify that existing cron jobs match the current meal times in `health-profile.md > Meal Schedule`:
 
-This covers all scenarios: first activation after onboarding, after a profile update that changes meal times, or after cron jobs are accidentally deleted.
+1. List existing reminder cron jobs (`action: "list"`).
+2. Derive the expected cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min).
+3. Compare:
+   - **Missing jobs** (expected time has no matching cron) → create them.
+   - **Stale jobs** (cron exists but its time doesn't match any current meal time) → remove then recreate.
+   - **Matching jobs** → no action.
+4. Also verify the weight reminder cron job exists (Mon & Thu, 30 min before breakfast — see § "Weight reminders" below). Create if missing.
+5. Do all of this **silently** — do not mention it to the user.
+
+This handles both **initial bootstrap** (no cron jobs yet — e.g., activated by `meal-planner` after collecting meal times) and **ongoing sync** (meal times changed via profile updates, adaptive timing shifts, or accidental deletion) — without creating duplicates.
 
 #### Cron job definitions
 
@@ -174,10 +183,10 @@ across users). Write soft-restart status to `engagement.reminder_config`.
 
 | Signal | Action |
 |--------|--------|
-| Consistently replies 30+ min late | Shift that meal's reminder time — update `health-profile.md > Meal Schedule` and the cron job |
+| Consistently replies 30+ min late | Shift that meal's reminder time — update `health-profile.md > Meal Schedule` (the auto-sync logic will fix the cron on next activation) |
 | Never replies to breakfast (2+ weeks) | Stop breakfast reminders |
 
-**Important:** Whenever a meal time changes (user request or adaptive shift), always update **both** `health-profile.md > Meal Schedule` and the corresponding cron job so they stay in sync.
+**Important:** Whenever a meal time changes (user request or adaptive shift), update `health-profile.md > Meal Schedule`. The auto-sync check (see § "Auto-sync on activation") will detect the mismatch and update cron jobs on the next activation.
 
 ### Weekly Low-Calorie Check
 
@@ -308,7 +317,7 @@ Users may ask to change reminders in natural language. Handle inline:
 | User says | Action |
 |-----------|--------|
 | "Stop breakfast reminders" | Stop that meal's reminders. Update `engagement.reminder_config`. Confirm: `"Done — no more breakfast reminders. Let me know if you change your mind."` |
-| "Change dinner to 8 PM" | Update `health-profile.md > Meal Schedule` with the new time, then update the cron job. Confirm: `"Got it — dinner reminders moved to 7:45 PM."` |
+| "Change dinner to 8 PM" | Update `health-profile.md > Meal Schedule` with the new time. The auto-sync will update the cron on next activation. Confirm: `"Got it — dinner reminders moved to 7:45 PM."` |
 | "Stop all reminders" | Stop everything, move to Stage 4. `"All reminders off. I'm still here if you want to chat. 💛"` |
 | "Remind me more" / "Can you also remind me for snacks" | Outside current scope — acknowledge and note for future: `"I can only do meals and weight for now, but I'll keep that in mind."` |
 | "Resume reminders" / "Start reminding me again" | Restart Stage 1 with previous config. Confirm schedule. |
