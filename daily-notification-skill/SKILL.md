@@ -248,8 +248,9 @@ Morning = soft, low-demand · Midday = quick, snappy · Evening = relaxed
 ### Habit Check-ins — woven into meal conversations
 
 Read `habits.active` before composing each meal reminder. If an active habit
-exists and is due for a mention (based on its phase and mention frequency —
-see `habit-builder` SKILL.md), weave it into the meal message naturally.
+exists, mention it roughly **once every 3–4 meal reminders** — not every time.
+Pick the reminder slot that best matches the habit type (see table below).
+Track mention count in `habits.mention_counter` to space them out evenly.
 
 | Habit type | How to weave | Example |
 |------------|-------------|---------|
@@ -260,6 +261,7 @@ see `habit-builder` SKILL.md), weave it into the meal message naturally.
 | All-day (water, steps) | Drop into a random meal conversation | `"How's the water going today?"` |
 
 **Rules:**
+- **Frequency: ~1 in 3–4 reminders.** Don't mention the habit every time — it should feel like a casual aside, not a second tracking system. Use `habits.mention_counter` to keep count and skip if the last mention was < 2 reminders ago.
 - One sentence max for the habit mention — don't make it a separate topic
 - If user responds to the habit mention, record it to `habits.daily_log.{date}` (see `habit-builder` SKILL.md for completion tracking)
 - If the user ignores the habit mention 3 times in a row, stop mentioning it until the next Weekly Review
