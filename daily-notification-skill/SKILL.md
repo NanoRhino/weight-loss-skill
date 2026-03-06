@@ -49,7 +49,7 @@ Use the `scheduled-reminders` skill to create all cron jobs. See its SKILL.md fo
 4. Also verify the weight reminder cron job exists (Mon & Thu, 30 min before breakfast — see § "Weight reminders" below). Create if missing.
 5. Do all of this **silently** — do not mention it to the user.
 
-**Note:** Initial cron creation (bootstrap) is handled inline by `meal-planner` when it first collects meal times — see its "Bootstrap Meal Reminders" section. This auto-sync handles **ongoing maintenance**: meal times changed via profile updates, adaptive timing shifts, or accidental deletion — without creating duplicates.
+This handles both **initial bootstrap** (no cron jobs yet — e.g., activated by `meal-planner` after collecting meal times) and **ongoing sync** (meal times changed via profile updates, adaptive timing shifts, or accidental deletion) — without creating duplicates.
 
 #### Cron job definitions
 
