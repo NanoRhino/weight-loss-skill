@@ -266,3 +266,4 @@ After the user confirms their summary:
    - `health-profile.md` — health facts and settings
    - `health-preferences.md` — any accumulated preferences from the conversation
    Do not tell the user the filenames, file format, or mention `.md` — just confirm that their profile has been saved.
+3. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
