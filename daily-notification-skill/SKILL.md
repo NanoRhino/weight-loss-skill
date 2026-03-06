@@ -85,17 +85,6 @@ bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --cron "45 6 * * 1,4" --tz "Asia/Shanghai"
 ```
 
-#### Daily summary (9 PM)
-
-```bash
-bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "每日总结" \
-  --message "汇总今天的饮食记录和互动数据，写入 logs.daily_summary.{date}。不要发消息给用户。" \
-  --cron "0 21 * * *" --tz "Asia/Shanghai"
-```
-
-This job is also auto-initialized — if the daily summary cron is missing, create it alongside the meal/weight reminders.
-
 #### Managing reminders
 
 Use cron tool: `action: "list"` to view, `action: "remove"` with `jobId` to delete.
@@ -394,7 +383,6 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 |------|------|
 | `logs.weight.{date}` | User reports weight: `{ value, unit, recorded_at, reminder_sent_at }` |
 | `logs.meals.{date}.{meal_type}` | Every reminder: `{ status, food_description, estimated_calories, reminder_sent_at, replied_at }` |
-| `logs.daily_summary.{date}` | 9 PM auto-summary: all records + engagement stats |
 | `flags.*` | Safety signals |
 | `engagement.notification_stage` | Stage 1/2/3/4 |
 | `engagement.reminder_config` | Adaptive timing changes |
