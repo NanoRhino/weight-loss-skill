@@ -27,7 +27,9 @@ lunchRecorded = any lunch or snack_pm entry exists in today's log
 
 ### Rules for `mealMode = 2`
 
-**RULE 3** — User is logging second meal AND first meal not recorded:
+In 2-meal mode, meal types are `meal_1` / `meal_2` (with `snack_1` / `snack_2`). Traditional names like "dinner" or "lunch" are automatically aliased (see SKILL.md Meal Type Assignment). There is no separate dinner checkpoint — `meal_2` is the final checkpoint at 100%.
+
+**RULE 3** — User is logging `meal_2` (or aliased "dinner") AND `meal_1` not recorded:
 - Ask about first meal first
 
 ---

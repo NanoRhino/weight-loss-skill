@@ -131,20 +131,48 @@ Returns: `logged_days`, `daily_totals`, `weekly_avg_cal`, `bmr`, `calorie_floor`
 
 ## Meal Type Assignment
 
+### 3-meal mode (default)
+
 `meal_type` must be one of: `breakfast` / `lunch` / `dinner` / `snack_am` / `snack_pm`
+
+### 2-meal mode
+
+`meal_type` must be one of: `meal_1` / `meal_2` / `snack_1` / `snack_2`
+
+If the user uses traditional names (breakfast, lunch, dinner), the script automatically maps them:
+
+| User says | Resolved to |
+|-----------|-------------|
+| breakfast | meal_1 |
+| lunch     | meal_1 |
+| snack_am  | snack_1 |
+| dinner    | meal_2 |
+| snack_pm  | snack_2 |
+
+### Checkpoint percentages
+
+| Mode | Checkpoint | Cumulative % |
+|------|-----------|-------------|
+| 3-meal | breakfast / snack_am | 30% |
+| 3-meal | lunch / snack_pm | 70% |
+| 3-meal | dinner | 100% |
+| 2-meal | meal_1 / snack_1 | 50% |
+| 2-meal | meal_2 / snack_2 | 100% |
+
+In 2-meal mode there is no separate dinner checkpoint. `meal_2` (or "dinner" when aliased) is the final checkpoint at 100%.
 
 **User's own statement always takes priority over time of day.**
 
 Time-of-day fallback (only if user doesn't specify):
 
-| Time | meal_type |
-|------|-----------|
-| 05–10h | breakfast |
-| 10–11h | snack_am |
-| 11–14h | lunch |
-| 14–17h | snack_pm |
-| 17–21h | dinner |
-| other  | snack_pm |
+| Time | 3-meal mode | 2-meal mode |
+|------|-------------|-------------|
+| 05–10h | breakfast | meal_1 |
+| 10–11h | snack_am | snack_1 |
+| 11–14h | lunch | meal_1 |
+| 14–17h | snack_pm | snack_2 |
+| 17–21h | dinner | meal_2 |
+| other  | snack_pm | snack_2 |
 
 ---
 

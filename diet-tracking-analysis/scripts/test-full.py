@@ -457,6 +457,47 @@ def test_eval_2meal_snack():
     check(r["actual"]["cal"] == 850, "meal_1 + snack_1")
 
 
+def test_eval_2meal_dinner_alias():
+    """2-meal plan: 'dinner' is aliased to meal_2 (100% checkpoint)."""
+    log = json.dumps([
+        {"name": "meal_1", "cal": 850, "p": 50, "c": 100, "f": 28},
+        {"name": "dinner", "cal": 900, "p": 55, "c": 105, "f": 30},
+    ])
+    r = run_cmd(["evaluate", "--weight", "70", "--cal", "1800", "--meals", "2",
+                 "--current-meal", "dinner", "--log", log])
+    check(r["checkpoint_pct"] == 100, "dinner aliased to meal_2 → 100%")
+    check(r["actual"]["cal"] == 1750, "cumulative includes both meals")
+    check("dinner" in r["meals_included"], "dinner in meals_included")
+    check(r["resolved_meal"] == "meal_2", "resolved_meal = meal_2")
+
+
+def test_eval_2meal_lunch_alias():
+    """2-meal plan: 'lunch' is aliased to meal_1 (50% checkpoint)."""
+    log = json.dumps([
+        {"name": "lunch", "cal": 800, "p": 50, "c": 95, "f": 28},
+    ])
+    r = run_cmd(["evaluate", "--weight", "70", "--cal", "1800", "--meals", "2",
+                 "--current-meal", "lunch", "--log", log])
+    check(r["checkpoint_pct"] == 50, "lunch aliased to meal_1 → 50%")
+    check(r["actual"]["cal"] == 800, "actual cal correct")
+    check(r["resolved_meal"] == "meal_1", "resolved_meal = meal_1")
+
+
+def test_missing_2meal_dinner_alias():
+    """2-meal plan: check-missing with 'dinner' alias detects missing meal_1."""
+    log = json.dumps([{"name": "dinner", "cal": 800, "p": 50, "c": 95, "f": 28}])
+    r = run_cmd(["check-missing", "--meals", "2", "--current-meal", "dinner", "--log", log])
+    check(r["has_missing"] is True, "meal_1 missing when logging dinner alias")
+    check(r["missing"][0]["name"] == "meal_1", "missing = meal_1")
+
+
+def test_missing_2meal_lunch_covers_meal1():
+    """2-meal plan: 'lunch' logged satisfies meal_1 requirement."""
+    log = json.dumps([{"name": "lunch", "cal": 800, "p": 50, "c": 95, "f": 28}])
+    r = run_cmd(["check-missing", "--meals", "2", "--current-meal", "dinner", "--log", log])
+    check(r["has_missing"] is False, "lunch satisfies meal_1 for dinner checkpoint")
+
+
 def test_eval_unknown_meal():
     """Unknown meal name returns error."""
     log = json.dumps([{"name": "breakfast", "cal": 400, "p": 25, "c": 50, "f": 12}])
@@ -775,6 +816,8 @@ def main():
             test_eval_2meal_plan,
             test_eval_2meal_cumulative,
             test_eval_2meal_snack,
+            test_eval_2meal_dinner_alias,
+            test_eval_2meal_lunch_alias,
             test_eval_unknown_meal,
             test_eval_missing_meals_in_output,
             test_eval_meals_outside_checkpoint_excluded,
@@ -791,6 +834,8 @@ def main():
             test_missing_none_when_all_present,
             test_missing_2meal_plan,
             test_missing_2meal_none,
+            test_missing_2meal_dinner_alias,
+            test_missing_2meal_lunch_covers_meal1,
             test_missing_unknown_meal,
             test_missing_snack_doesnt_count_as_main,
         ]),
