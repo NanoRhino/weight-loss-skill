@@ -34,8 +34,8 @@ This skill is designed to work downstream of the `weight-loss-planner` skill. Th
 **Data flow:**
 ```
 USER.md (identity) + health-profile.md (health data) + health-preferences.md (preferences)
-  → weight-loss-planner (TDEE, deficit, calorie target, diet mode, macro ranges → PLAN.md)
-    → meal-planner (food plan, portions, grocery list) ← YOU ARE HERE
+  → weight-loss-planner (TDEE, deficit, calorie target → PLAN.md)
+    → meal-planner (diet mode, meal schedule, taste/restrictions → macro calculation → food plan, portions, grocery list) ← YOU ARE HERE
 ```
 
 ## Preference Awareness
@@ -141,16 +141,86 @@ Don't ask all of these as a checklist. Weave them into a natural conversation: "
 
 ---
 
+## Step 1.5: Collect Diet Preferences (3 Rounds)
+
+After resolving the calorie target and user context, collect the user's dietary preferences through **3 separate rounds** — one question per round, keeping each round focused and conversational. These preferences enable diet mode selection, macro calculation, and personalized meal planning.
+
+**Skip any round whose answer is already available** in `health-preferences.md` or `health-profile.md` or from earlier conversation context. Only ask what's missing.
+
+### Round 1: Diet Mode
+
+Ask which diet mode the user would like to follow. Instead of listing all available modes, **select the 2 most suitable options** based on the user's profile, preferences, activity level, and goals. Use your professional judgment — consider:
+- `health-preferences.md` (if available)
+- Activity level and exercise habits (e.g., gym-goers → High-Protein; sedentary → Balanced)
+- Dietary restrictions (e.g., vegetarian → Plant-Based)
+- Health goals beyond weight loss (e.g., heart health → Mediterranean)
+- Experience level (beginners → Balanced / Flexible; experienced → more specialized)
+- Cultural context and food availability
+
+Available modes: Balanced / Flexible, Healthy U.S.-Style (USDA), High-Protein, Low-Carb, Keto, Mediterranean, Plant-Based, Intermittent Fasting (16:8), Intermittent Fasting (5:2). See `weight-loss-planner/references/diet-modes.md` for the full specification of each mode.
+
+| Mode | Fat Range | Best For | Key Constraint |
+|---|---|---|---|
+| **Healthy U.S.-Style (USDA)** | 20–35% | Following the Dietary Guidelines; general health | Added sugars <10%, sat fat <10%, sodium <2,300mg |
+| **Balanced / Flexible** | 25–35% | Most people; easiest to sustain | None — just hit your calories and macros |
+| **High-Protein** | 25–35% | Gym-goers preserving muscle during deficit | Requires consistent protein sources |
+| **Low-Carb** | 40–50% | People who feel better with fewer carbs | Carbs under ~100g/day |
+| **Keto** | 65–75% | Aggressive carb restriction fans | Carbs under 20–30g/day; adaptation period |
+| **Mediterranean** | 25–35% | Heart health focus; enjoys olive oil and fish | Emphasizes whole foods, limits processed |
+| **IF (16:8)** | Any | People who prefer fewer, larger meals | All food within 8-hour window |
+| **IF (5:2)** | Any | People who prefer 2 very-low days | 500–600 cal on 2 non-consecutive days |
+| **Plant-Based** | 20–30% | Vegetarian or vegan users | No animal products (vegan) or limited (vegetarian) |
+
+**Note:** Protein is always calculated from body weight (`weight_kg × 1.2–1.6g`), not from a percentage. The fat range above is what varies by mode and is used in the macro calculation. Carbs fill the remaining calories. IF is a timing strategy layered on top of any macro split (default to Balanced).
+
+Present concisely:
+
+> Now let's figure out how you'd like to eat. Based on your profile, I think these two approaches would work best:
+>
+> 1. **[Mode A]** — [one-line reason]
+> 2. **[Mode B]** — [one-line reason]
+>
+> I'd recommend **[Mode A]** as your starting point. Which one appeals to you?
+
+If the user wants to see all options, provide the full list. If `health-preferences.md` already records a diet mode preference, include it as one recommendation.
+
+**Wait for the user to choose before proceeding to Round 2.**
+
+### Round 2: Meal Schedule
+
+After the user confirms their diet mode, ask about their meal schedule:
+
+> 你一天通常吃几餐，大概什么时间？我会在每餐前 15 分钟提醒你，帮你提前规划。
+
+(Adapt language to match the user — see Language policy inherited from the conversation.)
+
+**Wait for the user to answer before proceeding to Round 3.**
+
+### Round 3: Taste Preferences & Food Restrictions
+
+After the user provides their meal schedule, ask about taste and restrictions:
+
+> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
+
+(Adapt language to match the user.)
+
+**Wait for the user to answer (or skip) before proceeding.**
+
+**After collecting all three rounds:** Update the appropriate files silently:
+- **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
+- **Meal Schedule** → `health-profile.md > Meal Schedule`
+- **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
+- **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
+
+Then proceed to Step 2 to calculate macros using the confirmed diet mode.
+
+---
+
 ## Step 2: Resolve Diet Mode & Calculate Macros
 
 ### Diet Mode
 
-The user's diet mode should already be confirmed in the weight-loss-planner output (stored in `health-profile.md` or conversation context). Check these sources in order:
-
-1. **Conversation context** — If the user just completed a weight loss plan, the diet mode was confirmed there.
-2. **health-profile.md** — May contain the confirmed diet mode from a prior session (`Diet Config > Diet Mode`).
-3. **User states it directly** — "I'm doing keto" or "I want balanced."
-4. **None of the above** — Ask the user. Default to Balanced if they're unsure.
+The user's diet mode should already be confirmed in Step 1.5 (or from a prior session stored in `health-profile.md` / conversation context). If somehow not yet resolved, ask the user before proceeding. Default to Balanced if they're unsure.
 
 For the full list of supported diet modes, fat ranges, and detailed food guidance, see `weight-loss-planner/references/diet-modes.md`. The key point for meal planning: each mode defines a **fat percentage range** that determines the macro split. Protein is always from body weight, carbs fill the remainder.
 

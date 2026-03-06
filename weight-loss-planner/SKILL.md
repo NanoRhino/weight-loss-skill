@@ -83,7 +83,7 @@ The script handles safety floors (max(BMR, 1000)), rate clamping, and all edge c
 
 **Timeline:** Do NOT ask the user for a timeline. Based on your professional judgment, select the most appropriate weekly loss rate from the rate guidelines in Step 2 and derive the timeline automatically. If the user later wants to adjust the pace, they can do so in Step 3.
 
-**Diet mode:** Do NOT ask about diet mode at this stage. The initial plan focuses on calorie targets, BMI, TDEE, and timeline only — no macro breakdown yet. Diet mode will be asked later, after the user accepts the weight loss plan.
+**Diet mode:** Do NOT ask about diet mode at this stage. The plan focuses on calorie targets, BMI, TDEE, and timeline only — no macro breakdown. Diet mode and dietary preferences will be collected by the `meal-planner` skill after the plan is confirmed.
 
 If `health-profile.md` already contains the target weight, don't ask for it again — use it directly.
 
@@ -91,32 +91,10 @@ Once all body data and TDEE values are resolved, proceed to Step 2 (Generate Mil
 
 ### Preference Awareness
 
-Before presenting diet mode options in Step 3.5 or generating a plan, **read `health-preferences.md`** (if it exists). Stored preferences may influence:
-- **Diet mode selection** — if the user previously expressed interest in a specific diet style (e.g., "wants to try Mediterranean"), highlight that mode as the recommended option when asking about diet mode (instead of defaulting to Balanced)
-- **Macro adjustments** — dietary preferences may inform fat/carb balance (e.g., "loves high-fat foods" might suit a higher fat range)
+Before generating a plan, **read `health-preferences.md`** (if it exists). Stored preferences may influence:
 - **General coaching notes** — preferences like "prefers gradual changes" should inform how you present the plan
 
-If the user states new preferences during the planning conversation (e.g., "I want to do keto" or "I don't want to count every calorie"), **silently append them to `health-preferences.md`** under the appropriate subcategory.
-
-### Diet Mode Selection
-
-See `references/diet-modes.md` for the full specification of each mode. The **Healthy U.S.-Style** mode follows the USDA Dietary Guidelines for Americans (AMDR ranges). Other modes intentionally deviate from AMDR based on their specific goals.
-
-| Mode | Fat Range | Best For | Key Constraint |
-|---|---|---|---|
-| **Healthy U.S.-Style (USDA)** | 20–35% | Following the Dietary Guidelines; general health | Added sugars <10%, sat fat <10%, sodium <2,300mg |
-| **Balanced / Flexible** | 25–35% | Most people; easiest to sustain | None — just hit your calories and macros |
-| **High-Protein** | 25–35% | Gym-goers preserving muscle during deficit | Requires consistent protein sources |
-| **Low-Carb** | 40–50% | People who feel better with fewer carbs | Carbs under ~100g/day |
-| **Keto** | 65–75% | Aggressive carb restriction fans | Carbs under 20–30g/day; adaptation period |
-| **Mediterranean** | 25–35% | Heart health focus; enjoys olive oil and fish | Emphasizes whole foods, limits processed |
-| **IF (16:8)** | Any | People who prefer fewer, larger meals | All food within 8-hour window |
-| **IF (5:2)** | Any | People who prefer 2 very-low days | 500–600 cal on 2 non-consecutive days |
-| **Plant-Based** | 20–30% | Vegetarian or vegan users | No animal products (vegan) or limited (vegetarian) |
-
-**Note:** Protein is always calculated from body weight (`weight_kg × 1.2–1.6g`), not from a percentage. The fat range above is what varies by mode and is used in the macro calculation. Carbs fill the remaining calories. IF is a timing strategy layered on top of any macro split (default to Balanced).
-
-Record the user's confirmed diet mode in the final report. The `meal-planner` skill will use this mode when building the actual food plan.
+If the user states new preferences during the planning conversation (e.g., "I don't want to count every calorie"), **silently append them to `health-preferences.md`** under the appropriate subcategory.
 
 ---
 
@@ -212,171 +190,24 @@ Each adjustment triggers a recalculation. Re-present the updated plan and confir
 
 ---
 
-### Step 3.5: Collect Diet Preferences (After Plan Acceptance)
+### Step 4: Output Final Plan & Save PLAN.md
 
-Once the user accepts the calorie-based plan, **before generating the final structured plan**, collect the following information to enable macro calculation and diet template generation. Ask these across **3 separate rounds** — one question per round, keeping each round focused and conversational:
+Once the user confirms the plan from Step 2/3, present the plan in chat and silently save it as `PLAN.md`. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
 
-#### Round 1: Diet Mode
-
-Ask which diet mode the user would like to follow. Instead of listing all available modes, **select the 2 most suitable options** based on the user's profile, preferences, activity level, and goals. Use your professional judgment — consider:
-- health-preferences.md (if available)
-- Activity level and exercise habits (e.g., gym-goers → High-Protein; sedentary → Balanced)
-- Dietary restrictions (e.g., vegetarian → Plant-Based)
-- Health goals beyond weight loss (e.g., heart health → Mediterranean)
-- Experience level (beginners → Balanced / Flexible; experienced → more specialized)
-- Cultural context and food availability
-
-Available modes: Balanced / Flexible, Healthy U.S.-Style (USDA), High-Protein, Low-Carb, Keto, Mediterranean, Plant-Based, Intermittent Fasting (16:8), Intermittent Fasting (5:2). See Diet Mode Selection table and `references/diet-modes.md`.
-
-Present concisely:
-
-> Now let's figure out how you'd like to eat. Based on your profile, I think these two approaches would work best:
->
-> 1. **[Mode A]** — [one-line reason]
-> 2. **[Mode B]** — [one-line reason]
->
-> I'd recommend **[Mode A]** as your starting point. Which one appeals to you?
-
-If the user wants to see all options, provide the full list. If `health-preferences.md` already records a diet mode preference, include it as one recommendation.
-
-**Wait for the user to choose before proceeding to Round 2.**
-
-#### Round 2: Meal Schedule
-
-After the user confirms their diet mode, ask about their meal schedule:
-
-> 你一天通常吃几餐，大概什么时间？我会在每餐前 15 分钟提醒你，帮你提前规划。
-
-**Wait for the user to answer before proceeding to Round 3.**
-
-#### Round 3: Taste Preferences & Food Restrictions
-
-After the user provides their meal schedule, ask about taste and restrictions:
-
-> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
-
-**Wait for the user to answer (or skip) before proceeding.**
-
-**After collecting all three rounds:** Update the appropriate files silently:
-- **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
-- **Meal Schedule** → `health-profile.md > Meal Schedule`
-- **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
-- **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
-
-Then calculate macros using the confirmed diet mode and proceed to Step 4.
-
----
-
-### Step 4: Output Final Structured Plan
-
-Once the user confirms, generate the final plan report. This is the deliverable — clean, structured, and ready to save. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
-
-Use this template structure (adapt content based on the user's specific numbers):
-
-```markdown
-# 🎯 Your Weight Loss Plan
-
-**Prepared for:** [Name if provided]
-**Date:** [Current date]
-**Plan duration:** [X weeks / X months]
-
----
-
-## Your Profile
-
-| Metric | Value |
-|---|---|
-| Height | [user's unit] |
-| Current Weight | [user's unit] |
-| Target Weight | [user's unit] |
-| Age | X years |
-| Sex | Male / Female |
-| BMI (current) | X.X (Classification) |
-| BMI (at goal) | X.X (Classification) |
-
-## Your TDEE & Calorie Targets
-
-| Metric | Value |
-|---|---|
-| BMR | X,XXX cal/day |
-| Confirmed TDEE | X,XXX cal/day |
-| Diet Mode | [Mode name] |
-| Weight Loss Rate | X.X [user's unit]/week |
-| Daily Calorie Range | X,XXX – X,XXX cal/day (midpoint: X,XXX) |
-| Protein Range | XXX – XXX g/day (midpoint: XXX g) |
-| Fat Range | XXX – XXX g/day (midpoint: XXX g) |
-| Carb Range | XXX – XXX g/day (midpoint: XXX g) |
-| Daily Deficit | XXX cal/day |
-| Calorie Floor | X,XXX cal/day (= your BMR) |
-
-**Total to lose:** X [user's unit]
-**Estimated completion:** [Date]
-
----
-
-## ⚠️ Important Notes
-
-- This plan is based on general nutritional science and is not a substitute for
-  professional medical advice. Consult your doctor before starting any weight loss
-  program, especially if you have existing health conditions.
-- TDEE decreases as you lose weight. Your calorie targets will be recalculated
-  periodically as needed.
-- Your calorie floor (BMR) compliance is reviewed weekly. If your weekly average
-  intake falls below BMR, you'll receive a gentle heads-up with suggestions —
-  an occasional low day is normal, but a sustained pattern needs attention.
-- Weight fluctuates daily due to water, sodium, and hormones. Trust the weekly
-  trend, not the daily number.
-- Plateaus of 2–3 weeks are normal. If progress stalls beyond 4 weeks, consider
-  a 1–2 week diet break at maintenance calories, then resume.
-
----
-
-## 🔄 Maintenance Phase (After Reaching Goal)
-
-Congratulations on reaching your target! The transition to maintenance is just
-as important as the deficit phase. Jumping straight to full TDEE can cause rapid
-water weight regain that feels discouraging (it's normal — it's glycogen and water,
-not fat).
-
-| Metric | Value |
-|---|---|
-| Maintenance TDEE (at goal weight) | X,XXX cal/day |
-| Current deficit intake | X,XXX cal/day |
-| Calories to add back | ~XXX cal/day |
-
-**Transition plan (reverse diet over 2–4 weeks):**
-- **Week 1:** Add ~100–150 cal/day back (mostly carbs and fats)
-- **Week 2:** Add another ~100–150 cal/day
-- **Weeks 3–4:** Gradually reach full maintenance TDEE
-- Continue weighing weekly — a 1–2 kg (2–4 lbs) increase from water/glycogen is normal and expected
-
-**Long-term maintenance habits:**
-- Weigh yourself 1–2x per week; set a ±2 kg (±5 lbs) "action range" around your goal weight
-- Continue tracking macros — protein (weight_kg × 1.2–1.6g), fat (20–35% of calories), carbs (remainder). Show ranges to maintain flexibility.
-- If weight drifts above the action range, return to a mild deficit (250 cal/day) for 2–4 weeks
-- Keep up the exercise routine you've built — it's now part of your lifestyle
-```
+The Plan Presentation from Step 2 IS the final plan. Present it following the same format defined in Step 2's Plan Presentation section.
 
 **Internal actions (do NOT mention to user):**
 
-1. Silently save the plan as `PLAN.md` in the current workspace.
-2. **Generate a styled PDF and send it to the user via Slack** using the `generate-plan-pdf` skill:
-   ```bash
-   bash {generate-plan-pdf:baseDir}/scripts/generate-and-send.sh \
-     --agent <YOUR_AGENT_ID> \
-     --input PLAN.md \
-     --message "📋 这是你的体重管理计划" \
-     --filename "体重管理计划.pdf"
-   ```
-3. **Do NOT output the full plan text** in the chat. Instead, send a brief confirmation message like: "你的计划已经生成好了，我刚发给你了 📄 有什么问题随时问我！"
+1. Silently save the Plan Presentation content as `PLAN.md` in the current workspace. The PLAN.md contains only the Plan Presentation content — no macro breakdowns, no diet mode, no meal-related information.
+2. Do not generate PDF or send via Slack.
 
 Do not tell the user the filename, file format, or that a file is being saved.
 
 **Do NOT repeat meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled separately by the `daily-notification-skill` and were already configured during onboarding. Do not mention, summarize, or re-confirm any reminder schedule after the plan is generated — this information is redundant and disrupts the flow.
 
-**Transition to Meal Planner** — Once the plan is confirmed and the PDF is sent, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "你的计划已经发给你了！现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target and diet mode from the conversation context (just confirmed) and skip redundant data collection. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
+**Transition to Meal Planner** — Once the plan is confirmed, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target from the conversation context and collect diet preferences (diet mode, meal schedule, taste/restrictions) on its own. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
 
-**If the user wants to adjust the plan** after seeing it, help them modify it (go back to Step 3). **If the plan is confirmed**, transition directly to the diet template topic — do not detour into reminders or other topics.
+**If the user wants to adjust the plan** after seeing it, help them modify it (go back to Step 3). **If the plan is confirmed**, transition directly to the meal planner — do not detour into reminders or other topics.
 
 ---
 
