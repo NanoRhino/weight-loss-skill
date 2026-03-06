@@ -339,7 +339,7 @@ Derive actual cron times from the user's `health-profile.md > Meal Schedule`. **
 
 Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent.
 
-**Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user doesn't ask for it, stop here — the diet template is sufficient to start.
+**Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user declines or doesn't ask for it, **introduce the daily tracking workflow here instead** (same content as Step 5's "Introduce Daily Tracking Workflow" section), then stop — the diet template is sufficient to start.
 
 ---
 
@@ -476,6 +476,32 @@ The user may want to:
 - **Get a grocery list** → add a grocery list section to the HTML file and regenerate.
 
 For any customization, **always regenerate the HTML file** so the user has an up-to-date, complete document.
+
+### Introduce Daily Tracking Workflow
+
+**After the 7-day meal plan is finalized** (all customizations done), introduce the daily tracking workflow so the user knows exactly how each day will work going forward. This is the bridge from planning into the daily loop — the user should leave this conversation knowing the rhythm of their days ahead.
+
+Present the following message (adapt to the user's language and meal schedule):
+
+> 食谱已就绪！接下来每天的节奏是这样的：
+>
+> 1. **餐前提醒** — 每餐前 15 分钟我会发消息提醒你
+> 2. **告诉我你吃了什么** — 拍张照片或者简单描述都行，比如"一碗米饭+炒青菜+鸡胸肉"
+> 3. **我来分析** — 帮你估算热量和营养素，看看和目标比怎么样
+> 4. **按需调整** — 如果偏高或偏低，我会马上告诉你当餐怎么调，比如"加个蛋"或"米饭少盛点"
+>
+> 不用追求完美，照着食谱吃、随手告诉我就行。我来帮你微调 👍
+
+English equivalent:
+
+> Meal plan's ready! Here's how each day will work:
+>
+> 1. **Pre-meal reminder** — I'll ping you 15 minutes before each meal
+> 2. **Tell me what you eat** — snap a photo or just describe it, like "rice bowl + stir-fried veggies + chicken breast"
+> 3. **I'll analyze** — estimate calories and macros, and see how you're tracking against your targets
+> 4. **Adjust on the spot** — if something's off, I'll tell you right away how to tweak the current meal, like "add an egg" or "go easy on the rice"
+>
+> Don't stress about perfection — just follow the plan and let me know what you had. I'll fine-tune from there 👍
 
 ---
 
