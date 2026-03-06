@@ -170,19 +170,25 @@ If the user wants to see all options, provide the full list. If `health-preferen
 
 ### Round 2: Meal Schedule
 
-After the user confirms their diet mode, ask about their meal schedule:
+After the user confirms their diet mode, ask about their meal schedule. **Only ask about meals and times — do NOT mention reminders yet.**
 
-> 你一天通常吃几餐，大概什么时间？我会在每餐前 15 分钟提醒你，帮你提前规划。
+> 你一天通常吃几餐，大概什么时间？
 
 (Adapt language to match the user — see Language policy inherited from the conversation.)
 
-**Wait for the user to answer before proceeding to Round 3.**
+**Wait for the user to answer.**
+
+After the user provides their meal schedule, **in the same reply**, confirm the reminder and ask Round 3's question together (adapt to the user's language):
+
+> 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
+>
+> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
+
+This combines the reminder confirmation with Round 3 in one message to keep the conversation flowing naturally.
 
 ### Round 3: Taste Preferences & Food Restrictions
 
-After the user provides their meal schedule, ask about taste and restrictions:
-
-> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
+(Already asked above together with the reminder confirmation.)
 
 (Adapt language to match the user.)
 
