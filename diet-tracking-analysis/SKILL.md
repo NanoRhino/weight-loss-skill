@@ -221,7 +221,7 @@ When user describes what they ate:
 1. **Determine meal type** — user's statement takes priority; otherwise use time-of-day fallback
 2. **Detect eaten status** — determine if the user is currently eating or has already finished (see Eaten-Meal Detection above)
 3. **Call load** — get today's existing records
-4. **Call check-missing** — check for skipped meals before current one (see Missing Meal Handling below)
+4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
 5. **Check portion clarity** — see Portion Follow-Up Rule below
 6. **Estimate nutrition per food item** — use USDA data for each food's kcal / protein g / carbs g / fat g
 7. **Call save** — persist this meal (with food details)
@@ -232,14 +232,12 @@ When user describes what they ate:
 ### Missing Meal Handling
 
 When `check-missing` returns missing meals:
-1. **Ask once**: "Breakfast isn't logged yet — what did you have this morning? (totally fine if you skipped)"
-2. User describes food → record the missing meal first, then record the current meal
-3. User says "didn't eat" / "skipped" → mark as skipped, continue with current meal
-4. User says "ate but can't remember" → call `evaluate` with `--assumed` passing that meal's standard ratio of daily targets (e.g. in 3-meal 30:40:30 mode, a forgotten lunch = 40% of daily targets). This way:
-   - **Progress/actual values**: only show real recorded data
-   - **Suggestions**: based on "assuming user ate standard amount" to avoid compensatory overeating
+1. **Assume normal intake** for each missing meal — use that meal's standard ratio of daily targets (e.g. in 3-meal 30:40:30 mode, missing breakfast = 30%, missing lunch = 40%)
+2. **Do NOT stop to ask** — proceed to log and evaluate the current meal immediately, passing assumed meals via `--assumed` to `evaluate`
+3. **Give the full current-meal response** as usual (meal details + nutrition summary + suggestion)
+4. **Append a note** after the suggestion: inform the user that missed meals were assumed normal, and if they share what they actually ate, the advice will be more accurate (see `missing-meal-rules.md` for prompt templates)
 
-**After resolving the missing meal, always continue to log the meal the user originally mentioned** — do not make them repeat themselves.
+If the user later provides details about the missed meal → record it, re-run `evaluate` without `--assumed` for that meal, and update suggestions accordingly.
 
 **Backfilled meals** (meals reported after the fact): these are always "already eaten" — apply the eaten-meal detection outcome accordingly (no `right_now`, use `next_meal` or `next_time` instead — see Response Format).
 
