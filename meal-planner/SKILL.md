@@ -488,7 +488,7 @@ Present the following message (adapt to the user's language and meal schedule):
 > 1. **餐前提醒** — 每餐前 15 分钟我会发消息提醒你
 > 2. **告诉我你吃了什么** — 拍张照片或者简单描述都行，比如"一碗米饭+炒青菜+鸡胸肉"
 > 3. **我来分析** — 帮你估算热量和营养素，看看和目标比怎么样
-> 4. **按需调整** — 如果某一餐偏高或偏低，我会给下一餐的建议
+> 4. **按需调整** — 如果偏高或偏低，我会马上告诉你当餐怎么调，比如"加个蛋"或"米饭少盛点"
 >
 > 不用追求完美，照着食谱吃、随手告诉我就行。我来帮你微调 👍
 
@@ -499,7 +499,7 @@ English equivalent:
 > 1. **Pre-meal reminder** — I'll ping you 15 minutes before each meal
 > 2. **Tell me what you eat** — snap a photo or just describe it, like "rice bowl + stir-fried veggies + chicken breast"
 > 3. **I'll analyze** — estimate calories and macros, and see how you're tracking against your targets
-> 4. **Adjust as needed** — if a meal runs high or low, I'll suggest tweaks for the next one
+> 4. **Adjust on the spot** — if something's off, I'll tell you right away how to tweak the current meal, like "add an egg" or "go easy on the rice"
 >
 > Don't stress about perfection — just follow the plan and let me know what you had. I'll fine-tune from there 👍
 
