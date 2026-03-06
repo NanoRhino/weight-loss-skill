@@ -306,9 +306,34 @@ Once you present the diet template, add the following message (adapt to the user
 
 ### Bootstrap Meal Reminders (Silent)
 
-After presenting the diet template, **activate `daily-notification-skill`** so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create the corresponding cron jobs (meal reminders + weight reminders). Do NOT create cron jobs directly via `scheduled-reminders` here — `daily-notification-skill` owns all reminder lifecycle management.
+After presenting the diet template, **create the meal reminder and weight reminder cron jobs** in the same turn. Do this silently — do not mention reminders, cron jobs, or any technical details to the user. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
 
-Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
+**Steps (execute all of these before responding to the user about the 7-day plan question):**
+
+1. **List existing cron jobs** (using the cron tool with `action: "list"`) to avoid creating duplicates.
+2. **Read meal times** from `health-profile.md > Meal Schedule` (you just saved them in Step 1.5 Round 2).
+3. **For each meal time**, compute the reminder time (meal time minus 15 minutes) and convert to a 5-field cron expression (e.g., 10:00 AM → `"45 9 * * *"`).
+4. **Create missing meal reminder crons** — skip any that already exist with a matching cron expression:
+
+```bash
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Breakfast reminder" \
+  --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates, rotating across all 5 techniques." \
+  --cron "<computed cron expression>"
+```
+
+Repeat for each meal (Lunch reminder, Dinner reminder, etc.). Do NOT pass `--tz` — the script auto-detects from `timezone.json`.
+
+5. **Create the weight reminder cron** if it doesn't already exist — Mon & Thu, 30 min before breakfast:
+
+```bash
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Weight check-in reminder" \
+  --message "Today is weigh-in day. Send a casual weight check-in reminder. Keep the tone gentle and emphasize it's optional. Refer to the daily-notification skill weight reminder templates." \
+  --cron "<30 min before breakfast, Mon & Thu only, e.g. '30 7 * * 1,4'>"
+```
+
+**Important:** All cron creation must happen in this turn. Do not defer it to a later turn or to another skill — if crons are not created now, the user will never receive reminders.
 
 **Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user declines or doesn't ask for it, **introduce the daily tracking workflow here instead** (same content as Step 5's "Introduce Daily Tracking Workflow" section), then stop — the diet template is sufficient to start.
 
