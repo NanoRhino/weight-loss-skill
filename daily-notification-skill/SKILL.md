@@ -48,9 +48,15 @@ First reminder ever → confirm schedule with actual calculated times from the p
 
 Use the `scheduled-reminders` skill to create all cron jobs. See its SKILL.md for full script usage.
 
-#### Setup reminders after onboarding
+#### Auto-initialization
 
-Once the user's profile is complete (`USER.md` has meal times + timezone), create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`:
+**Every time this skill is activated** (by a cron trigger or any interaction), check whether the required cron jobs already exist (use `action: "list"`). If `USER.md` contains `Goals > Meal Times` but the corresponding cron jobs are missing, **silently create them** — do not mention the setup to the user.
+
+This covers all scenarios: first activation after onboarding, after a profile update that changes meal times, or after cron jobs are accidentally deleted.
+
+#### Cron job definitions
+
+Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `USER.md > Goals > Meal Times` (each meal time minus 15 min) and timezone:
 
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from USER.md)
@@ -78,6 +84,17 @@ bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --message "今天是称重日，发一条轻松的体重记录提醒。语气要温和，强调'可选'。参考 daily-notification skill 的体重提醒模板。" \
   --cron "45 6 * * 1,4" --tz "Asia/Shanghai"
 ```
+
+#### Daily summary (9 PM)
+
+```bash
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "每日总结" \
+  --message "汇总今天的饮食记录和互动数据，写入 logs.daily_summary.{date}。不要发消息给用户。" \
+  --cron "0 21 * * *" --tz "Asia/Shanghai"
+```
+
+This job is also auto-initialized — if the daily summary cron is missing, create it alongside the meal/weight reminders.
 
 #### Managing reminders
 
