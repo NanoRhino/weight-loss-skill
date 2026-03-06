@@ -44,24 +44,24 @@ This covers all scenarios: first activation after onboarding, after a profile up
 
 #### Cron job definitions
 
-Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `USER.md > Goals > Meal Times` (each meal time minus 15 min) and timezone:
+Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `USER.md > Goals > Meal Times` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`:
 
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from USER.md)
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "早餐提醒" \
   --message "根据用户饮食计划和最近记录，发一条友好的早餐提醒。参考 daily-notification skill 的消息模板，轮换使用5种技巧。" \
-  --cron "45 6 * * *" --tz "Asia/Shanghai"
+  --cron "45 6 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "午餐提醒" \
   --message "根据用户饮食计划和今天已记录的餐食，发一条友好的午餐提醒。参考 daily-notification skill 的消息模板。" \
-  --cron "45 11 * * *" --tz "Asia/Shanghai"
+  --cron "45 11 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "晚餐提醒" \
   --message "根据用户饮食计划和今天已记录的餐食，发一条友好的晚餐提醒。参考 daily-notification skill 的消息模板。" \
-  --cron "45 17 * * *" --tz "Asia/Shanghai"
+  --cron "45 17 * * *"
 ```
 
 #### Weight reminders (2x/week)
@@ -70,7 +70,7 @@ bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "体重记录提醒" \
   --message "今天是称重日，发一条轻松的体重记录提醒。语气要温和，强调'可选'。参考 daily-notification skill 的体重提醒模板。" \
-  --cron "45 6 * * 1,4" --tz "Asia/Shanghai"
+  --cron "45 6 * * 1,4"
 ```
 
 #### Managing reminders
@@ -81,7 +81,7 @@ Use cron tool: `action: "list"` to view, `action: "remove"` with `jobId` to dele
 
 Run in order. Any fail = don't send.
 
-1. Quiet hours? (before 6 AM / after 9 PM) → skip
+1. Quiet hours? Read `timezone.json` to get user's local time. Before 6 AM / after 9 PM local time → skip
 2. User in silent mode? (Stage 4) → skip
 3. Soft-restart active? (check `engagement.reminder_config`) → skip if this meal is not yet restored (see Soft Restart)
 4. This meal already logged today? (check `logs.meals.{date}`) → skip

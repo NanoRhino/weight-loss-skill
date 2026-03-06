@@ -1,7 +1,7 @@
 ---
 name: scheduled-reminders
 version: 1.0.0
-description: "Create and manage scheduled reminders via cron. Provides a wrapper script that auto-resolves Slack delivery config from agent bindings. Use when any skill needs to schedule one-shot or recurring reminders. Other skills (daily-notification, habit-builder, exercise-programming, etc.) should use this skill for all scheduling needs."
+description: "Create and manage scheduled reminders via cron. Provides a wrapper script that auto-resolves Slack delivery config from agent bindings. Use when any skill needs to schedule one-shot or recurring reminders. Other skills (daily-notification, habit-builder, exercise-tracking-planning, etc.) should use this skill for all scheduling needs."
 metadata:
   openclaw:
     emoji: "alarm_clock"
@@ -38,7 +38,7 @@ bash {baseDir}/scripts/create-reminder.sh \
   --tz "Asia/Shanghai"
 ```
 
-`--tz` defaults to `Asia/Shanghai`. Set to the user's timezone from `USER.md`.
+`--tz` auto-detects from the agent workspace's `timezone.json`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
 
 ## Parameters
 
@@ -49,7 +49,7 @@ bash {baseDir}/scripts/create-reminder.sh \
 | `--message` | ✅ | Prompt sent to user when the job fires |
 | `--at` | one of | One-shot: relative time or ISO timestamp |
 | `--cron` | one of | Recurring: 5-field cron expression |
-| `--tz` | ❌ | Timezone for cron (default: `Asia/Shanghai`) |
+| `--tz` | ❌ | Timezone for cron (auto-detects from `timezone.json`, fallback: `Asia/Shanghai`) |
 | `--keep` | ❌ | Don't auto-delete one-shot jobs after running |
 
 ## Managing existing jobs
