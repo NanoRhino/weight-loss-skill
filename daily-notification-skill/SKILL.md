@@ -83,11 +83,10 @@ Run in order. Any fail = don't send.
 
 1. Quiet hours? (before 6 AM / after 9 PM) → skip
 2. User in silent mode? (Stage 4) → skip
-3. This meal already logged today? (check `logs.meals.{date}`) → skip
-4. User in active conversation? → delay 30 min, re-check
-5. Number of reminders per day must not exceed `goals.meals_per_day`.
-6. Check `USER.md > Preferences > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
-7. All clear → send
+3. Soft-restart active? (check `engagement.reminder_config`) → skip if this meal is not yet restored (see Soft Restart)
+4. This meal already logged today? (check `logs.meals.{date}`) → skip
+5. Check `USER.md > Preferences > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
+6. All clear → send
 
 ### Lifecycle: Active → Recall → Silent
 
@@ -177,7 +176,6 @@ across users). Write soft-restart status to `engagement.reminder_config`.
 |--------|--------|
 | Consistently replies 30+ min late | Shift that meal's reminder time — update `USER.md > Goals > Meal Times` and the cron job |
 | Never replies to breakfast (2+ weeks) | Stop breakfast reminders |
-| Weekend pattern differs | Adjust weekend timing separately |
 
 **Important:** Whenever a meal time changes (user request or adaptive shift), always update **both** `USER.md > Goals > Meal Times` and the corresponding cron job so they stay in sync.
 
@@ -329,55 +327,6 @@ signals, conversation flow, and intervention guidelines.
 
 Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 `"everyone would be better off without me"`
-
----
-
-## Workspace
-
-### Reads from `USER.md > Preferences`
-
-| Section | Purpose |
-|---------|---------|
-| `Preferences > Scheduling & Lifestyle` | Adjust reminder timing (e.g., skip breakfast reminders if user always skips, delay dinner on busy days) |
-| `Preferences > Dietary` | Inform personalization tips (e.g., don't suggest foods user dislikes) |
-
-### Reads from `USER.md`
-
-| Field | Purpose |
-|-------|---------|
-| `Language` (top-level field) | Response language (e.g. `zh-CN` → respond in Chinese, `en` → respond in English) |
-| `Basic Info > Name` | Greeting (if set) |
-| `Basic Info > Sex` | Context (e.g. don't mention menstrual cycle for `male`) |
-| `Basic Info > Weight` | Baseline for trend detection (internal only) |
-| `Goals > Meals per Day` | Max reminders per day (e.g. `3`) |
-| `Goals > Meal Times` | Reminder schedule (e.g. `08:00 breakfast, 12:30 lunch, 19:00 dinner`) |
-| `Goals > Target Weight` | Never show to user in reminders |
-| `Lifestyle > Food Restrictions` | Respect in tips (e.g. don't suggest pork if restricted) |
-| `Lifestyle > Exercise Habits` | Detect IF patterns |
-| `Health Flags` | Skip weight reminders if ED-related flags present |
-| `Coach Notes > Recommended Approach` | Inform tone (e.g. user is on moderate deficit — don't suggest extreme restriction) |
-
-### Reads from logs (workspace)
-
-| Path | Purpose |
-|------|---------|
-| `logs.meals.{date}` | Skip reminder if meal already logged |
-| `logs.weight.{date}` | Skip reminder if already weighed |
-| `engagement.last_interaction` | Stage detection |
-
-### Writes
-
-| Path | When |
-|------|------|
-| `logs.weight.{date}` | User reports weight: `{ value, unit, recorded_at, reminder_sent_at }` |
-| `logs.meals.{date}.{meal_type}` | Every reminder: `{ status, food_description, estimated_calories, reminder_sent_at, replied_at }` |
-| `flags.*` | Safety signals |
-| `engagement.notification_stage` | Stage 1/2/3/4 |
-| `engagement.reminder_config` | Adaptive timing changes |
-| `engagement.days_since_first_reminder` | Tracks warm-up period (day 1-3 = limited techniques) |
-
-Status values: `"logged"` / `"skipped"` / `"no_reply"`
-Full JSON schemas: `references/data-schemas.md`
 
 ---
 
