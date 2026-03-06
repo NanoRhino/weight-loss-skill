@@ -145,12 +145,14 @@ The first reminder sets the tone for the entire relationship. Don't waste it
 on a generic "lunch coming up."
 
 **First reminder ever** (after onboarding, at the next meal slot):
-1. Confirm schedule with the ACTUAL times calculated from `goals.meal_times` — don't hardcode example times
-2. Inform the user about weigh-in schedule: **every Monday and Thursday morning, on an empty stomach (before eating)**. Explain why fasting matters: water, food, and sodium cause intra-day fluctuations — fasting gives the most consistent reading.
-3. Set expectations: "Reply when you can, ignore when you can't — zero pressure."
-4. Open conversation with a question about the current meal
 
-All four in one message. After this, normal reminders begin.
+The user already knows their meal times and reminder schedule from onboarding — do NOT repeat or re-confirm the full schedule. Instead, keep the first reminder light:
+
+1. Brief greeting that signals "reminders have started" without listing all the times again (e.g., "第一条提醒来啦！" / "Here's your first check-in!")
+2. Set expectations: "Reply when you can, ignore when you can't — zero pressure."
+3. Open conversation with a question about the current meal
+
+All three in one message. After this, normal reminders begin.
 
 **Day 1-3 (warm-up period):**
 - Use technique 1 (choice questions) and 3 (situational) only — these require
