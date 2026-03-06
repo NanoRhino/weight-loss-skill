@@ -528,6 +528,22 @@ Include this disclaimer when presenting a new program (first time only, don't re
 
 ---
 
+## Skill Routing
+
+**Before responding**, check if the user message triggers multiple skills.
+Read `SKILL-ROUTING.md` for the full conflict resolution rules. Key scenarios
+for this skill:
+
+- **Exercise + food in one message** (Pattern 1): Merge — log both in a single response. Exercise summary first, then meal details. Coordinate with `diet-tracking-analysis`.
+- **Exercise log + positive emotion** (Pattern 2B): Celebrate first, then log. Keep logging brief.
+- **Exercise log + emotional distress** (Pattern 2A): Emotional support leads. Defer exercise logging.
+- **Weekly summary conflict** (Pattern 3): If `weekly-report` is generating, exercise weekly data merges into it. On Sunday, exercise skill appends its own summary only if no explicit "weekly report" request was made.
+- **Exercise planning + meal planning** (Pattern 4): Sequence — exercise plan first, then meal plan.
+
+This skill is **Priority Tier P2 (Data Logging)** for tracking and **P3 (Planning)** for program design. Defer to P0/P1 when safety or emotional signals are detected.
+
+---
+
 ## Reference Files
 
 Read the relevant file(s) when needed:

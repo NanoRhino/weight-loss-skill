@@ -398,6 +398,22 @@ After every food log (save), **append or update** the check-in record in `{works
 
 ---
 
+## Skill Routing
+
+**Before responding**, check if the user message triggers multiple skills.
+Read `SKILL-ROUTING.md` for the full conflict resolution rules. Key scenarios
+for this skill:
+
+- **Exercise + food in one message** (Pattern 1): Merge — log both in a single response. Exercise summary first, then meal details.
+- **Food log + emotional distress** (Pattern 2A): Emotional support leads. Do NOT log food in the first reply.
+- **Food log + positive emotion** (Pattern 2B): Log food normally, add brief warm acknowledgment.
+- **Habit mention in reply** (Pattern 7): Log food as primary, record habit inline.
+
+This skill is **Priority Tier P2 (Data Logging)**. Defer to P0 (safety) and
+P1 (emotional support) when those signals are detected.
+
+---
+
 ## Reference Files
 
 Read these for detailed specs when needed:
