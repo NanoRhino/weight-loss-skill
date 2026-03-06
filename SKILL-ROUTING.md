@@ -144,20 +144,27 @@ report) or Sunday (exercise auto-summary).
 
 **Trigger:** User asks for both a workout plan and a diet plan.
 
-**Resolution: Sequence — exercise first, then meal.**
+**Resolution: Sequence — follow user's stated order, with a sensible default.**
 
-1. Acknowledge both requests: "Let me help with both! I'll start with
-   your training program, then we'll sort out the eating plan."
-2. Complete the exercise planning conversation (collect profile, design
-   program, present plan)
-3. Transition to meal planning: "Now let's figure out what to eat to
-   support your training."
-4. The meal planner can reference the exercise plan for better
-   nutrition-recovery alignment
+1. **Detect order from user message.** Whichever plan the user mentions
+   first is the one you start with. E.g.:
+   - "帮我做个饮食计划，再安排下训练" → meal first, then exercise
+   - "I need a workout plan and a meal plan" → exercise first, then meal
+2. Acknowledge both requests: "I'll help with both! Let me start with
+   [first], then we'll work on [second]."
+3. Complete the first planning conversation (collect profile, design
+   plan, present it)
+4. Transition to the second: "Now let's sort out [second] to go with
+   your [first] plan."
+5. The second planner can reference the first plan for alignment (e.g.,
+   meal plan can factor in exercise recovery needs, or exercise plan
+   can consider dietary constraints)
 
-**Why exercise first:** The training program determines recovery needs,
-which influences meal timing and macro emphasis. Meal planning benefits
-from knowing the exercise schedule.
+**Default when order is ambiguous** (user mentions both simultaneously
+with no clear sequence): prefer exercise first, because the training
+program determines recovery needs which influence meal timing and macro
+emphasis. But this is a soft default — if the user redirects, follow
+their lead.
 
 ---
 
