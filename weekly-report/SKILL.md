@@ -56,12 +56,18 @@ User can request a report at any time:
 | Field | Purpose |
 |-------|---------|
 | `Basic Info > Name` | Greeting / header personalization |
-| `Basic Info > Weight` | Baseline reference (initial weight) |
+| `Health Flags` | Skip weight section if ED-related flags |
+
+### Reads from `health-profile.md`
+
+| Field | Purpose |
+|-------|---------|
+| `Body > Current Weight` | Baseline reference (initial weight) |
 | `Goals > Target Weight` | Progress percentage calculation |
-| `Goals > Meals per Day` | Expected logs per day (for logging rate calc) |
-| `Goals > Meal Times` | Which meals to expect |
-| `Lifestyle > Food Restrictions` | Context for suggestions |
-| `Lifestyle > Exercise Habits` | Context for suggestions |
+| `Meal Schedule > Meals per Day` | Expected logs per day (for logging rate calc) |
+| `Meal Schedule` | Which meals to expect |
+| `Diet Config > Food Restrictions` | Context for suggestions |
+| `Activity & Lifestyle > Exercise Habits` | Context for suggestions |
 
 ### Reads from `PLAN.md`
 
@@ -271,7 +277,7 @@ Specific, actionable improvements for next week. Based on the week's gaps.
 **Rules:**
 - Each suggestion must reference actual data (e.g., "Protein averaged 82g vs target 84–112g")
 - Must include a concrete action (e.g., "Add a Greek yogurt to breakfast")
-- Respect food restrictions from `USER.md`
+- Respect food restrictions from `health-profile.md`
 - Never suggest weighing more than 2x/week
 - Never suggest calorie counting if user is on IF mode
 - Tone: collaborative, not prescriptive — `"One thing to try next week:"` not `"You need to:"`
@@ -333,7 +339,8 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 | Path | Purpose |
 |------|---------|
-| `USER.md` | User profile, name, goals, health flags |
+| `USER.md` | User identity, name, health flags |
+| `health-profile.md` | Health data, goals, meal schedule, food restrictions |
 | `PLAN.md` | Calorie targets, macro ranges, weekly loss rate, diet mode |
 | `logs.meals.{date}.{meal_type}` | Meal logging status, food descriptions, calories, macros |
 | `logs.weight.{date}` | Weight readings |

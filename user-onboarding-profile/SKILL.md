@@ -106,7 +106,7 @@ Do three things:
      ```
      Common timezone mappings: `Asia/Shanghai` (UTC+8, 28800), `America/New_York` (UTC-5, -18000), `America/Chicago` (UTC-6, -21600), `America/Los_Angeles` (UTC-8, -28800), `Europe/London` (UTC+0, 0).
 
-5. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the USER.md you just saved and skip redundant data collection.
+5. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
 
 ## Health Safety Note
 
@@ -115,6 +115,10 @@ If during conversation the user mentions any serious health condition (diabetes,
 ## Profile Output Format
 
 Use `—` for any field the user didn't provide. Never fabricate data.
+
+Onboarding produces **three separate files** (do NOT mention filenames or file structure to the user):
+
+### File 1: USER.md — Identity (cross-scenario)
 
 ```markdown
 # User Profile
@@ -128,48 +132,79 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 - **Age:** [number | —]
 - **Sex:** [male | female | other | —]
 - **Height:** [X cm | —]
-- **Weight:** [X kg | —]
 
-## Goals
-
-- **Target Weight:** [X kg | —]
-- **Weight to Lose:** [X kg (calculated) | —]
-- **Core Motivation:** [string | —]
-
-## Lifestyle
-
-- **Work Type:** [sedentary | active | —]
-- **Food Restrictions:** [list or None]
-- **Exercise Habits:** [string | —]
-- **Exercise Preferences:** [list or None]
+## Contact
+- **Telegram ID:** [string | —]
 
 ## Health Flags
 
 [list of flags, or None]
 
-## Coach Notes
-
-- **Recommended Approach:** [initial high-level recommendation based on collected data]
-
-## Preferences
-
-### Dietary
-[Food likes/dislikes, flavor preferences, allergies beyond Food Restrictions — or empty if none mentioned]
-
-### Exercise
-[Activity preferences/dislikes, physical limitations beyond Exercise Habits — or empty if none mentioned]
-
-### Scheduling & Lifestyle
-[Work schedule details, busy days, eating-out patterns — or empty if none mentioned]
-
-### Cooking & Kitchen
-[Kitchen equipment, cooking skill, meal prep willingness, grocery access — or empty if none mentioned]
-
-### General Notes
-[Motivation details, communication preferences, pace preferences — or empty if none mentioned]
+## Communication Preferences
+[Tone, pace, emoji preference — or — if none mentioned]
 ```
 
-> **Note:** The `## Preferences` section starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-tracking-planning, etc.) detect and append new preferences during future conversations.
+### File 2: health-profile.md — Health facts & settings
+
+```markdown
+# Health Profile
+
+**Created:** [ISO-8601 timestamp]
+**Updated:** [ISO-8601 timestamp]
+
+## Body
+- **Current Weight:** [X kg | —]
+
+## Activity & Lifestyle
+- **Work Type:** [sedentary | active | —]
+- **Activity Level:** —
+- **Exercise Habits:** [string | —]
+
+## Fitness
+- **Fitness Level:** —
+- **Fitness Goal:** —
+
+## Diet Config
+- **Diet Mode:** —
+- **Food Restrictions:** [list or None]
+
+## Meal Schedule
+- **Meals per Day:** —
+- **Breakfast:** —
+- **Lunch:** —
+- **Dinner:** —
+
+## Goals
+- **Target Weight:** [X kg | —]
+- **Weight to Lose:** [X kg (calculated) | —]
+- **Core Motivation:** [string | —]
+```
+
+**Note:** Many fields in health-profile.md start as `—` during onboarding and are filled later by other skills (e.g., `Diet Mode` and `Meal Schedule` are set by weight-loss-planner, `Fitness Level`/`Fitness Goal` by exercise-tracking-planning). Only fill fields that the user actually provided during onboarding.
+
+### File 3: health-preferences.md — Accumulated preferences
+
+```markdown
+# Health Preferences
+
+> 从对话中积累的健康/减重场景个性化信息。各 skill 持续追加。
+
+## Dietary
+[Food likes/dislikes, flavor preferences, allergies beyond Food Restrictions — or empty if none mentioned]
+
+## Exercise
+[Activity preferences/dislikes, physical limitations beyond Exercise Habits — or empty if none mentioned]
+
+## Scheduling & Lifestyle
+[Work schedule details, busy days, eating-out patterns — or empty if none mentioned]
+
+## Cooking & Kitchen
+[Kitchen equipment, cooking skill, meal prep willingness, grocery access — or empty if none mentioned]
+```
+
+Each entry follows the format: `- [YYYY-MM-DD] Preference description`
+
+> **Note:** The `health-preferences.md` file starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-tracking-planning, etc.) detect and append new preferences during future conversations.
 
 ---
 
@@ -177,11 +212,15 @@ Use `—` for any field the user didn't provide. Never fabricate data.
 
 When a user wants to update (not create) their profile:
 
-1. Read the existing `USER.md` from the workspace
+1. Read the existing `USER.md` and `health-profile.md` from the workspace
 2. Ask what changed
-3. Update only the changed fields
-4. Bump `Updated:` timestamp, keep `Created:` timestamp
-5. Save the updated file
+3. Update only the changed fields in the appropriate file:
+   - Identity info (name, age, sex, height) → `USER.md`
+   - Health/fitness info (weight, activity, goals, restrictions) → `health-profile.md`
+   - Health Flags → `USER.md`
+   - Communication preferences → `USER.md`
+4. Bump `Updated:` timestamp on the file(s) that changed, keep `Created:` timestamp
+5. Save the updated file(s)
 
 ## Tone Guidelines
 
@@ -191,26 +230,28 @@ When a user wants to update (not create) their profile:
 - If someone shares something emotionally heavy, acknowledge it briefly before moving on
 - **Never** include internal notes, meta-commentary, or system-facing explanations in your messages (e.g. "Note: I did not schedule a reminder in this turn"). Every word you send must be intended for the user to read
 
-## Preference Awareness — Write to USER.md Preferences Section
+## Preference Awareness — Write to health-preferences.md
 
-During onboarding, the user often reveals preferences beyond the standard profile fields. Capture these in the `## Preferences` section at the bottom of `USER.md`.
+During onboarding, the user often reveals preferences beyond the standard profile fields. Capture these in `health-preferences.md`.
 
 **What to capture:**
-- Food likes/dislikes beyond the "Food Restrictions" field (e.g., "I hate eggplant", "I love spicy food")
-- Cooking situation details (e.g., "I only have a microwave", "I enjoy cooking on weekends")
-- Scheduling details (e.g., "I work late on Wednesdays", "I skip breakfast on workdays")
-- Exercise preferences beyond the "Exercise Habits" field (e.g., "I hate running", "I prefer yoga")
-- Budget sensitivity (e.g., "I'm on a tight budget")
-- Any other preference that could inform future meal plans, exercise programs, or coaching
+- Food likes/dislikes beyond the "Food Restrictions" field (e.g., "I hate eggplant", "I love spicy food") → `## Dietary`
+- Cooking situation details (e.g., "I only have a microwave", "I enjoy cooking on weekends") → `## Cooking & Kitchen`
+- Scheduling details (e.g., "I work late on Wednesdays", "I skip breakfast on workdays") → `## Scheduling & Lifestyle`
+- Exercise preferences beyond the "Exercise Habits" field (e.g., "I hate running", "I prefer yoga") → `## Exercise`
+- Budget sensitivity (e.g., "I'm on a tight budget") → `## Dietary`
+- Any other health-related preference that could inform future meal plans, exercise programs, or coaching
+
+**Communication preferences** (tone, pace, emoji preference, etc.) go to `USER.md > Communication Preferences`, NOT to health-preferences.md.
 
 **How to save:**
-1. After generating `USER.md`, check if the user mentioned any preferences during the conversation that aren't covered by standard profile fields
-2. If yes, write them to the `## Preferences` section of `USER.md` under the appropriate subcategory (Dietary / Exercise / Scheduling & Lifestyle / Cooking & Kitchen / General Notes)
+1. After generating files, check if the user mentioned any preferences during the conversation that aren't covered by standard profile fields
+2. If yes, write them to `health-preferences.md` under the appropriate subcategory
 3. Each entry follows the format: `- [YYYY-MM-DD] Preference description`
 4. Do this silently — never mention internal file details to the user
 
 **What NOT to duplicate:**
-- Don't write items already stored in other `USER.md` sections (weight, height, food restrictions, exercise habits, etc.)
+- Don't write items already stored in `health-profile.md` (weight, food restrictions, exercise habits, activity level, etc.)
 - Only write preferences that add information beyond the standard profile fields
 
 ---
@@ -219,5 +260,9 @@ During onboarding, the user often reveals preferences beyond the standard profil
 
 After the user confirms their summary:
 
-1. Generate the profile using the format shown above
-2. **Internal action (do NOT mention to user):** Silently save as `USER.md` in the current workspace (including the `## Preferences` section with any preferences detected during onboarding). Do not tell the user the filename, file format, or mention `.md` — just confirm that their profile has been saved.
+1. Generate the profile using the formats shown above
+2. **Internal actions (do NOT mention to user):** Silently save all three files in the current workspace:
+   - `USER.md` — identity and communication preferences
+   - `health-profile.md` — health facts and settings
+   - `health-preferences.md` — any accumulated preferences from the conversation
+   Do not tell the user the filenames, file format, or mention `.md` — just confirm that their profile has been saved.

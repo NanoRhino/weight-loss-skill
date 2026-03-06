@@ -29,7 +29,7 @@ up to 3x/day, weight reminders 2x/week, delivered as in-app chat.
 
 ### Schedule
 
-Read meal times from `USER.md` → `Goals > Meal Times`.
+Read meal times from `health-profile.md` → `Meal Schedule`.
 Reminders fire 15 min before each meal.
 
 ### Scheduling Reminders
@@ -38,16 +38,16 @@ Use the `scheduled-reminders` skill to create all cron jobs. See its SKILL.md fo
 
 #### Auto-initialization
 
-**Every time this skill is activated** (by a cron trigger or any interaction), check whether the required cron jobs already exist (use `action: "list"`). If `USER.md` contains `Goals > Meal Times` but the corresponding cron jobs are missing, **silently create them** — do not mention the setup to the user.
+**Every time this skill is activated** (by a cron trigger or any interaction), check whether the required cron jobs already exist (use `action: "list"`). If `health-profile.md` contains `Meal Schedule` but the corresponding cron jobs are missing, **silently create them** — do not mention the setup to the user.
 
 This covers all scenarios: first activation after onboarding, after a profile update that changes meal times, or after cron jobs are accidentally deleted.
 
 #### Cron job definitions
 
-Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `USER.md > Goals > Meal Times` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`:
+Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`:
 
 ```bash
-# Example: 3 meals, reminders 15 min before each (adjust times from USER.md)
+# Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Breakfast reminder" \
   --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates, rotating across all 5 techniques." \
@@ -85,7 +85,7 @@ Run in order. Any fail = don't send.
 2. User in silent mode? (Stage 4) → skip
 3. Soft-restart active? (check `engagement.reminder_config`) → skip if this meal is not yet restored (see Soft Restart)
 4. This meal already logged today? (check `logs.meals.{date}`) → skip
-5. Check `USER.md > Preferences > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
+5. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
 6. All clear → send
 
 ### Lifecycle: Active → Recall → Silent
@@ -174,10 +174,10 @@ across users). Write soft-restart status to `engagement.reminder_config`.
 
 | Signal | Action |
 |--------|--------|
-| Consistently replies 30+ min late | Shift that meal's reminder time — update `USER.md > Goals > Meal Times` and the cron job |
+| Consistently replies 30+ min late | Shift that meal's reminder time — update `health-profile.md > Meal Schedule` and the cron job |
 | Never replies to breakfast (2+ weeks) | Stop breakfast reminders |
 
-**Important:** Whenever a meal time changes (user request or adaptive shift), always update **both** `USER.md > Goals > Meal Times` and the corresponding cron job so they stay in sync.
+**Important:** Whenever a meal time changes (user request or adaptive shift), always update **both** `health-profile.md > Meal Schedule` and the corresponding cron job so they stay in sync.
 
 ### Weekly Low-Calorie Check
 
@@ -188,7 +188,7 @@ user's weekly average calorie intake is not consistently below their BMR.
 ```bash
 python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
   --data-dir {workspaceDir}/data/meals \
-  --bmr <user BMR from PLAN.md or USER.md>
+  --bmr <user BMR from PLAN.md>
 ```
 
 - If `below_floor` is `true`: include a gentle note in the next meal reminder
@@ -286,7 +286,7 @@ Users may ask to change reminders in natural language. Handle inline:
 | User says | Action |
 |-----------|--------|
 | "Stop breakfast reminders" | Stop that meal's reminders. Update `engagement.reminder_config`. Confirm: `"Done — no more breakfast reminders. Let me know if you change your mind."` |
-| "Change dinner to 8 PM" | Update `USER.md > Goals > Meal Times` with the new time, then update the cron job. Confirm: `"Got it — dinner reminders moved to 7:45 PM."` |
+| "Change dinner to 8 PM" | Update `health-profile.md > Meal Schedule` with the new time, then update the cron job. Confirm: `"Got it — dinner reminders moved to 7:45 PM."` |
 | "Stop all reminders" | Stop everything, move to Stage 4. `"All reminders off. I'm still here if you want to chat. 💛"` |
 | "Remind me more" / "Can you also remind me for snacks" | Outside current scope — acknowledge and note for future: `"I can only do meals and weight for now, but I'll keep that in mind."` |
 | "Resume reminders" / "Start reminding me again" | Restart Stage 1 with previous config. Confirm schedule. |
@@ -330,6 +330,58 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 
 ---
 
+## Workspace
+
+### Reads from `health-preferences.md`
+
+| Section | Purpose |
+|---------|---------|
+| `Scheduling & Lifestyle` | Adjust reminder timing (e.g., skip breakfast reminders if user always skips, delay dinner on busy days) |
+| `Dietary` | Inform personalization tips (e.g., don't suggest foods user dislikes) |
+
+### Reads from `USER.md`
+
+| Field | Purpose |
+|-------|---------|
+| `Basic Info > Name` | Greeting (if set) |
+| `Basic Info > Sex` | Context (e.g. don't mention menstrual cycle for `male`) |
+| `Health Flags` | Skip weight reminders if ED-related flags present |
+
+### Reads from `health-profile.md`
+
+| Field | Purpose |
+|-------|---------|
+| `Body > Current Weight` | Baseline for trend detection (internal only) |
+| `Meal Schedule > Meals per Day` | Max reminders per day (e.g. `3`) |
+| `Meal Schedule > Breakfast/Lunch/Dinner` | Reminder schedule (e.g. `08:00 breakfast, 12:30 lunch, 19:00 dinner`) |
+| `Goals > Target Weight` | Never show to user in reminders |
+| `Diet Config > Food Restrictions` | Respect in tips (e.g. don't suggest pork if restricted) |
+| `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
+
+### Reads from logs (workspace)
+
+| Path | Purpose |
+|------|---------|
+| `logs.meals.{date}` | Skip reminder if meal already logged |
+| `logs.weight.{date}` | Skip reminder if already weighed |
+| `engagement.last_interaction` | Stage detection |
+
+### Writes
+
+| Path | When |
+|------|------|
+| `logs.weight.{date}` | User reports weight: `{ value, unit, recorded_at, reminder_sent_at }` |
+| `logs.meals.{date}.{meal_type}` | Every reminder: `{ status, food_description, estimated_calories, reminder_sent_at, replied_at }` |
+| `logs.daily_summary.{date}` | 9 PM auto-summary: all records + engagement stats |
+| `flags.*` | Safety signals |
+| `engagement.notification_stage` | Stage 1/2/3/4 |
+| `engagement.reminder_config` | Adaptive timing changes |
+| `engagement.days_since_first_reminder` | Tracks warm-up period (day 1-3 = limited techniques) |
+
+Status values: `"logged"` / `"skipped"` / `"no_reply"`
+Full JSON schemas: `references/data-schemas.md`
+
+---
 ## Performance
 
 - Reminder: 1-2 sentences, < 25 words

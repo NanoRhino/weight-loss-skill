@@ -28,20 +28,21 @@ This skill is interactive. Walk the user through four steps, confirming at each 
 
 This step has two paths. Check which one applies before doing anything else.
 
-#### Path A: USER.md exists (onboarded user)
+#### Path A: Profile exists (onboarded user)
 
-Another skill may have already collected the user's body data during onboarding and stored it in `USER.md`. Check whether a USER.md file exists in the conversation context or in workspace for parsing guidelines — field names and formats may vary. If it does, read it for these fields:
+Another skill may have already collected the user's body data during onboarding and stored it across two files:
+- `USER.md` — identity info: height, age, biological sex
+- `health-profile.md` — health data: current weight, activity level, exercise habits, target weight
 
-- Height, current weight, age, biological sex
-- Activity level / daily activity description
+Check whether these files exist in the workspace. If they do, read them for required fields. Field names and formats may vary — look for semantic matches.
 
-If USER.md provides all required fields, **skip manual collection entirely** and proceed directly to calculating TDEE internally (see below).
+If both files together provide all required fields, **skip manual collection entirely** and proceed directly to calculating TDEE internally (see below).
 
-If USER.md exists but is incomplete (e.g., has height and weight but no activity level), use what's there and ask only for the missing pieces.
+If files exist but are incomplete (e.g., have height and weight but no activity level), use what's there and ask only for the missing pieces.
 
-#### Path B: No USER.md (standalone mode)
+#### Path B: No profile files (standalone mode)
 
-If no USER.md is found, this skill works independently. Gather the user's physical stats through conversation. If they've already shared some info in earlier messages, acknowledge what you know and ask only for the gaps.
+If no `USER.md` or `health-profile.md` is found, this skill works independently. Gather the user's physical stats through conversation. If they've already shared some info in earlier messages, acknowledge what you know and ask only for the gaps.
 
 **Required inputs:**
 - Height
@@ -84,18 +85,18 @@ The script handles safety floors (max(BMR, 1000)), rate clamping, and all edge c
 
 **Diet mode:** Do NOT ask about diet mode at this stage. The initial plan focuses on calorie targets, BMI, TDEE, and timeline only — no macro breakdown yet. Diet mode will be asked later, after the user accepts the weight loss plan.
 
-If USER.md already contains the target weight, don't ask for it again — use it directly.
+If `health-profile.md` already contains the target weight, don't ask for it again — use it directly.
 
 Once all body data and TDEE values are resolved, proceed to Step 2 (Generate Milestone Plan).
 
 ### Preference Awareness
 
-Before presenting diet mode options in Step 3.5 or generating a plan, **read the `## Preferences` section in `USER.md`** (if it exists). Stored preferences may influence:
+Before presenting diet mode options in Step 3.5 or generating a plan, **read `health-preferences.md`** (if it exists). Stored preferences may influence:
 - **Diet mode selection** — if the user previously expressed interest in a specific diet style (e.g., "wants to try Mediterranean"), highlight that mode as the recommended option when asking about diet mode (instead of defaulting to Balanced)
 - **Macro adjustments** — dietary preferences may inform fat/carb balance (e.g., "loves high-fat foods" might suit a higher fat range)
 - **General coaching notes** — preferences like "prefers gradual changes" should inform how you present the plan
 
-If the user states new preferences during the planning conversation (e.g., "I want to do keto" or "I don't want to count every calorie"), **silently append them to `USER.md`'s `## Preferences` section** under the appropriate subcategory.
+If the user states new preferences during the planning conversation (e.g., "I want to do keto" or "I don't want to count every calorie"), **silently append them to `health-preferences.md`** under the appropriate subcategory.
 
 ### Diet Mode Selection
 
@@ -218,7 +219,7 @@ Once the user accepts the calorie-based plan, **before generating the final stru
 #### Round 1: Diet Mode
 
 Ask which diet mode the user would like to follow. Instead of listing all available modes, **select the 2 most suitable options** based on the user's profile, preferences, activity level, and goals. Use your professional judgment — consider:
-- USER.md preferences (if available)
+- health-preferences.md (if available)
 - Activity level and exercise habits (e.g., gym-goers → High-Protein; sedentary → Balanced)
 - Dietary restrictions (e.g., vegetarian → Plant-Based)
 - Health goals beyond weight loss (e.g., heart health → Mediterranean)
@@ -236,7 +237,7 @@ Present concisely:
 >
 > I'd recommend **[Mode A]** as your starting point. Which one appeals to you?
 
-If the user wants to see all options, provide the full list. If USER.md `## Preferences` already records a diet mode, include it as one recommendation.
+If the user wants to see all options, provide the full list. If `health-preferences.md` already records a diet mode preference, include it as one recommendation.
 
 **Wait for the user to choose before proceeding to Round 2.**
 
@@ -256,7 +257,13 @@ After the user provides their meal schedule, ask about taste and restrictions:
 
 **Wait for the user to answer (or skip) before proceeding.**
 
-**After collecting all three rounds:** Update USER.md with the diet mode, meal times, and any new preferences (silently append to `## Preferences` and `## Goals` sections). Then calculate macros using the confirmed diet mode and proceed to Step 4.
+**After collecting all three rounds:** Update the appropriate files silently:
+- **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
+- **Meal Schedule** → `health-profile.md > Meal Schedule`
+- **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
+- **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
+
+Then calculate macros using the confirmed diet mode and proceed to Step 4.
 
 ---
 
@@ -375,7 +382,7 @@ Do not tell the user the filename, file format, or that a file is being saved.
 
 ## Progress Check-In & Continuation
 
-**Cross-session continuity:** Claude does not retain memory between conversations. When a user returns to check in or report progress, ask them to upload their previously saved plan file so you can pick up where they left off. If no file is available, ask for their current weight and goal to reconstruct context.
+**Cross-session continuity:** Claude does not retain memory between conversations. When a user returns to check in or report progress, read their `PLAN.md` and `health-profile.md` from the workspace to pick up where they left off. If these files don't exist, ask for their current weight and goal to reconstruct context.
 
 When a user reports progress (e.g., "I'm at 70 kg now!"):
 1. Celebrate genuinely — acknowledge the effort, not just the number
