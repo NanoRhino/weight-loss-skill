@@ -210,6 +210,129 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
 
 ---
 
+## Training Plan Response (`is_training_plan: true`)
+
+Return this when a new training plan is accepted by the user. Store the full object to `training_plan.active`. If an active plan already exists, archive it to `training_plan.history` first.
+
+```json
+{
+  "plan_id": "plan_20260306",
+  "created_date": "2026-03-06",
+  "status": "active",
+  "goal": "lose_fat",
+  "experience_level": "beginner",
+  "days_per_week": 3,
+  "minutes_per_session": 55,
+  "split_type": "full_body",
+  "equipment": "commercial_gym",
+  "schedule": [
+    {
+      "day": "mon",
+      "type": "training",
+      "label": "全身训练 A",
+      "estimated_duration_min": 55,
+      "exercises": [
+        {
+          "order": 1,
+          "phase": "warmup",
+          "name": "椭圆机慢速",
+          "duration_min": 3,
+          "sets": null,
+          "reps": null
+        },
+        {
+          "order": 2,
+          "phase": "main",
+          "name": "高脚杯深蹲",
+          "category": "strength",
+          "movement_pattern": "squat",
+          "sets": 3,
+          "reps": "10-12",
+          "intensity": "moderate",
+          "rest_sec": 90
+        },
+        {
+          "order": 3,
+          "phase": "cooldown",
+          "name": "股四头肌拉伸",
+          "duration_sec": 20,
+          "per_side": true
+        }
+      ]
+    },
+    {
+      "day": "tue",
+      "type": "rest",
+      "label": "休息 · 散步30分钟",
+      "active_recovery": "walk 30min",
+      "exercises": []
+    }
+  ],
+  "progression": {
+    "current_phase": 1,
+    "phases": [
+      { "phase": 1, "weeks": "1-2", "focus": "learn movements, moderate intensity" },
+      { "phase": 2, "weeks": "3-4", "focus": "progressive overload" },
+      { "phase": 3, "weeks": "5", "focus": "deload week, volume -40%" }
+    ]
+  },
+  "constraints": {
+    "injuries": [],
+    "avoided_exercises": [],
+    "preferences_applied": ["prefers_dumbbells"]
+  },
+  "is_training_plan": true,
+  "lang": "zh"
+}
+```
+
+### Field Notes
+
+- `plan_id`: `plan_` + ISO date of creation. Unique identifier for archival.
+- `status`: `"active"` when current; changes to `"archived"` when replaced or completed.
+- `goal`: user's primary training goal — matches `fitness_goal` values.
+- `experience_level`: `beginner` / `intermediate` / `advanced`.
+- `days_per_week`: integer, how many training days per week.
+- `minutes_per_session`: integer, typical session duration (excluding warm-up/cooldown if user specified "net training time").
+- `split_type`: the training split chosen — `full_body` / `upper_lower` / `push_pull_legs` / `body_part` / `cardio_only` / `mixed`.
+- `equipment`: `commercial_gym` / `home_gym` / `bodyweight` / `outdoor` / `mixed`.
+- `schedule`: array of 7 objects (Mon–Sun). Each day has:
+  - `day`: three-letter lowercase day code (`mon`–`sun`).
+  - `type`: `"training"` or `"rest"`.
+  - `label`: display name in user's language (e.g., "全身训练 A", "休息日").
+  - `estimated_duration_min`: integer or null (null for rest days).
+  - `exercises`: array of exercise objects for training days; empty array for rest days.
+    - `order`: integer, sequence within the session.
+    - `phase`: `"warmup"` / `"main"` / `"cooldown"`.
+    - `name`: exercise name in user's language.
+    - `category`: (main phase only) `strength` / `cardio` / `flexibility` / `hiit` / `sports`.
+    - `movement_pattern`: (strength only) `squat` / `hinge` / `push_horizontal` / `push_vertical` / `pull_horizontal` / `pull_vertical` / `carry` / `core` / `isolation`.
+    - `sets`, `reps`, `intensity`, `rest_sec`: (main phase only) training parameters.
+    - `duration_min` or `duration_sec`: (warmup/cooldown) time-based exercises.
+    - `per_side`: boolean, true if exercise is done per side.
+  - `active_recovery`: (rest days only) string description or null.
+- `progression`: periodization plan.
+  - `current_phase`: integer, which phase the user is currently in.
+  - `phases`: array of phase objects with week ranges and focus descriptions.
+- `constraints`: records what limitations and preferences were applied during plan design.
+- `lang`: language code matching user's language.
+
+### Plan Lifecycle
+
+1. User requests a training plan → skill designs and presents it in Markdown.
+2. User accepts (explicitly or by not objecting) → write to `training_plan.active`.
+3. User requests adjustments → update `training_plan.active` in place.
+4. User requests a completely new plan → archive current plan to `training_plan.history`, write new plan to `training_plan.active`.
+5. Plan reaches end of progression cycle → skill can propose a new mesocycle; if accepted, archive and replace.
+
+### How Other Skills Use `training_plan.active`
+
+- `daily-notification`: reads `schedule[today].label` to mention today's workout in reminders (e.g., "今天是全身训练 A 的日子").
+- `weekly-report`: reads plan to compare planned vs. actual sessions logged in `logs.exercise.*`.
+- `habit-builder`: reads `days_per_week` and schedule to recommend exercise-adjacent habits (e.g., "gym bag prep the night before").
+
+---
+
 ## Non-Exercise Response (`is_exercise_log: false`)
 
 Return this for follow-up questions, clarifications, weekly summaries, or general chat.
