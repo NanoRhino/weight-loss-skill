@@ -322,6 +322,41 @@ Once you present the diet template, add the following message (adapt to the user
 >
 > Would you like me to create a detailed 7-day meal plan as well?
 
+### Create Meal Reminders (Silent)
+
+After presenting the diet template, **silently create the meal reminder cron jobs** using the `scheduled-reminders` skill. This is the first point in the flow where `health-profile.md > Meal Schedule` is populated — so this is where the `daily-notification-skill`'s cron jobs must be bootstrapped.
+
+1. Read meal times from `health-profile.md > Meal Schedule` (written in Step 1.5 Round 2).
+2. For each meal, create a recurring cron job firing **15 minutes before** the meal time.
+3. Also create the weight reminder cron job (Mon & Thu, 30 min before breakfast).
+
+```bash
+# Example: user eats breakfast 8:00, lunch 12:00, dinner 18:30
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Breakfast reminder" \
+  --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates, rotating across all 5 techniques." \
+  --cron "45 7 * * *"
+
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Lunch reminder" \
+  --message "Send a friendly lunch reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
+  --cron "45 11 * * *"
+
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Dinner reminder" \
+  --message "Send a friendly dinner reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
+  --cron "15 18 * * *"
+
+bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --name "Weight check-in reminder" \
+  --message "Today is weigh-in day. Send a casual weight check-in reminder. Keep the tone gentle and emphasize it's optional. Refer to the daily-notification skill weight reminder templates." \
+  --cron "30 7 * * 1,4"
+```
+
+Derive actual cron times from the user's `health-profile.md > Meal Schedule`. **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`.
+
+Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent.
+
 **Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user doesn't ask for it, stop here — the diet template is sufficient to start.
 
 ---
