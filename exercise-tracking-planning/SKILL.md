@@ -493,6 +493,41 @@ Include this disclaimer when presenting a new program (first time only, don't re
 
 ---
 
+## Workspace
+
+### Reads
+
+| Path | Purpose |
+|------|---------|
+| `USER.md > Basic Info` | Age, sex, height — calorie estimation, program design |
+| `health-profile.md > Body > Current Weight` | MET calorie calculation |
+| `health-profile.md > Fitness` | Fitness level, fitness goal — feedback tone, program design |
+| `health-preferences.md > Exercise` | Preferred/disliked activities — tailor feedback, skip redundant questions in planning |
+| `health-preferences.md > Scheduling & Lifestyle` | Schedule constraints for weekly summary suggestions and program scheduling |
+| `locale.json` | Unit preference (metric/imperial) |
+| `logs.exercise.{date}` | Previous exercise logs — weekly summary, trend comparison, risk alerts |
+| `logs.exercise_weekly_summary.{week}` | Previous weekly summaries — week-over-week trend comparison |
+| `training_plan.active` | Current active training plan — context for tracking feedback, plan adjustments |
+
+### Writes
+
+| Path | When |
+|------|------|
+| `health-profile.md > Fitness` | User provides missing fitness level or fitness goal — silently update |
+| `health-preferences.md > Exercise` | User reveals new exercise preferences during conversation — silently append |
+| `logs.exercise.{date}` | Each exercise log response (`is_exercise_log: true`) — store the full exercise JSON |
+| `logs.exercise_weekly_summary.{week}` | Weekly summary generated — store summary data for trend tracking |
+| `training_plan.active` | New training plan accepted by user — store plan details (goal, split, schedule, exercises, progression phase, created date) |
+| `training_plan.history` | Active plan replaced or completed — archive previous plan |
+
+### Read by other skills
+
+- `weekly-report` reads `logs.exercise.{date}` and `logs.exercise_weekly_summary.{week}` for weekly progress reports.
+- `daily-notification` reads `training_plan.active` to reference today's scheduled workout in reminders.
+- `habit-builder` reads `logs.exercise.{date}` to detect movement patterns and recommend exercise-related habits.
+
+---
+
 ## Reference Files
 
 Read the relevant file(s) when needed:
