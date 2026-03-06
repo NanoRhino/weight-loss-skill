@@ -772,6 +772,121 @@ def test_forgotten_meal_workflow(tmp_dir: str):
 
 
 # ---------------------------------------------------------------------------
+# DETECT DIET PATTERN command
+# ---------------------------------------------------------------------------
+
+def _create_days(tmp_dir: str, meals_per_day: list[list[dict]],
+                 start_date: str = "2026-03-04"):
+    """Helper to create N days of meal data going backwards from start_date."""
+    from datetime import date as d, timedelta as td
+    start = d.fromisoformat(start_date)
+    for offset, day_meals in enumerate(meals_per_day):
+        day = (start - td(days=offset)).isoformat()
+        for m in day_meals:
+            run_cmd(["save", "--data-dir", tmp_dir, "--meal", json.dumps(m), "--date", day])
+
+
+def test_detect_pattern_high_protein_mismatch(tmp_dir: str):
+    """3 days of high-protein eating while on balanced mode → mismatch."""
+    # ~40% protein, ~30% carbs, ~30% fat
+    day_meals = [
+        {"name": "breakfast", "cal": 400, "p": 45, "c": 25, "f": 12},
+        {"name": "lunch", "cal": 600, "p": 65, "c": 40, "f": 18},
+        {"name": "dinner", "cal": 500, "p": 55, "c": 35, "f": 15},
+    ]
+    _create_days(tmp_dir, [day_meals] * 3)
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    check(r["has_pattern"] is True, "high-protein pattern detected")
+    check(r["detected_mode"] == "high_protein",
+          f"detected high_protein (got {r.get('detected_mode')})")
+    check(r["pros_cons"] is not None, "pros_cons present")
+    check(len(r["pros_cons"]["pros"]) > 0, "has pros")
+    check(len(r["pros_cons"]["cons"]) > 0, "has cons")
+    check(r["days_found"] == 3, "3 days found")
+
+
+def test_detect_pattern_matches_current(tmp_dir: str):
+    """3 days of balanced eating while on balanced mode → no mismatch."""
+    # ~30% protein, ~40% carbs, ~30% fat
+    day_meals = [
+        {"name": "breakfast", "cal": 400, "p": 30, "c": 42, "f": 13},
+        {"name": "lunch", "cal": 600, "p": 45, "c": 63, "f": 20},
+        {"name": "dinner", "cal": 500, "p": 38, "c": 52, "f": 17},
+    ]
+    _create_days(tmp_dir, [day_meals] * 3)
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    check(r["has_pattern"] is False, "no mismatch when eating matches mode")
+    check(r["detected_mode"] is None, "detected_mode is None")
+
+
+def test_detect_pattern_insufficient_data(tmp_dir: str):
+    """Less than 3 days of data → insufficient_data."""
+    day_meals = [
+        {"name": "lunch", "cal": 600, "p": 65, "c": 40, "f": 18},
+    ]
+    _create_days(tmp_dir, [day_meals] * 2)
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    check(r["has_pattern"] is False, "no pattern with insufficient data")
+    check(r.get("reason") == "insufficient_data", "reason = insufficient_data")
+    check(r["days_found"] == 2, "2 days found")
+
+
+def test_detect_pattern_low_carb_detected(tmp_dir: str):
+    """3 days of low-carb eating while on balanced → detects low_carb."""
+    # ~35% protein, ~20% carbs, ~45% fat
+    day_meals = [
+        {"name": "breakfast", "cal": 450, "p": 35, "c": 20, "f": 23},
+        {"name": "lunch", "cal": 600, "p": 48, "c": 28, "f": 30},
+        {"name": "dinner", "cal": 500, "p": 40, "c": 23, "f": 25},
+    ]
+    _create_days(tmp_dir, [day_meals] * 3)
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    check(r["has_pattern"] is True, "low-carb pattern detected")
+    check(r["detected_mode"] == "low_carb",
+          f"detected low_carb (got {r.get('detected_mode')})")
+
+
+def test_detect_pattern_keto_detected(tmp_dir: str):
+    """3 days of keto eating while on balanced → detects keto."""
+    # ~20% protein, ~5% carbs, ~75% fat
+    day_meals = [
+        {"name": "breakfast", "cal": 500, "p": 25, "c": 6, "f": 42},
+        {"name": "lunch", "cal": 600, "p": 30, "c": 8, "f": 50},
+        {"name": "dinner", "cal": 500, "p": 25, "c": 6, "f": 42},
+    ]
+    _create_days(tmp_dir, [day_meals] * 3)
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "balanced", "--date", "2026-03-04"])
+    check(r["has_pattern"] is True, "keto pattern detected")
+    check(r["detected_mode"] == "keto",
+          f"detected keto (got {r.get('detected_mode')})")
+
+
+def test_detect_pattern_if_uses_balanced(tmp_dir: str):
+    """IF 16:8 mode uses balanced macro profile; balanced eating → no mismatch."""
+    # ~30% protein, ~40% carbs, ~30% fat
+    day_meals = [
+        {"name": "meal_1", "cal": 750, "p": 56, "c": 79, "f": 25},
+        {"name": "meal_2", "cal": 750, "p": 56, "c": 79, "f": 25},
+    ]
+    _create_days(tmp_dir, [day_meals] * 3)
+
+    r = run_cmd(["detect-diet-pattern", "--data-dir", tmp_dir,
+                 "--current-mode", "if_16_8", "--date", "2026-03-04"])
+    check(r["has_pattern"] is False, "no mismatch for IF with balanced macros")
+    check(r["effective_current_mode"] == "balanced", "IF uses balanced profile")
+
+
+# ---------------------------------------------------------------------------
 # RUNNER
 # ---------------------------------------------------------------------------
 
@@ -848,6 +963,14 @@ def main():
             (test_full_day_workflow, True),
             (test_correction_workflow, True),
             (test_forgotten_meal_workflow, True),
+        ]),
+        ("DETECT DIET PATTERN", [
+            (test_detect_pattern_high_protein_mismatch, True),
+            (test_detect_pattern_matches_current, True),
+            (test_detect_pattern_insufficient_data, True),
+            (test_detect_pattern_low_carb_detected, True),
+            (test_detect_pattern_keto_detected, True),
+            (test_detect_pattern_if_uses_balanced, True),
         ]),
     ]
 
