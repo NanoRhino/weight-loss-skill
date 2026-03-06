@@ -49,18 +49,18 @@ Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from USER.md)
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "早餐提醒" \
-  --message "根据用户饮食计划和最近记录，发一条友好的早餐提醒。参考 daily-notification skill 的消息模板，轮换使用5种技巧。" \
+  --agent <your-agent-id> --name "Breakfast reminder" \
+  --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates, rotating across all 5 techniques." \
   --cron "45 6 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "午餐提醒" \
-  --message "根据用户饮食计划和今天已记录的餐食，发一条友好的午餐提醒。参考 daily-notification skill 的消息模板。" \
+  --agent <your-agent-id> --name "Lunch reminder" \
+  --message "Send a friendly lunch reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
   --cron "45 11 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "晚餐提醒" \
-  --message "根据用户饮食计划和今天已记录的餐食，发一条友好的晚餐提醒。参考 daily-notification skill 的消息模板。" \
+  --agent <your-agent-id> --name "Dinner reminder" \
+  --message "Send a friendly dinner reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
   --cron "45 17 * * *"
 ```
 
@@ -68,8 +68,8 @@ bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
 
 ```bash
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "体重记录提醒" \
-  --message "今天是称重日，发一条轻松的体重记录提醒。语气要温和，强调'可选'。参考 daily-notification skill 的体重提醒模板。" \
+  --agent <your-agent-id> --name "Weight check-in reminder" \
+  --message "Today is weigh-in day. Send a casual weight check-in reminder. Keep the tone gentle and emphasize it's optional. Refer to the daily-notification skill weight reminder templates." \
   --cron "45 6 * * 1,4"
 ```
 
@@ -141,7 +141,7 @@ on a generic "lunch coming up."
 
 The user already knows their meal times and reminder schedule from onboarding — do NOT repeat or re-confirm the full schedule. Instead, keep the first reminder light:
 
-1. Brief greeting that signals "reminders have started" without listing all the times again (e.g., "第一条提醒来啦！" / "Here's your first check-in!")
+1. Brief greeting that signals "reminders have started" without listing all the times again (e.g., "Here's your first check-in!")
 2. Set expectations: "Reply when you can, ignore when you can't — zero pressure."
 3. Open conversation with a question about the current meal
 
@@ -308,10 +308,10 @@ signals, conversation flow, and intervention guidelines.
 - Resume normal workflows only after the user signals readiness
 
 **Quick detection reference** (full list in `emotional-support` SKILL.md):
-- Body image: `"我好胖"` · `"好丑"` · `"I hate how I look"`
-- Food guilt: `"又吃多了"` · `"管不住嘴"` · `"I have no self-control"`
-- Hopelessness: `"没用的"` · `"减不下来"` · `"算了"`
-- Context clues: weight up + flat replies, binge log + silence, `"随便"` after junk food
+- Body image: `"I'm so fat"` · `"I look awful"` · `"I hate how I look"`
+- Food guilt: `"I ate too much again"` · `"I can't control myself"` · `"I have no self-control"`
+- Hopelessness: `"It's pointless"` · `"I can't lose weight"` · `"Forget it"`
+- Context clues: weight up + flat replies, binge log + silence, `"whatever"` after junk food
 
 ---
 
