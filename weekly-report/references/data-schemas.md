@@ -156,7 +156,9 @@ define new input schemas — all inputs are produced by other skills.
 | Meal logs | diet-tracking-analysis, daily-notification | `logs.meals.{date}.{meal_type}` |
 | Weight logs | daily-notification | `logs.weight.{date}` |
 | Daily summaries | daily-notification | `logs.daily_summary.{date}` |
-| User profile | user-onboarding-profile | `USER.md` |
+| User identity | user-onboarding-profile | `USER.md` |
+| Health profile | user-onboarding-profile | `health-profile.md` |
+| Health preferences | user-onboarding-profile + all skills | `health-preferences.md` |
 | Weight loss plan | weight-loss-planner | `PLAN.md` |
 | Previous weekly reports | weekly-report | `logs.weekly_report.{start_date}` |
 

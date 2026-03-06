@@ -33,14 +33,14 @@ This skill is designed to work downstream of the `weight-loss-planner` skill. Th
 
 **Data flow:**
 ```
-USER.md (body stats, preferences)
-  → weight-loss-planner (TDEE, deficit, calorie target)
+USER.md (identity) + health-profile.md (health data) + health-preferences.md (preferences)
+  → weight-loss-planner (TDEE, deficit, calorie target → PLAN.md)
     → meal-planner (diet mode, meal schedule, taste/restrictions → macro calculation → food plan, portions, grocery list) ← YOU ARE HERE
 ```
 
 ## Preference Awareness
 
-**Before generating any meal plan, diet template, or food suggestion, read the `## Preferences` section in `USER.md`.** This section contains user preferences accumulated across all conversations — food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more.
+**Before generating any meal plan, diet template, or food suggestion, read `health-preferences.md`.** This file contains user preferences accumulated across all conversations — food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more.
 
 ### How to Apply Preferences
 
@@ -53,13 +53,13 @@ USER.md (body stats, preferences)
 | **Scheduling** (e.g., "works late on Wednesdays") | Suggest quick meals or eating-out options on busy days. |
 | **Diet style** (e.g., "prefers Mediterranean") | Align the plan's flavor profile and food choices. |
 
-If the `## Preferences` section doesn't exist in `USER.md`, proceed normally — other profile fields and conversation context are still valid.
+If `health-preferences.md` doesn't exist, proceed normally — other profile fields and conversation context are still valid.
 
 ### Detecting New Preferences During Meal Planning
 
 While building a meal plan, the user may reveal new preferences (e.g., "swap the salmon — I don't like fish"). When this happens:
 1. Accommodate the request immediately
-2. **Silently** append the preference to `USER.md`'s `## Preferences` section under the appropriate subcategory (e.g., `- [YYYY-MM-DD] Doesn't like fish`)
+2. **Silently** append the preference to `health-preferences.md` under the appropriate subcategory (e.g., `- [YYYY-MM-DD] Doesn't like fish`)
 3. Do not mention the file or storage mechanism to the user — just acknowledge naturally: "Got it, no fish!"
 
 ---
@@ -73,7 +73,7 @@ Before planning any meals, you need three things: a daily calorie target, the us
 Check these sources in order:
 
 1. **Conversation context** — Has the user already worked through a weight loss plan in this conversation? If so, use the confirmed daily calorie target and ranges from that plan.
-2. **USER.md** — Check `/mnt/user-data/uploads/` for a USER.md that may contain a confirmed calorie target, TDEE, or weight loss plan details.
+2. **PLAN.md** — Check workspace for a PLAN.md that may contain a confirmed calorie target, TDEE, or weight loss plan details.
 3. **User states it directly** — The user might say "I'm eating 1,800 calories a day" without having used the weight loss planner. Accept it.
 4. **None of the above** — If no calorie target exists, ask: "To build your meal plan, I need to know your daily calorie target. Do you have one from a previous plan, or would you like me to help you calculate it?" If they want calculation, either trigger the weight-loss-planner skill or do a quick TDEE estimate inline (see `references/quick-tdee.md`).
 
@@ -93,7 +93,7 @@ When planning meals, use the **midpoint** of each range as the planning target. 
 **This determines what foods to recommend, what's available, and what eating patterns to expect.** Resolve in this priority order:
 
 1. **User tells you directly** — "I'm in Tokyo" / "I live in Texas" / "I'm Chinese" → always takes priority
-2. **USER.md** — May contain country, city, or cultural background
+2. **USER.md / health-profile.md** — May contain country, city, or cultural background
 3. **Language inference** — If neither of the above is available, infer from `locale.json > lang`:
    - `en` → default to US (American foods, imperial units)
    - `zh-CN` → default to China (Chinese foods, metric units)
@@ -120,11 +120,11 @@ When the user's locale resolves to **China** (via explicit statement, USER.md, o
 | **Mostly Chinese, some Western OK** | Default to Chinese meals for lunch and dinner. Allow Western-style options for breakfast and snacks where convenient (e.g., oatmeal, yogurt, whole-wheat toast). Never force Western items into main meals. |
 | **Mixed, anything goes** | Freely mix Chinese and Western foods across all meals. Optimize for nutrition, variety, and convenience without cuisine restrictions. |
 
-If the user has already expressed a cuisine-style preference in `USER.md` (e.g., a prior entry like "Chinese food only" or "OK with Western food" in the Preferences section), respect that and skip this question. When the user answers, **silently append** their choice to `USER.md`'s `## Preferences → ### Dietary` section with a date stamp (e.g., `- [YYYY-MM-DD] Cuisine style: mostly Chinese, some Western OK`).
+If the user has already expressed a cuisine-style preference in `health-preferences.md` (e.g., a prior entry like "Chinese food only" or "OK with Western food" in the Dietary section), respect that and skip this question. When the user answers, **silently append** their choice to `health-preferences.md > Dietary` with a date stamp (e.g., `- [YYYY-MM-DD] Cuisine style: mostly Chinese, some Western OK`).
 
 ### Dietary Preferences & Practical Constraints
 
-Check USER.md first. If not available, ask the user. You need:
+Check `health-profile.md` and `health-preferences.md` first. If not available, ask the user. You need:
 
 - **Diet mode preference** (see Step 2 for options — if unsure, default to Balanced)
 - **Food allergies or intolerances** (dairy, gluten, nuts, shellfish, etc.)
@@ -145,12 +145,12 @@ Don't ask all of these as a checklist. Weave them into a natural conversation: "
 
 After resolving the calorie target and user context, collect the user's dietary preferences through **3 separate rounds** — one question per round, keeping each round focused and conversational. These preferences enable diet mode selection, macro calculation, and personalized meal planning.
 
-**Skip any round whose answer is already available** in USER.md `## Preferences` or from earlier conversation context. Only ask what's missing.
+**Skip any round whose answer is already available** in `health-preferences.md` or `health-profile.md` or from earlier conversation context. Only ask what's missing.
 
 ### Round 1: Diet Mode
 
 Ask which diet mode the user would like to follow. Instead of listing all available modes, **select the 2 most suitable options** based on the user's profile, preferences, activity level, and goals. Use your professional judgment — consider:
-- USER.md preferences (if available)
+- `health-preferences.md` (if available)
 - Activity level and exercise habits (e.g., gym-goers → High-Protein; sedentary → Balanced)
 - Dietary restrictions (e.g., vegetarian → Plant-Based)
 - Health goals beyond weight loss (e.g., heart health → Mediterranean)
@@ -182,7 +182,7 @@ Present concisely:
 >
 > I'd recommend **[Mode A]** as your starting point. Which one appeals to you?
 
-If the user wants to see all options, provide the full list. If USER.md `## Preferences` already records a diet mode, include it as one recommendation.
+If the user wants to see all options, provide the full list. If `health-preferences.md` already records a diet mode preference, include it as one recommendation.
 
 **Wait for the user to choose before proceeding to Round 2.**
 
@@ -206,7 +206,13 @@ After the user provides their meal schedule, ask about taste and restrictions:
 
 **Wait for the user to answer (or skip) before proceeding.**
 
-**After collecting all three rounds:** Update USER.md with the diet mode, meal times, and any new preferences (silently append to `## Preferences` and `## Goals` sections). Then proceed to Step 2 to calculate macros using the confirmed diet mode.
+**After collecting all three rounds:** Update the appropriate files silently:
+- **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
+- **Meal Schedule** → `health-profile.md > Meal Schedule`
+- **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
+- **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
+
+Then proceed to Step 2 to calculate macros using the confirmed diet mode.
 
 ---
 
@@ -214,7 +220,7 @@ After the user provides their meal schedule, ask about taste and restrictions:
 
 ### Diet Mode
 
-The user's diet mode should already be confirmed in Step 1.5 (or from a prior session stored in USER.md / conversation context). If somehow not yet resolved, ask the user before proceeding. Default to Balanced if they're unsure.
+The user's diet mode should already be confirmed in Step 1.5 (or from a prior session stored in `health-profile.md` / conversation context). If somehow not yet resolved, ask the user before proceeding. Default to Balanced if they're unsure.
 
 For the full list of supported diet modes, fat ranges, and detailed food guidance, see `weight-loss-planner/references/diet-modes.md`. The key point for meal planning: each mode defines a **fat percentage range** that determines the macro split. Protein is always from body weight, carbs fill the remainder.
 

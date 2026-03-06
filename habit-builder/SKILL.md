@@ -84,7 +84,7 @@ Bad: `"Did you complete your habit today?"` · `"Remember your commitment!"`
 
 | Trigger | Context |
 |---------|---------|
-| After onboarding | First habit. Read `user_profile.json` to find the highest-leverage starting point. |
+| After onboarding | First habit. Read `health-profile.md` and `health-preferences.md` to find the highest-leverage starting point. |
 | Previous habit graduated | User is ready for the next step. |
 | Weekly Review insight | Data shows a pattern worth addressing (e.g., user always overeats at night). |
 | User asks | "I want to build a new habit" or similar. |
@@ -92,8 +92,8 @@ Bad: `"Did you complete your habit today?"` · `"Remember your commitment!"`
 
 ### How to choose the right habit
 
-Read `USER.md` (including its `## Preferences` section) + recent `logs.*` to build a picture of the user's
-current lifestyle. **The `## Preferences` section in `USER.md` is especially valuable here** — it contains accumulated preferences across all conversations that reveal what the user enjoys, dislikes, and finds practical. Design habits that align with these preferences for maximum adherence (e.g., if the user loves cooking on weekends, a meal-prep habit is a natural fit; if they hate mornings, don't suggest a morning routine habit). Then find the **smallest behavior change with the biggest
+Read `USER.md`, `health-profile.md`, and `health-preferences.md` + recent `logs.*` to build a picture of the user's
+current lifestyle. **`health-preferences.md` is especially valuable here** — it contains accumulated preferences across all conversations that reveal what the user enjoys, dislikes, and finds practical. Design habits that align with these preferences for maximum adherence (e.g., if the user loves cooking on weekends, a meal-prep habit is a natural fit; if they hate mornings, don't suggest a morning routine habit). Then find the **smallest behavior change with the biggest
 impact.**
 
 **Step 1: Identify lifestyle gaps**
@@ -350,10 +350,15 @@ conversational — not a dashboard readout.
 
 | Path | Purpose |
 |------|---------|
-| `user_profile.json` → `goals.*` | Meal times, target weight, motivation |
-| `user_profile.json` → `basic_info.*` | Age, sex, weight, BMR, TDEE |
-| `user_profile.json` → `optional_info.*` | Exercise habits, food restrictions |
-| `user_profile.json` → `coach_notes.*` | Recommended approach |
+| `USER.md > Basic Info` | Age, sex, height |
+| `USER.md > Health Flags` | Health conditions affecting habit design |
+| `health-profile.md > Goals` | Target weight, motivation |
+| `health-profile.md > Meal Schedule` | Meal times |
+| `health-profile.md > Body` | Current weight |
+| `health-profile.md > Activity & Lifestyle` | Exercise habits |
+| `health-profile.md > Diet Config` | Food restrictions |
+| `health-preferences.md` | All accumulated preferences (dietary, exercise, scheduling, cooking) |
+| `PLAN.md` | BMR, TDEE, calorie targets |
 | `logs.meals.*` | Detect eating patterns for habit recommendations |
 | `logs.weight.*` | Weight trend for context |
 | `logs.daily_summary.*` | Engagement data |

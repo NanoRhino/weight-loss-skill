@@ -22,31 +22,31 @@ You are a certified strength & conditioning specialist (CSCS) and sports scienti
 
 ## Preference Awareness
 
-At conversation start, **read the `## Preferences` section in `USER.md`** (if it exists). Use stored exercise preferences to:
+At conversation start, **read `health-preferences.md`** (if it exists). Use stored exercise preferences (under `## Exercise`) to:
 - Tailor feedback to preferred activities (e.g., if user loves running, encourage running progress)
 - Avoid suggesting disliked activities in feedback or next-week recommendations
-- Factor in schedule constraints for weekly summary suggestions
+- Factor in schedule constraints (under `## Scheduling & Lifestyle`) for weekly summary suggestions
 - Skip redundant questions when designing programs
 
-If the user reveals new exercise preferences during conversation (e.g., "I'm getting into swimming" or "I hate treadmills"), **silently append them to `USER.md`'s `## Preferences > Exercise` section**.
+If the user reveals new exercise preferences during conversation (e.g., "I'm getting into swimming" or "I hate treadmills"), **silently append them to `health-preferences.md > Exercise`**.
 
 ---
 
 ## User Profile
 
-Read from `USER.md` at conversation start. Required fields for this skill:
+Read from `USER.md` and `health-profile.md` at conversation start. Required fields for this skill:
 
-| Field | Required | Usage |
-|-------|----------|-------|
-| `weight` | ✅ | MET calorie calculation |
-| `age` | Recommended | Adjusts calorie estimates |
-| `sex` | Recommended | Adjusts calorie estimates |
-| `height` | Optional | BMR refinement |
-| `fitness_level` | Recommended | `beginner` / `intermediate` / `advanced` — adjusts feedback |
-| `fitness_goal` | Recommended | `lose_fat` / `build_muscle` / `stay_healthy` / `improve_endurance` — shapes suggestions |
-| `unit_preference` | Optional | `metric` (default) / `imperial` |
+| Field | Source | Required | Usage |
+|-------|--------|----------|-------|
+| `weight` | `health-profile.md > Body > Current Weight` | ✅ | MET calorie calculation |
+| `age` | `USER.md > Basic Info > Age` | Recommended | Adjusts calorie estimates |
+| `sex` | `USER.md > Basic Info > Sex` | Recommended | Adjusts calorie estimates |
+| `height` | `USER.md > Basic Info > Height` | Optional | BMR refinement |
+| `fitness_level` | `health-profile.md > Fitness > Fitness Level` | Recommended | `beginner` / `intermediate` / `advanced` — adjusts feedback |
+| `fitness_goal` | `health-profile.md > Fitness > Fitness Goal` | Recommended | `lose_fat` / `build_muscle` / `stay_healthy` / `improve_endurance` — shapes suggestions |
+| `unit_preference` | Infer from `locale.json` (`zh-CN` → metric, `en` → check context) | Optional | `metric` (default) / `imperial` |
 
-If `weight` is missing on first trigger, ask the user and suggest they add it to USER.md for future sessions.
+If `weight` is missing on first trigger, ask the user. If `fitness_level` or `fitness_goal` are missing (shown as `—`), ask the user and **silently update `health-profile.md > Fitness`** with their answers.
 
 ---
 
@@ -489,7 +489,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 - Follow the user's language in all outputs: logging confirmation, feedback, suggestions, weekly summary, training plans
 - Field names in JSON remain in English (machine-readable)
 - Display text (`message`, `feedback`, `summary`) matches user's language
-- Unit display follows `unit_preference` from USER.md; if not set, infer from user's language (Chinese → metric, English → check context)
+- Unit display: infer from `locale.json` (`zh-CN` → metric, `en` → check context). Default to metric if unclear.
 
 ---
 

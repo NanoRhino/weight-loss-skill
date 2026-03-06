@@ -1,58 +1,101 @@
-# USER.md Format Reference
+# User Data Format Reference
 
-This file documents the expected structure of `USER.md`, which is created by the onboarding skill and consumed by downstream skills like this one.
+This file documents the expected structure of the user data files created by the onboarding skill and consumed by downstream skills.
 
-The skill should be flexible when parsing — field names may vary slightly, and not all fields will always be present. Look for semantic matches, not exact strings.
+Data is split across three files with distinct responsibilities:
 
-## Expected Fields
+---
 
-### Required for this skill
+## USER.md — Identity (cross-scenario)
+
+Contains basic identity info that is scenario-independent.
+
+### Fields used by this skill
 ```markdown
 ## Basic Info
 - Name: [string]
 - Age: [number]
 - Sex: [Male / Female]
-- Height: [X'X" or X cm]
-- Current Weight: [X lbs or X kg]
+- Height: [X cm]
+
+## Health Flags
+- [list or None]
+```
+
+**Note:** Weight is NOT stored in USER.md. Read current weight from `health-profile.md`.
+
+---
+
+## health-profile.md — Health Facts & Settings (scenario input)
+
+Contains health-related facts and configuration parameters. These are **inputs** to plan generation, not outputs.
+
+### Fields used by this skill
+```markdown
+## Body
+- Current Weight: [X kg]
 
 ## Activity & Lifestyle
+- Work Type: [sedentary | active]
 - Activity Level: [Sedentary / Lightly Active / Moderately Active / Very Active / Extremely Active]
-- Activity Description: [free text — what they actually do day-to-day]
+- Exercise Habits: [free text]
+
+## Fitness
+- Fitness Level: [beginner | intermediate | advanced]
+- Fitness Goal: [lose_fat | build_muscle | stay_healthy | improve_endurance]
+
+## Diet Config
+- Diet Mode: [Balanced / Keto / Mediterranean / ...]
+- Food Restrictions: [list or None]
+
+## Meal Schedule
+- Meals per Day: [number]
+- Breakfast: [HH:MM]
+- Lunch: [HH:MM]
+- Dinner: [HH:MM]
+
+## Goals
+- Target Weight: [X kg]
+- Weight to Lose: [X kg (calculated)]
+- Core Motivation: [string]
 ```
 
-### Optional (nice to have)
-```markdown
-- Target Weight: [X lbs or X kg]
-- Health Conditions: [any relevant conditions]
-- Dietary Restrictions: [vegetarian, allergies, etc.]
-```
+### Fields written by this skill
+- `Diet Config > Diet Mode` — after user selects in Round 1
+- `Meal Schedule` — after user provides in Round 2
+- `Diet Config > Food Restrictions` — if user mentions new restrictions in Round 3
 
-### Preferences section (accumulated over time)
-```markdown
-## Preferences
+---
 
-### Dietary
+## health-preferences.md — Accumulated Preferences (append-only)
+
+Contains user preferences accumulated across all conversations. Each entry is timestamped.
+
+### Structure
+```markdown
+# Health Preferences
+
+## Dietary
 - [YYYY-MM-DD] Food likes, dislikes, allergies, flavor preferences
 
-### Exercise
+## Exercise
 - [YYYY-MM-DD] Activity preferences, dislikes, physical limitations
 
-### Scheduling & Lifestyle
+## Scheduling & Lifestyle
 - [YYYY-MM-DD] Work schedule, busy days, eating patterns
 
-### Cooking & Kitchen
+## Cooking & Kitchen
 - [YYYY-MM-DD] Equipment, cooking skill, meal prep willingness
-
-### General Notes
-- [YYYY-MM-DD] Motivation details, communication preferences, pace
 ```
 
-This section is appended to over time as users reveal preferences during conversations. Not all entries will be present from onboarding — preferences accumulate across sessions. All skills that read USER.md should check for and use this section when generating personalized content.
+This section is appended to over time as users reveal preferences during conversations. Not all entries will be present from onboarding — preferences accumulate across sessions. All skills that read user data should check for and use this file when generating personalized content.
+
+---
 
 ## Parsing Guidelines
 
-- If the USER.md uses different section headers (e.g., "Profile" instead of "Basic Info"), that's fine — look for the data fields, not the headers.
+- If files use different section headers (e.g., "Profile" instead of "Basic Info"), that's fine — look for the data fields, not the headers.
 - Heights might appear as `5'10"`, `5 ft 10 in`, `178 cm`, or `70 inches` — handle all common formats.
 - Weights might be in lbs or kg — check for units and convert as needed.
 - Activity level might be the standard label or a free-text description — map it to the closest standard level for TDEE calculation.
-- If `Target Weight` is already present, you can pre-fill Step 3 but still confirm with the user.
+- If `Target Weight` is already present in `health-profile.md`, you can pre-fill Step 3 but still confirm with the user.
