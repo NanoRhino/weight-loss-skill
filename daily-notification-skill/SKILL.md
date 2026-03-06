@@ -404,6 +404,17 @@ Status values: `"logged"` / `"skipped"` / `"no_reply"`
 Full JSON schemas: `references/data-schemas.md`
 
 ---
+## Skill Routing
+
+**See `SKILL-ROUTING.md` for the full conflict resolution system.** This skill
+is **Priority Tier P4 (Reporting)**. Key scenarios:
+
+- **Reminder fires during active conversation** (Pattern 5): Defer the reminder. Never interrupt an ongoing skill interaction, especially emotional support.
+- **Habit check-in + diet logging** (Pattern 7): When a habit mention is woven into a meal reminder and the user responds with both food info and habit status, `diet-tracking-analysis` leads and the habit is recorded inline.
+- **Emotional signals in replies**: Defer to `emotional-support` immediately. See Pattern 2.
+
+---
+
 ## Performance
 
 - Reminder: 1-2 sentences, < 25 words

@@ -853,13 +853,18 @@ moments: "还记得上次你破65的时候吗？那个感觉是真的。"
 This skill is a **cross-cutting concern** — it does not replace other skills
 but takes temporary priority when emotional signals are detected.
 
+**See `SKILL-ROUTING.md` for the full conflict resolution system.** This skill
+is **Priority Tier P0 (Safety)** for escalation signals and **P1 (Emotional)**
+for all other emotional signals. It overrides all lower-tier skills (P2-P5).
+
 ### How other skills should integrate
 
 1. **Detection:** Every skill should scan user messages for emotional signals
    (see Signal Categories above)
 2. **Defer:** When signals are detected, pause the current skill's workflow
    (logging, reminders, habit check-ins) and follow this skill's conversation
-   flow
+   flow. See `SKILL-ROUTING.md` Pattern 2 for specific merge/defer rules
+   when data logging and emotional signals co-occur.
 3. **Resume:** After the emotional moment passes (user signals readiness),
    the original skill can gently resume — but do not force it.
    `"No rush. Whenever you feel like logging, I'm here."` rather than
@@ -876,6 +881,12 @@ When this skill is active:
   emotional conversation is ongoing)
 - Tone overrides: even skills with "snappy" or "efficient" default tones
   switch to warm, patient presence
+
+### Positive emotion + data logging
+
+When a user message combines a positive emotion with a data log (e.g.,
+"I ran 5K! So proud!"), this skill celebrates first, then the data-logging
+skill logs briefly in the same response. See `SKILL-ROUTING.md` Pattern 2B.
 
 ---
 

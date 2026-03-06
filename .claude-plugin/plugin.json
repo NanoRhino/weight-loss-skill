@@ -20,11 +20,15 @@
     "coaching"
   ],
   "skills": [
+    "./SKILL-ROUTING",
     "./chat-greeting",
     "./daily-notification-skill",
     "./diet-tracking-analysis",
     "./emotional-support",
+    "./exercise-tracking-planning",
+    "./habit-builder",
     "./meal-planner",
+    "./scheduled-reminders",
     "./user-onboarding-profile",
     "./weight-loss-planner",
     "./weekly-report"

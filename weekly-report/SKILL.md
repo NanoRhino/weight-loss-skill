@@ -408,6 +408,17 @@ analysis. Schema in `references/data-schemas.md`.
 
 ---
 
+## Skill Routing
+
+**See `SKILL-ROUTING.md` for the full conflict resolution system.** This skill
+is **Priority Tier P4 (Reporting)**. Key scenarios:
+
+- **Weekly report + exercise weekly summary** (Pattern 3): This skill is the primary owner of weekly summaries. Exercise weekly data (sessions, duration, calories burned, WHO comparison) is incorporated as a section within this report. `exercise-tracking-planning` does NOT produce a separate weekly summary when this skill is generating.
+- **Monday auto-report**: Include exercise data from the week. No separate exercise summary needed.
+- **User requests "weekly summary"**: Route here, not to exercise-tracking's weekly summary.
+
+---
+
 ## Performance
 
 - Report generation: single message, no back-and-forth
