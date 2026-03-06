@@ -245,6 +245,26 @@ patterns ("you've been on a salad kick"), not single data points
 **Time-of-day energy:**
 Morning = soft, low-demand · Midday = quick, snappy · Evening = relaxed
 
+### Habit Check-ins — woven into meal conversations
+
+Read `habits.active` before composing each meal reminder. If an active habit
+exists and is due for a mention (based on its phase and mention frequency —
+see `habit-builder` SKILL.md), weave it into the meal message naturally.
+
+| Habit type | How to weave | Example |
+|------------|-------------|---------|
+| Meal-bound (before/during meal) | Build into the meal reminder itself | `"Lunch time — protein first today?"` |
+| Post-meal | Mention when user replies to the meal check-in | User logs dinner → `"Nice. Going for a walk after?"` |
+| End-of-day | Attach to the last meal conversation of the day | After dinner reply → `"Try to wrap up by 11 tonight?"` |
+| Next-morning recovery | Confirm in next day's first conversation | `"Morning! Did you make it to bed by 11 last night?"` |
+| All-day (water, steps) | Drop into a random meal conversation | `"How's the water going today?"` |
+
+**Rules:**
+- One sentence max for the habit mention — don't make it a separate topic
+- If user responds to the habit mention, record it to `habits.daily_log.{date}` (see `habit-builder` SKILL.md for completion tracking)
+- If the user ignores the habit mention 3 times in a row, stop mentioning it until the next Weekly Review
+- Tone: casual, like a friend — `"Walk after dinner tonight?"` not `"Did you complete your habit today?"`
+
 ### Weight Reminders — always optional framing, always mention fasting
 
 `"Weigh-in day — eaten yet? Best to check before breakfast. Or skip, totally fine."` ·

@@ -81,12 +81,15 @@ User can request a report at any time:
 | `logs.meals.{date}.{meal_type}` | Logging status, food descriptions, estimated calories per meal |
 | `logs.weight.{date}` | Weight readings for the week |
 | `logs.daily_summary.{date}` | Pre-compiled daily totals and engagement stats |
+| `habits.active` | Current active habits for habit progress section |
+| `habits.daily_log.{date}` | Daily habit completion/miss/no_response records |
+| `habits.graduated` | Recently graduated habits for achievements section |
 
 ---
 
 ## Report Structure
 
-The report has 6 sections. Generate them in order. Each section adapts to the
+The report has 7 sections. Generate them in order. Each section adapts to the
 user's actual data — skip or simplify sections with no data.
 
 ### Section 1: Header
@@ -243,7 +246,42 @@ Compare the user's average daily macro intake against their target ranges.
 
 ---
 
-### Section 6: Key Achievements & Suggestions
+### Section 6: Habit Progress
+
+Show the status of active habits, if any exist. Read `habits.active` and
+`habits.daily_log.{date}` for the week.
+
+**Data logic:**
+- For each active habit, count completions, misses, and no_responses during the week
+- Calculate completion rate for the week
+- Check for graduation signals (see `habit-builder` SKILL.md)
+- If no active habits exist, skip this section entirely
+
+**Display format:**
+
+```
+### 🌱 Habit Progress
+
+**Walk after dinner** (Week 2)
+This week: ✅✅✅❌✅ — 4/5 mentions completed
+
+Looking solid — becoming part of your routine.
+```
+
+**Commentary rules:**
+- High completion (≥ 80%) → celebrate casually: `"This one's becoming automatic."` / `"快变成习惯了。"`
+- Medium (50-79%) → encourage: `"Getting there — consistency beats perfection."` / `"在进步，坚持比完美更重要。"`
+- Low (< 50%) → gentle: `"Tough week for this one. Want to adjust it or try something different?"` / `"这周有点难，要不要调整一下？"`
+- If graduation criteria met → flag it: `"This might be ready to graduate — we'll check in."` / `"这个习惯可能可以毕业了，下次聊聊。"`
+
+**Behavioral pattern detection:**
+If `habits.daily_log` data across the week reveals a pattern worth addressing
+(e.g., user always overeats at night, skips meals on weekdays), note it in
+`habits.lifestyle_gaps` for the `habit-builder` skill to act on.
+
+---
+
+### Section 7: Key Achievements & Suggestions
 
 Two sub-sections: what went well, and what to focus on next week. Both are
 AI-generated based on the week's actual data.
@@ -344,6 +382,7 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 | Path | When |
 |------|------|
 | `logs.weekly_report.{start_date}` | After generating the report — store the full report JSON (see `references/data-schemas.md`) |
+| `habits.lifestyle_gaps` | When behavioral patterns are detected during weekly analysis (consumed by `habit-builder`) |
 
 ---
 

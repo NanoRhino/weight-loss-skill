@@ -108,6 +108,8 @@ Do three things:
 
 5. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the USER.md you just saved and skip redundant data collection.
 
+6. **First habit recommendation** — After the weight loss plan is delivered and the user has accepted it, transition to the `habit-builder` skill to recommend the user's first tiny habit. This happens naturally at the end of the onboarding flow — e.g., "One more thing — let's pick a small habit to kick things off." The habit-builder will read USER.md and logs to identify the highest-leverage starting point.
+
 ## Health Safety Note
 
 If during conversation the user mentions any serious health condition (diabetes, heart disease, eating disorder, pregnancy, etc.), add a gentle note encouraging them to consult their doctor. Don't refuse to help — just flag it in the profile under `health_flags`.
