@@ -48,6 +48,16 @@ MEAL_BLOCKS_2 = [
     {"label": "meal_2", "pct": 50, "meals": ["meal_2", "snack_2"]},
 ]
 
+# Alias map: traditional 3-meal names → 2-meal equivalents.
+# In 2-meal mode users may still say "breakfast", "lunch", or "dinner".
+MEAL_ALIAS_2 = {
+    "breakfast": "meal_1",
+    "snack_am":  "snack_1",
+    "lunch":     "meal_1",
+    "snack_pm":  "snack_2",
+    "dinner":    "meal_2",
+}
+
 # Diet mode → fat percentage range (low%, high%)
 DIET_MODE_FAT = {
     "usda":          (20, 35),
@@ -66,10 +76,18 @@ def get_meal_blocks(meals: int) -> list:
     return MEAL_BLOCKS_3 if meals == 3 else MEAL_BLOCKS_2
 
 
+def resolve_meal_name(meal_name: str, meals: int) -> str:
+    """Resolve a meal name, applying 2-meal aliases when needed."""
+    if meals == 2 and meal_name in MEAL_ALIAS_2:
+        return MEAL_ALIAS_2[meal_name]
+    return meal_name
+
+
 def find_block_index(meal_name: str, meals: int) -> int:
     """Find which block a meal type belongs to."""
+    resolved = resolve_meal_name(meal_name, meals)
     for i, block in enumerate(get_meal_blocks(meals)):
-        if meal_name in block["meals"]:
+        if resolved in block["meals"]:
             return i
     return None
 
@@ -265,10 +283,11 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     for i in range(block_idx + 1):
         checkpoint_meal_names.update(blocks[i]["meals"])
 
-    logged_names = {m.get("name", "") for m in log}
+    logged_names = {resolve_meal_name(m.get("name", ""), meals) for m in log}
 
     # Only count meals that belong to the checkpoint window
-    checkpoint_log = [m for m in log if m.get("name", "") in checkpoint_meal_names]
+    checkpoint_log = [m for m in log
+                      if resolve_meal_name(m.get("name", ""), meals) in checkpoint_meal_names]
 
     # Missing main meals before this checkpoint
     missing_meals: list = []
@@ -303,7 +322,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     adjusted = dict(actual)
     if assumed_meals:
         for m in assumed_meals:
-            if m.get("name", "") in checkpoint_meal_names:
+            if resolve_meal_name(m.get("name", ""), meals) in checkpoint_meal_names:
                 adjusted["cal"] = round(adjusted["cal"] + m.get("cal", 0), 1)
                 adjusted["p"] = round(adjusted["p"] + m.get("p", 0), 1)
                 adjusted["c"] = round(adjusted["c"] + m.get("c", 0), 1)
@@ -344,6 +363,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
         "diff_for_suggestions": diff,
         "missing_meals": missing_meals,
         "meals_included": [m.get("name") for m in checkpoint_log],
+        "resolved_meal": resolve_meal_name(current_meal, meals),
     }
 
 
@@ -354,7 +374,7 @@ def check_missing(meals: int, current_meal: str, log: list) -> dict:
     if block_idx is None:
         return {"error": f"Unknown meal name: {current_meal}"}
 
-    logged_names = {m.get("name", "") for m in log}
+    logged_names = {resolve_meal_name(m.get("name", ""), meals) for m in log}
 
     missing: list = []
     for i in range(block_idx):
