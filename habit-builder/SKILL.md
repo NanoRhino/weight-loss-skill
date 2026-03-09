@@ -301,7 +301,8 @@ Three paths:
 
 **Never say:**
 `"You failed"` · `"You broke your streak"` · `"Don't give up"` ·
-`"You were doing so well"` · `"Remember your goals"`
+`"You were doing so well"` · `"Remember your goals"` ·
+`"No pressure"` · `"不用有压力"` (repeating this creates the opposite effect)
 
 ### Scaling up
 
