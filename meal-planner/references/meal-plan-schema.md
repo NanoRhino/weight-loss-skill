@@ -5,8 +5,8 @@ This document defines the strict Markdown format for `MEAL-PLAN.md`. The agent g
 ## Rules
 
 1. **H1** (`#`) = Plan title. Followed by metadata lines (unordered list). **Metadata keys MUST always be in English** (`Date`, `Calories`, `Mode`, `Macros`) regardless of the user's language — the HTML parser matches on these exact keys. Values can be in any language.
-2. **H2** (`##`) = Day header. Format: `Day N | DayName | Xcal · Protein Xg · Carbohydrate Xg · Fat Xg`
-3. **H3** (`###`) = Meal header. Format: `Emoji MealName [Tag]? | Xcal · Protein Xg · Carbohydrate Xg · Fat Xg`
+2. **H2** (`##`) = Day header. Format: `Day N | DayName | Xcal · Protein Xg · Carbs Xg · Fat Xg`
+3. **H3** (`###`) = Meal header. Format: `Emoji MealName [Tag]? | Xcal · Protein Xg · Carbs Xg · Fat Xg`
    - `[Tag]` is optional, used for eating-out meals: `[Takeout]`, `[Eating out]`, `[外卖]`, `[便利店]`, etc.
 4. **Blockquote** (`>`) = Dish summary (concise dish names joined by " + ") or order info for eating-out meals.
 5. **List items** (`-`) = Food items. Format: `FoodName — NaturalPortion (PreciseWeight)`
@@ -19,12 +19,12 @@ This document defines the strict Markdown format for `MEAL-PLAN.md`. The agent g
 
 Always use full names — never abbreviate to P/C/F. **Use macro names matching the user's language:**
 
-- **English:** `Protein`, `Carbohydrate`, `Fat`
-- **Chinese:** `蛋白质`, `碳水化合物`, `脂肪`
+- **English:** `Protein`, `Carbs`, `Fat`
+- **Chinese:** `蛋白`, `碳水`, `脂肪`
 
 ```
-English: 1850 kcal · Protein 105g · Carbohydrate 196g · Fat 62g
-Chinese: 1850 kcal · 蛋白质 105g · 碳水化合物 196g · 脂肪 62g
+English: 1850 kcal · Protein 105g · Carbs 196g · Fat 62g
+Chinese: 1850 kcal · 蛋白 105g · 碳水 196g · 脂肪 62g
 ```
 
 ## Complete Example
@@ -34,34 +34,34 @@ Chinese: 1850 kcal · 蛋白质 105g · 碳水化合物 196g · 脂肪 62g
 - Date: 2026-03-09
 - Calories: 1850 kcal (1750-1950)
 - Mode: Balanced
-- Macros: Protein 105g · Carbohydrate 196g · Fat 62g
+- Macros: Protein 105g · Carbs 196g · Fat 62g
 
-## Day 1 | Sunday | 1610 kcal · Protein 102g · Carbohydrate 178g · Fat 48g
+## Day 1 | Sunday | 1610 kcal · Protein 102g · Carbs 178g · Fat 48g
 
-### 🍳 Breakfast | 380 kcal · Protein 22g · Carbohydrate 48g · Fat 11g
+### 🍳 Breakfast | 380 kcal · Protein 22g · Carbs 48g · Fat 11g
 > Oatmeal + boiled egg + milk
 - Rolled oats (cooked) — 1/2 cup (40g dry)
 - Boiled egg — 1 (50g)
 - Whole milk — 1 cup (240ml)
 
-### 🥗 Lunch | 540 kcal · Protein 36g · Carbohydrate 60g · Fat 16g
+### 🥗 Lunch | 540 kcal · Protein 36g · Carbs 60g · Fat 16g
 > Baked salmon + roasted vegetables + brown rice
 - Baked salmon — 1 fillet (140g)
 - Roasted zucchini & bell peppers — 2 cups (200g)
 - Brown rice (cooked) — 1/2 cup (100g)
 
-### 🍽️ Dinner [Takeout] | 500 kcal · Protein 30g · Carbohydrate 52g · Fat 18g
+### 🍽️ Dinner [Takeout] | 500 kcal · Protein 30g · Carbs 52g · Fat 18g
 > Chipotle — Chicken burrito bowl
 - Order: chicken, brown rice, black beans, fajita veggies, salsa, lettuce. Skip sour cream and cheese.
 💡 Ask for half rice to save ~100 Cal. Extra veggies are free.
 
-### 🍎 Snack | 180 kcal · Protein 9g · Carbohydrate 18g · Fat 4g
+### 🍎 Snack | 180 kcal · Protein 9g · Carbs 18g · Fat 4g
 - Plain Greek yogurt — 3/4 cup (170g)
 - 1 medium apple
 
-## Day 2 | Monday | 1590 kcal · Protein 100g · Carbohydrate 172g · Fat 52g
+## Day 2 | Monday | 1590 kcal · Protein 100g · Carbs 172g · Fat 52g
 
-### 🍳 Breakfast | 380 kcal · Protein 24g · Carbohydrate 46g · Fat 12g
+### 🍳 Breakfast | 380 kcal · Protein 24g · Carbs 46g · Fat 12g
 > Whole-wheat toast + boiled egg + milk
 - Whole-wheat toast — 2 slices (60g)
 - Boiled egg — 1 (50g)
@@ -99,5 +99,5 @@ Chinese: 1850 kcal · 蛋白质 105g · 碳水化合物 196g · 脂肪 62g
 - Every day (Day 1–7) must be fully written out. No placeholders like "same as Day 1".
 - Meal emojis: 🍳 Breakfast, 🥗 Lunch, 🍽️ Dinner, 🍎 Snack (adapt names to user's language).
 - The metadata Date field should be the generation date.
-- Adapt food names, units, macro names, and language to the user's locale. For Chinese users, use `蛋白质`, `碳水化合物`, `脂肪` instead of `Protein`, `Carbohydrate`, `Fat`.
+- Adapt food names, units, macro names, and language to the user's locale. For Chinese users, use `蛋白`, `碳水`, `脂肪` instead of `Protein`, `Carbs`, `Fat`.
 - Grocery list is optional — only include if the user requested it.

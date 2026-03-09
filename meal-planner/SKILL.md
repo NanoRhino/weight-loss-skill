@@ -367,15 +367,23 @@ Send this message **immediately** after confirming the user wants the plan, **be
    ```
 3. **Send the presigned URL to the user** via the message tool, with a brief summary.
 4. Adapt all content (food names, meal names, day names, tips) to the user's language.
-5. Use full macro names matching the user's language — never abbreviate to P/C/F. English: `Protein`, `Carbohydrate`, `Fat`; Chinese: `蛋白质`, `碳水化合物`, `脂肪`.
+5. Use full macro names matching the user's language — never abbreviate to P/C/F. English: `Protein`, `Carbs`, `Fat`; Chinese: `蛋白`, `碳水`, `脂肪`.
 
 **Chat message template** (adapt to user's language):
 
 > 你的 7 天食谱已经生成好了！点击这里查看：[链接]
 >
-> **概要：** [X,XXX] kcal/天 · [饮食模式] · 蛋白质 [X]g / 碳水化合物 [X]g / 脂肪 [X]g
+> **概要：** [X,XXX] kcal/天 · [饮食模式] · 蛋白 [X]g / 碳水 [X]g / 脂肪 [X]g
 >
-> 可以直接在浏览器里查看，也可以用 Ctrl+P 保存为 PDF。有什么想调整的随时告诉我！
+> 可以直接在浏览器里查看。有什么想调整的随时告诉我！
+
+English equivalent:
+
+> Your 7-day meal plan is ready! View it here: [link]
+>
+> **Summary:** [X,XXX] Cal/day · [Diet Mode] · Protein [X]g / Carbs [X]g / Fat [X]g
+>
+> You can view it directly in your browser. Let me know if you'd like to adjust anything!
 
 **When a user asks for their meal plan link:**
 1. Read `plan-url.json` → check the `meal-plan` key
@@ -518,9 +526,9 @@ The `MEAL-PLAN.md` file is the source of truth. **All content rules below govern
 
 **CRITICAL: The `MEAL-PLAN.md` MUST follow the schema defined in `references/meal-plan-schema.md`.** The conversion script parses the Markdown based on heading levels, list items, blockquotes, and tip markers.
 
-The meal plan uses a **Day (H2) → Meal (H3) → Food list (-)** hierarchy. Each level shows calories and macros (Protein/Carbohydrate/Fat).
+The meal plan uses a **Day (H2) → Meal (H3) → Food list (-)** hierarchy. Each level shows calories and macros (Protein/Carbs/Fat).
 
-**1. Day level:** H2 heading showing day name + daily totals (`X,XXX kcal · Protein Xg · Carbohydrate Xg · Fat Xg`). Day names and macro names use the user's locale (e.g., Chinese: `X,XXX kcal · 蛋白质 Xg · 碳水化合物 Xg · 脂肪 Xg`).
+**1. Day level:** H2 heading showing day name + daily totals (`X,XXX kcal · Protein Xg · Carbs Xg · Fat Xg`). Day names and macro names use the user's locale (e.g., Chinese: `X,XXX kcal · 蛋白 Xg · 碳水 Xg · 脂肪 Xg`).
 
 **2. Meal level:** H3 heading showing emoji + meal name + macros. Two types:
 
