@@ -102,6 +102,8 @@ When planning meals, use the **midpoint** of each range as the planning target. 
    - `es` → ask whether US-based or Latin America
    - Other → ask the user
 
+**Calorie unit convention:** US users → "Cal" (capital C, equivalent to kilocalorie); all other locales → "kcal". Infer from the same locale resolution above (English defaults to US → Cal). Use the chosen notation consistently across the entire meal plan, chat messages, and HTML export.
+
 **Why this matters:** A meal plan full of chicken breast and sweet potatoes is useless for someone in Shanghai who eats rice, tofu, and bok choy daily. The plan must reflect foods the user can actually buy and wants to eat.
 
 ### Dietary Preferences & Practical Constraints
@@ -409,7 +411,7 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 |---|---|
 | **Full kitchen** | Mix of home-cooked meals + batch prep. Include 2–3 "cook once, eat twice" recipes per week. |
 | **Basic kitchen** | Simple one-pot/one-pan meals, microwave-friendly options, rice cooker meals, overnight oats, salads, wraps. |
-| **No kitchen / eating out** | Build the plan around restaurant orders, takeout, convenience store meals, and ready-to-eat options. Include specific ordering guidance with calorie estimates (e.g., "Chipotle: chicken bowl, no rice, extra veggies — ~520 kcal"). |
+| **No kitchen / eating out** | Build the plan around restaurant orders, takeout, convenience store meals, and ready-to-eat options. Include specific ordering guidance with calorie estimates (e.g., "Chipotle: chicken bowl, no rice, extra veggies — ~520 Cal"). |
 | **Mixed (most common)** | Designate which days are cook days vs. eat-out days. Typically 3–4 cook days + 3–4 eat-out/simple days per week. |
 
 **Variety matters.** Don't repeat the same protein at every meal. Rotate across the week. If Tuesday dinner is chicken stir-fry, Thursday dinner should be something different.
@@ -560,7 +562,7 @@ These principles should guide every decision in the plan. They're not rules to s
 Don't generate a plan without one. Either guide them to calculate (quick TDEE inline) or recommend the weight-loss-planner skill first.
 
 **User wants an extremely low-calorie plan (<1,200 women / <1,500 men):**
-Decline gently. Explain the risks (nutrient deficiency, muscle loss, metabolic adaptation) and suggest the minimum safe floor. "I want to make sure your body gets what it needs — let's work with at least 1,200 kcal/day and make every calorie count."
+Decline gently. Explain the risks (nutrient deficiency, muscle loss, metabolic adaptation) and suggest the minimum safe floor. "I want to make sure your body gets what it needs — let's work with at least 1,200 Cal/day and make every calorie count."
 
 **User asks for a specific recipe:**
 Provide it! Include ingredients with locale-appropriate measurements, step-by-step instructions, and macro breakdown. This is a natural extension of the meal plan. **Keep instructions concise** — skip obvious steps that any adult knows (boiling water, grabbing a bowl, plating, eating the food). Focus on the steps that actually matter: cooking times, seasoning ratios, heat levels, and technique tips that affect the outcome.
@@ -570,6 +572,6 @@ Accommodate what you can, but flag clearly: "I can build a plan around your nut 
 
 **User wants to eat out frequently:**
 This is completely valid — don't treat it as a problem to solve. Build restaurant/takeout/convenience store options directly into the plan as primary meals, not fallbacks. Include specific ordering guidance with approximate macros. Examples:
-- **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 kcal, 42g P / 20g C / 30g F"
+- **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 Cal, 42g P / 20g C / 30g F"
 - **China:** "Shaxian Snacks: 8 steamed dumplings + seaweed egg-drop soup — ~450 kcal, 20g P / 55g C / 15g F"
 - **Japan:** "Konbini: salad chicken + 1 onigiri + salad — ~450 kcal, 30g P / 45g C / 10g F"

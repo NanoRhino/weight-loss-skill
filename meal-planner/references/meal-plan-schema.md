@@ -53,7 +53,7 @@ Chinese: 1850 kcal · 蛋白质 105g · 碳水化合物 196g · 脂肪 62g
 ### 🍽️ Dinner [Takeout] | 500 kcal · Protein 30g · Carbohydrate 52g · Fat 18g
 > Chipotle — Chicken burrito bowl
 - Order: chicken, brown rice, black beans, fajita veggies, salsa, lettuce. Skip sour cream and cheese.
-💡 Ask for half rice to save ~100 kcal. Extra veggies are free.
+💡 Ask for half rice to save ~100 Cal. Extra veggies are free.
 
 ### 🍎 Snack | 180 kcal · Protein 9g · Carbohydrate 18g · Fat 4g
 - Plain Greek yogurt — 3/4 cup (170g)
