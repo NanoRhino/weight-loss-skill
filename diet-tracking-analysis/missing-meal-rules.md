@@ -51,12 +51,12 @@ When missing meals are detected, **do NOT stop to ask** — instead:
 Append naturally after the current meal's suggestion — one short note only. Match the user's language:
 
 **Examples (Chinese):**
-- "PS: 早餐还没打卡，我先按正常吃了帮你算的。如果告诉我具体吃了什么，建议会更准确哦~"
-- "PS: 午餐还没打卡，暂时按正常饮食算了。告诉我实际吃了什么的话，建议可以更精准~"
+- "PS: 早餐还没打卡，我先按正常吃了帮你算的。下次记得吃之前告诉我，建议会更准确哦~"
+- "PS: 午餐还没打卡，暂时按正常饮食算了。下次吃之前先说一声，建议可以更精准~"
 
 **Examples (English):**
-- "PS: Breakfast wasn't logged — I assumed a normal meal for now. Let me know what you actually had and I can fine-tune the suggestions!"
-- "PS: Lunch wasn't logged — I used a standard estimate for now. Share what you had if you'd like more precise advice!"
+- "PS: Breakfast wasn't logged — I assumed a normal meal for now. Next time, let me know what you're having before you eat so I can give better suggestions!"
+- "PS: Lunch wasn't logged — I used a standard estimate for now. Try to tell me before your next meal so the advice is more precise!"
 
 ---
 
@@ -70,7 +70,7 @@ If the user later comes back and provides details about the missed meal:
 | "Didn't eat" / "Skipped" | Mark as skipped (zero intake), re-run `evaluate` without `--assumed` for that meal, update suggestions |
 | "Ate but can't recall" | Keep the assumed value as-is (already using standard ratio) |
 
-**Backfilled meals** (meals the user is reporting after the fact): these are always classified as "already eaten" by the Eaten-Meal Detection rules in SKILL.md. Do NOT give `right_now` suggestions — use `next_meal` (if adjustment needed) or `next_time` (if on track) instead. `nice_work` can still be used if warranted.
+**Backfilled meals** (meals the user is reporting after the fact): these are always classified as "already eaten" by the Meal Timing Detection rules in SKILL.md. Do NOT give `right_now` suggestions — use `next_meal` (if adjustment needed) or `next_time` (if on track) instead. `nice_work` can still be used if warranted.
 
 ---
 
