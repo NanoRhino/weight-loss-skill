@@ -230,16 +230,50 @@ When user shares device data (screenshot, text paste, or file):
 
 ## When Planning Triggers
 
-On every user message, determine if the message is an exercise/training planning request. If yes, follow the planning workflow below.
+Planning does **NOT** trigger automatically on every exercise mention. Instead, follow this two-stage activation:
+
+### Stage 1: Detect First Proactive Exercise Mention
+
+When the user **first proactively talks about exercise or fitness** in a conversation — but has NOT explicitly requested a plan — this is the trigger to **offer** a plan, not to generate one.
+
+Examples of first proactive exercise mentions (Stage 1 triggers):
+- "我想开始运动" / "I want to start working out"
+- "最近想锻炼一下" / "I've been thinking about exercising"
+- "我应该多运动" / "I should exercise more"
+- "想去健身房" / "Thinking about going to the gym"
+- "朋友推荐我做力量训练" / "My friend recommended strength training"
+- Any casual first mention of wanting to exercise, being interested in fitness, or considering physical activity
+
+**Action at Stage 1:** Ask the user whether they would like a personalized exercise plan. Keep it brief and natural:
+- Chinese example: "听起来你对运动感兴趣！需要我帮你制定一份运动计划吗？"
+- English example: "Sounds like you're interested in getting active! Would you like me to put together a workout plan for you?"
+
+Do NOT proceed to profile collection or plan design at this stage. Wait for the user's response.
+
+### Stage 2: User Confirms They Want a Plan
+
+Only proceed to the planning workflow below when **one of these conditions** is met:
+1. **User confirms** after Stage 1 offer (e.g., "好的", "要", "yes", "sure", "帮我做一个")
+2. **User explicitly requests a plan** from the start — skipping Stage 1 entirely (e.g., "帮我制定一个训练计划", "make me a workout plan", "design a training program for me", "I need a fitness program")
+
+If the user **declines** the offer (e.g., "不用了", "no thanks", "先不用"), respect their decision, do NOT ask again (Single-Ask Rule applies), and continue the conversation normally. If they later explicitly request a plan, honor that request.
+
+### What Does NOT Trigger Planning
+
+These scenarios should NOT trigger the planning offer (Stage 1) — they belong to exercise **tracking** only:
+- User logs a completed workout ("I ran 5K today", "刚做完瑜伽")
+- User shares fitness device data
+- User asks for a weekly exercise summary
 
 ---
 
 ## Planning Workflow Overview
 
-1. **Collect user profile** → gather essential info before designing anything
-2. **Design the program** → build a periodized plan matching user's goals and constraints
-3. **Present the plan** → output a clear, actionable training schedule with video links
-4. **Adjust on feedback** → modify based on user reactions ("too hard", "knee hurts", etc.)
+1. **Confirm intent** → ensure user wants a plan (Stage 1 → Stage 2, or direct request)
+2. **Collect user profile** → gather essential info before designing anything
+3. **Design the program** → build a periodized plan matching user's goals and constraints
+4. **Present the plan** → output a clear, actionable training schedule with video links
+5. **Adjust on feedback** → modify based on user reactions ("too hard", "knee hurts", etc.)
 
 ---
 
