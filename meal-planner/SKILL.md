@@ -580,6 +580,6 @@ Accommodate what you can, but flag clearly: "I can build a plan around your nut 
 
 **User wants to eat out frequently:**
 This is completely valid — don't treat it as a problem to solve. Build restaurant/takeout/convenience store options directly into the plan as primary meals, not fallbacks. Include specific ordering guidance with approximate macros. Examples:
-- **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 Cal, 42g P / 20g C / 30g F"
-- **China:** "Shaxian Snacks: 8 steamed dumplings + seaweed egg-drop soup — ~450 kcal, 20g P / 55g C / 15g F"
-- **Japan:** "Konbini: salad chicken + 1 onigiri + salad — ~450 kcal, 30g P / 45g C / 10g F"
+- **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 Cal, Protein 42g / Carbohydrate 20g / Fat 30g"
+- **China:** "沙县小吃: 蒸饺 8 个 + 紫菜蛋花汤 — ~450 kcal, 蛋白质 20g / 碳水化合物 55g / 脂肪 15g"
+- **Japan:** "Konbini: salad chicken + 1 onigiri + salad — ~450 kcal, Protein 30g / Carbohydrate 45g / Fat 10g"
