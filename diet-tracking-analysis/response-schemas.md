@@ -32,7 +32,7 @@ Protein and fat are on track, carbs slightly low — adding a bit of grain at di
 💡 Next time: Try adding half a cup of quinoa to your salad for an extra carb boost.
 ```
 
-## Food Log with Adjustment Needed (Before Eating — Default)
+## Food Log with Adjustment Needed
 
 ```
 📝 Lunch logged!
@@ -47,7 +47,7 @@ Calories and carbs are running high while protein is low — the rice + bubble t
 ⚡ Right now: Swap the bubble tea for unsweetened tea and add a side of grilled chicken (~100g) to boost protein. That would bring this meal to ~640 kcal with much better protein. For dinner, go lighter — steamed fish + veggies, skip the rice.
 ```
 
-## Food Log with Adjustment Needed (Already Eaten)
+## Food Log with Adjustment Needed — Already Eaten
 
 ```
 📝 Lunch logged!
