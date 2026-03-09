@@ -375,7 +375,7 @@ Send this message **immediately** after confirming the user wants the plan, **be
 >
 > **概要：** [X,XXX] kcal/天 · [饮食模式] · 蛋白质 [X]g / 碳水化合物 [X]g / 脂肪 [X]g
 >
-> 可以直接在浏览器里查看，也可以用 Ctrl+P 保存为 PDF。有什么想调整的随时告诉我！
+> 可以直接在浏览器里查看。有什么想调整的随时告诉我！
 
 **When a user asks for their meal plan link:**
 1. Read `plan-url.json` → check the `meal-plan` key
