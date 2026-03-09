@@ -226,7 +226,7 @@ When user describes what they ate:
 2. **Detect eaten status** — determine if the user is currently eating or has already finished (see Eaten-Meal Detection above)
 3. **Call load** — get today's existing records
 4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
-5. **Check portion clarity** — see Portion Follow-Up Rule below
+5. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
 6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g
 7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`)
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
@@ -324,18 +324,33 @@ User asks "how much have I eaten today" / "how much can I still eat" → call `l
 
 ## Portion Follow-Up Rule
 
-If user describes food without any quantity, ask ONE clarifying question using everyday references — **never ask for grams**:
+**Default behavior: assume and record directly.** When a user logs food (text or photo), assume they ate everything described/shown in a standard single serving and record it immediately — do NOT ask for confirmation. The goal is to minimize user communication cost.
+
+### When to use default portions (no asking)
+
+- User describes food without quantity → assume one standard medium portion, prefix with `~`
+- User sends a photo → estimate portions from the photo and record directly
+- Standardized foods (a can of Coke, one egg, a slice of toast) → record directly
+- Any food where the amount is within a normal range (under 2× a standard single serving) → record directly
+
+### When to ask (only if portion ≥ 2× normal)
+
+Only ask a clarifying question when the described or photographed quantity appears to be **2 times or more** of a normal single-person serving — e.g., "I ate a whole pizza", "I had 6 eggs", or a photo showing a clearly oversized portion. In this case, ask ONE clarifying question using everyday references — **never ask for grams**:
 
 - Size: "About how big? Palm-sized, fist-sized, or bigger?"
 - Bowl: "How full was the bowl? Half, mostly full, or heaping?"
 - Plate: "How much? A small plate, half plate, or full plate?"
 - Count: "How many? One or two or three?"
 
-If multiple foods in the same meal all lack quantity, **ask about them together in one message** — do not split into multiple rounds.
+If multiple foods in the same meal all appear ≥ 2× normal, **ask about them together in one message** — do not split into multiple rounds.
 
-If user says they don't know → use standard medium portion, prefix with `~`.
+### One-ask rule
 
-**Exceptions** (record directly without asking): standardized foods like "a can of Coke", "one egg", "a slice of toast".
+If the user does not answer the clarifying question, **default to the most likely reasonable portion** and record it — do NOT ask a second time. For example:
+- "I ate a whole pizza" + no reply → assume 4 slices (~half a medium pizza)
+- Photo shows a large bowl of rice + no reply → assume ~1.5 standard bowls
+
+Never ask more than once per food item. The principle is: **ask at most once, then move on.**
 
 ---
 
