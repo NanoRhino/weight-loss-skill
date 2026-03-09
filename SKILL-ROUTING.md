@@ -50,12 +50,12 @@ can contain multiple intents.
 
 | User Message | Intents | Skills |
 |---|---|---|
-| "ran for 30 minutes, then ate chicken breast" | exercise-log + food-log | exercise-tracking + diet-tracking |
+| "ran for 30 minutes, about to eat chicken breast" | exercise-log + food-log | exercise-tracking + diet-tracking |
 | "I ran 5K! I'm so proud!" | exercise-log + positive-emotion | exercise-tracking + emotional-support |
-| "ate too much again, I'm so fat" | food-log + emotional-distress | diet-tracking + emotional-support |
+| "ate too much again, I'm so fat" | after-meal-log + emotional-distress | diet-tracking + emotional-support |
 | "weekly summary" (on Sunday) | weekly-report-request + exercise-weekly-summary | weekly-report + exercise-tracking |
 | "make me a workout plan and a meal plan" | exercise-planning + meal-planning | exercise-tracking + meal-planner |
-| "I had oatmeal, feeling great today!" | food-log + positive-emotion | diet-tracking + emotional-support |
+| "I'm having oatmeal, feeling great today!" | food-log + positive-emotion | diet-tracking + emotional-support |
 | "skipped lunch, don't care anymore" | food-skip + emotional-distress | diet-tracking + emotional-support |
 
 ---

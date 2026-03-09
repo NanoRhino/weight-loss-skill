@@ -493,7 +493,7 @@ Present the following message (adapt to the user's language and meal schedule):
 > 3. **我来分析** — 帮你估算热量和营养素，看看和目标比怎么样
 > 4. **按需调整** — 如果偏高或偏低，我会马上告诉你当餐怎么调，比如"加个蛋"或"米饭少盛点"
 >
-> 不用追求完美，照着食谱吃、随手告诉我就行。我来帮你微调 👍
+> 不用追求完美，照着食谱吃、吃之前告诉我一声就行。我来帮你微调 👍
 
 English equivalent:
 
@@ -504,7 +504,7 @@ English equivalent:
 > 3. **I'll analyze** — estimate calories and macros, and see how you're tracking against your targets
 > 4. **Adjust on the spot** — if something's off, I'll tell you right away how to tweak the current meal, like "add an egg" or "go easy on the rice"
 >
-> Don't stress about perfection — just follow the plan and let me know what you had. I'll fine-tune from there 👍
+> Don't stress about perfection — just follow the plan and tell me what you're having before you eat. I'll fine-tune from there 👍
 
 ---
 

@@ -222,8 +222,8 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 ### Meal Reminders — 5 techniques, rotate them
 
-**1. Choice question** (lowest barrier — one word to reply):
-`"Bringing lunch or buying?"` · `"Cooking tonight or ordering in?"`
+**1. Choice question** (lowest barrier — one word to reply, encourages pre-meal logging):
+`"Bringing lunch or buying?"` · `"Cooking tonight or ordering in?"` · `"What's the plan for lunch?"`
 
 **2. Personalization** (use history from workspace):
 `"Still on the salad streak, or mixing it up?"` · `"Burrito bowl Thursday?"`
@@ -292,8 +292,9 @@ Never playful tone for weight. Always optional.
 
 | User says | Response |
 |-----------|----------|
-| Names food: "chicken salad" | `Chicken salad — logged ✓ Enjoy!` |
-| Vague: "ate something" | `Logged ✓ Want to add details, or leave it?` |
+| Names food before eating: "having chicken salad" | Log it, give real-time feedback. `Chicken salad — logged ✓` + nutrition analysis + adjustment suggestion if needed (see diet-tracking-analysis). This is the ideal flow. |
+| Names food after eating: "had chicken salad" | Log it, give next-meal suggestions only. `Chicken salad — logged ✓` |
+| Vague: "eating something" | `Logged ✓ Want to add details, or leave it?` |
 | Skipping: "skipping lunch" | `Noted!` |
 | Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk? No pressure either way." If purely indifferent (no distress signal), just log and move on. |
 | Hasn't eaten all day | Check `Lifestyle > Exercise Habits` in profile or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → write `flags.possible_restriction: true` |
