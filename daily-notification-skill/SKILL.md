@@ -59,17 +59,17 @@ Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Breakfast reminder" \
-  --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates, rotating across all 5 techniques." \
+  --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates. IMPORTANT: rotate across all 5 techniques AND vary the question angle — never repeat the same cook-vs-eat-out framing used in recent reminders." \
   --cron "45 6 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Lunch reminder" \
-  --message "Send a friendly lunch reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
+  --message "Send a friendly lunch reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's breakfast reminder." \
   --cron "45 11 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Dinner reminder" \
-  --message "Send a friendly dinner reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
+  --message "Send a friendly dinner reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's earlier reminders." \
   --cron "45 17 * * *"
 ```
 
@@ -233,8 +233,29 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 ### Meal Reminders — 5 techniques, rotate them
 
+**Hard rule: no same-day repetition.** Each reminder in a single day MUST use
+a different technique AND a different question angle. If breakfast asked
+"自己做还是出去吃?", lunch and dinner cannot ask any variant of cook-vs-eat-out.
+Track which technique and angle you used today and pick a fresh combination
+for the next meal. The user receives up to 3 reminders per day — if all three
+sound alike, the system feels robotic.
+
 **1. Choice question** (lowest barrier — one word to reply, encourages pre-meal logging):
-`"Bringing lunch or buying?"` · `"Cooking tonight or ordering in?"` · `"What's the plan for lunch?"`
+
+Vary the axis of the choice. Do NOT always ask "cook vs eat out" — that is
+just one of many possible angles:
+
+| Angle | Examples |
+|-------|----------|
+| Cook vs eat out | `"Bringing lunch or buying?"` · `"Cooking tonight or ordering in?"` |
+| Light vs hearty | `"Light lunch or going big?"` · `"随便吃点还是正经吃一顿？"` |
+| Planned vs spontaneous | `"Already know what you're having, or winging it?"` · `"想好吃什么了吗？"` |
+| Hot vs cold | `"Hot meal or cold? 🥗🍜"` |
+| Same vs different | `"Same as yesterday or switching it up?"` |
+| Solo vs social | `"Eating alone or with people?"` |
+
+Pick a different angle each time. If you've used cook-vs-eat-out recently
+(within the last 2 days), choose a different one.
 
 **2. Personalization** (use history from workspace):
 `"Still on the salad streak, or mixing it up?"` · `"Burrito bowl Thursday?"`
@@ -254,13 +275,18 @@ patterns ("you've been on a salad kick"), not single data points
 ("yesterday at 6:47 PM you ate 430 calories of pasta").
 
 **3. Situational**:
-`"TGIF 🎉 dinner plans?"` · `"Cold out — soup weather or nah?"`
+`"TGIF 🎉 dinner plans?"` · `"Cold out — soup weather or nah?"` ·
+`"Monday energy — need something easy tonight?"` · `"下午茶时间过了，晚饭有着落了吗？"`
 
 **4. Micro-tip** (max 1 in 5):
-`"Protein first = fuller longer. What's on the menu?"`
+`"Protein first = fuller longer. What's on the menu?"` ·
+`"Eating slow helps — what are you having?"` ·
+`"蔬菜先吃，血糖更稳。今天吃什么？"`
 
 **5. Playful** (occasional):
-`"Breakfast confession — healthy or guilty pleasure? 🤫"`
+`"Breakfast confession — healthy or guilty pleasure? 🤫"` ·
+`"Rate your lunch excitement 1-10 😂"` ·
+`"If your dinner were a movie genre, what would it be?"`
 
 **Time-of-day energy:**
 Morning = soft, low-demand · Midday = quick, snappy · Evening = relaxed
