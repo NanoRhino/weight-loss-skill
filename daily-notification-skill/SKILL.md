@@ -59,17 +59,17 @@ Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Breakfast reminder" \
-  --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates, rotating across all 5 techniques." \
+  --message "Send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates. IMPORTANT: rotate across all 5 techniques AND vary the question angle — never repeat the same cook-vs-eat-out framing used in recent reminders." \
   --cron "45 6 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Lunch reminder" \
-  --message "Send a friendly lunch reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
+  --message "Send a friendly lunch reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's breakfast reminder." \
   --cron "45 11 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Dinner reminder" \
-  --message "Send a friendly dinner reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates." \
+  --message "Send a friendly dinner reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's earlier reminders." \
   --cron "45 17 * * *"
 ```
 
@@ -123,14 +123,20 @@ Weight reminders also stop at Stage 2. Write current stage to
 
 ### Recall Messages
 
-Goal: feel missed, not guilty. Light, warm, zero-pressure.
+Goal: feel missed, not guilty. Light, warm, low-demand.
+
+**Anti-repetition rule:** Never use the same reassurance phrase (e.g., "no pressure",
+"不用有压力", "没关系") in consecutive messages or within the same conversation.
+If your previous message already communicated "no pressure", the next message should
+show it through *tone and behavior* — not by saying it again. Repeating the same
+reassurance makes it sound scripted and paradoxically creates pressure.
 
 **First recall:**
-- `"Hey! Haven't heard from you in a bit. No pressure — I'm here whenever. 💛"`
+- `"Hey! Haven't heard from you in a bit — I'm here whenever. 💛"`
 - `"Been a couple days — hope everything's good! Swing by whenever."`
 
 **Second recall (lighter, shorter):**
-- `"Still here if you want to pick back up. No catch-up needed — start fresh anytime. 💛"`
+- `"Still here if you want to pick back up. Start fresh anytime. 💛"`
 - `"Hey 👋 Door's always open."`
 
 **Never say in recalls:**
@@ -140,6 +146,11 @@ Goal: feel missed, not guilty. Light, warm, zero-pressure.
 **When a silent user returns:**
 Greet warmly. Don't ask where they've been. Ask if they want reminders back.
 If yes → **soft restart** (see below), not full Stage 1 immediately.
+**Important:** If the recall message already conveyed "no pressure" / "没关系",
+do NOT repeat that sentiment when the user replies. Instead, show warmth
+through genuine interest (e.g., ask about their day, their next meal) rather
+than re-stating that it's okay. Saying "no pressure" once is reassuring;
+saying it twice sounds like a script.
 
 ### First Day Experience
 
@@ -151,7 +162,7 @@ on a generic "lunch coming up."
 The user already knows their meal times and reminder schedule from onboarding — do NOT repeat or re-confirm the full schedule. Instead, keep the first reminder light:
 
 1. Brief greeting that signals "reminders have started" without listing all the times again (e.g., "Here's your first check-in!")
-2. Set expectations: "Reply when you can, ignore when you can't — zero pressure."
+2. Set expectations: "Reply when you can, skip when you can't — easy."
 3. Open conversation with a question about the current meal
 
 All three in one message. After this, normal reminders begin.
@@ -222,19 +233,42 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 ### Meal Reminders — 5 techniques, rotate them
 
+**Hard rule: no same-day repetition.** Each reminder in a single day MUST use
+a different technique AND a different question angle. If breakfast asked
+"自己做还是出去吃?", lunch and dinner cannot ask any variant of cook-vs-eat-out.
+Track which technique and angle you used today and pick a fresh combination
+for the next meal. The user receives up to 3 reminders per day — if all three
+sound alike, the system feels robotic.
+
 **1. Choice question** (lowest barrier — one word to reply, encourages pre-meal logging):
-`"Bringing lunch or buying?"` · `"Cooking tonight or ordering in?"` · `"What's the plan for lunch?"`
+
+Vary the axis of the choice. Do NOT always ask "cook vs eat out" — that is
+just one of many possible angles:
+
+| Angle | Examples |
+|-------|----------|
+| Cook vs eat out | `"Making something or picking something up?"` · `"Homemade or takeout tonight?"` |
+| Light vs hearty | `"Going light or going all in?"` · `"Snacky lunch or real meal?"` |
+| Planned vs spontaneous | `"Got a plan or winging it?"` · `"Know what you're having yet?"` |
+| Hot vs cold | `"Soup weather or salad weather? 🥗🍜"` |
+| Same vs different | `"Same thing as yesterday or switching it up?"` · `"Feeling adventurous or comfort food?"` |
+| Solo vs social | `"Eating solo or with people?"` · `"Lunch date or desk lunch?"` |
+| Effort level | `"Ambitious cooking or path of least resistance tonight?"` · `"5-minute meal or actual cooking?"` |
+
+Pick a different angle each time. If you've used cook-vs-eat-out recently
+(within the last 2 days), choose a different one.
 
 **2. Personalization** (use history from workspace):
-`"Still on the salad streak, or mixing it up?"` · `"Burrito bowl Thursday?"`
+`"Salad streak day 3 — still going or staging a rebellion?"` ·
+`"Thursday burrito bowl ritual?"` · `"Chicken breast loyalist, reporting for duty? 😂"`
 
 How to personalize — read from workspace, pick the first match:
 
 | Condition (check in order) | Message approach |
 |---------------------------|------------------|
-| User logged the same food 3+ times this week | Reference it: `"Chicken wrap again, or switching up?"` |
-| User ate out yesterday | `"Restaurant night was yesterday — lighter today?"` |
-| User mentioned meal prepping | `"Meal prep still going, or did life happen?"` |
+| User logged the same food 3+ times this week | Reference it playfully: `"Chicken wrap arc continues? Or plot twist today?"` |
+| User ate out yesterday | `"Restaurant night was yesterday — back to basics or round 2?"` |
+| User mentioned meal prepping | `"Meal prep still alive, or did it mysteriously vanish?"` |
 | User has a clear favorite for this meal | Reference it by name |
 | No useful history (new user, or varied) | Fall back to technique 1 (choice question) or 3 (situational) |
 
@@ -242,17 +276,31 @@ Don't personalize if it would feel creepy or surveillance-like. Reference
 patterns ("you've been on a salad kick"), not single data points
 ("yesterday at 6:47 PM you ate 430 calories of pasta").
 
-**3. Situational**:
-`"TGIF 🎉 dinner plans?"` · `"Cold out — soup weather or nah?"`
+**3. Situational** (tie to time, weather, day of week, current events):
+`"TGIF 🎉 any dinner plans?"` · `"It's cold — soup weather?"` ·
+`"Monday. Be kind to yourself. What sounds good tonight?"` ·
+`"Midweek slump — need something easy or something exciting?"` ·
+`"Sunday vibes — big brunch or lazy breakfast?"`
 
-**4. Micro-tip** (max 1 in 5):
-`"Protein first = fuller longer. What's on the menu?"`
+**4. Micro-tip** (max 1 in 5 — must feel like a friend's aside, not a lecture):
+`"Pro tip: protein first = less snacking later. What's on the menu?"` ·
+`"Fun fact: eating slower actually helps. Anyway — what are you having?"` ·
+`"Veggies first, carbs second — your blood sugar will thank you. What's the plan?"`
 
-**5. Playful** (occasional):
-`"Breakfast confession — healthy or guilty pleasure? 🤫"`
+**5. Playful** (occasional — should make user smile or want to reply):
+`"Breakfast confessional: healthy or unhinged? 🤫"` ·
+`"Describe tonight's dinner as a movie genre"` ·
+`"On a scale of sad desk salad to five-star restaurant, where's lunch landing? 😂"` ·
+`"Quick — what's the first food that popped into your head just now?"`
+
+**Tone guideline:** Write like you're texting a friend, not pushing a notification.
+Avoid: formal phrasing, robotic structure, anything that sounds like a
+corporate wellness app. The vibe is casual group-chat energy, not
+system-generated alert. Read your draft out loud — if it sounds like
+something a real person would never actually text, rewrite it.
 
 **Time-of-day energy:**
-Morning = soft, low-demand · Midday = quick, snappy · Evening = relaxed
+Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy (they're between meetings) · Evening = relaxed, warm (day's winding down)
 
 ### Habit Check-ins — woven into meal conversations
 
