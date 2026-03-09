@@ -94,7 +94,7 @@ Run in order. Any fail = don't send.
 1. Quiet hours? Read `timezone.json` to get user's local time. Before 6 AM / after 9 PM local time → skip
 2. User in silent mode? (Stage 4) → skip
 3. Soft-restart active? (check `engagement.reminder_config`) → skip if this meal is not yet restored (see Soft Restart)
-4. This meal already logged today? (call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal exists) → skip
+4. This meal already logged today? (call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if an entry for this meal exists **with `status: "logged"`**) → skip. Entries with `status: "no_reply"` or `"skipped"` do NOT count — the user hasn't actually reported food, so the reminder should still fire.
 5. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
 6. All clear → send
 
