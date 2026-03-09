@@ -296,93 +296,81 @@ The core design principles are:
 
 ## Step 3: Present the Plan
 
-### Weekly Overview — Monday to Sunday (Mandatory)
+### Output as HTML File (Not Chat Text)
 
-MUST always start with a **full week view from Monday to Sunday**. Every day MUST appear — training days AND rest days. Rest days MUST include cardio or active recovery recommendations.
+**CRITICAL: Generate the training plan as a self-contained HTML file — NOT as chat text.** The training plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
 
-**MUST use vertical (2-column) table format** to ensure day names and training content are clearly aligned and never mismatched. Do NOT use horizontal 7-column tables — they cause alignment issues when content varies in length.
+1. **Write the training plan to an HTML file** using the Write tool. Save to: `/mnt/user-data/uploads/exercise-plan.html`
+2. Use the HTML template at `templates/exercise-plan.html` as the structural and styling reference. Keep **all CSS inline** in a `<style>` block — the file must be fully self-contained with no external dependencies.
+3. Set the `<html lang>` attribute to match the user's locale (e.g., `"zh"` for Chinese, `"en"` for English).
+4. Adapt all content (exercise names, day names, instructions, notes, footer text) to the user's language.
 
-```
-## 一周总览
+Send this message **immediately** after confirming the user's profile info, **before** you begin generating the HTML file (adapt to user's language):
 
-| 日期 | 训练内容 |
-|------|---------|
-| 周一 | 全身训练 A |
-| 周二 | 休息 · 散步30分钟 |
-| 周三 | 全身训练 B |
-| 周四 | 休息 · 散步30分钟 |
-| 周五 | 全身训练 C |
-| 周六 | 休息 · 可选轻度活动 |
-| 周日 | 完全休息 |
-```
+> 正在为你生成训练方案，大约需要1-2分钟，请稍等...
 
-English equivalent:
-```
-## Weekly Overview
+**Chat message template** (adapt to user's language):
 
-| Day | Training |
-|-----|----------|
-| Mon | Full Body A |
-| Tue | Rest · Walk 30min |
-| Wed | Full Body B |
-| Thu | Rest · Walk 30min |
-| Fri | Full Body C |
-| Sat | Rest · Optional light activity |
-| Sun | Full rest |
-```
+> Your training plan is ready! I've saved it as an HTML file that you can open in your browser.
+>
+> **Summary:** [X] days/week · [Training Split] · [Goal]
+>
+> You can print it or save as PDF from your browser. Let me know if you'd like to adjust anything!
 
-> **Locale adaptation:** Use the user's language for all output text (day names, exercise names, instructions).
+**Do NOT paste the full training plan in chat.** Only provide the brief summary above. The HTML file is the complete reference.
 
-Then write out each day (Mon through Sun) in order, including rest days.
+For any plan adjustments (user feedback like "too hard", "swap an exercise", etc.), **always regenerate the HTML file** so the user has an up-to-date, complete document.
 
-### Output Format (Mandatory)
+---
 
-The following format is a **strict specification** — you MUST follow it exactly. This is not a suggestion or guideline; it is a required output format. Any deviation is considered incorrect output.
+### HTML Content Rules
 
-Write the plan in **sequential order** — the user reads top to bottom and follows along. No timestamps. Use clear visual separation between exercises.
+The HTML file replaces the old chat-based output. **All content rules below still apply** — they now govern what goes inside the HTML file.
 
-**Training day structure:**
+**Adapt the HTML template to the user's locale** — use appropriate language, units, and culturally relevant references.
 
-```
-### 周一：全身训练 A
-预计时长：约55分钟
+**CRITICAL: The HTML training plan MUST follow the structure defined in `templates/exercise-plan.html`. Do not deviate from the CSS classes, nesting, or element hierarchy. Every generated plan must match the template precisely.**
 
-#### 热身（约8分钟）
+The training plan uses this hierarchy:
 
-1. 椭圆机慢速 3分钟
-2. 猫牛式 ×10
-3. 世界最佳拉伸 ×每侧5次
-4. 徒手深蹲 ×10
+**1. Summary card** (`.summary-card`): Shows goal, level, split, frequency, equipment.
 
-#### 正式训练
+**2. Weekly overview** (`.week-overview`): A 2-column table (Day | Training) showing all 7 days. Rest days use `.rest-label` class for muted styling.
 
-**动作1：高脚杯深蹲 | 中等力度（做完感觉还能再做3次左右）**
-3组 ×10-12次，组间休息90秒
+**3. Day cards** (`.day-card`): One for each day, Mon through Sun.
 
-**动作2：哑铃卧推 | 中等力度（做完感觉还能再做3次左右）**
-3组 ×10-12次，组间休息90秒
+- **Training days:** `.day-header` (green) with day name + session title, `.day-meta` for estimated duration.
+  - `.video-link` — follow-along video link at the top (see Video Links section)
+  - `.phase-block` with `.phase-title` + `.phase-list` (numbered `<ol>`) for warm-up and cooldown
+  - `.exercise-block` for each main exercise:
+    - `.exercise-header` with `.exercise-num` (number), exercise name, and `.intensity` (intuitive description)
+    - `.exercise-prescription` for sets/reps/rest in compact format
+  - When sets differ across an exercise (different weight, reps, or rest), expand `.exercise-prescription` to multiple lines — one per set.
 
-...
+- **Rest days:** `.day-header.rest-day` (muted gray) + `.rest-content` with `<ul>` of suggestions.
 
-#### 拉伸放松（约5分钟）
+**4. Progression section** (`.progression-section`): After all day cards. Brief progression plan with week-by-week guidance.
 
-1. 股四头肌拉伸 每侧20秒
-2. 腘绳肌拉伸 每侧20秒
-...
-```
+**5. Notes section** (`.notes-section`): Closing note inviting questions + workout tracking encouragement.
 
-When sets of an exercise all use the same reps and rest, MUST use the compact format: "3组 ×10-12次，组间休息90秒" (or locale equivalent like "3 sets ×10-12 reps, rest 90s between sets"). Do NOT write out each set and rest line individually. Only write sets out individually when they differ (e.g., different weights, reps, or rest periods across sets).
+**6. Disclaimer** (`.disclaimer`): Safety disclaimer (first-time plan only).
 
-**Mandatory format rules (MUST follow, not optional):**
+**7. Footer** (`.plan-footer`): Generated-by notice.
+
+---
+
+### Content Format Rules (MUST follow)
+
+These rules govern the content inside the HTML, regardless of output format:
 
 1. **Straight sets** — MUST complete ALL sets of one exercise before moving to the next. This is the required default. NEVER use circuit-style unless user specifically requests it.
-2. **Each exercise MUST be a bold block** with exercise name and intensity description on the header line. Use the user's language only — do NOT add English translations when writing in Chinese (e.g., write "高脚杯深蹲" not "高脚杯深蹲 Goblet Squat").
-3. **Compact set format** — when all sets of an exercise use the same reps and rest, MUST write as one line: "3组 ×10-12次，组间休息90秒". Do NOT list each set individually. Only expand to per-set lines when sets differ in weight, reps, or rest.
+2. **Exercise names in user's language only** — do NOT add English translations when writing in Chinese (e.g., write "高脚杯深蹲" not "高脚杯深蹲 Goblet Squat").
+3. **Compact set format** — when all sets of an exercise use the same reps and rest, MUST write as one line in `.exercise-prescription`: "3组 ×10-12次，组间休息90秒" (or locale equivalent "3 sets ×10-12 reps, rest 90s between sets"). Do NOT list each set individually. Only expand to per-set lines when sets differ in weight, reps, or rest.
 4. **No timestamps** — MUST use sequential order from top to bottom only.
-5. **No form cues or technique tips** — do NOT include form cues, movement tips, or technique descriptions under exercise headers. Instead, after the complete training plan, add a closing note: "如果有不熟悉的动作，随时问我，我可以详细讲解！" (or locale equivalent). This keeps the plan clean and readable.
-6. **Warm-up and cooldown** MUST use numbered lists (simpler, no sets/reps structure needed).
+5. **No form cues or technique tips** — do NOT include form cues, movement tips, or technique descriptions under exercises. The closing note in `.notes-section` invites users to ask about unfamiliar exercises.
+6. **Warm-up and cooldown** MUST use numbered lists (`.phase-list`).
 7. **Merge identical repeating rounds** — when the same action repeats identically multiple times (e.g., run/walk intervals, stretch hold × 2 sides), MUST write it once with a repeat count instead of listing each round individually. Example: "慢跑1分钟 → 快走2分钟，重复×8轮" instead of writing out all 8 rounds.
-8. **Intensity description** — do NOT use "RPE" terminology. Replace with intuitive Chinese descriptions (or locale equivalent) that ordinary users can understand:
+8. **Intensity description** — do NOT use "RPE" terminology. Replace with intuitive descriptions in `.intensity` span that ordinary users can understand:
    - RPE 6 → "轻松力度（做完感觉还很轻松，能再做4次以上）"
    - RPE 6-7 → "中等力度（做完感觉还能再做3次左右）"
    - RPE 7 → "中等力度（做完感觉还能再做3次左右）"
@@ -391,21 +379,16 @@ When sets of an exercise all use the same reps and rest, MUST use the compact fo
    - RPE 8-9 → "大力度（做完感觉最多还能再做1-2次）"
    - RPE 9 → "接近极限（做完感觉最多还能再做1次）"
    In English output, use equivalent phrasing like "moderate effort (could do ~3 more reps)" instead of "RPE 7".
+9. **All 7 days must be present.** Every day from Monday to Sunday must appear as a `.day-card`. Do not abbreviate remaining days with placeholders like "same structure" or "continue pattern." The HTML file is the user's complete reference.
 
-**Rest day structure:**
-
-```
-### 周二：休息日
-- 椭圆机或快走 25-30分钟，轻松不喘的强度
-- 或者完全休息也可以
-```
+---
 
 ### Video Links (Mandatory)
 
 **Rule: MUST provide ONE complete follow-along course/video link per training day, NOT individual per-exercise links.**
 
 - For EVERY training day (gym, home, bodyweight, yoga, etc.), MUST search for a single complete follow-along workout video that matches the session's overall theme (e.g., "full body beginner gym workout", "upper body strength training", "30 min bodyweight workout for runners").
-- Present it at the TOP of each training day, right after the day title and estimated duration: "跟练视频：[▶ Video Title](link)" (or locale equivalent: "Follow-along video: [▶ Video Title](link)")
+- Present it in the `.video-link` div at the TOP of each training day's `.day-body`, right after the day header.
 - Do NOT provide individual video links for each exercise. The goal is one cohesive video the user can follow along with, not a fragmented list.
 - If no single video matches perfectly, find the closest match for the session type.
 
@@ -419,42 +402,19 @@ Match channel to user level:
 Use YouTube search links (can't verify direct URLs):
 `https://www.youtube.com/results?search_query=full+body+beginner+gym+workout+channel+name`
 
+---
+
 ### Solo / Home Training Safety
 
-If user trains at home alone, include these safety notes:
+If user trains at home alone, include these safety notes in `.notes-section`:
 - Set safety pins/spotter arms in squat rack to just below depth
 - Never test true 1RM alone; cap at "接近极限（最多还能再做1次）" intensity
 - Learn how to safely bail from a squat and bench press
 - For bench press: use dumbbells if no spotter or safety catch is available
 
-### Workout Tracking
-
-Include a brief note encouraging users to track their workouts — even just a notes app works. Tracking weights, reps, and perceived effort is essential for applying progressive overload.
-
 ### Supplementary Info Position (Mandatory)
 
-Starting weight guidance and other reference material MUST come AFTER the training plan, NEVER before. The user wants to see the actual plan first. MUST place supplementary info at the end under a clear heading like "附录" / "Reference" (or locale equivalent). Do NOT include an RPE scale table — the intensity descriptions are already written in plain language in the plan itself.
-
-### Closing Note (Mandatory)
-
-After the complete training plan (after progression plan and before appendix), MUST include a note inviting the user to ask about unfamiliar exercises:
-
-```
-> 如果有不熟悉的动作，随时问我，我可以详细讲解！
-```
-
-English equivalent: "If any exercise is unfamiliar, just ask me and I'll explain it in detail!"
-
-### Progression Overview (Mandatory)
-
-After the weekly schedule, MUST include a brief progression plan:
-
-```
-## 进阶计划（第1-4周）
-- 第1-2周：熟悉动作，使用中等力度（做完感觉还能再做3次左右）
-- 第3-4周：开始渐进超负荷——每次训练加一点重量或多做几次
-- 第5周（减载周）：训练量减少40%，强度不变
-```
+Starting weight guidance and other reference material MUST come AFTER the training plan (in `.notes-section`), NEVER before day cards. The user wants to see the actual plan first. Do NOT include an RPE scale table — the intensity descriptions are already written in plain language in the plan itself.
 
 ---
 
@@ -513,6 +473,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 
 | Path | When |
 |------|------|
+| `/mnt/user-data/uploads/exercise-plan.html` | New training plan generated or adjusted — write the complete HTML file |
 | `health-profile.md > Fitness` | User provides missing fitness level or fitness goal — silently update |
 | `health-preferences.md > Exercise` | User reveals new exercise preferences during conversation — silently append |
 | `logs.exercise.{date}` | Each exercise log response (`is_exercise_log: true`) — store the full exercise JSON |
