@@ -261,6 +261,32 @@ When a lower-priority skill must defer to a higher-priority one:
 
 ---
 
+## Single-Ask Rule (Global)
+
+**All question inquiries — except scheduled reminders — MUST be asked at most once.**
+
+If the user does not answer a question, **do not repeat, rephrase, or follow up
+on that question.** Accept the silence as a decline and move on with whatever
+information you have. Use `null` or sensible defaults for the missing field.
+
+This rule applies to:
+- Onboarding questions (profile fields)
+- Planning data collection (diet mode, meal schedule, preferences, exercise profile)
+- Habit recommendations
+- Follow-up questions during tracking ("want to add details?")
+- Any clarifying question across all skills
+
+This rule does NOT apply to:
+- **Scheduled reminders** (`daily-notification` cron-based meal/weight reminders) —
+  these follow their own lifecycle (Active → Pause → Recall → Silent) and are
+  expected to recur on schedule.
+
+**Rationale:** Repeated questions feel like nagging and erode trust. If a user
+skips a question, they either don't know, don't care, or aren't ready. In all
+three cases, asking again makes things worse. Move forward with what you have.
+
+---
+
 ## Edge Cases
 
 **User switches intent mid-conversation:**

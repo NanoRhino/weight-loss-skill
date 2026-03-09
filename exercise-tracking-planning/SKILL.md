@@ -267,6 +267,10 @@ Before designing any program, gather information across these categories. Ask co
 | **Aerobic capacity** | Climbing 3–4 flights of stairs: no breathlessness / slightly winded but can talk / noticeably winded, need to pause / very winded, can't speak. Walking 15 min briskly: easy / somewhat challenging / quite difficult | Estimate from experience level |
 | **Current program** | What are you doing now? | Helps gauge starting point |
 
+### Single-Ask Rule
+
+Every profile question is asked at most once. If the user ignores a question or changes the subject, do not repeat it — fall through to the defaults below and continue with program design. See `SKILL-ROUTING.md > Single-Ask Rule`.
+
 ### Profile Defaults
 
 When user doesn't provide information, use these sensible defaults rather than asking endless questions:

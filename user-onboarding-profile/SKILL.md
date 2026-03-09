@@ -77,6 +77,8 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Handling terse users:** If a user gives very short answers (e.g., "health", "not sure"), accept it. Map it to the closest field value and move on. Don't push for elaboration — partial data is fine, you can always use `null`.
 
+**Single-ask rule:** Every question is asked at most once. If the user ignores a question or changes the subject, do not repeat it — use `null` or a sensible default for that field and continue to the next round. See `SKILL-ROUTING.md > Single-Ask Rule` for the full policy.
+
 **Round 4 — Work type & exercise habits (required):**
 
 Ask about their work type and exercise habits together. These are essential for calculating TDEE and building an appropriate plan.
