@@ -102,7 +102,7 @@ Returns: `checkpoint_pct`, `checkpoint_target`, `checkpoint_range`, `actual`, `a
 
 All JSON fields use full names: `calories`, `protein`, `carbs`, `fat`. Old short names (`cal`, `p`, `c`, `f`) are auto-migrated on read for backward compatibility.
 
-**Adjustment trigger**: calories outside checkpoint cal range OR 2+ macros outside their checkpoint ranges.
+**Adjustment trigger**: calories outside checkpoint kcal range OR 2+ macros outside their checkpoint ranges.
 
 `--assumed` optional: for forgotten meals, pass standard values based on that meal's ratio of daily targets (e.g. forgotten lunch in 30:40:30 mode = 40% of daily targets, NOT the cumulative checkpoint).
 

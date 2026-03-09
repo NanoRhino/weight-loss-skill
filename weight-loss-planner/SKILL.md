@@ -135,13 +135,13 @@ Default to the **midpoint** of the recommended range unless user preference, age
 
 #### Safety Guardrails
 
-**Priority rule:** Calorie floor always takes precedence. The floor is **max(BMR, 1,000 cal/day)** — never eat below what the body burns at rest, with an absolute minimum of 1,000 cal for nutrient adequacy. If the math pushes intake below the floor, clamp to the floor first, then back-calculate the maximum safe weekly rate from there.
+**Priority rule:** Calorie floor always takes precedence. The floor is **max(BMR, 1,000 kcal/day)** — never eat below what the body burns at rest, with an absolute minimum of 1,000 kcal for nutrient adequacy. If the math pushes intake below the floor, clamp to the floor first, then back-calculate the maximum safe weekly rate from there.
 
 - Weekly loss rate should not exceed 1 kg / 2 lbs per week for extended periods (>2 weeks)
-- Daily calorie intake must not go below **max(BMR, 1,000 cal/day)** — if the math pushes below this floor, flag it clearly, set intake to the floor, and adjust the rate/timeline accordingly. See `references/formulas.md` for detailed floor calculation.
+- Daily calorie intake must not go below **max(BMR, 1,000 kcal/day)** — if the math pushes below this floor, flag it clearly, set intake to the floor, and adjust the rate/timeline accordingly. See `references/formulas.md` for detailed floor calculation.
 - **Below-BMR compliance is checked weekly, not per-meal.** During daily tracking, per-meal checkpoints evaluate calorie/macro balance against the daily target. Whether the user is consistently eating below the calorie floor is assessed once per week via the `weekly-low-cal-check` command in `diet-tracking-analysis`. This avoids noisy day-to-day alerts while still catching sustained under-eating.
 - If the user's target BMI would be below 18.5, express concern and suggest they discuss with a healthcare provider
-- Deficit reference: 0.5 kg (1 lb)/week ≈ 500 cal/day; 0.7 kg (1.5 lbs)/week ≈ 750; 1 kg (2 lbs)/week ≈ 1,000
+- Deficit reference: 0.5 kg (1 lb)/week ≈ 500 kcal/day; 0.7 kg (1.5 lbs)/week ≈ 750; 1 kg (2 lbs)/week ≈ 1,000
 
 #### Plan Presentation
 
@@ -152,12 +152,12 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 **[Body metrics block]** — "Based on your data, here's what I calculated:" followed by bullet list:
 • Current BMI: [X.X] ([classification per regional standard])
 • Target BMI: [X.X] ([classification])
-• Daily expenditure (TDEE): ~[X,XXX] cal/day ([brief activity level explanation — e.g., "estimated for sedentary lifestyle since you didn't mention exercise habits"])
+• Daily expenditure (TDEE): ~[X,XXX] kcal/day ([brief activity level explanation — e.g., "estimated for sedentary lifestyle since you didn't mention exercise habits"])
 
-**[Safety floor explanation]** — One sentence explaining that BMR is [X,XXX] cal/day and daily intake should not consistently drop below this number for safety. Mention that this will be checked on a weekly basis. Use this to naturally justify the calorie target that follows.
+**[Safety floor explanation]** — One sentence explaining that BMR is [X,XXX] kcal/day and daily intake should not consistently drop below this number for safety. Mention that this will be checked on a weekly basis. Use this to naturally justify the calorie target that follows.
 
 **[Plan details block]** — "So here's your plan:" followed by bullet list:
-• Daily calorie target: [X,XXX] cal (rounded, single value — not a range)
+• Daily calorie target: [X,XXX] kcal (rounded, single value — not a range)
 • Weekly loss rate: ~[X.X] kg/week ([X.X] lbs/week)
 • Estimated completion: [Specific month + year, e.g., "June 2027"]
 
@@ -171,7 +171,7 @@ If activity data was assumed or missing, also invite the user to share their exe
 
 **Formatting rules:**
 - Bullet points (•), not tables — keep it conversational
-- Round numbers for readability (e.g., "~1,700 cal" not "1,697 cal")
+- Round numbers for readability (e.g., "~1,700 kcal" not "1,697 kcal")
 - Single rounded value for daily calorie target
 - Maximum one emoji (at the end of the closing line)
 - No phased milestones — present as a single plan

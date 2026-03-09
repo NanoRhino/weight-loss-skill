@@ -38,7 +38,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 - Each meal: 1 palm-sized protein + 1 fist-sized carb + 1 thumb-sized fat + unlimited non-starchy veggies
 - Snacks: aim for at least one with protein to stay satiated
 
-**Sample day structure (1,850 cal):**
+**Sample day structure (1,850 kcal):**
 - Breakfast: oatmeal + protein powder + banana + peanut butter
 - Lunch: chicken burrito bowl (rice, beans, chicken, veggies, salsa)
 - Dinner: salmon + sweet potato + roasted broccoli
@@ -134,7 +134,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 **Adaptation period:** Warn the user about "keto flu" — fatigue, headaches, irritability during the first 1–2 weeks as the body adapts. Recommend extra water + electrolytes (sodium, potassium, magnesium).
 
 **Key advantage:** Some people find appetite nearly disappears after adaptation.
-**Key risk:** Extremely restrictive. Social eating is hard. Fiber and micronutrient deficiencies if not planned carefully. Not recommended below 1,800 cal/day without careful planning.
+**Key risk:** Extremely restrictive. Social eating is hard. Fiber and micronutrient deficiencies if not planned carefully. Not recommended below 1,800 kcal/day without careful planning.
 
 ---
 
@@ -201,8 +201,8 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 
 **Structure:**
 - **5 normal days:** Hit regular calorie target with chosen macro split
-- **2 low days (non-consecutive):** 500 cal (women) or 600 cal (men)
-  - Typically 2 small meals: e.g., 250-cal lunch + 250-cal dinner
+- **2 low days (non-consecutive):** 500 kcal (women) or 600 kcal (men)
+  - Typically 2 small meals: e.g., 250 kcal lunch + 250 kcal dinner
   - Focus on protein + vegetables for maximum satiety on minimal calories
   - Example low day: scrambled eggs with spinach (lunch) + grilled chicken salad (dinner)
 
