@@ -338,23 +338,37 @@ English equivalent:
 
 Send this message **immediately** after confirming the user wants the plan, **before** you begin generating the HTML file.
 
-### Output as HTML File (Not Chat Text)
+### Output as Markdown → HTML → S3 Link (Not Chat Text)
 
-**CRITICAL: Generate the 7-day meal plan as a self-contained HTML file — NOT as chat text.** The meal plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
+**CRITICAL: Generate the 7-day meal plan as a Markdown file, convert to HTML, upload to S3 — NOT as chat text.** The meal plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
 
-1. **Write the meal plan to an HTML file** using the Write tool. Save to: `/mnt/user-data/uploads/meal-plan.html`
-2. **In the chat message**, give a brief 3–4 line summary (daily calorie target, diet mode, macro split) and tell the user you've generated a file they can open in their browser and print/save as PDF.
-3. Use the HTML template at `templates/meal-plan.html` as the structural and styling reference. Keep **all CSS inline** in a `<style>` block — the file must be fully self-contained with no external dependencies.
-4. Set the `<html lang>` attribute to match the user's locale (e.g., `"zh"` for Chinese, `"en"` for English).
-5. Adapt all content (food names, meal names, day names, tips, footer text) to the user's language.
+1. **Write the meal plan as `MEAL-PLAN.md`** in the workspace, following the schema defined in `references/meal-plan-schema.md`. This file is the agent's reference copy.
+2. **Run the export script** to convert to HTML and upload to S3:
+   ```bash
+   URL=$(bash {plan-export:baseDir}/scripts/generate-and-send.sh \
+     --agent <YOUR_AGENT_ID> \
+     --input MEAL-PLAN.md \
+     --bucket nanorhino-im-plans \
+     --workspace <AGENT_WORKSPACE_PATH> \
+     --template meal-plan \
+     --key meal-plan)
+   ```
+3. **Send the presigned URL to the user** via the message tool, with a brief summary.
+4. Adapt all content (food names, meal names, day names, tips) to the user's language.
+5. Use full macro names: `Protein`, `Carbohydrate`, `Fat` — never abbreviate to P/C/F.
 
 **Chat message template** (adapt to user's language):
 
-> Your 7-day meal plan is ready! I've saved it as an HTML file that you can open in your browser.
+> 你的 7 天食谱已经生成好了！点击这里查看：[链接]
 >
-> **Summary:** [X,XXX] kcal/day · [Diet Mode] · P [X]g / C [X]g / F [X]g
+> **概要：** [X,XXX] kcal/天 · [饮食模式] · Protein [X]g / Carbohydrate [X]g / Fat [X]g
 >
-> Open the file in your browser to view, and use Ctrl+P (or Cmd+P) to save as PDF. Let me know if you'd like any adjustments!
+> 可以直接在浏览器里查看，也可以用 Ctrl+P 保存为 PDF。有什么想调整的随时告诉我！
+
+**When a user asks for their meal plan link:**
+1. Read `plan-url.json` → check the `meal-plan` key
+2. If `expires_at` has NOT passed → send the existing `url`
+3. If `expires_at` HAS passed → re-run the script with `MEAL-PLAN.md` to generate a new upload, then send the new URL
 
 Build a 7-day meal plan based on the confirmed calories, macros, diet mode, and user preferences.
 
@@ -436,7 +450,7 @@ Don't moralize about snacks. A 200-cal cookie that fits the macro budget is fine
 
 ## Step 5: Present the Plan & Let User Customize
 
-The meal plan has been saved as an HTML file (see Step 4). In the chat, provide the brief summary and ask for feedback. **Do NOT mention "Markdown", `.md`, or internal implementation details to the user.** You may mention the HTML file naturally (e.g., "I've generated your meal plan file").
+The meal plan has been saved as `MEAL-PLAN.md` and uploaded as HTML to S3 (see Step 4). In the chat, provide the brief summary with the link and ask for feedback. **Do NOT mention "Markdown", `.md`, or internal implementation details to the user.**
 
 After presenting, ask:
 - "How does this look? Any meals you'd want to swap out?"
@@ -446,13 +460,13 @@ After presenting, ask:
 ### Customization Options
 
 The user may want to:
-- **Swap a meal** → replace with an alternative at similar macros. **Regenerate the HTML file** with the updated plan.
-- **Simplify** → "I want to eat the same breakfast every day" — totally fine, reduce variety in that slot. Regenerate the file.
-- **Add restaurant/fast-food options** → include calorie-smart choices from common chains (Chipotle, Subway, Chick-fil-A, etc.). Regenerate the file.
-- **Adjust for a specific day** → "Saturday is date night" → build in a higher-cal dinner and offset elsewhere. Regenerate the file.
-- **Get a grocery list** → add a grocery list section to the HTML file and regenerate.
+- **Swap a meal** → replace with an alternative at similar macros. **Update `MEAL-PLAN.md`, re-run the export script, and send the new link.**
+- **Simplify** → "I want to eat the same breakfast every day" — totally fine, reduce variety in that slot. Update and re-export.
+- **Add restaurant/fast-food options** → include calorie-smart choices from common chains. Update and re-export.
+- **Adjust for a specific day** → "Saturday is date night" → build in a higher-cal dinner and offset elsewhere. Update and re-export.
+- **Get a grocery list** → add a grocery list section to `MEAL-PLAN.md` and re-export.
 
-For any customization, **always regenerate the HTML file** so the user has an up-to-date, complete document.
+For any customization, **always update `MEAL-PLAN.md` and re-run the export script** so the user gets an updated link.
 
 ### Introduce Daily Tracking Workflow
 
@@ -482,25 +496,25 @@ English equivalent:
 
 ---
 
-## Step 6: HTML Content Rules
+## Step 6: Markdown Content Rules
 
-The HTML file replaces the old chat-based output. **All content rules below still apply** — they now govern what goes inside the HTML file.
+The `MEAL-PLAN.md` file is the source of truth. **All content rules below govern what goes inside the Markdown file.** The `generate-meal-plan-html.py` script handles HTML conversion automatically.
 
-**Adapt the HTML template to the user's locale** — use appropriate language, units, local food categories, and culturally relevant references.
+**Adapt content to the user's locale** — use appropriate language, units, local food categories, and culturally relevant references.
 
 ### Content Structure Rules
 
-**CRITICAL: The HTML meal plan MUST follow the structure defined in `templates/meal-plan.html`. Do not deviate from the CSS classes, nesting, or element hierarchy. Every generated plan must match the template precisely.**
+**CRITICAL: The `MEAL-PLAN.md` MUST follow the schema defined in `references/meal-plan-schema.md`.** The conversion script parses the Markdown based on heading levels, list items, blockquotes, and tip markers.
 
-The meal plan uses a **day-card → meal-block → food-list** hierarchy. Each level shows calories and macros (P/C/F).
+The meal plan uses a **Day (H2) → Meal (H3) → Food list (-)** hierarchy. Each level shows calories and macros (Protein/Carbohydrate/Fat).
 
-**1. Day level:** `.day-card` with `.day-header` showing day name + daily totals (`X,XXX kcal · P Xg · C Xg · F Xg`). Day names use the user's locale.
+**1. Day level:** H2 heading showing day name + daily totals (`X,XXX kcal · Protein Xg · Carbohydrate Xg · Fat Xg`). Day names use the user's locale.
 
-**2. Meal level:** `.meal-block` with `.meal-title` showing emoji + meal name + macros. Two types:
+**2. Meal level:** H3 heading showing emoji + meal name + macros. Two types:
 
-- **Self-cooked meal:** `.dish-summary` paragraph (concise dish names joined by " + "). Below it = `.food-list` with `<li>` for each food item: `[food name] — [natural portion] <span class="portion">([precise weight])</span>`. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
+- **Self-cooked meal:** Blockquote (`>`) with concise dish names joined by " + ". Below it = list items (`-`) for each food: `FoodName — NaturalPortion (PreciseWeight)`. Parenthesized weight is auto-styled in HTML. "Natural portion" means how people actually talk about that food — "2 slices", "1 bowl", "1 egg", "half an avocado" — NOT body-part comparisons unless that's genuinely how people describe it (like "palm-sized steak" is fine, but "two-egg-sized toast" is not).
 
-- **Eating-out meal:** Add class `eating-out` to `.meal-block`. Add `<span class="tag">` after meal name in `<h3>` (e.g., Takeout, Eating out, Konbini). Use `.order-info` for restaurant + dish, `.food-list` for ordering details, `.meal-tip` for tips.
+- **Eating-out meal:** Add `[Tag]` after meal name in H3 (e.g., `[Takeout]`, `[Eating out]`, `[便利店]`). Use blockquote for restaurant + dish, list items for ordering details, `💡` for tips.
 
 **3. Portion descriptions:** Use the most natural, everyday way people describe that specific food in their locale:
 - Countable items: "2 slices", "1 egg", "3 dumplings", "1 banana"
@@ -512,9 +526,9 @@ The meal plan uses a **day-card → meal-block → food-list** hierarchy. Each l
 
 **5. All 7 days must be fully generated.** Every day must have complete meals with specific foods and portions. Do not abbreviate remaining days with placeholders like "same structure" or "continue pattern." The HTML file is the user's complete reference.
 
-**6. Snacks:** `.meal-block` with emoji 🍎 and locale-appropriate snack name — list items directly in `.food-list`, no `.dish-summary` needed.
+**6. Snacks:** H3 with emoji 🍎 and locale-appropriate snack name — list items directly, no blockquote dish summary needed.
 
-**7. Tips must be non-obvious.** Only include tips that provide genuine, actionable value — things the user likely doesn't already know. Never state common-sense steps like "grab a bowl," "eat it," "finish the food," or "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth," "marinate chicken the night before." Bad tips: "put oatmeal in a bowl," "eat the eggs," "drink the soy milk." If a meal has no non-obvious tip worth mentioning, skip the `.meal-tip` element entirely.
+**7. Tips must be non-obvious.** Only include tips that provide genuine, actionable value — things the user likely doesn't already know. Never state common-sense steps like "grab a bowl," "eat it," "finish the food," or "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth," "marinate chicken the night before." Bad tips: "put oatmeal in a bowl," "eat the eggs," "drink the soy milk." If a meal has no non-obvious tip worth mentioning, skip the `💡` line entirely.
 
 ---
 

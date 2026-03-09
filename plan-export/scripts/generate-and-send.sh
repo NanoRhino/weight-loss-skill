@@ -10,9 +10,13 @@
 #   Generates PDF and uploads to Slack via send-to-slack.sh (legacy behavior).
 #
 # Usage:
-#   # HTML+S3 mode:
-#   generate-and-send.sh --agent <id> --input <file.md> \
-#     --bucket <s3-bucket> [--workspace <path>]
+#   # Weight loss plan (default template):
+#   generate-and-send.sh --agent <id> --input PLAN.md \
+#     --bucket <s3-bucket> [--workspace <path>] [--key weight-loss-plan]
+#
+#   # Meal plan (meal-plan template):
+#   generate-and-send.sh --agent <id> --input MEAL-PLAN.md \
+#     --bucket <s3-bucket> --template meal-plan [--workspace <path>] [--key meal-plan]
 #
 #   # PDF fallback:
 #   generate-and-send.sh --agent <id> --input <file.md> \
@@ -28,6 +32,8 @@ MESSAGE=""
 FILENAME=""
 BUCKET=""
 WORKSPACE=""
+TEMPLATE=""
+KEY=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -37,6 +43,8 @@ while [[ $# -gt 0 ]]; do
     --filename)  FILENAME="$2"; shift 2 ;;
     --bucket)    BUCKET="$2"; shift 2 ;;
     --workspace) WORKSPACE="$2"; shift 2 ;;
+    --template)  TEMPLATE="$2"; shift 2 ;;
+    --key)       KEY="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -50,13 +58,23 @@ if [[ -n "$BUCKET" ]]; then
   HTML_OUTPUT="${INPUT%.md}.html"
 
   echo "=== Step 1: Generating HTML ===" >&2
-  python3 "$SCRIPT_DIR/generate-html.py" "$INPUT" "$HTML_OUTPUT" >&2
+  case "$TEMPLATE" in
+    meal-plan)
+      python3 "$SCRIPT_DIR/generate-meal-plan-html.py" "$INPUT" "$HTML_OUTPUT" >&2
+      ;;
+    *)
+      python3 "$SCRIPT_DIR/generate-html.py" "$INPUT" "$HTML_OUTPUT" >&2
+      ;;
+  esac
 
   echo "" >&2
   echo "=== Step 2: Uploading to S3 ===" >&2
   UPLOAD_ARGS=(--file "$HTML_OUTPUT" --bucket "$BUCKET")
   if [[ -n "$WORKSPACE" ]]; then
     UPLOAD_ARGS+=(--workspace "$WORKSPACE")
+  fi
+  if [[ -n "$KEY" ]]; then
+    UPLOAD_ARGS+=(--key "$KEY")
   fi
   URL=$(bash "$SCRIPT_DIR/upload-to-s3.sh" "${UPLOAD_ARGS[@]}")
 
