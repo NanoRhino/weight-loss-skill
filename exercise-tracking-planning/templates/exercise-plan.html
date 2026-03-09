@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Training Plan</title>
+<!--
+  EXERCISE PLAN HTML TEMPLATE — Reference for Claude Code Skill
+  ============================================================
+  This is the canonical HTML template for generating weekly training plan exports.
+  When generating an exercise plan, follow this structure and replace placeholder
+  content with actual user data. Keep ALL CSS inline (single-file, no external
+  dependencies).
+
+  KEY RULES:
+  - Replace {{LANG}} with "en" or "zh" (or other locale code)
+  - Replace {{DIR}} with "ltr" (default) or "rtl" if needed
+  - Replace all {{PLACEHOLDER}} values with actual data
+  - Include ALL 7 days (Mon–Sun), both training days and rest days
+  - Training days use .day-card with .day-header (green)
+  - Rest days use .day-card with .day-header.rest-day (muted)
+  - Adapt exercise names, units, and language to user's locale
+  - The HTML must be fully self-contained (no external CSS/JS/fonts)
+-->
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #f5f5f0;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* ===== Page Container ===== */
+  .page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* ===== Header ===== */
+  .plan-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e0ddd5;
+  }
+
+  .plan-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2d5016;
+    margin-bottom: 0.4rem;
+  }
+
+  .plan-header .subtitle {
+    font-size: 0.95rem;
+    color: #666;
+  }
+
+  /* ===== Summary Card ===== */
+  .summary-card {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem 2rem;
+  }
+
+  .summary-card .item {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    align-items: baseline;
+  }
+
+  .summary-card .label {
+    color: #888;
+    white-space: nowrap;
+  }
+
+  .summary-card .value {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .summary-card .full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* ===== Weekly Overview Table ===== */
+  .week-overview {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .week-overview h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #2d5016;
+    margin-bottom: 0.8rem;
+  }
+
+  .week-overview table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .week-overview th {
+    text-align: left;
+    font-size: 0.82rem;
+    color: #888;
+    font-weight: 500;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 2px solid #e0ddd5;
+  }
+
+  .week-overview td {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .week-overview td:first-child {
+    font-weight: 600;
+    color: #2d5016;
+    white-space: nowrap;
+    width: 4.5rem;
+  }
+
+  .week-overview tr:last-child td {
+    border-bottom: none;
+  }
+
+  .week-overview .rest-label {
+    color: #999;
+  }
+
+  /* ===== Day Card ===== */
+  .day-card {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+
+  .day-header {
+    background: #2d5016;
+    color: #fff;
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .day-header h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .day-header .day-meta {
+    font-size: 0.82rem;
+    opacity: 0.9;
+    font-weight: 400;
+  }
+
+  /* Rest day variant */
+  .day-header.rest-day {
+    background: #8a8578;
+  }
+
+  .day-body {
+    padding: 0.6rem 0;
+  }
+
+  /* ===== Video Link ===== */
+  .video-link {
+    padding: 0.5rem 1.2rem 0.3rem;
+    font-size: 0.88rem;
+  }
+
+  .video-link a {
+    color: #2d5016;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .video-link a:hover {
+    text-decoration: underline;
+  }
+
+  /* ===== Phase Block (warm-up / main / cooldown) ===== */
+  .phase-block {
+    padding: 0.6rem 1.2rem;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .phase-block:last-child {
+    border-bottom: none;
+  }
+
+  .phase-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #2d5016;
+    margin-bottom: 0.4rem;
+  }
+
+  /* ===== Numbered list for warm-up / cooldown ===== */
+  .phase-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: phase-counter;
+  }
+
+  .phase-list li {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.15rem 0 0.15rem 1.8rem;
+    position: relative;
+    counter-increment: phase-counter;
+  }
+
+  .phase-list li::before {
+    content: counter(phase-counter) ".";
+    position: absolute;
+    left: 0.3rem;
+    color: #aaa;
+    font-weight: 600;
+    font-size: 0.82rem;
+  }
+
+  /* ===== Exercise Block (main training) ===== */
+  .exercise-block {
+    padding: 0.5rem 1.2rem;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .exercise-block:last-child {
+    border-bottom: none;
+  }
+
+  .exercise-header {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.2rem;
+  }
+
+  .exercise-header .exercise-num {
+    color: #2d5016;
+    margin-right: 0.3rem;
+  }
+
+  .exercise-header .intensity {
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: #888;
+  }
+
+  .exercise-prescription {
+    font-size: 0.85rem;
+    color: #666;
+    padding-left: 1.6rem;
+    margin-top: 0.1rem;
+  }
+
+  /* ===== Rest Day Content ===== */
+  .rest-content {
+    padding: 0.8rem 1.2rem;
+  }
+
+  .rest-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .rest-content li {
+    font-size: 0.88rem;
+    color: #666;
+    padding: 0.15rem 0 0.15rem 1.2rem;
+    position: relative;
+  }
+
+  .rest-content li::before {
+    content: "·";
+    position: absolute;
+    left: 0.3rem;
+    color: #aaa;
+    font-weight: 700;
+  }
+
+  /* ===== Progression Section ===== */
+  .progression-section {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .progression-section h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #2d5016;
+    margin-bottom: 0.8rem;
+  }
+
+  .progression-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .progression-section li {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.3rem 0 0.3rem 1.2rem;
+    position: relative;
+  }
+
+  .progression-section li::before {
+    content: "·";
+    position: absolute;
+    left: 0.3rem;
+    color: #2d5016;
+    font-weight: 700;
+  }
+
+  .progression-section li strong {
+    color: #333;
+  }
+
+  /* ===== Notes Section ===== */
+  .notes-section {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .notes-section h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #2d5016;
+    margin-bottom: 0.8rem;
+  }
+
+  .notes-section p {
+    font-size: 0.88rem;
+    color: #555;
+    margin-bottom: 0.5rem;
+  }
+
+  .notes-section .tip {
+    font-size: 0.85rem;
+    color: #b45309;
+    padding-left: 1.2rem;
+    margin-bottom: 0.3rem;
+  }
+
+  /* ===== Disclaimer ===== */
+  .disclaimer {
+    background: #fffbeb;
+    border: 1px solid #f5d78e;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-top: 1.5rem;
+    font-size: 0.82rem;
+    color: #92400e;
+    line-height: 1.5;
+  }
+
+  /* ===== Footer ===== */
+  .plan-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0ddd5;
+    font-size: 0.8rem;
+    color: #aaa;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 600px) {
+    html { font-size: 14px; }
+    .page { padding: 1rem; }
+    .summary-card { grid-template-columns: 1fr; }
+    .day-header { flex-direction: column; align-items: flex-start; }
+    .week-overview td:first-child { width: auto; }
+  }
+
+  /* ===== Print ===== */
+  @media print {
+    body { background: #fff; font-size: 11pt; }
+    .page { max-width: none; padding: 0; }
+    .day-card { break-inside: avoid; border: 1px solid #ccc; margin-bottom: 1rem; }
+    .day-header { background: #2d5016 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .day-header.rest-day { background: #8a8578 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .plan-footer { display: none; }
+    .disclaimer { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="plan-header">
+    <h1>💪 Your Weekly Training Plan</h1>
+    <p class="subtitle">{{DATE}} · Personalized for {{USER_NAME}}</p>
+  </header>
+
+  <!-- ==================== SUMMARY ==================== -->
+  <div class="summary-card">
+    <div class="item">
+      <span class="label">Goal:</span>
+      <span class="value">{{TRAINING_GOAL}}</span>
+    </div>
+    <div class="item">
+      <span class="label">Level:</span>
+      <span class="value">{{EXPERIENCE_LEVEL}}</span>
+    </div>
+    <div class="item">
+      <span class="label">Split:</span>
+      <span class="value">{{TRAINING_SPLIT}}</span>
+    </div>
+    <div class="item">
+      <span class="label">Frequency:</span>
+      <span class="value">{{DAYS_PER_WEEK}} days/week</span>
+    </div>
+    <div class="item full-width">
+      <span class="label">Equipment:</span>
+      <span class="value">{{EQUIPMENT}}</span>
+    </div>
+  </div>
+
+  <!-- ==================== WEEKLY OVERVIEW ==================== -->
+  <div class="week-overview">
+    <h2>Weekly Overview</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Day</th>
+          <th>Training</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Mon</td><td>Full Body A</td></tr>
+        <tr><td>Tue</td><td class="rest-label">Rest · Walk 30min</td></tr>
+        <tr><td>Wed</td><td>Full Body B</td></tr>
+        <tr><td>Thu</td><td class="rest-label">Rest · Walk 30min</td></tr>
+        <tr><td>Fri</td><td>Full Body C</td></tr>
+        <tr><td>Sat</td><td class="rest-label">Rest · Optional light activity</td></tr>
+        <tr><td>Sun</td><td class="rest-label">Full rest</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ==================== DAY 1 (Training Day Example) ==================== -->
+  <div class="day-card">
+    <div class="day-header">
+      <h2>Monday: Full Body A</h2>
+      <span class="day-meta">~55 min</span>
+    </div>
+    <div class="day-body">
+
+      <div class="video-link">
+        Follow-along video: <a href="https://www.youtube.com/results?search_query=full+body+beginner+gym+workout" target="_blank">▶ Full Body Beginner Gym Workout</a>
+      </div>
+
+      <!-- Warm-up -->
+      <div class="phase-block">
+        <div class="phase-title">Warm-up (~8 min)</div>
+        <ol class="phase-list">
+          <li>Elliptical slow pace — 3 min</li>
+          <li>Cat-Cow — ×10</li>
+          <li>World's Greatest Stretch — ×5 each side</li>
+          <li>Bodyweight Squat — ×10</li>
+        </ol>
+      </div>
+
+      <!-- Main Training -->
+      <div class="phase-block">
+        <div class="phase-title">Main Training</div>
+      </div>
+
+      <div class="exercise-block">
+        <div class="exercise-header">
+          <span class="exercise-num">1.</span>
+          Goblet Squat
+          <span class="intensity">| moderate effort (could do ~3 more reps)</span>
+        </div>
+        <div class="exercise-prescription">3 sets ×10-12 reps, rest 90s between sets</div>
+      </div>
+
+      <div class="exercise-block">
+        <div class="exercise-header">
+          <span class="exercise-num">2.</span>
+          Dumbbell Bench Press
+          <span class="intensity">| moderate effort (could do ~3 more reps)</span>
+        </div>
+        <div class="exercise-prescription">3 sets ×10-12 reps, rest 90s between sets</div>
+      </div>
+
+      <div class="exercise-block">
+        <div class="exercise-header">
+          <span class="exercise-num">3.</span>
+          Cable Row
+          <span class="intensity">| moderate effort (could do ~3 more reps)</span>
+        </div>
+        <div class="exercise-prescription">3 sets ×10-12 reps, rest 90s between sets</div>
+      </div>
+
+      <div class="exercise-block">
+        <div class="exercise-header">
+          <span class="exercise-num">4.</span>
+          Dumbbell Romanian Deadlift
+          <span class="intensity">| moderate effort (could do ~3 more reps)</span>
+        </div>
+        <div class="exercise-prescription">3 sets ×10-12 reps, rest 90s between sets</div>
+      </div>
+
+      <div class="exercise-block">
+        <div class="exercise-header">
+          <span class="exercise-num">5.</span>
+          Overhead Press (Dumbbell)
+          <span class="intensity">| moderate effort (could do ~3 more reps)</span>
+        </div>
+        <div class="exercise-prescription">3 sets ×10-12 reps, rest 90s between sets</div>
+      </div>
+
+      <!-- Cooldown -->
+      <div class="phase-block">
+        <div class="phase-title">Cooldown (~5 min)</div>
+        <ol class="phase-list">
+          <li>Quad stretch — 20s each side</li>
+          <li>Hamstring stretch — 20s each side</li>
+          <li>Chest doorway stretch — 20s</li>
+          <li>Child's pose — 30s</li>
+        </ol>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== DAY 2 (Rest Day Example) ==================== -->
+  <div class="day-card">
+    <div class="day-header rest-day">
+      <h2>Tuesday: Rest Day</h2>
+    </div>
+    <div class="day-body">
+      <div class="rest-content">
+        <ul>
+          <li>Elliptical or brisk walk — 25-30 min, easy conversational pace</li>
+          <li>Or full rest if needed</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================
+    DAY 3–7: Repeat .day-card structure for each remaining day.
+    - Training days: .day-header (green) + warm-up + exercises + cooldown
+    - Rest days: .day-header.rest-day (muted) + .rest-content
+    Follow the same pattern. All 7 days must be present.
+  ==================== -->
+
+  <!-- ==================== PROGRESSION ==================== -->
+  <div class="progression-section">
+    <h2>Progression Plan (Weeks 1–4)</h2>
+    <ul>
+      <li><strong>Weeks 1–2:</strong> Learn the movements, use moderate effort (could do ~3 more reps)</li>
+      <li><strong>Weeks 3–4:</strong> Begin progressive overload — add a little weight or a few reps each session</li>
+      <li><strong>Week 5 (Deload):</strong> Reduce volume by 40%, keep intensity the same</li>
+    </ul>
+  </div>
+
+  <!-- ==================== NOTES ==================== -->
+  <div class="notes-section">
+    <h2>Notes</h2>
+    <p>If any exercise is unfamiliar, just ask me and I'll explain it in detail!</p>
+    <p>Track your workouts — even a notes app works. Recording weights, reps, and perceived effort is essential for progressive overload.</p>
+  </div>
+
+  <!-- ==================== DISCLAIMER ==================== -->
+  <div class="disclaimer">
+    ⚠️ This training plan is for informational and educational purposes only. It is not a substitute for professional medical advice. If you have any injuries, chronic conditions, or health concerns, please consult a physician or licensed physical therapist before starting. Proper form is critical — consider working with a qualified trainer in person, especially if you're new to the exercises.
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="plan-footer">
+    Generated by AI Fitness Coach · For reference only — consult a certified trainer for specialized needs
+  </footer>
+
+</div>
+</body>
+</html>

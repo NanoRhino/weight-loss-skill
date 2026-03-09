@@ -308,11 +308,15 @@ For non-US locales, follow the same **template (portion guide) + one-day example
 
 ### After Presenting the Diet Template
 
-Once you present the diet template, add the following message (adapt to the user's language):
+Once you present the diet template, **only ask about the 7-day meal plan** — do NOT introduce the daily tracking workflow yet. Mixing both in one message causes ambiguity: the user's reply could be interpreted as either acknowledging the tracking flow or answering the 7-day plan question. Keep it to a single clear question:
 
-> Going forward, just follow this template for your meals. Don't stress about getting it perfect — before each meal, tell me what you're about to eat and I'll help you adjust on the spot.
->
-> Would you like me to create a detailed 7-day meal plan as well?
+> 这个模板可以直接照着吃。你需要我再生成一份详细的 7 天食谱吗？
+
+English equivalent:
+
+> You can start following this template right away. Would you like me to create a detailed 7-day meal plan as well?
+
+**Do NOT mention tracking, check-ins, or "tell me what you ate" at this point.** The tracking workflow introduction comes later (see below).
 
 ### Bootstrap Meal Reminders (Silent)
 
@@ -321,6 +325,10 @@ After presenting the diet template, **activate `daily-notification-skill`** so i
 Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
 
 **Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user declines or doesn't ask for it, **introduce the daily tracking workflow here instead** (same content as Step 5's "Introduce Daily Tracking Workflow" section), then stop — the diet template is sufficient to start.
+
+**Flow summary — when to introduce the daily tracking workflow:**
+- User **wants** the 7-day plan → generate plan (Step 4) → introduce tracking workflow after plan is finalized (Step 5)
+- User **declines** the 7-day plan → introduce tracking workflow immediately here, then stop
 
 ---
 
