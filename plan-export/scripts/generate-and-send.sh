@@ -62,6 +62,9 @@ if [[ -n "$BUCKET" ]]; then
     meal-plan)
       python3 "$SCRIPT_DIR/generate-meal-plan-html.py" "$INPUT" "$HTML_OUTPUT" >&2
       ;;
+    exercise-plan)
+      python3 "$SCRIPT_DIR/generate-exercise-plan-html.py" "$INPUT" "$HTML_OUTPUT" >&2
+      ;;
     *)
       python3 "$SCRIPT_DIR/generate-html.py" "$INPUT" "$HTML_OUTPUT" >&2
       ;;

@@ -302,38 +302,50 @@ The core design principles are:
 
 ### Output as HTML File (Not Chat Text)
 
-**CRITICAL: Generate the training plan as a self-contained HTML file — NOT as chat text.** The training plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
+**CRITICAL: Generate the training plan as a Markdown file, convert to HTML, upload to S3 — NOT as chat text.** The training plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
 
-1. **Write the training plan to an HTML file** using the Write tool. Save to: `/mnt/user-data/uploads/exercise-plan.html`
-2. Use the HTML template at `templates/exercise-plan.html` as the structural and styling reference. Keep **all CSS inline** in a `<style>` block — the file must be fully self-contained with no external dependencies.
-3. Set the `<html lang>` attribute to match the user's locale (e.g., `"zh"` for Chinese, `"en"` for English).
-4. Adapt all content (exercise names, day names, instructions, notes, footer text) to the user's language.
+1. **Write the training plan as `EXERCISE-PLAN.md`** in the workspace, following the schema defined in `references/exercise-plan-schema.md`. This file is the agent's reference copy. **Important: metadata keys (`Date`, `Goal`, `Level`, `Split`, `Frequency`, `Equipment`) and section headers (`Weekly Overview`, `Progression`, `Notes`, `Disclaimer`) MUST always be in English** — the HTML parser depends on these exact keys. Values and content can be localized.
+2. **Run the export script** to convert to HTML and upload to S3:
+   ```bash
+   URL=$(bash {plan-export:baseDir}/scripts/generate-and-send.sh \
+     --agent <YOUR_AGENT_ID> \
+     --input EXERCISE-PLAN.md \
+     --bucket nanorhino-im-plans \
+     --workspace <AGENT_WORKSPACE_PATH> \
+     --template exercise-plan \
+     --key exercise-plan)
+   ```
+3. **Send the presigned URL to the user** via the message tool, with a brief summary.
+4. Adapt all content (exercise names, day names, instructions, notes) to the user's language.
 
-Send this message **immediately** after confirming the user's profile info, **before** you begin generating the HTML file (adapt to user's language):
+Send this message **immediately** after confirming the user's profile info, **before** you begin generating the file (adapt to user's language):
 
 > 正在为你生成训练方案，大约需要1-2分钟，请稍等...
 
 **Chat message template** (adapt to user's language):
 
-> Your training plan is ready! I've saved it as an HTML file that you can open in your browser.
+> 你的训练方案已经生成好了！点击这里查看：[链接]
 >
-> **Summary:** [X] days/week · [Training Split] · [Goal]
+> **概要：** 每周 [X] 天 · [训练分化] · [目标]
 >
-> You can print it or save as PDF from your browser. Let me know if you'd like to adjust anything!
+> 可以直接在浏览器里查看，也可以用 Ctrl+P 保存为 PDF。有什么想调整的随时告诉我！
 
-**Do NOT paste the full training plan in chat.** Only provide the brief summary above. The HTML file is the complete reference.
+**Do NOT paste the full training plan in chat.** Only provide the brief summary above and the link. The HTML file is the complete reference.
 
-For any plan adjustments (user feedback like "too hard", "swap an exercise", etc.), **always regenerate the HTML file** so the user has an up-to-date, complete document.
+**When a user asks for their exercise plan link:**
+1. Read `plan-url.json` → check the `exercise-plan` key
+2. If `expires_at` has NOT passed → send the existing `url`
+3. If `expires_at` HAS passed → re-run the script with `EXERCISE-PLAN.md` to generate a new upload, then send the new URL
+
+For any plan adjustments (user feedback like "too hard", "swap an exercise", etc.), **always regenerate `EXERCISE-PLAN.md` and re-run the export script** so the user has an up-to-date, complete document.
 
 ---
 
 ### HTML Content Rules
 
-The HTML file replaces the old chat-based output. **All content rules below still apply** — they now govern what goes inside the HTML file.
+The `EXERCISE-PLAN.md` file is the source of truth. **All content rules below govern what goes inside the Markdown file.** The `generate-exercise-plan-html.py` script handles HTML conversion automatically.
 
-**Adapt the HTML template to the user's locale** — use appropriate language, units, and culturally relevant references.
-
-**CRITICAL: The HTML training plan MUST follow the structure defined in `templates/exercise-plan.html`. Do not deviate from the CSS classes, nesting, or element hierarchy. Every generated plan must match the template precisely.**
+**Adapt content to the user's locale** — use appropriate language, units, and culturally relevant references.
 
 The training plan uses this hierarchy:
 
@@ -477,7 +489,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 
 | Path | When |
 |------|------|
-| `/mnt/user-data/uploads/exercise-plan.html` | New training plan generated or adjusted — write the complete HTML file |
+| `EXERCISE-PLAN.md` | New training plan generated or adjusted — write the Markdown file, then run export script to convert to HTML and upload to S3 |
 | `health-profile.md > Fitness` | User provides missing fitness level or fitness goal — silently update |
 | `health-preferences.md > Exercise` | User reveals new exercise preferences during conversation — silently append |
 | `logs.exercise.{date}` | Each exercise log response (`is_exercise_log: true`) — store the full exercise JSON |
