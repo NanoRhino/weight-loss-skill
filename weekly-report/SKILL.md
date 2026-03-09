@@ -395,10 +395,51 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 ## Output
 
-### Delivery
+### Delivery (two parts)
 
-Send the report as a single in-app chat message in Markdown format. The
-frontend renders Markdown natively — no special UI components needed.
+The weekly report is delivered in two parts:
+
+#### Part 1: Natural Language Summary (in-chat message)
+
+Send a concise 3–5 sentence summary in the chat as plain text. This summary
+should give the user a quick snapshot without needing to open the full report.
+
+**Structure:**
+1. Greeting + date range
+2. Key stats (days logged, average calories, weight change)
+3. One highlight (biggest win of the week)
+4. One suggestion (most impactful thing to try next week)
+5. Pointer to the full HTML report
+
+**Example (Chinese):**
+```
+小明，这是你 2月10日–16日 的周报摘要：这周记录了5/7天，平均摄入
+1,766 kcal，体重下降了 0.4 kg。亮点是连续5天坚持记录饮食，蛋白质
+摄入可以再提高一些——试试早餐加个鸡蛋。完整报告已生成，请查看附件 👇
+```
+
+**Example (English):**
+```
+Hi Ming, here's your week in review (Feb 10–16): You logged 5/7 days,
+averaged 1,766 kcal/day, and dropped 0.4 kg. Highlight: 5-day logging
+streak! One thing to try: add an egg to breakfast to boost protein.
+Full report attached below 👇
+```
+
+#### Part 2: HTML Report (file attachment)
+
+Generate a self-contained HTML file using the template at
+`templates/weekly-report.html`. Write the file to `data/reports/weekly-report-{start_date}.html`
+and attach it in the response. The HTML report contains all 7 sections with
+full detail, charts, and styling.
+
+**HTML generation rules:**
+- Replace all `{{PLACEHOLDER}}` values with actual data
+- The file must be fully self-contained (all CSS inline, no external dependencies)
+- Follow the template structure — do not add or remove sections
+- Adapt language to user's locale (read from `locale.json`)
+- Skip sections with no data (remove the entire card, do not show empty cards)
+- For the calorie bar chart: calculate bar widths as percentage of the max value in the week
 
 ### Report JSON (stored to workspace)
 
@@ -422,5 +463,6 @@ is **Priority Tier P4 (Reporting)**. Key scenarios:
 ## Performance
 
 - Report generation: single message, no back-and-forth
-- Total report length: aim for 40–60 lines of Markdown
+- In-chat summary: 3–5 sentences, scannable in under 10 seconds
+- HTML report: aim for 40–60 lines of visible content
 - Commentary: 1–2 sentences per section, max

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}" dir="{{DIR}}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Report · {{DATE_RANGE}}</title>
+<!--
+  WEEKLY REPORT HTML TEMPLATE — Reference for Claude Code Skill
+  ==============================================================
+  This is the canonical HTML template for generating weekly progress reports.
+  When generating a report, follow this structure and replace placeholder
+  content with actual user data. Keep ALL CSS inline (single-file, no external
+  dependencies).
+
+  KEY RULES:
+  - Replace {{LANG}} with "en" or "zh" (or other locale code)
+  - Replace {{DIR}} with "ltr" (default) or "rtl" if needed
+  - Replace all {{PLACEHOLDER}} values with actual data
+  - Skip entire .report-card sections if no data is available (remove the card)
+  - For calorie bars: set width as percentage of max value in the week
+  - Adapt language, units, and formatting to user's locale
+  - The HTML must be fully self-contained (no external CSS/JS/fonts)
+-->
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #f5f5f0;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* ===== Page Container ===== */
+  .page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* ===== Header ===== */
+  .report-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e0ddd5;
+  }
+
+  .report-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2d5016;
+    margin-bottom: 0.4rem;
+  }
+
+  .report-header .subtitle {
+    font-size: 0.95rem;
+    color: #666;
+  }
+
+  /* ===== Report Card (shared across sections) ===== */
+  .report-card {
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 0.8rem 1.2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2d5016;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .card-body {
+    padding: 1rem 1.2rem;
+  }
+
+  .card-commentary {
+    font-size: 0.88rem;
+    color: #555;
+    padding: 0.6rem 1.2rem 1rem;
+    border-top: 1px solid #f0ede5;
+  }
+
+  /* ===== Section 2: Logging Overview ===== */
+  .logging-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    gap: 0;
+  }
+
+  .logging-grid .day-label {
+    font-size: 0.78rem;
+    color: #888;
+    font-weight: 500;
+    padding: 0.3rem 0;
+  }
+
+  .logging-grid .day-status {
+    font-size: 1.4rem;
+    padding: 0.2rem 0 0.4rem;
+  }
+
+  .logging-summary {
+    text-align: center;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #333;
+    padding-top: 0.6rem;
+  }
+
+  /* ===== Section 3: Calorie Analysis ===== */
+  .calorie-target {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 0.8rem;
+  }
+
+  .calorie-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.6rem;
+  }
+
+  .calorie-table th {
+    text-align: left;
+    font-size: 0.78rem;
+    color: #888;
+    font-weight: 500;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 2px solid #e0ddd5;
+  }
+
+  .calorie-table td {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .calorie-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .calorie-table td:first-child {
+    font-weight: 600;
+    color: #2d5016;
+    width: 3.5rem;
+  }
+
+  .calorie-bar-cell {
+    width: 40%;
+  }
+
+  .calorie-bar {
+    height: 14px;
+    border-radius: 7px;
+    background: #e8e5dd;
+    overflow: hidden;
+  }
+
+  .calorie-bar-fill {
+    height: 100%;
+    border-radius: 7px;
+    transition: width 0.3s;
+  }
+
+  .calorie-bar-fill.on-target { background: #4ade80; }
+  .calorie-bar-fill.below     { background: #fbbf24; }
+  .calorie-bar-fill.over      { background: #f87171; }
+
+  .calorie-average {
+    text-align: center;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #333;
+    padding-top: 0.4rem;
+  }
+
+  .calorie-average .sub {
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: #888;
+  }
+
+  .status-icon {
+    font-size: 0.85rem;
+  }
+
+  .no-data {
+    color: #ccc;
+  }
+
+  /* ===== Section 4: Weight Progress ===== */
+  .weight-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.6rem;
+  }
+
+  .weight-table th {
+    text-align: left;
+    font-size: 0.78rem;
+    color: #888;
+    font-weight: 500;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 2px solid #e0ddd5;
+  }
+
+  .weight-table td {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .weight-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .weight-change {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.6rem 0 0.2rem;
+  }
+
+  .weight-change.loss { color: #16a34a; }
+  .weight-change.gain { color: #dc2626; }
+  .weight-change.same { color: #888; }
+
+  .weight-progress {
+    text-align: center;
+    font-size: 0.82rem;
+    color: #888;
+  }
+
+  /* ===== Section 5: Macronutrient Analysis ===== */
+  .macro-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .macro-table th {
+    text-align: left;
+    font-size: 0.78rem;
+    color: #888;
+    font-weight: 500;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 2px solid #e0ddd5;
+  }
+
+  .macro-table td {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid #f0ede5;
+  }
+
+  .macro-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ===== Section 6: Habit Progress ===== */
+  .habit-item {
+    margin-bottom: 0.8rem;
+  }
+
+  .habit-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .habit-name {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .habit-name .habit-week {
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: #888;
+  }
+
+  .habit-track {
+    font-size: 1.1rem;
+    letter-spacing: 0.15rem;
+    margin: 0.2rem 0;
+  }
+
+  .habit-rate {
+    font-size: 0.82rem;
+    color: #888;
+  }
+
+  /* ===== Section 7: Achievements & Suggestions ===== */
+  .achievement-list, .suggestion-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .achievement-list li, .suggestion-list li {
+    font-size: 0.88rem;
+    color: #444;
+    padding: 0.3rem 0 0.3rem 1.4rem;
+    position: relative;
+  }
+
+  .achievement-list li::before {
+    content: "🏆";
+    position: absolute;
+    left: 0;
+    font-size: 0.82rem;
+  }
+
+  .suggestion-list li::before {
+    content: "💡";
+    position: absolute;
+    left: 0;
+    font-size: 0.82rem;
+  }
+
+  .suggestion-list li strong {
+    color: #2d5016;
+  }
+
+  .section-subtitle {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #2d5016;
+    margin-bottom: 0.4rem;
+    padding-top: 0.4rem;
+  }
+
+  .section-subtitle:first-child {
+    padding-top: 0;
+  }
+
+  .suggestions-divider {
+    border: none;
+    border-top: 1px solid #f0ede5;
+    margin: 0.8rem 0;
+  }
+
+  /* ===== Footer ===== */
+  .report-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0ddd5;
+    font-size: 0.8rem;
+    color: #aaa;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 600px) {
+    html { font-size: 14px; }
+    .page { padding: 1rem; }
+    .calorie-bar-cell { width: 30%; }
+  }
+
+  /* ===== Print ===== */
+  @media print {
+    body { background: #fff; font-size: 11pt; }
+    .page { max-width: none; padding: 0; }
+    .report-card { break-inside: avoid; border: 1px solid #ccc; }
+    .report-footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="report-header">
+    <h1>📊 Weekly Report</h1>
+    <p class="subtitle">{{DATE_RANGE}} · {{GREETING}}</p>
+  </header>
+
+  <!-- ==================== SECTION 2: LOGGING OVERVIEW ==================== -->
+  <div class="report-card">
+    <div class="card-header">📅 Logging Overview</div>
+    <div class="card-body">
+      <div class="logging-grid">
+        <div class="day-label">Mon</div>
+        <div class="day-label">Tue</div>
+        <div class="day-label">Wed</div>
+        <div class="day-label">Thu</div>
+        <div class="day-label">Fri</div>
+        <div class="day-label">Sat</div>
+        <div class="day-label">Sun</div>
+        <div class="day-status">{{MON_STATUS}}</div>
+        <div class="day-status">{{TUE_STATUS}}</div>
+        <div class="day-status">{{WED_STATUS}}</div>
+        <div class="day-status">{{THU_STATUS}}</div>
+        <div class="day-status">{{FRI_STATUS}}</div>
+        <div class="day-status">{{SAT_STATUS}}</div>
+        <div class="day-status">{{SUN_STATUS}}</div>
+      </div>
+      <div class="logging-summary">{{LOGGED_DAYS}}/7 days logged</div>
+    </div>
+    <div class="card-commentary">{{LOGGING_COMMENTARY}}</div>
+  </div>
+
+  <!-- ==================== SECTION 3: CALORIE ANALYSIS ==================== -->
+  <!--
+    For each day, calculate bar width as: (day_calories / max_calories_in_week) * 100%
+    Apply class "on-target", "below", or "over" to .calorie-bar-fill based on comparison
+    with Daily Calorie Range from PLAN.md. Skip entire card if no calorie data exists.
+  -->
+  <div class="report-card">
+    <div class="card-header">🔥 Calorie Analysis</div>
+    <div class="card-body">
+      <div class="calorie-target">Daily target: {{CAL_MIN}} – {{CAL_MAX}} kcal</div>
+      <table class="calorie-table">
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>Intake</th>
+            <th class="calorie-bar-cell"></th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Repeat for each day Mon–Sun. Example rows: -->
+          <tr>
+            <td>Mon</td>
+            <td>1,620 kcal</td>
+            <td class="calorie-bar-cell">
+              <div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 75%"></div></div>
+            </td>
+            <td><span class="status-icon">✅</span></td>
+          </tr>
+          <tr>
+            <td>Tue</td>
+            <td>1,480 kcal</td>
+            <td class="calorie-bar-cell">
+              <div class="calorie-bar"><div class="calorie-bar-fill below" style="width: 69%"></div></div>
+            </td>
+            <td><span class="status-icon">📉</span></td>
+          </tr>
+          <tr>
+            <td>Wed</td>
+            <td>1,750 kcal</td>
+            <td class="calorie-bar-cell">
+              <div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 81%"></div></div>
+            </td>
+            <td><span class="status-icon">✅</span></td>
+          </tr>
+          <tr>
+            <td>Thu</td>
+            <td class="no-data">—</td>
+            <td class="calorie-bar-cell"></td>
+            <td class="no-data">—</td>
+          </tr>
+          <tr>
+            <td>Fri</td>
+            <td>1,830 kcal</td>
+            <td class="calorie-bar-cell">
+              <div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 85%"></div></div>
+            </td>
+            <td><span class="status-icon">✅</span></td>
+          </tr>
+          <tr>
+            <td>Sat</td>
+            <td>2,150 kcal</td>
+            <td class="calorie-bar-cell">
+              <div class="calorie-bar"><div class="calorie-bar-fill over" style="width: 100%"></div></div>
+            </td>
+            <td><span class="status-icon">📈</span></td>
+          </tr>
+          <tr>
+            <td>Sun</td>
+            <td class="no-data">—</td>
+            <td class="calorie-bar-cell"></td>
+            <td class="no-data">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="calorie-average">
+        Average: {{CAL_AVG}} kcal/day
+        <span class="sub">(target midpoint: {{CAL_MIDPOINT}} kcal)</span>
+      </div>
+    </div>
+    <div class="card-commentary">{{CALORIE_COMMENTARY}}</div>
+  </div>
+
+  <!-- ==================== SECTION 4: WEIGHT PROGRESS ==================== -->
+  <!-- Skip this entire card if no weight readings exist, or if health flags indicate avoid_weight_focus -->
+  <div class="report-card">
+    <div class="card-header">⚖️ Weight Progress</div>
+    <div class="card-body">
+      <table class="weight-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Weight</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Repeat for each weight reading in the week -->
+          <tr><td>Mon 2/10</td><td>75.2 kg</td></tr>
+          <tr><td>Thu 2/13</td><td>74.8 kg</td></tr>
+        </tbody>
+      </table>
+      <div class="weight-change loss">This week: −0.4 kg ↓</div>
+      <div class="weight-progress">Total progress: 80.0 kg → 74.8 kg (−5.2 kg toward goal of 65.0 kg)</div>
+    </div>
+    <div class="card-commentary">{{WEIGHT_COMMENTARY}}</div>
+  </div>
+
+  <!-- ==================== SECTION 5: MACRONUTRIENT ANALYSIS ==================== -->
+  <!-- Skip this entire card if no PLAN.md exists or insufficient macro data -->
+  <div class="report-card">
+    <div class="card-header">🥗 Macronutrient Analysis</div>
+    <div class="card-body">
+      <table class="macro-table">
+        <thead>
+          <tr>
+            <th>Macro</th>
+            <th>Avg Intake</th>
+            <th>Target Range</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Protein</td>
+            <td>{{PROTEIN_AVG}} g/day</td>
+            <td>{{PROTEIN_RANGE}} g/day</td>
+            <td><span class="status-icon">{{PROTEIN_STATUS}}</span></td>
+          </tr>
+          <tr>
+            <td>Fat</td>
+            <td>{{FAT_AVG}} g/day</td>
+            <td>{{FAT_RANGE}} g/day</td>
+            <td><span class="status-icon">{{FAT_STATUS}}</span></td>
+          </tr>
+          <tr>
+            <td>Carb</td>
+            <td>{{CARB_AVG}} g/day</td>
+            <td>{{CARB_RANGE}} g/day</td>
+            <td><span class="status-icon">{{CARB_STATUS}}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-commentary">{{MACRO_COMMENTARY}}</div>
+  </div>
+
+  <!-- ==================== SECTION 6: HABIT PROGRESS ==================== -->
+  <!-- Skip this entire card if no active habits exist -->
+  <div class="report-card">
+    <div class="card-header">🌱 Habit Progress</div>
+    <div class="card-body">
+      <!-- Repeat .habit-item for each active habit -->
+      <div class="habit-item">
+        <div class="habit-name">{{HABIT_NAME}} <span class="habit-week">({{HABIT_WEEK}})</span></div>
+        <div class="habit-track">{{HABIT_TRACK}}</div>
+        <div class="habit-rate">{{HABIT_COMPLETION}} completed</div>
+      </div>
+    </div>
+    <div class="card-commentary">{{HABIT_COMMENTARY}}</div>
+  </div>
+
+  <!-- ==================== SECTION 7: ACHIEVEMENTS & SUGGESTIONS ==================== -->
+  <div class="report-card">
+    <div class="card-header">🏆 Key Achievements & Suggestions</div>
+    <div class="card-body">
+      <div class="section-subtitle">Achievements</div>
+      <ul class="achievement-list">
+        <!-- Max 3 achievements, each backed by actual data -->
+        <li>{{ACHIEVEMENT_1}}</li>
+        <li>{{ACHIEVEMENT_2}}</li>
+        <li>{{ACHIEVEMENT_3}}</li>
+      </ul>
+
+      <hr class="suggestions-divider">
+
+      <div class="section-subtitle">Suggestions for Next Week</div>
+      <ul class="suggestion-list">
+        <!-- Max 2 suggestions, each with concrete action -->
+        <li><strong>{{SUGGESTION_1_TITLE}}:</strong> {{SUGGESTION_1_DETAIL}}</li>
+        <li><strong>{{SUGGESTION_2_TITLE}}:</strong> {{SUGGESTION_2_DETAIL}}</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="report-footer">
+    Generated by AI Health Coach · For reference only
+  </footer>
+
+</div>
+</body>
+</html>
