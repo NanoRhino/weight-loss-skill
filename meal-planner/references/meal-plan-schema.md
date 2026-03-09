@@ -17,10 +17,14 @@ This document defines the strict Markdown format for `MEAL-PLAN.md`. The agent g
 
 ## Macro Format
 
-Always use full names: `Protein`, `Carbohydrate`, `Fat`. Never abbreviate to P/C/F.
+Always use full names — never abbreviate to P/C/F. **Use macro names matching the user's language:**
+
+- **English:** `Protein`, `Carbohydrate`, `Fat`
+- **Chinese:** `蛋白质`, `碳水化合物`, `脂肪`
 
 ```
-1850 kcal · Protein 105g · Carbohydrate 196g · Fat 62g
+English: 1850 kcal · Protein 105g · Carbohydrate 196g · Fat 62g
+Chinese: 1850 kcal · 蛋白质 105g · 碳水化合物 196g · 脂肪 62g
 ```
 
 ## Complete Example
@@ -94,5 +98,5 @@ Always use full names: `Protein`, `Carbohydrate`, `Fat`. Never abbreviate to P/C
 - Every day (Day 1–7) must be fully written out. No placeholders like "same as Day 1".
 - Meal emojis: 🍳 Breakfast, 🥗 Lunch, 🍽️ Dinner, 🍎 Snack (adapt names to user's language).
 - The metadata Date field should be the generation date.
-- Adapt food names, units, and language to the user's locale.
+- Adapt food names, units, macro names, and language to the user's locale. For Chinese users, use `蛋白质`, `碳水化合物`, `脂肪` instead of `Protein`, `Carbohydrate`, `Fat`.
 - Grocery list is optional — only include if the user requested it.

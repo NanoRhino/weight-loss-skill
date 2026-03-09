@@ -357,13 +357,13 @@ Send this message **immediately** after confirming the user wants the plan, **be
    ```
 3. **Send the presigned URL to the user** via the message tool, with a brief summary.
 4. Adapt all content (food names, meal names, day names, tips) to the user's language.
-5. Use full macro names: `Protein`, `Carbohydrate`, `Fat` — never abbreviate to P/C/F.
+5. Use full macro names matching the user's language — never abbreviate to P/C/F. English: `Protein`, `Carbohydrate`, `Fat`; Chinese: `蛋白质`, `碳水化合物`, `脂肪`.
 
 **Chat message template** (adapt to user's language):
 
 > 你的 7 天食谱已经生成好了！点击这里查看：[链接]
 >
-> **概要：** [X,XXX] kcal/天 · [饮食模式] · Protein [X]g / Carbohydrate [X]g / Fat [X]g
+> **概要：** [X,XXX] kcal/天 · [饮食模式] · 蛋白质 [X]g / 碳水化合物 [X]g / 脂肪 [X]g
 >
 > 可以直接在浏览器里查看，也可以用 Ctrl+P 保存为 PDF。有什么想调整的随时告诉我！
 
@@ -510,7 +510,7 @@ The `MEAL-PLAN.md` file is the source of truth. **All content rules below govern
 
 The meal plan uses a **Day (H2) → Meal (H3) → Food list (-)** hierarchy. Each level shows calories and macros (Protein/Carbohydrate/Fat).
 
-**1. Day level:** H2 heading showing day name + daily totals (`X,XXX kcal · Protein Xg · Carbohydrate Xg · Fat Xg`). Day names use the user's locale.
+**1. Day level:** H2 heading showing day name + daily totals (`X,XXX kcal · Protein Xg · Carbohydrate Xg · Fat Xg`). Day names and macro names use the user's locale (e.g., Chinese: `X,XXX kcal · 蛋白质 Xg · 碳水化合物 Xg · 脂肪 Xg`).
 
 **2. Meal level:** H3 heading showing emoji + meal name + macros. Two types:
 

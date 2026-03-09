@@ -20,15 +20,23 @@ def detect_lang(text):
 
 
 def parse_macros(macro_str):
-    """Parse macro string like '1610 kcal · Protein 102g · Carbohydrate 178g · Fat 48g'"""
+    """Parse macro string like '1610 kcal · Protein 102g · Carbohydrate 178g · Fat 48g'.
+
+    Supports both English and Chinese macro names.
+    """
     result = {}
     cal_match = re.search(r'(\d[\d,]*)\s*kcal', macro_str)
     if cal_match:
         result['calories'] = cal_match.group(1)
-    for name in ['Protein', 'Carbohydrate', 'Fat']:
-        m = re.search(rf'{name}\s+(\d+)g', macro_str)
+    macro_patterns = {
+        'protein': r'(?:Protein|蛋白质)\s*(\d+)\s*g',
+        'carbohydrate': r'(?:Carbohydrate|碳水化合物|碳水)\s*(\d+)\s*g',
+        'fat': r'(?:Fat|脂肪)\s*(\d+)\s*g',
+    }
+    for key, pattern in macro_patterns.items():
+        m = re.search(pattern, macro_str)
         if m:
-            result[name.lower()] = m.group(1)
+            result[key] = m.group(1)
     return result
 
 
