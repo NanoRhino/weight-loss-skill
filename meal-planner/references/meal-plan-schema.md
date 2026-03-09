@@ -4,7 +4,7 @@ This document defines the strict Markdown format for `MEAL-PLAN.md`. The agent g
 
 ## Rules
 
-1. **H1** (`#`) = Plan title. Followed by metadata lines (unordered list).
+1. **H1** (`#`) = Plan title. Followed by metadata lines (unordered list). **Metadata keys MUST always be in English** (`Date`, `Calories`, `Mode`, `Macros`) regardless of the user's language — the HTML parser matches on these exact keys. Values can be in any language.
 2. **H2** (`##`) = Day header. Format: `Day N | DayName | Xcal · Protein Xg · Carbohydrate Xg · Fat Xg`
 3. **H3** (`###`) = Meal header. Format: `Emoji MealName [Tag]? | Xcal · Protein Xg · Carbohydrate Xg · Fat Xg`
    - `[Tag]` is optional, used for eating-out meals: `[Takeout]`, `[Eating out]`, `[外卖]`, `[便利店]`, etc.
@@ -95,6 +95,7 @@ Chinese: 1850 kcal · 蛋白质 105g · 碳水化合物 196g · 脂肪 62g
 
 ## Notes for the Agent
 
+- **Metadata keys (`Date`, `Calories`, `Mode`, `Macros`) MUST be in English** — the parser depends on these exact keys. Values can be localized (e.g., `Mode: 均衡饮食` is fine, but `饮食模式: 均衡饮食` will break parsing).
 - Every day (Day 1–7) must be fully written out. No placeholders like "same as Day 1".
 - Meal emojis: 🍳 Breakfast, 🥗 Lunch, 🍽️ Dinner, 🍎 Snack (adapt names to user's language).
 - The metadata Date field should be the generation date.

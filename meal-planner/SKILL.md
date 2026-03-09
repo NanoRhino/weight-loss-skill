@@ -344,7 +344,7 @@ Send this message **immediately** after confirming the user wants the plan, **be
 
 **CRITICAL: Generate the 7-day meal plan as a Markdown file, convert to HTML, upload to S3 — NOT as chat text.** The meal plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
 
-1. **Write the meal plan as `MEAL-PLAN.md`** in the workspace, following the schema defined in `references/meal-plan-schema.md`. This file is the agent's reference copy.
+1. **Write the meal plan as `MEAL-PLAN.md`** in the workspace, following the schema defined in `references/meal-plan-schema.md`. This file is the agent's reference copy. **Important: metadata keys (`Date`, `Calories`, `Mode`, `Macros`) MUST always be in English** — the HTML parser depends on these exact keys. Values can be localized.
 2. **Run the export script** to convert to HTML and upload to S3:
    ```bash
    URL=$(bash {plan-export:baseDir}/scripts/generate-and-send.sh \
