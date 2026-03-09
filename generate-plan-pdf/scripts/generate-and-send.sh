@@ -1,11 +1,22 @@
 #!/usr/bin/env bash
 #
-# generate-and-send.sh — Convert Markdown to styled PDF and send via Slack
+# generate-and-send.sh — Convert Markdown to styled HTML/PDF and deliver to user
 #
-# Usage: generate-and-send.sh --agent <id> --input <file.md> [--message <text>] [--filename <display-name>]
+# HTML+S3 mode (default when --bucket is provided):
+#   Generates HTML, uploads to S3, writes plan-url.json, outputs presigned URL.
+#   The agent is responsible for sending the URL to the user via the message tool.
 #
-# Example:
-#   generate-and-send.sh --agent 007-zhuoran --input PLAN.md --message "📋 这是你的体重管理计划" --filename "体重管理计划.pdf"
+# PDF fallback (when --bucket is NOT provided):
+#   Generates PDF and uploads to Slack via send-to-slack.sh (legacy behavior).
+#
+# Usage:
+#   # HTML+S3 mode:
+#   generate-and-send.sh --agent <id> --input <file.md> \
+#     --bucket <s3-bucket> [--workspace <path>]
+#
+#   # PDF fallback:
+#   generate-and-send.sh --agent <id> --input <file.md> \
+#     [--message <text>] [--filename <display-name>]
 
 set -euo pipefail
 
@@ -15,49 +26,76 @@ AGENT=""
 INPUT=""
 MESSAGE=""
 FILENAME=""
+BUCKET=""
+WORKSPACE=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --agent)    AGENT="$2"; shift 2 ;;
-    --input)    INPUT="$2"; shift 2 ;;
-    --message)  MESSAGE="$2"; shift 2 ;;
-    --filename) FILENAME="$2"; shift 2 ;;
+    --agent)     AGENT="$2"; shift 2 ;;
+    --input)     INPUT="$2"; shift 2 ;;
+    --message)   MESSAGE="$2"; shift 2 ;;
+    --filename)  FILENAME="$2"; shift 2 ;;
+    --bucket)    BUCKET="$2"; shift 2 ;;
+    --workspace) WORKSPACE="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
 
 if [[ -z "$AGENT" ]]; then echo "ERROR: --agent is required" >&2; exit 1; fi
 if [[ -z "$INPUT" ]]; then echo "ERROR: --input is required" >&2; exit 1; fi
+if [[ ! -f "$INPUT" ]]; then echo "ERROR: Input file not found: $INPUT" >&2; exit 1; fi
 
-# Resolve input path (relative to cwd)
-if [[ ! -f "$INPUT" ]]; then
-  echo "ERROR: Input file not found: $INPUT" >&2
-  exit 1
+# ── HTML+S3 mode ──
+if [[ -n "$BUCKET" ]]; then
+  HTML_OUTPUT="${INPUT%.md}.html"
+
+  echo "=== Step 1: Generating HTML ===" >&2
+  python3 "$SCRIPT_DIR/generate-html.py" "$INPUT" "$HTML_OUTPUT" >&2
+
+  echo "" >&2
+  echo "=== Step 2: Uploading to S3 ===" >&2
+  UPLOAD_ARGS=(--file "$HTML_OUTPUT" --bucket "$BUCKET")
+  if [[ -n "$WORKSPACE" ]]; then
+    UPLOAD_ARGS+=(--workspace "$WORKSPACE")
+  fi
+  URL=$(bash "$SCRIPT_DIR/upload-to-s3.sh" "${UPLOAD_ARGS[@]}")
+
+  echo "" >&2
+  echo "=== Step 3: Cleaning up local HTML ===" >&2
+  rm -f "$HTML_OUTPUT"
+  echo "Deleted: $HTML_OUTPUT" >&2
+
+  echo "" >&2
+  echo "✅ Done! HTML generated, uploaded to S3, local copy removed." >&2
+  echo "URL: $URL" >&2
+
+  # Output URL to stdout for the agent to use with message tool
+  echo "$URL"
+  exit 0
 fi
 
-# Generate output path
+# ── PDF fallback ──
 OUTPUT="${INPUT%.md}.pdf"
 
-# Default filename
 if [[ -z "$FILENAME" ]]; then
   FILENAME="$(basename "$OUTPUT")"
 fi
 
-echo "=== Step 1: Generating PDF ==="
-python3 "$SCRIPT_DIR/generate-pdf.py" "$INPUT" "$OUTPUT"
+echo "=== Step 1: Generating PDF ===" >&2
+python3 "$SCRIPT_DIR/generate-pdf.py" "$INPUT" "$OUTPUT" >&2
 
-echo ""
-echo "=== Step 2: Sending to Slack ==="
+echo "" >&2
+echo "=== Step 2: Sending to Slack ===" >&2
 SEND_ARGS=(--agent "$AGENT" --file "$OUTPUT" --filename "$FILENAME")
 if [[ -n "$MESSAGE" ]]; then
   SEND_ARGS+=(--message "$MESSAGE")
 fi
-bash "$SCRIPT_DIR/send-to-slack.sh" "${SEND_ARGS[@]}"
+bash "$SCRIPT_DIR/send-to-slack.sh" "${SEND_ARGS[@]}" >&2
 
-echo ""
-echo "=== Step 3: Cleaning up local PDF ==="
+echo "" >&2
+echo "=== Step 3: Cleaning up local PDF ===" >&2
 rm -f "$OUTPUT"
-echo "Deleted: $OUTPUT"
+echo "Deleted: $OUTPUT" >&2
 
-echo ""
-echo "✅ Done! PDF generated, sent via Slack, and local copy removed."
+echo "" >&2
+echo "✅ Done! PDF generated, sent via Slack, and local copy removed." >&2
