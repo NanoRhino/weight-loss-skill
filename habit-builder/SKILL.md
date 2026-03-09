@@ -186,6 +186,8 @@ Never push more than one alternative. If they decline everything,
 drop it: `"No problem — we can revisit anytime."` Don't suggest again
 until the next Weekly Review or the user brings it up.
 
+**Single-ask rule:** Each habit recommendation or question is asked at most once per conversation. If the user ignores the suggestion or doesn't respond, do not repeat or rephrase it. See `SKILL-ROUTING.md > Single-Ask Rule`.
+
 **First recommendation vs. repeat:** Even the first recommendation should
 be casual — 1-2 sentences + ask. Don't over-explain the method. The user
 doesn't need to know about Habit Stacking or Tiny Habits theory.
