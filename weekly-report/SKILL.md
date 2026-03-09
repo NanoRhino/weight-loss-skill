@@ -156,42 +156,26 @@ Show daily calorie intake vs the user's target range. Classify each day.
   - Above range max → `📈 Over`
 - Days with no data → `—` (skip from calculations)
 
-**Display format (ASCII bar chart):**
-
-Render a horizontal bar chart using block characters. Each bar's length is
-proportional to the calorie value. Use `█` for filled portions and `░` for
-the gap up to the maximum value in the week. Show the target range as a
-reference line at the bottom.
-
-**Bar scaling rules:**
-- Maximum bar width: 20 characters
-- Scale: `max_value_in_week / 20` kcal per character (round up)
-- Days with no data: show `—` with no bar
+**Display format:**
 
 ```
 ### 🔥 Calorie Analysis
 
 Daily target: {min} – {max} kcal
 
-Mon │ ████████████████░░ 1,620 kcal ✅
-Tue │ ██████████████░░░░ 1,480 kcal 📉
-Wed │ █████████████████░ 1,750 kcal ✅
-Thu │                   —
-Fri │ ██████████████████ 1,830 kcal ✅
-Sat │ █████████████████████ 2,150 kcal 📈
-Sun │                   —
-    └──────────────────────
-     0    500  1000  1500  2000
+| Day | Intake | Status |
+|-----|--------|--------|
+| Mon | 1,620 kcal | ✅ On Target |
+| Tue | 1,480 kcal | 📉 Below |
+| Wed | 1,750 kcal | ✅ On Target |
+| Thu | — | — |
+| Fri | 1,830 kcal | ✅ On Target |
+| Sat | 2,150 kcal | 📈 Over |
+| Sun | — | — |
 
 **Average: 1,766 kcal/day** (target midpoint: {midpoint} kcal)
 On Target: 3 days · Below: 1 day · Over: 1 day
 ```
-
-**Status indicators (replace table status column):**
-- Within target range → `✅`
-- Below range min → `📉`
-- Above range max → `📈`
-- No data → `—`
 
 **Commentary rules:**
 - Average within range → `"Right on track this week."` / `"这周热量控制得很好。"`
