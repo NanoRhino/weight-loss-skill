@@ -93,18 +93,7 @@ Do three things:
 
 3. **Generate the Profile** — After confirmation, create and output the file.
 
-4. **Check timezone** — After saving the profile, check if `timezone.json` exists in the workspace.
-   - **If it exists** (Slack users — auto-populated during onboard): no action needed, timezone is already set.
-   - **If it does NOT exist** (non-Slack users, e.g. Telegram): ask the user their timezone in a natural way, e.g., "One more thing — what timezone are you in? This helps me send reminders at the right time." Then write `timezone.json`:
-     ```json
-     {
-       "tz": "America/New_York",
-       "tz_offset": -18000,
-       "tz_label": "Eastern Standard Time",
-       "updated_at": "2026-03-05T07:00:00Z"
-     }
-     ```
-     Common timezone mappings: `Asia/Shanghai` (UTC+8, 28800), `America/New_York` (UTC-5, -18000), `America/Chicago` (UTC-6, -21600), `America/Los_Angeles` (UTC-8, -28800), `Europe/London` (UTC+0, 0).
+4. **Timezone** — Do NOT handle timezone here. It is auto-initialized by the agent's boot sequence (see AGENTS.md). By the time onboarding runs, `timezone.json` should already exist.
 
 5. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
 
