@@ -441,7 +441,7 @@ def main():
     # --- macro-targets ---
     p = sub.add_parser("macro-targets", help="Compute macro targets")
     p.add_argument("--weight", type=float, required=True, help="kg")
-    p.add_argument("--cal", type=int, required=True, help="Daily calorie target")
+    p.add_argument("--cal", type=int, required=True, help="Daily calorie target (kcal)")
     p.add_argument("--mode", default="balanced",
                    choices=list(DIET_MODE_FAT.keys()))
     p.add_argument("--meals", type=int, default=3, choices=[2, 3])

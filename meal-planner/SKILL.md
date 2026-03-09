@@ -102,6 +102,8 @@ When planning meals, use the **midpoint** of each range as the planning target. 
    - `es` → ask whether US-based or Latin America
    - Other → ask the user
 
+**Calorie unit convention:** US users → "Cal" (capital C, equivalent to kilocalorie); all other locales → "kcal". Infer from the same locale resolution above (English defaults to US → Cal). Use the chosen notation consistently across the entire meal plan, chat messages, and HTML export.
+
 **Why this matters:** A meal plan full of chicken breast and sweet potatoes is useless for someone in Shanghai who eats rice, tofu, and bok choy daily. The plan must reflect foods the user can actually buy and wants to eat.
 
 ### Dietary Preferences & Practical Constraints
@@ -152,7 +154,7 @@ Available modes: Balanced / Flexible, Healthy U.S.-Style (USDA), High-Protein, L
 | **Keto** | 65–75% | Aggressive carb restriction fans | Carbs under 20–30g/day; adaptation period |
 | **Mediterranean** | 25–35% | Heart health focus; enjoys olive oil and fish | Emphasizes whole foods, limits processed |
 | **IF (16:8)** | Any | People who prefer fewer, larger meals | All food within 8-hour window |
-| **IF (5:2)** | Any | People who prefer 2 very-low days | 500–600 cal on 2 non-consecutive days |
+| **IF (5:2)** | Any | People who prefer 2 very-low days | 500–600 kcal on 2 non-consecutive days |
 | **Plant-Based** | 20–30% | Vegetarian or vegan users | No animal products (vegan) or limited (vegetarian) |
 
 **Note:** Protein is always calculated from body weight (`weight_kg × 1.2–1.6g`), not from a percentage. The fat range above is what varies by mode and is used in the macro calculation. Carbs fill the remaining calories. IF is a timing strategy layered on top of any macro split (default to Balanced).
@@ -229,12 +231,12 @@ The script returns protein/fat/carb ranges with min/target/max values and per-me
 
 Present this clearly:
 
-> Based on 1,850 cal/day, 75 kg, Balanced mode (fat range 25–35%):
+> Based on 1,850 kcal/day, 75 kg, Balanced mode (fat range 25–35%):
 >
 > | Macro | Target | Grams | Per Meal (~3 meals) | Adjustable Range |
 > |---|---|---|---|---|
 > | Protein | 75kg × 1.4 g/kg | 105g | ~35g | 90–120g |
-> | Fat | 30% of cal | 62g | ~21g | 51–72g |
+> | Fat | 30% of kcal | 62g | ~21g | 51–72g |
 > | Carbs | remainder | 196g | ~65g | 162–230g |
 
 Then ask the user to confirm or adjust.
@@ -260,7 +262,7 @@ Use the templates below as defaults. If the user's diet mode is non-standard (e.
 
 **Example must strictly match the template structure.** The example is a concrete instantiation of the template — the number of items and their types must correspond exactly:
 - Each food category in the template maps to exactly one item in the example.
-- If the template uses "or" to list alternatives (e.g., "nuts or yogurt"), the example must pick **one** of them, not combine both. For instance, if the template says `Snack ~140 cal: handful of nuts or 1 small cup yogurt`, a correct example is `● Walnuts 2 pieces` or `● Plain Greek yogurt 100g` — **not** `● Plain Greek yogurt 100g + Walnuts 2 pieces`.
+- If the template uses "or" to list alternatives (e.g., "nuts or yogurt"), the example must pick **one** of them, not combine both. For instance, if the template says `Snack ~140 kcal: handful of nuts or 1 small cup yogurt`, a correct example is `● Walnuts 2 pieces` or `● Plain Greek yogurt 100g` — **not** `● Plain Greek yogurt 100g + Walnuts 2 pieces`.
 
 ### Precision Rule
 
@@ -378,17 +380,17 @@ Build a 7-day meal plan based on the confirmed calories, macros, diet mode, and 
 
 Default to **3 meals + 1–2 snacks** unless the user's diet mode dictates otherwise:
 - **IF 16:8** → 2 meals + 1 snack within the eating window
-- **IF 5:2** → Normal structure for 5 days; 2 low-cal days with 2 small meals
+- **IF 5:2** → Normal structure for 5 days; 2 low-calorie days with 2 small meals
 - **All other modes** → 3 meals + 1–2 snacks
 
 Typical calorie distribution (defaults — adjustable based on user preference and lifestyle):
 
-| Component | % of Daily Calories | Example (1,850 cal) |
+| Component | % of Daily Calories | Example (1,850 kcal) |
 |---|---|---|
-| Breakfast | 25% | ~460 cal |
-| Lunch | 30% | ~555 cal |
-| Dinner | 30% | ~555 cal |
-| Snack(s) | 15% | ~280 cal |
+| Breakfast | 25% | ~460 kcal |
+| Lunch | 30% | ~555 kcal |
+| Dinner | 30% | ~555 kcal |
+| Snack(s) | 15% | ~280 kcal |
 
 > These are starting defaults. If the user prefers a lighter breakfast and bigger dinner, or wants to shift snack calories into meals, adjust accordingly — the daily total is what matters.
 
@@ -409,7 +411,7 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 |---|---|
 | **Full kitchen** | Mix of home-cooked meals + batch prep. Include 2–3 "cook once, eat twice" recipes per week. |
 | **Basic kitchen** | Simple one-pot/one-pan meals, microwave-friendly options, rice cooker meals, overnight oats, salads, wraps. |
-| **No kitchen / eating out** | Build the plan around restaurant orders, takeout, convenience store meals, and ready-to-eat options. Include specific ordering guidance with calorie estimates (e.g., "Chipotle: chicken bowl, no rice, extra veggies — ~520 cal"). |
+| **No kitchen / eating out** | Build the plan around restaurant orders, takeout, convenience store meals, and ready-to-eat options. Include specific ordering guidance with calorie estimates (e.g., "Chipotle: chicken bowl, no rice, extra veggies — ~520 Cal"). |
 | **Mixed (most common)** | Designate which days are cook days vs. eat-out days. Typically 3–4 cook days + 3–4 eat-out/simple days per week. |
 
 **Variety matters.** Don't repeat the same protein at every meal. Rotate across the week. If Tuesday dinner is chicken stir-fry, Thursday dinner should be something different.
@@ -446,7 +448,7 @@ Snacks serve two purposes: filling the calorie gap between meals, and satisfying
 - One **nutrient-dense** option (protein or fiber focused — sustains energy)
 - One **satisfaction** option (something that feels like a treat but fits the calories — popcorn, dark chocolate, frozen fruit bars)
 
-Don't moralize about snacks. A 200-cal cookie that fits the macro budget is fine. The goal is a plan people will actually follow.
+Don't moralize about snacks. A 200 kcal cookie that fits the macro budget is fine. The goal is a plan people will actually follow.
 
 ---
 
@@ -465,7 +467,7 @@ The user may want to:
 - **Swap a meal** → replace with an alternative at similar macros. **Update `MEAL-PLAN.md`, re-run the export script, and send the new link.**
 - **Simplify** → "I want to eat the same breakfast every day" — totally fine, reduce variety in that slot. Update and re-export.
 - **Add restaurant/fast-food options** → include calorie-smart choices from common chains. Update and re-export.
-- **Adjust for a specific day** → "Saturday is date night" → build in a higher-cal dinner and offset elsewhere. Update and re-export.
+- **Adjust for a specific day** → "Saturday is date night" → build in a higher-calorie dinner and offset elsewhere. Update and re-export.
 - **Get a grocery list** → add a grocery list section to `MEAL-PLAN.md` and re-export.
 
 For any customization, **always update `MEAL-PLAN.md` and re-run the export script** so the user gets an updated link.
@@ -560,7 +562,7 @@ These principles should guide every decision in the plan. They're not rules to s
 Don't generate a plan without one. Either guide them to calculate (quick TDEE inline) or recommend the weight-loss-planner skill first.
 
 **User wants an extremely low-calorie plan (<1,200 women / <1,500 men):**
-Decline gently. Explain the risks (nutrient deficiency, muscle loss, metabolic adaptation) and suggest the minimum safe floor. "I want to make sure your body gets what it needs — let's work with at least 1,200 cal/day and make every calorie count."
+Decline gently. Explain the risks (nutrient deficiency, muscle loss, metabolic adaptation) and suggest the minimum safe floor. "I want to make sure your body gets what it needs — let's work with at least 1,200 Cal/day and make every calorie count."
 
 **User asks for a specific recipe:**
 Provide it! Include ingredients with locale-appropriate measurements, step-by-step instructions, and macro breakdown. This is a natural extension of the meal plan. **Keep instructions concise** — skip obvious steps that any adult knows (boiling water, grabbing a bowl, plating, eating the food). Focus on the steps that actually matter: cooking times, seasoning ratios, heat levels, and technique tips that affect the outcome.
@@ -570,6 +572,6 @@ Accommodate what you can, but flag clearly: "I can build a plan around your nut 
 
 **User wants to eat out frequently:**
 This is completely valid — don't treat it as a problem to solve. Build restaurant/takeout/convenience store options directly into the plan as primary meals, not fallbacks. Include specific ordering guidance with approximate macros. Examples:
-- **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 cal, 42g P / 20g C / 30g F"
-- **China:** "Shaxian Snacks: 8 steamed dumplings + seaweed egg-drop soup — ~450 cal, 20g P / 55g C / 15g F"
-- **Japan:** "Konbini: salad chicken + 1 onigiri + salad — ~450 cal, 30g P / 45g C / 10g F"
+- **US:** "Chipotle: chicken burrito bowl, no rice, extra fajita veggies, half guac — ~520 Cal, 42g P / 20g C / 30g F"
+- **China:** "Shaxian Snacks: 8 steamed dumplings + seaweed egg-drop soup — ~450 kcal, 20g P / 55g C / 15g F"
+- **Japan:** "Konbini: salad chicken + 1 onigiri + salad — ~450 kcal, 30g P / 45g C / 10g F"

@@ -304,7 +304,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
 
     Uses range-based evaluation:
     - Each checkpoint scales daily min/max ranges by the checkpoint percentage.
-    - Adjustment is needed when: calories outside checkpoint cal range
+    - Adjustment is needed when: calories outside checkpoint kcal range
       OR 2+ macros outside their checkpoint ranges.
     """
     log = _migrate_meals(log)
@@ -627,7 +627,7 @@ def _get_pros_cons(current_mode: str, detected_mode: str) -> dict:
                 "Extremely restrictive — hard to sustain socially",
                 "Keto flu during adaptation (1-2 weeks)",
                 "Risk of nutrient deficiencies without careful planning",
-                "Not recommended below 1,800 cal/day",
+                "Not recommended below 1,800 kcal/day",
             ],
         },
         "mediterranean": {

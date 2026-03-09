@@ -113,10 +113,10 @@ Core principle: approximately **3,500 calories ≈ 1 pound** of body fat. This i
 
 | Weekly Loss Target | Daily Deficit |
 |---|---|
-| 0.5 lbs/week | 250 cal/day |
-| 1.0 lbs/week | 500 cal/day |
-| 1.5 lbs/week | 750 cal/day |
-| 2.0 lbs/week | 1,000 cal/day |
+| 0.5 lbs/week | 250 kcal/day |
+| 1.0 lbs/week | 500 kcal/day |
+| 1.5 lbs/week | 750 kcal/day |
+| 2.0 lbs/week | 1,000 kcal/day |
 
 **Daily Calorie Target:**
 ```
@@ -135,7 +135,7 @@ calorie_floor = max(BMR, absolute_minimum)
 | Parameter | Value | Rationale |
 |---|---|---|
 | BMR | Calculated per user (Mifflin-St Jeor) | Never eat below what the body burns at rest |
-| Absolute minimum | 1,000 cal/day | Bare minimum for micronutrient adequacy regardless of body size |
+| Absolute minimum | 1,000 kcal/day | Bare minimum for micronutrient adequacy regardless of body size |
 
 **How this works in practice:**
 
@@ -324,10 +324,10 @@ Carbohydrate (derived — fills remaining calories):
 
 | User Profile | Protein | Fat | Carbs | Notes |
 |---|---|---|---|---|
-| General / low activity | ×1.2–1.4 g/kg | 25–30% of cal | remainder | Standard for moderate weight loss |
-| Strength training | ×1.4–1.6 g/kg | 25–30% of cal | remainder | Higher protein supports muscle repair |
-| Older adults (50+) | ×1.4–1.6 g/kg | 25–35% of cal | remainder | Higher protein counters sarcopenia |
-| Low-carb preference | ×1.4–1.6 g/kg | 30–35% of cal | remainder (lower) | User preference; ensure min ~100g carbs for brain function |
+| General / low activity | ×1.2–1.4 g/kg | 25–30% of kcal | remainder | Standard for moderate weight loss |
+| Strength training | ×1.4–1.6 g/kg | 25–30% of kcal | remainder | Higher protein supports muscle repair |
+| Older adults (50+) | ×1.4–1.6 g/kg | 25–35% of kcal | remainder | Higher protein counters sarcopenia |
+| Low-carb preference | ×1.4–1.6 g/kg | 30–35% of kcal | remainder (lower) | User preference; ensure min ~100g carbs for brain function |
 
 ### Practical Notes
 
