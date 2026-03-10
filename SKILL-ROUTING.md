@@ -241,6 +241,12 @@ rules to maintain coherence:
    section as context ("You burned ~250 kcal running today — your intake
    target stays the same")
 5. **One closing** — a single warm sign-off, not two
+6. **No premature goodnight** — never add "晚安" / "goodnight" / 🌙 / 💤
+   or other sleep-related sign-offs unless the **user** initiates it (e.g.,
+   "我去睡了"). Logging the last meal of the day does not mean the
+   conversation is over — the user may still want to chat, log snacks, or
+   ask questions. Saying goodnight unprompted feels like the bot is ending
+   the conversation.
 
 ---
 
