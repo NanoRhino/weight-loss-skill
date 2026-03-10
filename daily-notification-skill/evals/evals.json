@@ -145,6 +145,19 @@
         "Brief response",
         "Detects resignation ('don't even care anymore') and adds soft door-opener if pattern suggests distress"
       ]
+    },
+    {
+      "id": 11,
+      "name": "skip-reminder-meal-already-logged",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. nutrition-calc.py load returns: dinner already logged today at 17:32 (肉末豆腐 + 凉拌黄瓜 + 米饭, 450 kcal). zh]",
+      "expected_output": "No message sent. Reminder skipped silently.",
+      "expectations": [
+        "Does NOT send any reminder message",
+        "Does NOT ask what the user is eating for dinner",
+        "Does NOT ask about other meals (breakfast/lunch)",
+        "Silently skips — sends nothing to the user",
+        "Pre-send check #4 (meal already logged) causes skip"
+      ]
     }
   ]
 }
