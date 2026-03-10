@@ -7,10 +7,11 @@
       "prompt": "[SYSTEM: First reminder ever. Lunch slot 11:45. user_profile.json: meals_per_day=3, meal_times=['07:00 breakfast','12:00 lunch','18:00 dinner'], language='en', name=null]",
       "expected_output": "Confirm schedule, set expectations, open conversation. All in one message.",
       "expectations": [
-        "Confirms schedule with correct times (6:45, 11:45, 17:45)",
-        "Sets expectation that replying is optional",
-        "Opens conversation with a food question",
-        "All three elements in one message",
+        "Signals that reminders have started without listing all times",
+        "Includes a food suggestion or diet plan reference for the upcoming meal",
+        "Nudges user to share what they're eating BEFORE the meal (pre-meal logging), NOT after",
+        "All elements in one compact message — no duplication (no two greeting blocks or two questions)",
+        "Does NOT say 'reply when you can' / 'skip when you can't' or any variant framing replies as optional",
         "Uses English",
         "Does NOT use a name (name=null)",
         "Under 50 words equivalent"
