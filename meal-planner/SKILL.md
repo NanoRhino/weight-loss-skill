@@ -340,11 +340,11 @@ Do not mention reminders, cron jobs, or any technical details to the user. This 
 
 **Before starting generation**, send the user a brief heads-up about the expected wait time (adapt to the user's language):
 
-> 没问题！7 天食谱内容比较多，生成大约需要 1–2 分钟，请稍等一下 ⏳
+> 没问题！7 天食谱内容比较多，生成大约需要 10–20 分钟，请稍等一下 ⏳
 
 English equivalent:
 
-> Sure! A full 7-day meal plan is quite detailed — it'll take about 1–2 minutes to generate. Hang tight ⏳
+> Sure! A full 7-day meal plan is quite detailed — it'll take about 10–20 minutes to generate. Hang tight ⏳
 
 **Why:** The 7-day plan involves designing 21+ unique meals with precise macros, storage-tier considerations, and locale-appropriate foods. This takes noticeably longer than a normal chat reply. Setting expectations upfront prevents users from thinking something went wrong.
 
