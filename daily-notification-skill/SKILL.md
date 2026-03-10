@@ -171,15 +171,15 @@ on a generic "lunch coming up."
 
 **First reminder ever** (after onboarding, at the next meal slot):
 
-The user already knows their meal times and reminder schedule from onboarding — do NOT repeat or re-confirm the schedule. Do NOT include a food recommendation or diet plan reference — save that for normal reminders starting from the second one. This message **replaces** the normal meal reminder for this slot; do NOT send both a regular reminder and a first-reminder greeting (that causes duplication).
+The user already knows their meal times and reminder schedule from onboarding — do NOT repeat or re-confirm the schedule. This message **replaces** the normal meal reminder for this slot; do NOT send both a regular reminder and a first-reminder greeting (that causes duplication — one message only).
 
-The first reminder is a single compact message with three elements:
+The first reminder is a single compact message with these elements:
 
 1. Brief greeting that signals "reminders have started" (e.g., "第一条提醒来啦！" / "First check-in!")
-2. Nudge toward action: tell the user to share what they eat — frame it as starting a conversation habit, not as optional (e.g., "吃完跟我说一声吃了啥哦～" / "Tell me what you end up having!"). Do NOT say "回不回都行", "reply when you can, skip when you can't", or any variant that frames replying as optional — the goal is to encourage the user to build the logging habit from day one.
-3. Open with a low-barrier question about the upcoming meal (technique 1 or 3 only)
+2. A food suggestion or diet plan reference for the upcoming meal (same as normal reminders)
+3. Nudge toward **pre-meal** action: ask the user to tell you what they're about to eat **before** eating — frame it as starting a conversation habit, not as optional (e.g., "吃之前跟我说一声今天吃啥哦～" / "Tell me what you're having!"). Do NOT say "回不回都行", "reply when you can, skip when you can't", or any variant that frames replying as optional — the goal is to encourage the user to build the logging habit from day one.
 
-All three in one short message. After this, normal reminders begin.
+All in one short message. After this, normal reminders begin.
 
 **Day 1-3 (warm-up period):**
 - Use technique 1 (choice questions) and 3 (situational) only — these require

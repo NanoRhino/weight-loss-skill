@@ -8,10 +8,9 @@
       "expected_output": "Confirm schedule, set expectations, open conversation. All in one message.",
       "expectations": [
         "Signals that reminders have started without listing all times",
-        "Encourages the user to share what they eat (nudge toward action, NOT framing replies as optional)",
-        "Opens conversation with a food question (technique 1 or 3)",
-        "All three elements in one compact message — no duplication (no two greeting blocks or two questions)",
-        "Does NOT include food recommendations or diet plan references",
+        "Includes a food suggestion or diet plan reference for the upcoming meal",
+        "Nudges user to share what they're eating BEFORE the meal (pre-meal logging), NOT after",
+        "All elements in one compact message — no duplication (no two greeting blocks or two questions)",
         "Does NOT say 'reply when you can' / 'skip when you can't' or any variant framing replies as optional",
         "Uses English",
         "Does NOT use a name (name=null)",
