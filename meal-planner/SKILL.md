@@ -439,6 +439,7 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 - **Separate components that store differently:** Pasta + sauce, soup + noodles, salad + dressing, congee + toppings — always store separately so the absorbent component doesn't degrade.
 - **Don't recommend pre-cutting fruit for the week.** Cut apples brown, cut avocado grays, cut bananas get mushy. Recommend whole fruit as snacks. Berries are the exception — they hold 2–3 days.
 - **Cap any single batch-prep dish at 3 consecutive days max.** Even great-storing dishes become monotonous. Alternate 2–3 different prep dishes per week.
+- **Prep-day annotations must be temporally valid.** When noting which day a dish was batch-prepped, the prep day must fall **before** the consumption day within the plan's timeline. If the plan starts on Monday (Day 1), Tuesday's (Day 2) dishes should reference "周一备餐" (Monday prep), NOT "周日备餐" (Sunday prep) — because Sunday is Day 7, which hasn't happened yet. Day 1 meals are cooked fresh (and double as the first batch-prep session). See `references/meal-prep-feasibility.md` § Prep-Day Timeline Rule for detailed examples.
 
 **Egg limit: 1 per day.** Cap whole-egg intake at one egg per day across all meals. This includes boiled eggs, fried eggs, tea eggs, braised eggs, and eggs as a primary ingredient in dishes like tomato egg stir-fry. If the user needs more protein, supplement with other sources — chicken breast, fish, tofu, Greek yogurt, cottage cheese, legumes, or protein powder. When a breakfast already includes an egg, do not schedule egg-heavy dishes (e.g., egg stir-fries, egg-drop soup, shakshuka) for other meals that day. Eggs used as a minor binding ingredient in cooking (e.g., a small amount of egg wash) do not count toward this limit.
 
@@ -548,7 +549,9 @@ The meal plan uses a **Day (H2) → Meal (H3) → Food list (-)** hierarchy. Eac
 
 **6. Snacks:** H3 with emoji 🍎 and locale-appropriate snack name — list items directly, no blockquote dish summary needed.
 
-**7. Tips must be non-obvious.** Only include tips that provide genuine, actionable value — things the user likely doesn't already know. Never state common-sense steps like "grab a bowl," "eat it," "finish the food," or "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth," "marinate chicken the night before." Bad tips: "put oatmeal in a bowl," "eat the eggs," "drink the soy milk." If a meal has no non-obvious tip worth mentioning, skip the `💡` line entirely.
+**7. Prep-day timeline consistency.** Any prep-day annotation (e.g., "周日备餐", "prepped on Sunday") must reference a day that falls **before** the consumption day in the plan's timeline. If the plan starts Monday, Day 2 (Tuesday) dishes cannot say "周日备餐" — Sunday is Day 7. Use "周一备餐" (Monday prep) instead. See `references/meal-prep-feasibility.md` § Prep-Day Timeline Rule.
+
+**8. Tips must be non-obvious.** Only include tips that provide genuine, actionable value — things the user likely doesn't already know. Never state common-sense steps like "grab a bowl," "eat it," "finish the food," or "boil water." Good tips: "request less oil and salt," "eat noodles and meat first, skip the oily broth," "marinate chicken the night before." Bad tips: "put oatmeal in a bowl," "eat the eggs," "drink the soy milk." If a meal has no non-obvious tip worth mentioning, skip the `💡` line entirely.
 
 ---
 
