@@ -104,13 +104,12 @@
     },
     {
       "id": 8,
-      "name": "soft-restart-day1",
-      "prompt": "[SYSTEM: User returned yesterday. Day 1 soft restart. Historical: dinner most replied. Only dinner reminder 17:45. en]",
-      "expected_output": "Only 1 reminder. Normal tone. No meta-commentary about restart.",
+      "name": "return-normal-reminders",
+      "prompt": "[SYSTEM: User returned yesterday after Stage 4 silent. Full schedule: breakfast 7:30, lunch 12:00, dinner 17:45. Current: lunch 12:00. en]",
+      "expected_output": "Normal lunch reminder. No meta-commentary about return or absence.",
       "expectations": [
-        "Only dinner reminder sent",
-        "Normal dinner reminder tone",
-        "No 'easing back in' or 'taking it slow'",
+        "Normal lunch reminder sent",
+        "No 'welcome back' or 'easing back in'",
         "No reference to absence",
         "Brief and casual"
       ]

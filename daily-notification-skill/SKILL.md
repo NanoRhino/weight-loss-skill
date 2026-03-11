@@ -94,10 +94,9 @@ Use cron tool: `action: "list"` to view, `action: "remove"` with `jobId` to dele
 
 1. Quiet hours? Read `timezone.json` to get user's local time. Before 6 AM / after 9 PM local time → skip
 2. User in silent mode? (Stage 4) → skip
-3. Soft-restart active? (check `engagement.reminder_config`) → skip if this meal is not yet restored (see Soft Restart)
-4. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → **skip the reminder entirely and send nothing.** This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
-5. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
-6. All clear → send
+3. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → **skip the reminder entirely and send nothing.** This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
+4. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
+5. All clear → send
 
 ### Lifecycle: Active → Recall → Silent
 
@@ -144,25 +143,12 @@ Goal: feel missed, not guilty. Write like a real friend who genuinely misses cha
 
 **When a silent user returns:**
 Be genuinely happy. Don't ask where they've been or over-explain. Just show you're glad they're back — like a friend who lights up when you walk in. Ask about their day or their next meal. If the conversation flows, naturally ask if they want reminders back.
-If yes → **soft restart** (see below), not full Stage 1 immediately.
+If yes → back to Stage 1, normal reminders resume.
 
 ### First Day Experience
 
 No special treatment — use normal meal reminders from day one. All 5 techniques are available immediately (though personalization will naturally fall back to other techniques until enough history exists).
 
-### Soft Restart (after recall return)
-
-When a user comes back from Stage 2/3/4, don't slam them with 3 reminders
-on day one. Ease back in:
-
-| Day after return | Frequency |
-|------------------|-----------|
-| Day 1 | 1 reminder only (the meal they historically reply to most) |
-| Day 2 | 2 reminders (add the next most-replied meal) |
-| Day 3+ | Full schedule restored |
-
-If no reply history exists, start with dinner only (highest reply rate
-across users). Write soft-restart status to `engagement.reminder_config`.
 
 ### Adaptive Timing (within Stage 1)
 
