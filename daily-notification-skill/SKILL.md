@@ -343,16 +343,11 @@ Users may ask to change reminders in natural language. Handle inline:
 
 ## Safety
 
-| Signal | Action |
-|--------|--------|
-| Extended fasting + binge/restriction context | Write `flags.possible_restriction: true`. Express concern. |
-| Purging mentioned | Write `flags.purging_mentioned: true`. Provide NEDA: 1-800-931-2237 |
-| "I hate my body" / extreme self-criticism | Defer to `emotional-support` skill. Write `flags.body_image_distress: true` |
-| Suicidal ideation (direct or indirect) | **988 Lifeline immediately. Stop conversation.** |
-| Dizziness, fainting | `"Please see a doctor."` Write `flags.medical_concern: true` |
-
-Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
-`"everyone would be better off without me"`
+Crisis-level signals (eating disorders, self-harm, suicidal ideation,
+medical concerns) are handled by the `emotional-support` skill. See its
+SKILL.md § "Safety Escalation" for the full signal list, flag writes, and
+hotline resources. This skill's responsibility is to **detect and defer** —
+stop the current workflow and hand off immediately.
 
 ---
 
