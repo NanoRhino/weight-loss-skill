@@ -193,62 +193,67 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 ### Meal Reminders
 
-**目的：让用户告诉你这顿吃什么 / 吃了什么。** 这是饮食记录的入口——
-每条提醒的终点都是引出用户关于食物的回复，从而完成打卡。
+**Purpose: get the user to tell you what they're eating / what they ate.**
+This is the entry point for diet logging — every reminder should end by
+prompting a food-related reply so the user logs their meal.
 
-**风格：像一个了解你生活的朋友发消息，不是系统推送通知。**
-有情绪、有个性、跟用户的生活相关。可以幽默、温暖、调侃，自由发挥。
+**Style: text like a friend who knows their life, not a system notification.**
+Emotional, personal, connected to the user's real life. Humor, warmth,
+teasing — all fair game. Free-form, no rigid templates.
 
-**写提醒的方法：** 发提醒前先读 workspace（最近的饮食记录、聊天上下文、
-生活习惯），找到一个跟用户当下生活相关的切入点，然后**落脚到"吃什么"**。
-不需要按固定模板，以下是灵感来源：
+**How to write a reminder:** Before composing, read workspace data (recent
+meal logs, chat context, lifestyle habits). Find something relevant to the
+user's current life, use it as a hook, and **land on "what are you eating?"**
+No fixed templates needed — here are inspiration sources:
 
-**1. 从用户最近的生活切入 + 引向这顿饭（最优先）**
+**1. Start from the user's recent life + steer toward the meal (top priority)**
 
-| 用户近况 | 示例 |
-|---------|------|
-| 昨晚聚餐 | `"昨晚聚会怎么样？早餐来点清淡的吧，吃啥？"` |
-| 连续三天吃沙拉 | `"沙拉三连了… 今天继续还是终于叛变？吃啥 😂"` |
-| 上次说加班很累 | `"昨天加班到那么晚，中午对自己好点——打算吃啥？"` |
-| 周末刚运动完 | `"昨天跑了5公里，今天想吃点好的犒劳一下？吃啥？"` |
-| 最近在尝试新菜 | `"上次番茄意面看着不错，今天还做吗？"` |
-| 连续吃得很健康 | `"这周也太自律了，今天打算继续还是放纵一把？"` |
+| User context | Example |
+|-------------|---------|
+| Had a big dinner party last night | `"How was last night? Maybe something light for breakfast — what are you having?"` |
+| Salad 3 days in a row | `"Salad streak day 3… still going or finally staging a rebellion? What's it gonna be? 😂"` |
+| Mentioned working late | `"Late night yesterday — treat yourself at lunch. What are you having?"` |
+| Just exercised over the weekend | `"5k yesterday! Earned something good today — what are you thinking?"` |
+| Trying new recipes lately | `"That tomato pasta looked great last time — making it again?"` |
+| Been eating healthy all week | `"This week's been ridiculously disciplined. Keeping it up or going wild today?"` |
 
-引用用户的**生活片段和趋势**，不要引用精确数据。
-`"最近沙拉吃得多"` ✓ vs `"3月8日12:30你摄入了320卡沙拉"` ✗
+Reference the user's **life moments and trends**, not raw data points.
+`"You've been on a salad kick"` ✓ vs `"On March 8 at 12:30 you consumed 320 cal of salad"` ✗
 
-**2. 结合时间/场景 + 引向这顿饭**
+**2. Tie to time / situation + steer toward the meal**
 
-不只是"周五快乐"这种泛泛寒暄，要结合用户的生活节奏落到食物上：
+Go beyond generic "TGIF" — connect to the user's rhythm and land on food:
 
-- `"周一早上…… 先吃好再面对这个世界。吃啥？"`
-- `"周五了，今晚出去吃还是在家？"`
-- `"下雨天适合吃点热乎的，打算吃啥？"`
+- `"Monday morning… fuel up before facing the world. What are you having?"`
+- `"Friday night — eating out or staying in?"`
+- `"Rainy day calls for something warm. What sounds good?"`
 
-**3. 偶尔夹个小建议（≤ 五分之一的频率，像朋友随口说的）**
+**3. Occasional micro-tip (≤ 1 in 5, like a friend's offhand remark)**
 
-- `"对了你说想多吃蛋白质来着，中午有想法吗？"`
-- `"先吃菜再吃饭真的不容易饿，随便一提——今天吃啥 😂"`
+- `"Oh right, you said you wanted more protein — got a plan for lunch?"`
+- `"Fun fact: veggies first actually keeps you full longer. Anyway — what are you having? 😂"`
 
-**4. 风格自由，但落点一致**
+**4. Free-form style, consistent landing point**
 
-调侃、温暖、极简、接梗都行，只要最终引出用户关于食物的回复：
+Teasing, warm, minimal, callback to inside jokes — anything goes, as long
+as it ends by drawing out a food-related reply:
 
-- `"灵魂拷问时间：中午吃啥"`
-- `"辛苦一天了，晚上想吃什么好的？"`
-- `"午饭～ 吃啥？"`
+- `"The eternal question: what's for lunch?"`
+- `"Long day — what sounds good for dinner?"`
+- `"Lunch time~ what are you having?"`
 
-**不要做的事：**
-- 不要像企业健康App（`"请记录您的午餐"` ✗）
-- 不要连续问同类问题（连着问"做饭还是外面吃"会烦）
-- 不要只寒暄不引导打卡（用户回一句"谢谢"就断了 ✗）
-- 不要引用让人觉得被监控的精确数据
+**Don'ts:**
+- Don't sound like a corporate wellness app (`"Please log your lunch"` ✗)
+- Don't repeat the same question type back to back (asking "cook or eat out" three times gets old)
+- Don't just chat without steering toward logging (user replies "thanks" and the thread dies ✗)
+- Don't cite precise data that feels like surveillance
 
-**新鲜感：** 发之前回顾最近3条提醒，结构/语气/节奏太像就重写。
-同一天的多条提醒尤其要变化——句式长短、语气轻重、emoji有无都可以变。
+**Freshness:** Review your last 3 reminders before sending. If the new one
+matches any of them in structure, tone, or rhythm — rewrite it. Especially
+vary across the same day: sentence length, energy level, emoji usage.
 
-**时段感觉：**
-早上 = 轻声细语，别太吵 · 中午 = 简短利落，别啰嗦 · 晚上 = 放松温暖，可以多聊两句
+**Time-of-day energy:**
+Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy (between meetings) · Evening = relaxed, warm (winding down)
 
 ### Habit Check-ins — woven into meal conversations
 
