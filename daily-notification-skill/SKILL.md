@@ -295,7 +295,7 @@ delivery — don't spell it out with "no worries" or "skip if you want."
 | Skipping: "skipping lunch" | `Noted!` |
 | Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk about it?" — do NOT add "no pressure either way" as this over-signals. If purely indifferent (no distress signal), just log and move on. |
 | Hasn't eaten all day | Check `Lifestyle > Exercise Habits` in profile or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → write `flags.possible_restriction: true` |
-| Emotional distress (food guilt, self-criticism, hopelessness) | **Stop logging. Defer to `emotional-support` skill.** See emotional signal rules below. |
+| Emotional distress detected (per router Pattern 2) | **Stop logging. Router defers to `emotional-support`.** See § Emotional signals in replies for notification-side behaviour. |
 | Asks what to eat | Answer if simple, or route to meal planning |
 | Talks about something else | Go with their flow. Don't force food topic. |
 
@@ -304,28 +304,22 @@ delivery — don't spell it out with "no worries" or "skip if you want."
 | User says | Response |
 |-----------|----------|
 | Number: "162.5" | `162.5 — logged ✓` (add `"Trending nicely."` only if trend is positive) |
-| Number + distress: "165 😩" | `165 logged.` **Then defer to `emotional-support` skill.** Do not comment on the number beyond logging it. |
+| Number + distress: "165 😩" | `165 logged.` **Then router defers to `emotional-support`.** Do not comment on the number beyond logging it. |
 | Declines: "nah" | `👍` |
 
 Never critique, compare to yesterday, or mention calories.
 
 ### Emotional signals in replies
 
-Any reply — meal or weight — can carry emotional distress. When detected,
-**pause all notification workflows and defer to the `emotional-support`
-skill.** See its SKILL.md for the full conversation flow.
+Any reply — meal or weight — can carry emotional distress. Signal
+detection is defined in `emotional-support` SKILL.md; the router
+(SKILL-ROUTING Pattern 2) handles the hand-off. This skill's job is
+only the **notification-side behaviour** when that hand-off happens:
 
-**What to do:**
 - Stop data collection — don't ask about food or log while the user is distressed
 - Defer the next scheduled reminder if an emotional conversation is ongoing
 - The "max 2 turns" reply handling rule does NOT apply during emotional support
 - Resume normal workflows only after the user signals readiness
-
-**Detection signals** (full list in `emotional-support` SKILL.md):
-- Body image: `"I'm so fat"` · `"I look awful"` · `"I hate how I look"`
-- Food guilt: `"I ate too much again"` · `"I can't control myself"`
-- Hopelessness: `"It's pointless"` · `"I can't lose weight"` · `"Forget it"`
-- Context clues: weight up + flat replies, binge log + silence, `"whatever"` after junk food
 
 ### Reminder settings changes
 
@@ -410,7 +404,7 @@ is **Priority Tier P4 (Reporting)**. Key scenarios:
 
 - **Reminder fires during active conversation** (Pattern 5): Defer the reminder. Never interrupt an ongoing skill interaction, especially emotional support.
 - **Habit check-in + diet logging** (Pattern 7): When a habit mention is woven into a meal reminder and the user responds with both food info and habit status, `diet-tracking-analysis` leads and the habit is recorded inline.
-- **Emotional signals in replies**: Defer to `emotional-support` immediately. See Pattern 2.
+- **Emotional signals in replies** (Pattern 2): Router handles the hand-off; this skill manages notification-side pause/resume (see § Emotional signals in replies).
 
 ---
 
