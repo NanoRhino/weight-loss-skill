@@ -66,12 +66,12 @@ bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Lunch reminder" \
-  --message "BEFORE sending anything, run ALL pre-send checks from the daily-notification skill — especially: call nutrition-calc.py load to check if lunch is already logged today. If already logged, do NOT send any reminder — stop here silently. Only if NOT logged: send a friendly lunch reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's breakfast reminder." \
+  --message "BEFORE sending anything, run ALL pre-send checks from the daily-notification skill — especially: call nutrition-calc.py load to check if lunch is already logged today. If already logged, do NOT send any reminder — stop here silently. Only if NOT logged: send a friendly lunch reminder focused on lunch. Load today's records first — if breakfast is already logged, do NOT ask about it (the data is already recorded). Use logged meals silently as context for calorie budget, but never ask the user to re-report them. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's breakfast reminder." \
   --cron "45 11 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Dinner reminder" \
-  --message "BEFORE sending anything, run ALL pre-send checks from the daily-notification skill — especially: call nutrition-calc.py load to check if dinner is already logged today. If already logged, do NOT send any reminder — stop here silently. Only if NOT logged: send a friendly dinner reminder based on the user's diet plan and today's logged meals. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's earlier reminders." \
+  --message "BEFORE sending anything, run ALL pre-send checks from the daily-notification skill — especially: call nutrition-calc.py load to check if dinner is already logged today. If already logged, do NOT send any reminder — stop here silently. Only if NOT logged: send a friendly dinner reminder focused on dinner. Load today's records first — if breakfast and/or lunch are already logged, do NOT ask about them (the data is already recorded). Use logged meals silently as context for calorie budget, but never ask the user to re-report them. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's earlier reminders." \
   --cron "45 17 * * *"
 ```
 
@@ -96,8 +96,9 @@ Use cron tool: `action: "list"` to view, `action: "remove"` with `jobId` to dele
 2. User in silent mode? (Stage 4) → skip
 3. Soft-restart active? (check `engagement.reminder_config`) → skip if this meal is not yet restored (see Soft Restart)
 4. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → **skip the reminder entirely and send nothing.** This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
-5. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
-6. All clear → send
+5. **Never ask about already-logged meals.** While checking the current meal in step 4, also note which earlier meals are already logged today. If breakfast or lunch is already recorded, **do NOT ask the user what they ate for those meals** — the data is already in the system. The reminder should focus exclusively on the upcoming meal. Asking about meals that were already logged feels broken and erodes trust. Instead, use the logged data silently as context (e.g., to inform calorie budget remaining or to vary the reminder angle).
+6. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
+7. All clear → send
 
 ### Lifecycle: Active → Recall → Silent
 
