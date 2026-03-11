@@ -255,27 +255,12 @@ vary across the same day: sentence length, energy level, emoji usage.
 **Time-of-day energy:**
 Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy (between meetings) · Evening = relaxed, warm (winding down)
 
-### Habit Check-ins — woven into meal conversations
+### Habit Check-ins
 
-Read `habits.active` before composing each meal reminder. If an active habit
-exists, mention it roughly **once every 3–4 meal reminders** — not every time.
-Pick the reminder slot that best matches the habit type (see table below).
-Track mention count in `habits.mention_counter` to space them out evenly.
-
-| Habit type | How to weave | Example |
-|------------|-------------|---------|
-| Meal-bound (before/during meal) | Build into the meal reminder itself | `"Lunch time — protein first today?"` |
-| Post-meal | Mention when user replies to the meal check-in | User logs dinner → `"Nice. Going for a walk after?"` |
-| End-of-day | Attach to the last meal conversation of the day | After dinner reply → `"Try to wrap up by 11 tonight?"` |
-| Next-morning recovery | Confirm in next day's first conversation | `"Morning! Did you make it to bed by 11 last night?"` |
-| All-day (water, steps) | Drop into a random meal conversation | `"How's the water going today?"` |
-
-**Rules:**
-- **Frequency: ~1 in 3–4 reminders.** Don't mention the habit every time — it should feel like a casual aside, not a second tracking system. Use `habits.mention_counter` to keep count and skip if the last mention was < 2 reminders ago.
-- One sentence max for the habit mention — don't make it a separate topic
-- If user responds to the habit mention, record it to `habits.daily_log.{date}` (see `habit-builder` SKILL.md for completion tracking)
-- If the user ignores the habit mention 3 times in a row, stop mentioning it until the next Weekly Review
-- Tone: casual, like a friend — `"Walk after dinner tonight?"` not `"Did you complete your habit today?"`
+Habit check-in logic (when to mention, how often, tone, recording responses)
+is owned by the `habit-builder` skill. See its SKILL.md § "How Habits Get
+Into Conversations" for the full rules. This skill provides the meal
+conversation as the vehicle — habit-builder decides what to weave in.
 
 ### Weight Reminders — always optional framing, always mention fasting
 
