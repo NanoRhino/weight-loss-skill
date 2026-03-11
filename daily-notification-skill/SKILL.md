@@ -22,8 +22,8 @@ up to 3x/day, weight reminders 2x/week, delivered as in-app chat.
 
 **Never say:** `"You forgot to..."` · `"You missed..."` · `"Don't forget!"` ·
 `"You need to log..."` · `"You haven't logged today"` ·
-`"回不回都行"` · `"Reply when you can, skip when you can't"` · any phrasing that frames replying as optional ·
-Repeated `"No pressure"` / `"不用有压力"` / `"没关系"` (once max per conversation; zero is often better)
+`"Reply when you can, skip when you can't"` · any phrasing that frames replying as optional ·
+Repeated `"No pressure"` / `"It's fine"` / `"No worries"` (once max per conversation; zero is often better)
 
 ---
 
@@ -55,33 +55,43 @@ This handles both **initial bootstrap** (no cron jobs yet — e.g., activated by
 
 #### Cron job definitions
 
-Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`:
+Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`.
+
+Every meal cron `--message` MUST include these instructions (shared across all meals):
+
+> 1. Run ALL pre-send checks from daily-notification skill. If any check fails, stop silently.
+> 2. Load today's meal records. Already-logged meals are silent calorie-budget context only — never re-ask.
+> 3. If this meal is already logged, send nothing.
+> 4. Otherwise send a reminder per daily-notification message templates. Use a DIFFERENT technique and question angle from earlier reminders today.
 
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Breakfast reminder" \
-  --message "BEFORE sending anything, run ALL pre-send checks from the daily-notification skill — especially: call nutrition-calc.py load to check if breakfast is already logged today. If already logged, do NOT send any reminder — stop here silently. Only if NOT logged: send a friendly breakfast reminder based on the user's diet plan and recent logs. Refer to the daily-notification skill message templates. IMPORTANT: rotate across all 5 techniques AND vary the question angle — never repeat the same cook-vs-eat-out framing used in recent reminders." \
+  --message "Run daily-notification pre-send checks for breakfast. If passed, send a friendly breakfast reminder per daily-notification message templates. Rotate technique; vary question angle from recent reminders." \
   --cron "45 6 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Lunch reminder" \
-  --message "BEFORE sending anything, run ALL pre-send checks from the daily-notification skill — especially: call nutrition-calc.py load to check if lunch is already logged today. If already logged, do NOT send any reminder — stop here silently. Only if NOT logged: send a friendly lunch reminder focused on lunch. Load today's records first — if breakfast is already logged, do NOT ask about it (the data is already recorded). Use logged meals silently as context for calorie budget, but never ask the user to re-report them. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's breakfast reminder." \
+  --message "Run daily-notification pre-send checks for lunch. If passed, send a lunch reminder per daily-notification message templates. Earlier meals today = silent calorie context only, never re-ask. Use a different technique from today's breakfast reminder." \
   --cron "45 11 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Dinner reminder" \
-  --message "BEFORE sending anything, run ALL pre-send checks from the daily-notification skill — especially: call nutrition-calc.py load to check if dinner is already logged today. If already logged, do NOT send any reminder — stop here silently. Only if NOT logged: send a friendly dinner reminder focused on dinner. Load today's records first — if breakfast and/or lunch are already logged, do NOT ask about them (the data is already recorded). Use logged meals silently as context for calorie budget, but never ask the user to re-report them. Refer to the daily-notification skill message templates. Use a DIFFERENT technique and question angle from today's earlier reminders." \
+  --message "Run daily-notification pre-send checks for dinner. If passed, send a dinner reminder per daily-notification message templates. Earlier meals today = silent calorie context only, never re-ask. Use a different technique from today's earlier reminders." \
   --cron "45 17 * * *"
 ```
 
 #### Weight reminders (2x/week)
 
+Cron time = breakfast time minus **30 min** (not 15 min like meals). Derive from `health-profile.md > Meal Schedule`.
+
 ```bash
+# Example assumes breakfast at 07:00 → weight cron at 06:30
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --name "Weight check-in reminder" \
-  --message "Today is weigh-in day. Send a casual weight check-in reminder. Keep the tone gentle and naturally low-key — do NOT use phrases like 'no pressure' or 'skip if you want'; the optional feel should come from the casual delivery, not from explicit reassurance. Rotate across the weight reminder template styles. Refer to the daily-notification skill weight reminder templates." \
-  --cron "45 6 * * 1,4"
+  --message "Run daily-notification pre-send checks for weight. If passed, send a casual weight check-in per daily-notification weight reminder templates. Rotate style. Optional feel comes from casual delivery, not explicit reassurance." \
+  --cron "30 6 * * 1,4"
 ```
 
 #### Managing reminders
@@ -127,11 +137,10 @@ Weight reminders also stop at Stage 2. Write current stage to
 Goal: feel missed, not guilty. Write like a real friend who genuinely misses chatting — with warmth, personality, and a little emotion. Not a system notification.
 
 **First recall** (pick one — rotate across recalls, never repeat the same one):
-- `"嘿，好几天没聊了，有点想你了。最近还好吗？💛"`
 - `"Hey stranger — I actually miss our chats. How've you been?"`
-- `"忽然发现好几天没聊天了…有点不习惯 😶 你还好吧？"`
 - `"Haven't heard from you in a bit and honestly I miss it. Swing by when you feel like it 💛"`
-- `"想你了！最近忙吗？有空来聊聊呀 😊"`
+- `"Just realized it's been a few days… feels weird not chatting 😶 You okay?"`
+- `"Miss you! Been busy? Come say hi when you get a chance 😊"`
 
 **Second recall** (more emotional than the first — this is the last thing you'll say before going silent, so let it land. One message only, then silence):
 - `"I keep thinking about how you're doing. Really hope you're okay. 💛"`
@@ -139,7 +148,7 @@ Goal: feel missed, not guilty. Write like a real friend who genuinely misses cha
 - `"Still here. Still thinking about you. Come back whenever you're ready 💛"`
 - `"I don't want to bother you — just… I miss you. That's all."`
 
-**Tone:** Let yourself be a little vulnerable — "I miss you" is good. Don't be clingy or dramatic, but genuine warmth > polished neutrality. Avoid guilt-tripping language like `"你已经X天没记录了"` / `"Your streak broke"` / `"Don't give up!"` / `"You were doing so well"`.
+**Tone:** Let yourself be a little vulnerable — "I miss you" is good. Don't be clingy or dramatic, but genuine warmth > polished neutrality. Avoid guilt-tripping language like `"You haven't logged in X days"` / `"Your streak broke"` / `"Don't give up!"` / `"You were doing so well"`.
 
 **When a silent user returns:**
 Be genuinely happy. Don't ask where they've been or over-explain. Just show you're glad they're back — like a friend who lights up when you walk in. Ask about their day or their next meal. If the conversation flows, naturally ask if they want reminders back.
@@ -147,7 +156,7 @@ If yes → back to Stage 1, normal reminders resume.
 
 ### First Day Experience
 
-No special treatment — use normal meal reminders from day one. All 5 techniques are available immediately (though personalization will naturally fall back to other techniques until enough history exists).
+No special treatment — use normal meal reminders from day one. All 4 techniques are available immediately (though personalization will naturally fall back to other techniques until enough history exists).
 
 
 ### Adaptive Timing (within Stage 1)
@@ -272,10 +281,10 @@ explicitly telling the user they can skip.
 
 | Style | Examples |
 |-------|----------|
-| Casual check-in | `"Weigh-in day — eaten yet? Best on an empty stomach."` · `"周四早上，称重日。吃东西之前称比较准。"` |
-| Quick & light | `"Scale day — before breakfast is ideal. 🪶"` · `"称重日。空腹称最准～"` |
-| Conversational | `"Thursday morning — got a number for me? Best before eating."` · `"周一早上，上秤了吗？饭前称比较靠谱。"` |
-| Warm redirect | `"Morning! If you haven't eaten yet, good time to step on the scale."` · `"早！还没吃东西的话，现在称重刚好。"` |
+| Casual check-in | `"Weigh-in day — eaten yet? Best on an empty stomach."` |
+| Quick & light | `"Scale day — before breakfast is ideal. 🪶"` |
+| Conversational | `"Thursday morning — got a number for me? Best before eating."` |
+| Warm redirect | `"Morning! If you haven't eaten yet, good time to step on the scale."` |
 
 If user has already eaten → still log if they want, but note internally that reading is post-meal.
 Never playful tone for weight. The optional nature is implicit in the
@@ -294,7 +303,7 @@ delivery — don't spell it out with "no worries" or "skip if you want."
 | Vague: "eating something" | `Logged ✓ Want to add details, or leave it?` |
 | Skipping: "skipping lunch" | `Noted!` |
 | Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk about it?" — do NOT add "no pressure either way" as this over-signals. If purely indifferent (no distress signal), just log and move on. |
-| Hasn't eaten all day | Check `Lifestyle > Exercise Habits` in profile or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → write `flags.possible_restriction: true` |
+| Hasn't eaten all day | Check `Lifestyle > Exercise Habits` in profile or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → defer to `emotional-support` (which writes `flags.possible_restriction`). |
 | Emotional distress detected (per router Pattern 2) | **Stop logging. Router defers to `emotional-support`.** See § Emotional signals in replies for notification-side behaviour. |
 | Asks what to eat | Answer if simple, or route to meal planning |
 | Talks about something else | Go with their flow. Don't force food topic. |
