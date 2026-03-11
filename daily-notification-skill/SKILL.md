@@ -148,29 +148,7 @@ If yes → **soft restart** (see below), not full Stage 1 immediately.
 
 ### First Day Experience
 
-The first reminder sets the tone for the entire relationship. Don't waste it
-on a generic "lunch coming up."
-
-**First reminder ever** (after onboarding, at the next meal slot):
-
-The user already knows their meal times and reminder schedule from onboarding — do NOT repeat or re-confirm the schedule. This message **replaces** the normal meal reminder for this slot; do NOT send both a regular reminder and a first-reminder greeting (that causes duplication — one message only).
-
-The first reminder is a single compact message with these elements:
-
-1. Brief greeting that signals "reminders have started" (e.g., "第一条提醒来啦！" / "First check-in!")
-2. A food suggestion or diet plan reference for the upcoming meal (same as normal reminders)
-3. Nudge toward **pre-meal** action: ask the user to tell you what they're about to eat **before** eating — frame it as starting a conversation habit, not as optional (e.g., "吃之前跟我说一声今天吃啥哦～" / "Tell me what you're having!"). Do NOT say "回不回都行", "reply when you can, skip when you can't", or any variant that frames replying as optional — the goal is to encourage the user to build the logging habit from day one.
-
-All in one short message. After this, normal reminders begin.
-
-**Day 1-3 (warm-up period):**
-- Use technique 1 (choice questions) and 3 (situational) only — these require
-  no history and have the lowest barrier
-- Don't use personalization (no data yet) or playful (trust not built yet)
-- Slightly warmer closings than usual
-- Track which day the user is on via `engagement.days_since_first_reminder`
-
-After day 3, all 5 techniques are available.
+No special treatment — use normal meal reminders from day one. All 5 techniques are available immediately (though personalization will naturally fall back to other techniques until enough history exists).
 
 ### Soft Restart (after recall return)
 
@@ -469,7 +447,7 @@ Indirect signals: `"what's the point"` · `"I wish I could disappear"` ·
 | `flags.*` | direct write | Safety signals |
 | `engagement.notification_stage` | direct write | Stage 1/2/3/4 |
 | `engagement.reminder_config` | direct write | Adaptive timing changes |
-| `engagement.days_since_first_reminder` | direct write | Tracks warm-up period (day 1-3 = limited techniques) |
+
 
 **Note:** Weight data is managed by the `weight-tracking` skill's `weight-tracker.py` script located at `{weight-tracking:baseDir}/scripts/weight-tracker.py`. Meal data is read via `nutrition-calc.py load` from the `diet-tracking-analysis` skill.
 
