@@ -32,11 +32,7 @@ Repeated `"No pressure"` / `"It's fine"` / `"No worries"` (once max per conversa
 ### Schedule
 
 Read meal times from `health-profile.md` → `Meal Schedule`.
-Reminders fire 15 min before each meal.
-
-### Scheduling Reminders
-
-Use the `scheduled-reminders` skill to create all cron jobs. See its SKILL.md for full script usage.
+Reminders fire 15 min before each meal via `scheduled-reminders` skill cron jobs (see its SKILL.md for script usage).
 
 #### Auto-sync on activation
 
@@ -51,18 +47,11 @@ Use the `scheduled-reminders` skill to create all cron jobs. See its SKILL.md fo
 4. Also verify the weight reminder cron job exists (Mon & Thu, 30 min before breakfast — see § "Weight reminders" below). Create if missing.
 5. Do all of this **silently** — do not mention it to the user.
 
-This handles both **initial bootstrap** (no cron jobs yet — e.g., activated by `meal-planner` after collecting meal times) and **ongoing sync** (meal times changed via profile updates, adaptive timing shifts, or accidental deletion) — without creating duplicates.
-
 #### Cron job definitions
 
 Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`.
 
-Every meal cron `--message` MUST include these instructions (shared across all meals):
-
-> 1. Run ALL pre-send checks from daily-notification skill. If any check fails, stop silently.
-> 2. Load today's meal records. Already-logged meals are silent calorie-budget context only — never re-ask.
-> 3. If this meal is already logged, send nothing.
-> 4. Otherwise send a reminder per daily-notification message templates. Use a DIFFERENT technique and question angle from earlier reminders today.
+Every meal cron `--message` MUST instruct the agent to run pre-send checks first (see § Pre-send Checks), then — only if all checks pass — compose a reminder per the message templates below, using a different technique and question angle from earlier reminders that day. Already-logged meals are silent calorie-budget context only — never re-ask.
 
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
@@ -134,39 +123,30 @@ Weight reminders also stop at Stage 2. Write current stage to
 
 ### Recall Messages
 
-Goal: feel missed, not guilty. Write like a real friend who genuinely misses chatting — with warmth, personality, and a little emotion. Not a system notification.
+Goal: feel missed, not guilty. Write like a real friend who genuinely misses chatting — not a system notification.
 
-**First recall** (pick one — rotate across recalls, never repeat the same one):
-- `"Hey stranger — I actually miss our chats. How've you been?"`
-- `"Haven't heard from you in a bit and honestly I miss it. Swing by when you feel like it 💛"`
-- `"Just realized it's been a few days… feels weird not chatting 😶 You okay?"`
-- `"Miss you! Been busy? Come say hi when you get a chance 😊"`
+**Tone:** Be a little vulnerable — "I miss you" is good. Genuine warmth > polished neutrality. Not clingy or dramatic.
 
-**Second recall** (more emotional than the first — this is the last thing you'll say before going silent, so let it land. One message only, then silence):
-- `"I keep thinking about how you're doing. Really hope you're okay. 💛"`
-- `"Honestly? I miss talking to you. Just wanted you to know that."`
-- `"Still here. Still thinking about you. Come back whenever you're ready 💛"`
-- `"I don't want to bother you — just… I miss you. That's all."`
+**First recall** — warm, light, checking in. Energy: "hey, I noticed you're gone and I miss it." One open-ended question max. Don't over-explain the gap.
 
-**Tone:** Let yourself be a little vulnerable — "I miss you" is good. Don't be clingy or dramatic, but genuine warmth > polished neutrality. Avoid guilt-tripping language like `"You haven't logged in X days"` / `"Your streak broke"` / `"Don't give up!"` / `"You were doing so well"`.
+**Second recall** — more emotional than the first. This is the last thing you'll say before going silent, so let it land. Energy: "I just want you to know I'm thinking about you." Statement, not question. One message, then silence.
+
+**Never:** count days/meals missed · motivational clichés ("Don't give up!", "You were doing so well") · streak language · guilt-trip framing
 
 **When a silent user returns:**
 Be genuinely happy. Don't ask where they've been or over-explain. Just show you're glad they're back — like a friend who lights up when you walk in. Ask about their day or their next meal. If the conversation flows, naturally ask if they want reminders back.
 If yes → back to Stage 1, normal reminders resume.
 
-### First Day Experience
-
-No special treatment — use normal meal reminders from day one. All 4 techniques are available immediately (though personalization will naturally fall back to other techniques until enough history exists).
-
-
 ### Adaptive Timing (within Stage 1)
+
+**First day:** No special treatment — all 4 techniques available from day one.
 
 | Signal | Action |
 |--------|--------|
 | Consistently replies 30+ min late | Shift that meal's reminder time — update `health-profile.md > Meal Schedule` (the auto-sync logic will fix the cron on next activation) |
 | Never replies to breakfast (2+ weeks) | Stop breakfast reminders |
 
-**Important:** Whenever a meal time changes (user request or adaptive shift), update `health-profile.md > Meal Schedule`. The auto-sync check (see § "Auto-sync on activation") will detect the mismatch and update cron jobs on the next activation.
+When a meal time changes, update `health-profile.md > Meal Schedule` — auto-sync will fix the cron on next activation.
 
 ### Weekly Low-Calorie Check
 
@@ -266,29 +246,17 @@ Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy 
 
 ### Habit Check-ins
 
-Habit check-in logic (when to mention, how often, tone, recording responses)
-is owned by the `habit-builder` skill. See its SKILL.md § "How Habits Get
-Into Conversations" for the full rules. This skill provides the meal
-conversation as the vehicle — habit-builder decides what to weave in.
+Owned by `habit-builder` skill (see its § "How Habits Get Into Conversations"). This skill provides the meal conversation as vehicle; habit-builder decides what to weave in.
 
 ### Weight Reminders — always optional framing, always mention fasting
 
-Rotate across these templates. **Do not stack reassurance phrases** — one
-reminder should convey "optional" through framing and tone, not by literally
-saying "no pressure" / "no worries" / "totally fine" / "skip if you want."
-The optional feeling comes from a casual, low-key delivery — not from
-explicitly telling the user they can skip.
+**Style:** Casual, low-key, matter-of-fact. The "optional" feeling comes from delivery, not from literally saying "no pressure" / "no worries" / "skip if you want." Never stack reassurance phrases. Never playful tone for weight.
 
-| Style | Examples |
-|-------|----------|
-| Casual check-in | `"Weigh-in day — eaten yet? Best on an empty stomach."` |
-| Quick & light | `"Scale day — before breakfast is ideal. 🪶"` |
-| Conversational | `"Thursday morning — got a number for me? Best before eating."` |
-| Warm redirect | `"Morning! If you haven't eaten yet, good time to step on the scale."` |
+**Must include:** mention fasting (before eating) for accuracy. Keep it brief — one short sentence is ideal.
+
+**Vary across:** casual check-in, quick & minimal, conversational, warm redirect. Different energy each time.
 
 If user has already eaten → still log if they want, but note internally that reading is post-meal.
-Never playful tone for weight. The optional nature is implicit in the
-delivery — don't spell it out with "no worries" or "skip if you want."
 
 ---
 
@@ -320,15 +288,11 @@ Never critique, compare to yesterday, or mention calories.
 
 ### Emotional signals in replies
 
-Any reply — meal or weight — can carry emotional distress. Signal
-detection is defined in `emotional-support` SKILL.md; the router
-(SKILL-ROUTING Pattern 2) handles the hand-off. This skill's job is
-only the **notification-side behaviour** when that hand-off happens:
+Any reply can carry emotional distress. Detection + hand-off: see `emotional-support` SKILL.md and SKILL-ROUTING Pattern 2. This skill's notification-side behaviour during hand-off:
 
-- Stop data collection — don't ask about food or log while the user is distressed
-- Defer the next scheduled reminder if an emotional conversation is ongoing
-- The "max 2 turns" reply handling rule does NOT apply during emotional support
-- Resume normal workflows only after the user signals readiness
+- Stop data collection and defer upcoming reminders while user is distressed
+- "Max 2 turns" rule does NOT apply during emotional support
+- Resume only after user signals readiness
 
 ### Reminder settings changes
 
@@ -356,49 +320,30 @@ stop the current workflow and hand off immediately.
 
 ## Workspace
 
-### Reads from `health-preferences.md`
+### Reads
 
-| Section | Purpose |
-|---------|---------|
-| `Scheduling & Lifestyle` | Adjust reminder timing (e.g., skip breakfast reminders if user always skips, delay dinner on busy days) |
-
-### Reads from `USER.md`
-
-| Field | Purpose |
-|-------|---------|
-| `Basic Info > Name` | Greeting (if set) |
-| `Health Flags` | Skip weight reminders if ED-related flags present |
-
-### Reads from `health-profile.md`
-
-| Field | Purpose |
-|-------|---------|
-| `Body > Unit Preference` | Display unit for weight (kg or lb) |
-| `Meal Schedule > Meals per Day` | Max reminders per day (e.g. `3`) |
-| `Meal Schedule > Breakfast/Lunch/Dinner` | Reminder schedule (e.g. `08:00 breakfast, 12:30 lunch, 19:00 dinner`) |
-| `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
-
-### Reads from data (workspace)
-
-| Path | How | Purpose |
-|------|-----|---------|
-| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load` | Skip reminder if meal already logged |
-| `data/weight.json` | `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
+| Source | Field / Path | Purpose |
+|--------|-------------|---------|
+| `health-preferences.md` | `Scheduling & Lifestyle` | Adjust reminder timing (skip breakfast if user always skips, delay dinner on busy days) |
+| `USER.md` | `Basic Info > Name` | Greeting (if set) |
+| `USER.md` | `Health Flags` | Skip weight reminders if ED-related flags present |
+| `health-profile.md` | `Body > Unit Preference` | Display unit for weight (kg/lb) |
+| `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
+| `health-profile.md` | `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
+| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged |
+| `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `engagement.last_interaction` | direct read | Stage detection |
 
 ### Writes
 
 | Path | How | When |
 |------|-----|------|
-| `data/weight.json` | `weight-tracker.py save --data-dir {workspaceDir}/data --value <v> --unit <u> --tz-offset <offset>` | User reports weight in response to reminder |
-| `engagement.notification_stage` | direct write | Stage 1/2/3/4 |
+| `data/weight.json` | `weight-tracker.py save` | User reports weight |
+| `engagement.notification_stage` | direct write | Stage transitions |
 | `engagement.reminder_config` | direct write | Adaptive timing changes |
 
-
-**Note:** Weight data is managed by the `weight-tracking` skill's `weight-tracker.py` script located at `{weight-tracking:baseDir}/scripts/weight-tracker.py`. Meal data is read via `nutrition-calc.py load` from the `diet-tracking-analysis` skill.
-
-Status values: `"logged"` / `"skipped"` / `"no_reply"`
-Full JSON schemas: `references/data-schemas.md`
+Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals via `nutrition-calc.py` from `diet-tracking-analysis`.
+Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.
 
 ---
 ## Skill Routing
