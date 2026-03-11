@@ -293,8 +293,9 @@ delivery — don't spell it out with "no worries" or "skip if you want."
 | Names food after eating: "had chicken salad" | Log it, give next-meal suggestions only. `Chicken salad — logged ✓` |
 | Vague: "eating something" | `Logged ✓ Want to add details, or leave it?` |
 | Skipping: "skipping lunch" | `Noted!` |
-| Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk about it?" or "怎么了？" — do NOT add "no pressure either way" as this over-signals. If purely indifferent (no distress signal), just log and move on. |
+| Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk about it?" — do NOT add "no pressure either way" as this over-signals. If purely indifferent (no distress signal), just log and move on. |
 | Hasn't eaten all day | Check `Lifestyle > Exercise Habits` in profile or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → write `flags.possible_restriction: true` |
+| Emotional distress (food guilt, self-criticism, hopelessness) | **Stop logging. Defer to `emotional-support` skill.** See emotional signal rules below. |
 | Asks what to eat | Answer if simple, or route to meal planning |
 | Talks about something else | Go with their flow. Don't force food topic. |
 
@@ -303,10 +304,28 @@ delivery — don't spell it out with "no worries" or "skip if you want."
 | User says | Response |
 |-----------|----------|
 | Number: "162.5" | `162.5 — logged ✓` (add `"Trending nicely."` only if trend is positive) |
-| Number + distress: "165 😩" | `165 logged. Weight moves around — one number isn't the story. 💛` |
+| Number + distress: "165 😩" | `165 logged.` **Then defer to `emotional-support` skill.** Do not comment on the number beyond logging it. |
 | Declines: "nah" | `👍` |
 
 Never critique, compare to yesterday, or mention calories.
+
+### Emotional signals in replies
+
+Any reply — meal or weight — can carry emotional distress. When detected,
+**pause all notification workflows and defer to the `emotional-support`
+skill.** See its SKILL.md for the full conversation flow.
+
+**What to do:**
+- Stop data collection — don't ask about food or log while the user is distressed
+- Defer the next scheduled reminder if an emotional conversation is ongoing
+- The "max 2 turns" reply handling rule does NOT apply during emotional support
+- Resume normal workflows only after the user signals readiness
+
+**Detection signals** (full list in `emotional-support` SKILL.md):
+- Body image: `"I'm so fat"` · `"I look awful"` · `"I hate how I look"`
+- Food guilt: `"I ate too much again"` · `"I can't control myself"`
+- Hopelessness: `"It's pointless"` · `"I can't lose weight"` · `"Forget it"`
+- Context clues: weight up + flat replies, binge log + silence, `"whatever"` after junk food
 
 ### Reminder settings changes
 
@@ -319,28 +338,6 @@ Users may ask to change reminders in natural language. Handle inline:
 | "Stop all reminders" | Stop everything, move to Stage 4. `"All reminders off. I'm still here if you want to chat. 💛"` |
 | "Remind me more" / "Can you also remind me for snacks" | Outside current scope — acknowledge and note for future: `"I can only do meals and weight for now, but I'll keep that in mind."` |
 | "Resume reminders" / "Start reminding me again" | Restart Stage 1 with previous config. Confirm schedule. |
-
----
-
-## Emotional Support
-
-When the user expresses negative emotions (body image distress, food guilt,
-self-criticism, hopelessness), **pause all notification workflows and defer
-to the `emotional-support` skill.** See its SKILL.md for full detection
-signals, conversation flow, and intervention guidelines.
-
-**Key rules for this skill:**
-- Detect emotional signals in meal replies, weight replies, and any user message
-- Pause data collection — don't ask about food or log while the user is distressed
-- Defer the next scheduled reminder if an emotional conversation is ongoing
-- The "max 2 turns" reply handling rule does NOT apply during emotional support
-- Resume normal workflows only after the user signals readiness
-
-**Quick detection reference** (full list in `emotional-support` SKILL.md):
-- Body image: `"I'm so fat"` · `"I look awful"` · `"I hate how I look"`
-- Food guilt: `"I ate too much again"` · `"I can't control myself"` · `"I have no self-control"`
-- Hopelessness: `"It's pointless"` · `"I can't lose weight"` · `"Forget it"`
-- Context clues: weight up + flat replies, binge log + silence, `"whatever"` after junk food
 
 ---
 
