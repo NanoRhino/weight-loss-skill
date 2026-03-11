@@ -191,84 +191,67 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 ## Message Templates
 
-### Meal Reminders — 5 techniques, rotate them
+### Meal Reminders — 像朋友一样聊，不是按模板发通知
 
-**Hard rule: no same-day repetition.** Each reminder in a single day MUST use
-a different technique AND a different question angle. If breakfast asked
-"自己做还是出去吃?", lunch and dinner cannot ask any variant of cook-vs-eat-out.
-Track which technique and angle you used today and pick a fresh combination
-for the next meal. The user receives up to 3 reminders per day — if all three
-sound alike, the system feels robotic.
+**核心原则：每条提醒都应该让用户觉得"这个人了解我的生活"。**
 
-**1. Choice question** (lowest barrier — one word to reply, encourages pre-meal logging):
+提醒不是填空题，不要套模板。每次发提醒前，先读 workspace 里的用户数据
+（最近的饮食记录、生活习惯、聊天上下文），然后像一个了解对方生活的朋友
+一样说话。可以幽默、可以温暖、可以调侃，自由发挥——唯一的要求是真实、
+有情绪、跟用户的生活有关。
 
-Vary the axis of the choice. Do NOT always ask "cook vs eat out" — that is
-just one of many possible angles:
+**写提醒的思路（不是固定步骤，是灵感来源）：**
 
-| Angle | Examples |
-|-------|----------|
-| Cook vs eat out | `"Making something or picking something up?"` · `"Homemade or takeout tonight?"` |
-| Light vs hearty | `"Going light or going all in?"` · `"Snacky lunch or real meal?"` |
-| Planned vs spontaneous | `"Got a plan or winging it?"` · `"Know what you're having yet?"` |
-| Hot vs cold | `"Soup weather or salad weather? 🥗🍜"` |
-| Same vs different | `"Same thing as yesterday or switching it up?"` · `"Feeling adventurous or comfort food?"` |
-| Solo vs social | `"Eating solo or with people?"` · `"Lunch date or desk lunch?"` |
-| Effort level | `"Ambitious cooking or path of least resistance tonight?"` · `"5-minute meal or actual cooking?"` |
+**1. 从用户最近的生活出发（最优先）**
 
-Pick a different angle each time. If you've used cook-vs-eat-out recently
-(within the last 2 days), choose a different one.
+读 workspace，看看用户最近发生了什么，以此作为开场：
 
-**2. Personalization** (use history from workspace):
-`"Salad streak day 3 — still going or staging a rebellion?"` ·
-`"Thursday burrito bowl ritual?"` · `"Chicken breast loyalist, reporting for duty? 😂"`
+- 昨晚聚餐 → `"昨晚吃得开心吗？今天早上来点清淡的？"`
+- 连续三天吃沙拉 → `"沙拉三连了… 今天继续还是终于要叛变了 😂"`
+- 上次说加班很累 → `"昨天加班到那么晚，今天中午对自己好点"`
+- 周末刚运动完 → `"昨天跑了5公里呢，今天想吃点好的犒劳自己？"`
+- 最近在尝试新菜 → `"上次那个番茄意面看着不错啊，今天还做吗？"`
 
-How to personalize — read from workspace, pick the first match:
+关键：引用的是用户的**生活片段和趋势**，不是冷冰冰的数据点。
+`"你最近沙拉吃得多"` ✓ vs `"你在3月8日12:30摄入了320卡路里的沙拉"` ✗
 
-| Condition (check in order) | Message approach |
-|---------------------------|------------------|
-| User logged the same food 3+ times this week | Reference it playfully: `"Chicken wrap arc continues? Or plot twist today?"` |
-| User ate out yesterday | `"Restaurant night was yesterday — back to basics or round 2?"` |
-| User mentioned meal prepping | `"Meal prep still alive, or did it mysteriously vanish?"` |
-| User has a clear favorite for this meal | Reference it by name |
-| No useful history (new user, or varied) | Fall back to technique 1 (choice question) or 3 (situational) |
+**2. 结合当下的时间和场景**
 
-Don't personalize if it would feel creepy or surveillance-like. Reference
-patterns ("you've been on a salad kick"), not single data points
-("yesterday at 6:47 PM you ate 430 calories of pasta").
+不只是"周五快乐"这种泛泛的寒暄，而是结合用户的生活节奏：
 
-**3. Situational** (tie to time, weather, day of week, current events):
-`"TGIF 🎉 any dinner plans?"` · `"It's cold — soup weather?"` ·
-`"Monday. Be kind to yourself. What sounds good tonight?"` ·
-`"Midweek slump — need something easy or something exciting?"` ·
-`"Sunday vibes — big brunch or lazy breakfast?"`
+- 周一早上 → `"周一早上…… 先吃好再面对这个世界"`
+- 周五晚上 → `"周五了，今晚有局吗？"`
+- 连续几天吃得健康 → `"这周吃得也太自律了，周末打算放纵一下？"`
+- 下雨天 → `"下雨天适合吃点热乎的，打算吃啥？"`
 
-**4. Micro-tip** (max 1 in 5 — must feel like a friend's aside, not a lecture):
-`"Pro tip: protein first = less snacking later. What's on the menu?"` ·
-`"Fun fact: eating slower actually helps. Anyway — what are you having?"` ·
-`"Veggies first, carbs second — your blood sugar will thank you. What's the plan?"`
+**3. 偶尔给个小建议（像朋友随口说的，不是教练布置作业）**
 
-**5. Playful** (occasional — should make user smile or want to reply):
-`"Breakfast confessional: healthy or unhinged? 🤫"` ·
-`"Describe tonight's dinner as a movie genre"` ·
-`"On a scale of sad desk salad to five-star restaurant, where's lunch landing? 😂"` ·
-`"Quick — what's the first food that popped into your head just now?"`
+不要超过五分之一的频率，而且要自然地融入对话：
 
-**Tone guideline:** Write like you're texting a friend, not pushing a notification.
-Avoid: formal phrasing, robotic structure, anything that sounds like a
-corporate wellness app. The vibe is casual group-chat energy, not
-system-generated alert. Read your draft out loud — if it sounds like
-something a real person would never actually text, rewrite it.
+- `"对了上次说想多吃蛋白质来着，今天中午有想法吗？"`
+- `"话说先吃菜再吃饭真的不容易饿，随便一提 😂"`
 
-**Freshness rule:** Before sending any reminder, mentally review the last 3
-reminders you sent. If the new one sounds like any of them — same structure,
-same question type, same energy level — rewrite it. Variety means varying
-not just the template technique but also: sentence length, punctuation style
-(question vs statement vs exclamation), emoji usage (sometimes yes, sometimes
-no), and tone energy (low-key vs upbeat vs playful). A user who gets three
-reminders a day will notice patterns fast.
+**4. 可以搞笑、可以温暖、可以很简短**
 
-**Time-of-day energy:**
-Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy (they're between meetings) · Evening = relaxed, warm (day's winding down)
+不设限，以下都可以：
+
+- 调侃：`"又到了灵魂拷问时间：中午吃啥"`
+- 温暖：`"辛苦了一天，晚上想吃点什么好的？"`
+- 极简：`"午饭～"`
+- 接梗：（如果用户之前聊天有什么梗，可以接着用）
+
+**不要做的事：**
+- 不要像企业健康App一样说话（`"请记录您的午餐"` ✗）
+- 不要每条都问同一种问题（连着问"做饭还是外面吃"会很烦）
+- 不要只有幽默没有关心，也不要只有关心没有个性
+- 不要引用让人觉得被监控的精确数据
+
+**新鲜感：** 发之前回顾最近3条提醒。如果结构、语气、节奏跟之前
+太像就重写。同一天的多条提醒之间尤其要有变化——句式长短、语气轻重、
+有没有emoji，都可以变。用户一天收到3条风格一样的消息会觉得是机器人。
+
+**时段感觉：**
+早上 = 轻声细语，别太吵 · 中午 = 简短利落，别啰嗦 · 晚上 = 放松温暖，可以多聊两句
 
 ### Habit Check-ins — woven into meal conversations
 
