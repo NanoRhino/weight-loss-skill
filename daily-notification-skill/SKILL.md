@@ -352,14 +352,12 @@ stop the current workflow and hand off immediately.
 | Section | Purpose |
 |---------|---------|
 | `Scheduling & Lifestyle` | Adjust reminder timing (e.g., skip breakfast reminders if user always skips, delay dinner on busy days) |
-| `Dietary` | Inform personalization tips (e.g., don't suggest foods user dislikes) |
 
 ### Reads from `USER.md`
 
 | Field | Purpose |
 |-------|---------|
 | `Basic Info > Name` | Greeting (if set) |
-| `Basic Info > Sex` | Context (e.g. don't mention menstrual cycle for `male`) |
 | `Health Flags` | Skip weight reminders if ED-related flags present |
 
 ### Reads from `health-profile.md`
@@ -369,8 +367,6 @@ stop the current workflow and hand off immediately.
 | `Body > Unit Preference` | Display unit for weight (kg or lb) |
 | `Meal Schedule > Meals per Day` | Max reminders per day (e.g. `3`) |
 | `Meal Schedule > Breakfast/Lunch/Dinner` | Reminder schedule (e.g. `08:00 breakfast, 12:30 lunch, 19:00 dinner`) |
-| `Goals > Target Weight` | Never show to user in reminders |
-| `Diet Config > Food Restrictions` | Respect in tips (e.g. don't suggest pork if restricted) |
 | `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
 
 ### Reads from data (workspace)
@@ -386,7 +382,6 @@ stop the current workflow and hand off immediately.
 | Path | How | When |
 |------|-----|------|
 | `data/weight.json` | `weight-tracker.py save --data-dir {workspaceDir}/data --value <v> --unit <u> --tz-offset <offset>` | User reports weight in response to reminder |
-| `flags.*` | direct write | Safety signals |
 | `engagement.notification_stage` | direct write | Stage 1/2/3/4 |
 | `engagement.reminder_config` | direct write | Adaptive timing changes |
 
