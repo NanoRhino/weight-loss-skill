@@ -266,8 +266,7 @@ If user has already eaten → still log if they want, but note internally that r
 
 | User says | Response |
 |-----------|----------|
-| Names food before eating: "having chicken salad" | Log it, give real-time feedback. `Chicken salad — logged ✓` + nutrition analysis + adjustment suggestion if needed (see diet-tracking-analysis). This is the ideal flow. |
-| Names food after eating: "had chicken salad" | Log it, give next-meal suggestions only. `Chicken salad — logged ✓` |
+| Names food (before or after eating) | Hand off to `diet-tracking-analysis` for logging + response. |
 | Vague: "eating something" | `Logged ✓ Want to add details, or leave it?` |
 | Skipping: "skipping lunch" | `Noted!` |
 | Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk about it?" — do NOT add "no pressure either way" as this over-signals. If purely indifferent (no distress signal), just log and move on. |
