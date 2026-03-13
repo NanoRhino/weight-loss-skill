@@ -5,6 +5,9 @@ description: Tracks workouts, estimates calories burned, gives fitness feedback,
 
 # Exercise Tracking & Planning
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 This skill combines two capabilities:
 1. **Exercise Tracking** — Log workouts, estimate calories, track weekly progress, provide feedback
 2. **Exercise Planning** — Design personalized training programs based on goals, experience, and constraints

@@ -10,6 +10,9 @@ metadata:
 
 # Daily Notification
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 Reminders that open conversations — not data collection forms. Meal reminders
 up to 3x/day, weight reminders 2x/week, delivered as in-app chat.
 

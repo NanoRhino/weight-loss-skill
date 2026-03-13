@@ -9,6 +9,9 @@ metadata:
 
 # Plan Export (HTML Web / PDF)
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 Convert Markdown plans into professionally styled documents and deliver them to users.
 
 **Primary mode:** HTML web page uploaded to cloud storage — generates a beautiful, mobile-friendly web page and provides a presigned URL (valid 7 days).

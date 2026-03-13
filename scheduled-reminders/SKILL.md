@@ -10,6 +10,9 @@ metadata:
 
 # Scheduled Reminders
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 Bottom-level scheduling skill. **All cron job creation must go through this script** — do NOT use the cron tool directly.
 
 Script path: `bash {baseDir}/scripts/create-reminder.sh`

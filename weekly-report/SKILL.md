@@ -10,6 +10,9 @@ metadata:
 
 # Weekly Report
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 A personalized end-of-week progress report that turns 7 days of scattered data
 into a clear, motivating snapshot. The report is data-driven but human —
 celebrate consistency, normalize fluctuations, and give exactly one or two

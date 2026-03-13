@@ -10,6 +10,9 @@ metadata:
 
 # Weight Tracking
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 Manage body weight records with full CRUD operations. All data lives in a
 single JSON file; display always uses the user's preferred unit.
 

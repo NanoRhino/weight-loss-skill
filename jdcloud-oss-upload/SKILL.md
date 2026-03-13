@@ -10,6 +10,9 @@ metadata:
 
 # JD Cloud OSS Upload
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 Upload a local file to JD Cloud OSS and get a presigned URL (default 15 min expiry).
 
 ## Usage
