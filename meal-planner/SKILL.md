@@ -311,15 +311,7 @@ For non-US locales, follow the same **template (portion guide) + one-day example
 
 ### After Presenting the Diet Template
 
-Once you present the diet template, **only ask about the 7-day meal plan** — do NOT introduce the daily tracking workflow yet. Mixing both in one message causes ambiguity: the user's reply could be interpreted as either acknowledging the tracking flow or answering the 7-day plan question. Keep it to a single clear question:
-
-> 这个模板可以直接照着吃。你需要我再生成一份详细的 7 天食谱吗？
-
-English equivalent:
-
-> You can start following this template right away. Would you like me to create a detailed 7-day meal plan as well?
-
-**Do NOT mention tracking, check-ins, or "tell me what you ate" at this point.** The tracking workflow introduction comes later (see below).
+After presenting the diet template, **immediately introduce the daily tracking workflow** (same content as Step 5's "Introduce Daily Tracking Workflow" section). Do NOT ask the user whether they want a 7-day meal plan — the template is sufficient to start, and the 7-day plan is only generated if the user proactively requests it later.
 
 ### Bootstrap Meal Reminders (Silent)
 
@@ -327,17 +319,11 @@ After presenting the diet template, **activate `daily-notification-skill`** so i
 
 Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
 
-**Critical:** Only proceed to generate the 7-day meal plan (Step 4) if the user explicitly says yes. If the user declines or doesn't ask for it, **introduce the daily tracking workflow here instead** (same content as Step 5's "Introduce Daily Tracking Workflow" section), then stop — the diet template is sufficient to start.
-
-**Flow summary — when to introduce the daily tracking workflow:**
-- User **wants** the 7-day plan → generate plan (Step 4) → introduce tracking workflow after plan is finalized (Step 5)
-- User **declines** the 7-day plan → introduce tracking workflow immediately here, then stop
-
 ---
 
 ## Step 4: Generate the Meal Plan
 
-> **Gate:** Only enter this step if the user explicitly requests a 7-day meal plan (either in response to the Step 3 question, or by asking for it directly). Do not auto-generate.
+> **Gate:** Only enter this step if the user proactively requests a 7-day meal plan. Do not auto-generate or prompt the user about it.
 
 ### Time Estimate Notice
 
@@ -494,7 +480,7 @@ For any customization, **always update `MEAL-PLAN.md` and re-run the export scri
 
 ### Introduce Daily Tracking Workflow
 
-**After the 7-day meal plan is finalized** (all customizations done), introduce the daily tracking workflow so the user knows exactly how each day will work going forward. This is the bridge from planning into the daily loop — the user should leave this conversation knowing the rhythm of their days ahead.
+Introduce the daily tracking workflow so the user knows exactly how each day will work going forward. This is presented **immediately after the diet template** (Step 3), or after the 7-day meal plan is finalized if the user requested one. The user should leave this conversation knowing the rhythm of their days ahead.
 
 Present the following message (adapt to the user's language and meal schedule):
 
