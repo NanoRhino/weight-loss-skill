@@ -92,7 +92,7 @@ Ask about their work type and exercise habits together. These are essential for 
 
 Do three things:
 
-1. **Brief summary** — Show the user a readable summary (not raw JSON) of what you collected. Keep it to a few lines.
+1. **Brief summary** — Show the user a readable summary (not raw JSON) of what you collected. Keep it to a few lines. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
 
 2. **Ask for confirmation** — "Does this look right? Anything you'd like to change?"
 

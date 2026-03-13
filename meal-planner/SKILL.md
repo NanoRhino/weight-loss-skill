@@ -166,10 +166,10 @@ Present concisely:
 
 > Now let's figure out how you'd like to eat. Based on your profile, I think these two approaches would work best:
 >
-> 1. **[Mode A]** — [one-line reason]
-> 2. **[Mode B]** — [one-line reason]
+> 1. [Mode A] — [one-line reason]
+> 2. [Mode B] — [one-line reason]
 >
-> I'd recommend **[Mode A]** as your starting point. Which one appeals to you?
+> I'd recommend [Mode A] as your starting point. Which one appeals to you?
 
 If the user wants to see all options, provide the full list. If `health-preferences.md` already records a diet mode preference, include it as one recommendation.
 
@@ -335,10 +335,10 @@ Present the following message (adapt to the user's language and meal schedule):
 
 > 食谱已就绪！接下来每天的节奏是这样的：
 >
-> 1. **餐前提醒** — 每餐前 15 分钟我会发消息提醒你
-> 2. **吃之前先告诉我** — 吃之前先告诉我你准备吃什么，说清楚量和食物就行，比如"一碗米饭、一盘鸡肉"
-> 3. **我来分析** — 帮你估算热量和营养素，看看和目标比怎么样
-> 4. **按需调整** — 如果偏高或偏低，我会马上告诉你当餐怎么调，比如"加个蛋"或"米饭少盛点"
+> 1. 餐前提醒 — 每餐前 15 分钟我会发消息提醒你
+> 2. 吃之前先告诉我 — 吃之前先告诉我你准备吃什么，说清楚量和食物就行，比如"一碗米饭、一盘鸡肉"
+> 3. 我来分析 — 帮你估算热量和营养素，看看和目标比怎么样
+> 4. 按需调整 — 如果偏高或偏低，我会马上告诉你当餐怎么调，比如"加个蛋"或"米饭少盛点"
 >
 > 不用追求完美，照着食谱吃、吃之前告诉我一声就行。我来帮你微调 👍
 
@@ -346,10 +346,10 @@ English equivalent:
 
 > Meal plan's ready! Here's how each day will work:
 >
-> 1. **Pre-meal reminder** — I'll ping you 15 minutes before each meal
-> 2. **Tell me before you eat** — before eating, tell me what you're having — just the amount and the food, like "a bowl of rice, a plate of chicken"
-> 3. **I'll analyze** — estimate calories and macros, and see how you're tracking against your targets
-> 4. **Adjust on the spot** — if something's off, I'll tell you right away how to tweak the current meal, like "add an egg" or "go easy on the rice"
+> 1. Pre-meal reminder — I'll ping you 15 minutes before each meal
+> 2. Tell me before you eat — before eating, tell me what you're having — just the amount and the food, like "a bowl of rice, a plate of chicken"
+> 3. I'll analyze — estimate calories and macros, and see how you're tracking against your targets
+> 4. Adjust on the spot — if something's off, I'll tell you right away how to tweak the current meal, like "add an egg" or "go easy on the rice"
 >
 > Don't stress about perfection — just follow the plan and tell me what you're having before you eat. I'll fine-tune from there 👍
 
