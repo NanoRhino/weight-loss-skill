@@ -1,7 +1,7 @@
 ---
 name: scheduled-reminders
-version: 1.0.0
-description: "Create and manage scheduled reminders via cron. Provides a wrapper script that auto-resolves Slack delivery config from agent bindings. Use when any skill needs to schedule one-shot or recurring reminders. Other skills (daily-notification, habit-builder, exercise-tracking-planning, etc.) should use this skill for all scheduling needs."
+version: 1.1.0
+description: "Create and manage scheduled reminders via cron. Provides a wrapper script that auto-resolves delivery config for multiple channels (Slack, WeChat, WeCom, etc.). Use when any skill needs to schedule one-shot or recurring reminders. Other skills (daily-notification, habit-builder, exercise-tracking-planning, etc.) should use this skill for all scheduling needs."
 metadata:
   openclaw:
     emoji: "alarm_clock"
@@ -19,6 +19,7 @@ Script path: `bash {baseDir}/scripts/create-reminder.sh`
 ```bash
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> \
+  --channel <channel> \
   --name "描述性名称" \
   --message "提醒内容" \
   --at "2m"
@@ -30,12 +31,21 @@ One-shot reminders auto-delete after running. Use `--keep` to preserve them.
 ## Recurring reminder
 
 ```bash
+# WeChat example
 bash {baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> \
+  --agent wechat-dm-accjoh25tsvoasahx0psjfg \
+  --channel wechat \
   --name "午餐提醒" \
   --message "根据用户的饮食计划发一条友好的午餐提醒。" \
-  --cron "0 12 * * *" \
-  --tz "Asia/Shanghai"
+  --cron "0 12 * * *"
+
+# Slack example
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent 007-zhuoran \
+  --channel slack \
+  --name "午餐提醒" \
+  --message "根据用户的饮食计划发一条友好的午餐提醒。" \
+  --cron "0 12 * * *"
 ```
 
 `--tz` auto-detects from the agent workspace's `timezone.json`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
@@ -44,13 +54,15 @@ bash {baseDir}/scripts/create-reminder.sh \
 
 | Param | Required | Description |
 |-------|----------|-------------|
-| `--agent` | ✅ | Your agent ID (e.g. `007-zhuoran`) |
+| `--agent` | ✅ | Your agent ID (e.g. `wechat-dm-xxx`, `007-zhuoran`) |
+| `--channel` | ❌ | Delivery channel (`wechat`, `wecom`, `slack`, etc.). Defaults to `slack` if omitted (backward-compatible) |
 | `--name` | ✅ | Descriptive job name (shown in cron list) |
 | `--message` | ✅ | Prompt sent to user when the job fires |
 | `--at` | one of | One-shot: relative time or ISO timestamp |
 | `--cron` | one of | Recurring: 5-field cron expression |
 | `--tz` | ❌ | Timezone for cron (auto-detects from `timezone.json`, fallback: `Asia/Shanghai`) |
 | `--keep` | ❌ | Don't auto-delete one-shot jobs after running |
+| `--to` | ❌ | Explicit delivery target. Overrides auto-detection. Required for channels other than `slack`/`wechat`/`wecom` |
 
 ## Managing existing jobs
 
@@ -61,9 +73,18 @@ Use the cron tool directly for listing and removing:
 
 ## How it works
 
-The script:
-1. Looks up the agent's Slack user ID from `~/.openclaw/openclaw.json` bindings
-2. Calls `openclaw cron add` with correct `delivery.channel = "slack"` and `delivery.to = "user:<id>"`
-3. Sets `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically
+The script resolves the delivery target (`--to`) based on the channel:
+
+| Channel | Auto-detection | Example |
+|---------|---------------|---------|
+| `slack` (default) | Looks up Slack user ID from `~/.openclaw/openclaw.json` bindings → `user:<id>` | `--agent 007-zhuoran` → `user:U12345` |
+| `wechat` / `wecom` | Extracts userId from agent ID (`wechat-dm-xxx` → `xxx`) | `--agent wechat-dm-abc123` → `abc123` |
+| Others | No auto-detection — must pass `--to` explicitly | `--to "123456789"` |
+
+Timezone auto-detection searches these paths in order:
+1. `~/.openclaw/workspace-$AGENT/timezone.json`
+2. `~/.openclaw/workspace-nutritionist/$AGENT/timezone.json`
+
+Then calls `openclaw cron add` with `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically.
 
 This ensures delivery config is always correct regardless of which skill creates the reminder.

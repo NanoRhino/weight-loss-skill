@@ -49,24 +49,24 @@ Reminders fire 15 min before each meal via `scheduled-reminders` skill cron jobs
 
 #### Cron job definitions
 
-Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`.
+Create recurring cron jobs using `scheduled-reminders` skill's `create-reminder.sh`. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
 
 Every meal cron `--message` MUST instruct the agent to run pre-send checks first (see § Pre-send Checks), then — only if all checks pass — compose a reminder per the message templates below, using a different technique and question angle from earlier reminders that day. Already-logged meals are silent calorie-budget context only — never re-ask.
 
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "Breakfast reminder" \
+  --agent <your-agent-id> --channel <channel> --name "Breakfast reminder" \
   --message "Run daily-notification pre-send checks for breakfast. If passed, send a friendly breakfast reminder per daily-notification message templates. Rotate technique; vary question angle from recent reminders." \
   --cron "45 6 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "Lunch reminder" \
+  --agent <your-agent-id> --channel <channel> --name "Lunch reminder" \
   --message "Run daily-notification pre-send checks for lunch. If passed, send a lunch reminder per daily-notification message templates. Earlier meals today = silent calorie context only, never re-ask. Use a different technique from today's breakfast reminder." \
   --cron "45 11 * * *"
 
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "Dinner reminder" \
+  --agent <your-agent-id> --channel <channel> --name "Dinner reminder" \
   --message "Run daily-notification pre-send checks for dinner. If passed, send a dinner reminder per daily-notification message templates. Earlier meals today = silent calorie context only, never re-ask. Use a different technique from today's earlier reminders." \
   --cron "45 17 * * *"
 ```
@@ -78,7 +78,7 @@ Cron time = breakfast time minus **30 min** (not 15 min like meals). Derive from
 ```bash
 # Example assumes breakfast at 07:00 → weight cron at 06:30
 bash {scheduled-reminders:baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --name "Weight check-in reminder" \
+  --agent <your-agent-id> --channel <channel> --name "Weight check-in reminder" \
   --message "Run daily-notification pre-send checks for weight. If passed, send a casual weight check-in per daily-notification weight reminder templates. Rotate style. Optional feel comes from casual delivery, not explicit reassurance." \
   --cron "30 6 * * 1,4"
 ```
