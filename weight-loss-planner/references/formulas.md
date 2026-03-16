@@ -95,9 +95,9 @@ TDEE = BMR × Activity Multiplier
 **Default to Lightly Active (×1.375)** for most users. The majority of people overestimate their activity level, and lightly active is the most representative multiplier for a typical adult.
 
 **Selection rules:**
-1. **Lightly Active (×1.375)** — use by default for most users, including those who describe occasional walking, light exercise, or a mix of sedentary and mildly active days
-2. **Sedentary (×1.2)** — only when the user's description strongly indicates near-zero activity (e.g., works from home, no exercise at all, rarely leaves the house)
-3. **Moderately Active (×1.55)** — only when the user clearly and specifically describes regular moderate exercise 3–5 days/week (e.g., gym sessions, running, swimming) or has a physically active job
+1. **Lightly Active (×1.375)** — use by default for most users. This covers the vast majority of scenarios: office workers who occasionally walk or do light exercise, people with mixed sedentary/active days, and anyone whose activity description is ambiguous
+2. **Sedentary (×1.2)** — use only when the user explicitly and unambiguously describes a near-immobile lifestyle: works from home **and** has no exercise habit **and** rarely goes out. Simply having a desk job is NOT enough to classify as sedentary — most desk workers still commute, run errands, and move around enough to qualify as lightly active
+3. **Moderately Active (×1.55)** — use only when the user describes **both** a consistent exercise routine (at least 4 days/week of intentional moderate-to-high intensity exercise such as gym, running, swimming, team sports) **and** an generally active daily life. Having a physically active job alone (e.g., retail, teaching) without additional exercise qualifies as lightly active, not moderately active. Occasional gym visits (1–3 days/week) also remain at lightly active
 4. **Very Active (×1.725) and Extremely Active (×1.9)** — do not use under normal circumstances. Reserve only for users who are clearly professional athletes, manual laborers with daily intense training, or similar exceptional cases
 
 **Do not expose multiplier values to the user.** Activity level classification is an internal calculation detail. Present TDEE results without mentioning the specific multiplier used.
