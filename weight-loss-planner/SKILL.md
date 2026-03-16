@@ -44,7 +44,7 @@ Check whether these files exist in the workspace. If they do, read them for requ
 
 If both files together provide all required fields, **skip manual collection entirely** and proceed directly to calculating TDEE internally (see below).
 
-If files exist but are incomplete (e.g., have height and weight but no activity level), use what's there and ask only for the missing pieces. **Single-ask rule:** each missing-data question is asked at most once. If the user doesn't answer, use a sensible default (e.g., sedentary for activity level) and move on. See `SKILL-ROUTING.md > Single-Ask Rule`.
+If files exist but are incomplete (e.g., have height and weight but no activity level), use what's there and ask only for the missing pieces. **Single-ask rule:** each missing-data question is asked at most once. If the user doesn't answer, use a sensible default (e.g., lightly active for activity level) and move on. See `SKILL-ROUTING.md > Single-Ask Rule`.
 
 #### Path B: No profile files (standalone mode)
 
@@ -157,7 +157,7 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 **[Body metrics block]** — "Based on your data, here's what I calculated:" followed by bullet list:
 • Current BMI: [X.X] ([classification per regional standard])
 • Target BMI: [X.X] ([classification])
-• Daily expenditure (TDEE): ~[X,XXX] kcal/day ([brief activity level explanation — e.g., "estimated for sedentary lifestyle since you didn't mention exercise habits"])
+• Daily expenditure (TDEE): ~[X,XXX] kcal/day ([brief activity context — e.g., "based on your daily routine and exercise habits". Do NOT mention specific multiplier values])
 
 **[Safety floor explanation]** — One sentence explaining that BMR is [X,XXX] kcal/day and daily intake should not consistently drop below this number for safety. Mention that this will be checked on a weekly basis. Use this to naturally justify the calorie target that follows.
 
@@ -237,7 +237,7 @@ This skill focuses on weight loss. If the user's BMI is below 18.5 or they want 
 Focus on the first major phase (e.g., first 20–25 kg / 50 lbs), with a note to reassess and create a new plan at that point. Losing 45+ kg is a multi-year journey — framing it as one continuous plan can feel overwhelming.
 
 **User is vague about activity:**
-Probe with specific questions: "What does a typical weekday look like for you — do you walk or drive to work? Sit most of the day? How many times a week do you exercise, and what do you do?" This yields a better activity estimate than asking them to self-classify.
+Probe with specific questions: "What does a typical weekday look like for you — do you walk or drive to work? Sit most of the day? How many times a week do you exercise, and what do you do?" This yields a better activity estimate than asking them to self-classify. If still unclear after probing, default to Lightly Active (×1.375). See `references/formulas.md > Activity Level Selection Policy` for the full selection rules.
 
 **User changes goal mid-plan:**
 No problem — recalculate from the current state. Acknowledge the change positively ("Goals evolve — that's totally fine!") and regenerate the plan.
