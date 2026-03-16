@@ -93,7 +93,23 @@ def format_iso(dt: datetime) -> str:
 
 
 def parse_iso(s: str) -> datetime:
-    return datetime.fromisoformat(s)
+    try:
+        return datetime.fromisoformat(s)
+    except AttributeError:
+        # Python < 3.7 fallback
+        import re
+        s = s.strip()
+        m = re.match(r'(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})([+-]\d{2}:\d{2})?', s)
+        if not m:
+            raise ValueError(f"Cannot parse datetime: {s}")
+        from datetime import timezone, timedelta as _td
+        base = datetime.strptime(m.group(1) + 'T' + m.group(2), '%Y-%m-%dT%H:%M:%S')
+        if m.group(3):
+            sign = 1 if m.group(3)[0] == '+' else -1
+            hh, mm = int(m.group(3)[1:3]), int(m.group(3)[4:6])
+            tz = timezone(_td(hours=sign * hh, minutes=sign * mm))
+            base = base.replace(tzinfo=tz)
+        return base
 
 
 def date_from_key(key: str) -> str:
@@ -236,7 +252,8 @@ def cmd_set_unit(args):
 
 def main():
     parser = argparse.ArgumentParser(description="Weight tracking CRUD")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command")
+    # 'required' kwarg not supported in Python 3.6; check manually below
 
     # save
     p_save = sub.add_parser("save")
@@ -272,6 +289,9 @@ def main():
     p_unit.add_argument("--unit", required=True)
 
     args = parser.parse_args()
+
+    if not args.command:
+        parser.error("command is required")
 
     cmds = {
         "save": cmd_save,
