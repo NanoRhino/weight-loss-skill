@@ -28,7 +28,7 @@ when conflicts arise.
 | **P0 — Safety** | `emotional-support` (Category 5: escalation signals) | Crisis intervention. Overrides everything. |
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
-| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `exercise-tracking-planning` (planning mode), `habit-builder` | Designing programs and plans. |
+| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder` | Designing programs and plans. |
 | **P4 — Reporting** | `weekly-report`, `daily-notification` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
@@ -57,6 +57,10 @@ can contain multiple intents.
 | "make me a workout plan and a meal plan" | exercise-planning + meal-planning | exercise-tracking + meal-planner |
 | "I'm having oatmeal, feeling great today!" | food-log + positive-emotion | diet-tracking + emotional-support |
 | "skipped lunch, don't care anymore" | food-skip + emotional-distress | diet-tracking + emotional-support |
+| "中午外面吃什么好？" | restaurant-recommendation | restaurant-meal-finder |
+| "I'm at Chipotle, what should I order?" | restaurant-recommendation | restaurant-meal-finder |
+| "附近有什么能吃的，帮我推荐一下" | restaurant-recommendation | restaurant-meal-finder |
+| "想点外卖，有什么推荐的？" | restaurant-recommendation | restaurant-meal-finder |
 
 ---
 
@@ -212,7 +216,30 @@ mention, and their reply contains both food info and habit status.
 
 ---
 
-### Pattern 8: Multiple Planning Requests (Same Tier — P3)
+### Pattern 8: Restaurant Recommendation vs Meal Planner (Same Tier — P3)
+
+**Trigger:** User asks about restaurant meals, which could be interpreted as
+either an on-the-spot dining decision or a request to incorporate restaurants
+into their weekly meal plan.
+
+**Resolution: Intent determines routing.**
+
+1. **Real-time dining decision** — "I'm at a restaurant now", "what should I
+   order?", "附近吃什么好？" → `restaurant-meal-finder` leads. This is an
+   immediate, actionable need.
+2. **Planning context** — "I want more restaurant options in my meal plan",
+   "help me plan meals with more eating-out days" → `meal-planner` leads.
+   This is about the weekly plan structure.
+3. **Ambiguous** — If unclear, default to `restaurant-meal-finder` (assumes
+   the user has an immediate need). If the user clarifies they want a plan
+   change, transition to `meal-planner`.
+
+After the user selects a restaurant meal, `restaurant-meal-finder` hands off
+to `diet-tracking-analysis` for logging. No conflict — sequential handoff.
+
+---
+
+### Pattern 9: Multiple Planning Requests (Same Tier — P3)
 
 **Trigger:** User asks for a weight-loss plan while also wanting to
 build a habit or get exercise programming.

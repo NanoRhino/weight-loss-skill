@@ -219,7 +219,7 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 
 Each entry follows the format: `- [YYYY-MM-DD] Preference description`
 
-> **Note:** The `health-preferences.md` file starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-tracking-planning, etc.) detect and append new preferences during future conversations.
+> **Note:** The `health-preferences.md` file starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-tracking-planning, restaurant-meal-finder, etc.) detect and append new preferences during future conversations.
 
 ---
 
