@@ -92,13 +92,16 @@ Use cron tool: `action: "list"` to view, `action: "remove"` with `jobId` to dele
 
 ### Pre-send Checks (MANDATORY — run before every reminder)
 
-**Every meal reminder MUST run these checks before sending. Any fail = don't send. No exceptions.**
+**Every meal reminder MUST run these checks before sending. Any fail = reply with ONLY `NO_REPLY` (nothing else). No exceptions.**
 
-1. Quiet hours? Read `timezone.json` to get user's local time. Before 6 AM / after 9 PM local time → skip
-2. User in silent mode? (Stage 4) → skip
-3. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → **skip the reminder entirely and send nothing.** This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
-4. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders).
-5. All clear → send
+> ⚠️ **CRITICAL:** When any check fails, your entire response must be exactly `NO_REPLY` — no explanations, no reasoning, no "SKIP" messages. Any text you output WILL be delivered to the user. `NO_REPLY` is the only way to suppress delivery.
+
+1. `health-profile.md` exists? If not → user not onboarded → `NO_REPLY`
+2. Quiet hours? Read `timezone.json` to get user's local time. Before 6 AM / after 9 PM local time → `NO_REPLY`
+3. User in silent mode? (Stage 4) → `NO_REPLY`
+4. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → `NO_REPLY`. This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
+5. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders). If constraint applies → `NO_REPLY`
+6. All clear → send
 
 ### Lifecycle: Active → Recall → Silent
 
