@@ -50,17 +50,18 @@ Activate this skill when the user:
 health-profile.md (body data) + health-preferences.md (food prefs)
   + PLAN.md (calorie target) + diet-tracking daily logs (remaining budget)
     → restaurant-meal-finder ← YOU ARE HERE
-      ├── Step 0: ask user location (if unknown)
+      ├── Step 0: resolve location (multi-location: 家/公司/etc.)
       ├── Step 1: web search nearby restaurants → cache to data/nearby-restaurants.json
-      ├── Step 2: recommend meals from cached restaurants
+      ├── Step 2: recommend meals (dedup + context-aware) from cached restaurants
       └── Step 3: user picks → hand off to diet-tracking-analysis
 ```
 
 **Upstream dependencies:**
 - `weight-loss-planner` / `PLAN.md` → daily calorie target
-- `diet-tracking-analysis` → today's intake so far (remaining calorie budget)
+- `diet-tracking-analysis` → today's intake + recent days' meal patterns
+- `exercise-tracking-planning` → today's exercise (for calorie/protein adjustment)
 - `health-preferences.md` → food likes/dislikes, allergies, diet mode
-- `health-profile.md` → body stats, diet config, location
+- `health-profile.md` → body stats, diet config, location, schedule
 - `locale.json` → language and region
 
 **Downstream handoff:**
@@ -72,32 +73,45 @@ health-profile.md (body data) + health-preferences.md (food prefs)
 
 | File | Access | Owner | Purpose |
 |------|--------|-------|---------|
-| `data/nearby-restaurants.json` | Read/Write | **This skill** | Cached list of nearby restaurants with menus and calorie info |
+| `data/nearby-restaurants.json` | Read/Write | **This skill** | Multi-location restaurant cache with meals, visits, and recommendation history |
 | `PLAN.md` | Read | weight-loss-planner | Daily calorie target and macro ranges |
 | `health-preferences.md` | Read/Append | user-onboarding-profile | Food preferences, allergies, cuisine likes |
 | `health-profile.md` | Read | user-onboarding-profile | Diet mode, body stats, meal schedule, location |
 | `locale.json` | Read | system | Language and region for locale adaptation |
-| `data/meals/YYYY-MM-DD.json` | Read | diet-tracking-analysis | Today's logged meals (to calculate remaining budget) |
+| `data/meals/YYYY-MM-DD.json` | Read | diet-tracking-analysis | Recent meal logs — today's remaining budget + last 3–5 days' patterns for context-aware recommendations |
+| `data/exercise/YYYY-MM-DD.json` | Read | exercise-tracking-planning | Today's exercise (adjust calorie budget, emphasize protein post-workout) |
 
 ---
 
 ## `data/nearby-restaurants.json` Schema
 
-This skill **owns** this file. It is the single source of truth for the user's nearby restaurant options.
+This skill **owns** this file. It is the single source of truth for the user's nearby restaurant options, organized by location.
 
 ```json
 {
-  "location": "北京市海淀区中关村",
-  "updated_at": "2026-03-16",
-  "source": "web_search",
+  "active_location": "公司",
+  "locations": {
+    "公司": {
+      "address": "北京市海淀区中关村腾讯众创空间",
+      "updated_at": "2026-03-16",
+      "source": "web_search"
+    },
+    "家": {
+      "address": "北京市昌平区回龙观东大街",
+      "updated_at": "2026-03-14",
+      "source": "web_search"
+    }
+  },
   "restaurants": [
     {
       "name": "沙县小吃（中关村店）",
+      "location": "公司",
       "type": "快餐",
+      "cuisine": "闽菜/快餐",
       "distance": "步行 5 分钟",
       "platforms": ["到店", "美团外卖", "饿了么"],
       "price_range": "人均 15-25 元",
-      "recommended_meals": [
+      "meals": [
         {
           "name": "蒸饺 8 个 + 紫菜蛋花汤",
           "calories": 450,
@@ -106,6 +120,24 @@ This skill **owns** this file. It is the single source of truth for the user's n
           "fat": 15,
           "price": "约 18 元",
           "tips": "蒸饺比煎饺少约 100 kcal"
+        },
+        {
+          "name": "馄饨（小碗）+ 卤蛋 1 个",
+          "calories": 400,
+          "protein": 22,
+          "carbs": 45,
+          "fat": 14,
+          "price": "约 15 元",
+          "tips": "不喝汤底可以再省 50 kcal"
+        },
+        {
+          "name": "拌面 + 蒸蛋",
+          "calories": 480,
+          "protein": 18,
+          "carbs": 60,
+          "fat": 16,
+          "price": "约 16 元",
+          "tips": "少放酱料减 50 kcal"
         }
       ],
       "visits": [
@@ -121,48 +153,90 @@ This skill **owns** this file. It is the single source of truth for the user's n
       "user_rating": 4,
       "tags": ["工作日午餐", "性价比高"]
     }
+  ],
+  "recent_recommendations": [
+    {
+      "date": "2026-03-15",
+      "meal_slot": "lunch",
+      "restaurant": "沙县小吃（中关村店）",
+      "meal": "蒸饺 8 个 + 紫菜蛋花汤",
+      "accepted": true
+    }
   ]
 }
 ```
 
-**Field rules:**
-- `location` — the user's stated location (address, neighborhood, or landmark)
-- `updated_at` — date of last web search (ISO format, date only)
-- `restaurants[]` — array of nearby restaurants, each with:
-  - `name` — full name including branch if known
-  - `type` — category (快餐, 便利店, 轻食, 火锅, etc.)
-  - `distance` — approximate distance or travel time from user
-  - `platforms` — how to order (到店, 美团外卖, 饿了么, Uber Eats, DoorDash, etc.)
-  - `price_range` — approximate per-person cost
-  - `recommended_meals[]` — pre-screened meals that fit typical calorie budgets (400–700 kcal), each with name, calories, macros, approximate price, and one calorie-saving tip
-  - `visits[]` — (optional) array of visit records, each with `date` (ISO), `meal` (what was ordered), `rating` (1–5, optional), and `note` (optional free text)
-  - `visit_count` — (optional, derived) total number of visits, auto-updated when visits[] changes
-  - `last_visited` — (optional, derived) date of most recent visit
-  - `user_rating` — (optional) overall user rating 1–5, updated as average of visit ratings
-  - `tags[]` — (optional) user-generated labels like "工作日午餐", "聚会好去处", "quick lunch"
+### Top-level fields
+
+- `active_location` — the user's current context label (e.g., "公司", "家", "出差"). Auto-set based on time of day or user statement.
+- `locations{}` — map of saved location labels to their details:
+  - `address` — the actual address/neighborhood
+  - `updated_at` — date of last web search for this location (ISO date)
+  - `source` — how restaurants were found ("web_search", "user_provided")
+- `restaurants[]` — flat array of all restaurants across all locations, each with a `location` field linking to its location label
+- `recent_recommendations[]` — rolling log of last 14 days of recommendations (auto-prune older entries). Used to avoid repetition.
+
+### Restaurant fields
+
+- `name` — full name including branch if known
+- `location` — which saved location this restaurant belongs to (must match a key in `locations{}`)
+- `type` — category (快餐, 便利店, 轻食, 火锅, etc.)
+- `cuisine` — cuisine style (闽菜, 西北, Japanese, Mexican, etc.)
+- `distance` — approximate distance or travel time from the associated location
+- `platforms` — how to order (到店, 美团外卖, 饿了么, Uber Eats, DoorDash, etc.)
+- `price_range` — approximate per-person cost
+- `meals[]` — pre-screened meal combos suitable for the user (typically 3–6 per restaurant, covering different calorie budgets and variety). Each with:
+  - `name` — combo description (e.g., "蒸饺 8 个 + 紫菜蛋花汤")
+  - `calories`, `protein`, `carbs`, `fat` — nutritional estimates for the combo
+  - `price` — approximate total price
+  - `tips` — (optional) calorie-saving tip
+- `visits[]` — (optional) visit records, each with `date` (ISO), `meal` (what was ordered), `rating` (1–5, optional), `note` (optional)
+- `visit_count` — (derived) total visits, auto-updated
+- `last_visited` — (derived) date of most recent visit
+- `user_rating` — (optional) average of visit ratings
+- `tags[]` — (optional) user-generated labels like "工作日午餐", "聚会好去处"
+
+### `meals[]` — building and growing over time
+
+Store 3–6 pre-screened meal combos per restaurant, covering a range of calorie budgets (300–700 kcal). Unlike the old schema which only had 1–2 static combos, having more options enables the skill to rotate recommendations and avoid repetition.
+
+**How `meals[]` grows:**
+- **Initial discovery** (Step 1): build 2–3 combos from web search results and nutritional knowledge
+- **User feedback**: "他家还有拌面挺好的" → estimate calories and add to `meals[]`
+- **Delivery app screenshots**: user shares a menu → add suitable dishes
+- **Post-visit**: user orders something new at a cached restaurant → add it
+
+Never fabricate dish names. Only add dishes from verified sources.
 
 ---
 
 ## Core Flow
 
-### Step 0: Establish Location
+### Step 0: Resolve Location
 
-**Check if location is already known** — look in this order:
+The user may eat at different places on different days. This skill supports multiple saved locations (e.g., "公司", "家", "健身房附近").
 
-1. `data/nearby-restaurants.json` — if this file exists and has a `location`, the user's location is already established
-2. `health-profile.md` — may contain city or address
-3. User's current message — they may mention a location
+**Resolution order:**
 
-**If location is unknown**, ask the user:
+1. **User's current message** — if they mention a location ("我在公司附近", "I'm near home"), match to a saved location label or treat as a new location.
+2. **Time-based inference** — if `locations` has "公司" and "家", default to "公司" on weekday lunch hours, "家" on evenings/weekends. Use `health-preferences.md > ## Scheduling & Lifestyle` for the user's work schedule if available.
+3. **`active_location`** — fall back to the last-used location in `data/nearby-restaurants.json`.
+4. **`health-profile.md`** — may contain city or address.
 
-> 你平时在哪个区域用餐？告诉我大概位置（比如小区名、公司附近、或者地铁站），我帮你搜一下附近能吃的地方，以后就不用每次都搜了。
+**If no location is saved at all** (first activation), ask the user:
+
+> 你平时在哪附近吃饭？可以告诉我一两个常去的地方（比如公司附近、家附近），我帮你搜一下，以后就不用每次都搜了。
 
 English equivalent:
-> Where do you usually eat? Give me a rough location (neighborhood, near your office, a landmark) and I'll search for nearby options. I'll save them so we don't have to search every time.
+> Where do you usually eat? Give me one or two spots (near office, near home) and I'll search nearby options for each. I'll save them so we don't have to search again.
 
-**Single-ask rule applies** — ask at most once. If the user doesn't answer, fall back to city-level from `locale.json` or `health-profile.md` and use general chain restaurant recommendations.
+**Single-ask rule applies** — ask at most once. If the user only gives one location, that's fine — more can be added later.
 
-After the user provides their location, **save it to `health-profile.md`** under an appropriate section (e.g., `## Location` or within existing profile fields) so other skills can also benefit.
+**Adding a new location later:**
+- User says "我搬家了" / "今天在另一个地方" → add a new location label, search, and save. Don't overwrite existing locations.
+- User says "删掉XX那个地点吧" → remove the location and its restaurants from the cache.
+
+After the user provides a location, **save the address to `health-profile.md`** under `## Location` so other skills can also benefit.
 
 ---
 
@@ -170,12 +244,12 @@ After the user provides their location, **save it to `health-profile.md`** under
 
 **When to search:**
 - First time the skill is activated (no `data/nearby-restaurants.json` exists)
-- User provides a new location different from the cached one
+- User adds a new location not yet in `locations{}`
 - User explicitly asks to refresh ("帮我重新搜一下", "I moved", "换个地方了")
-- The cached data is significantly outdated (> 30 days since `updated_at`)
+- The active location's `updated_at` is > 30 days old
 
 **When NOT to search (use cache):**
-- `data/nearby-restaurants.json` exists, location matches, and data is < 30 days old
+- The resolved location exists in `locations{}` and its data is < 30 days old
 - User names a specific restaurant already in the cache
 
 **How to search:**
@@ -201,15 +275,16 @@ Use web search to find restaurants near the user's location. Run 2–3 targeted 
 > or 美团), do NOT invent restaurant names, addresses, or menus. Instead,
 > follow the "Web search returns limited results" edge case below.
 
-**Then build `recommended_meals` for each restaurant:**
-- Use nutritional knowledge to estimate calories and macros for popular dishes
-- Pre-screen meals in the 400–700 kcal range (typical single-meal budget)
-- Include 1–2 recommended meals per restaurant
-- Add a calorie-saving tip for each meal
+**Then build `meals[]` for each restaurant:**
+- Pre-screen 2–3 meal combos per restaurant that fit typical calorie budgets (400–700 kcal)
+- Use nutritional knowledge to estimate calories and macros for each combo
+- Add a calorie-saving tip for each meal where relevant
 - Calorie/macro estimates for **verified real restaurants** are fine to generate from nutritional knowledge
-- Menu item names must come from search results, the user, or widely known chain menus — never invented
+- Meal/dish names must come from search results, the user, or widely known chain menus — never invented
+- Set each restaurant's `location` field to the current location label
+- More combos can be added over time as the user provides info or visits the restaurant (see "meals[] — building and growing over time")
 
-**Save the results** to `data/nearby-restaurants.json`.
+**Save the results** to `data/nearby-restaurants.json`, adding to the `restaurants[]` array and updating the relevant entry in `locations{}`.
 
 **Present the discovery results to the user** conversationally:
 
@@ -237,13 +312,23 @@ This is the **main loop** — every time the user asks "吃什么？" after the 
 
 3. **Dietary constraints** — From `health-preferences.md` and `health-profile.md`: diet mode, allergies, dislikes, cuisine preferences.
 
-4. **Cached restaurants** — Read `data/nearby-restaurants.json`.
+4. **Cached restaurants** — Read `data/nearby-restaurants.json`. Filter to restaurants matching `active_location`.
 
-**Then recommend:**
+5. **Recent recommendations** — Read `recent_recommendations[]` to know what was suggested recently.
+
+6. **Recent life context** — Gather signals from other data sources to understand the user's current state:
+   - **Recent diet pattern** — from `data/meals/` logs over the last 3–5 days: are they eating too much of one food group? High sodium streak? Mostly fast food? Under-eating protein?
+   - **Exercise today** — from exercise logs: did they work out today? Higher calorie budget may be appropriate.
+   - **Emotional state** — from recent conversation tone or explicit mentions ("今天好累", "心情不好", "加班到很晚"): suggest comfort food within budget, or lighter options if they mention feeling heavy/bloated.
+   - **Day type** — weekday rush (fast, cheap, nearby) vs weekend leisure (can travel further, try new places, higher budget).
+
+**Then recommend — rotating from `meals[]`:**
+
+Each restaurant has multiple pre-screened combos in `meals[]`. Pick different ones each time — check `recent_recommendations[]` to avoid suggesting the same combo as last time at the same restaurant.
 
 #### If the user names a specific restaurant (in the cache or not)
 
-Provide 2–3 meal options at that restaurant, ranked by fit:
+Provide 2–3 meal combos from the restaurant's `meals[]`, ranked by fit. Prefer combos not recently recommended:
 
 > **沙县小吃 — 推荐点餐方案**
 >
@@ -261,23 +346,41 @@ If the restaurant is NOT in the cache, use nutritional knowledge to recommend, a
 
 #### If the user asks generally ("吃什么好？")
 
-Pick the 3–4 best-fit options from the cached restaurant list, considering:
-- Remaining calorie budget (filter out restaurants where most options exceed budget)
-- Diet mode compatibility
-- Variety (don't always recommend the same place)
-- Time of day (convenience stores for quick snacks, sit-down for dinner)
+Pick 3–4 options from the cached restaurant list for the active location, applying these filters **in order**:
+
+1. **Dedup** — check `recent_recommendations[]`. Deprioritize restaurants recommended in the last 2 days, and never suggest the exact same meal combo as last time at the same restaurant.
+2. **Budget fit** — filter to restaurants with menu combos within the remaining calorie budget.
+3. **Life context** — adjust based on recent state:
+   - Last 3 days mostly 快餐/高碳水 → lean toward 轻食 or 高蛋白 options
+   - Just worked out → can suggest slightly higher calorie options, emphasize protein
+   - User mentioned being tired/stressed → suggest simple comfort food within budget, don't push ultra-healthy options
+   - Weekend → can suggest further restaurants or new places to try
+4. **Variety** — across cuisine types (don't recommend 3 noodle places), price ranges, and restaurant types.
+5. **Visit history** — weave in visit context per the History-Based Recommendation Logic below.
 
 > **今天午餐建议** — 剩余预算约 **650 kcal**
 >
-> 🥟 **沙县小吃：** 蒸饺 8 个 + 紫菜蛋花汤 — 约 450 kcal，18 元
+> 🥟 **沙县小吃：** 馄饨 + 卤蛋 — 约 400 kcal，15 元 `上次推荐的是蒸饺，换个口味`
 > 🍜 **兰州拉面：** 牛肉拉面小碗 + 卤蛋 — 约 550 kcal，25 元
-> 🏪 **便利蜂：** 鸡胸肉 + 饭团 + 蔬菜沙拉 — 约 480 kcal，22 元
+> 🏪 **便利蜂：** 鸡胸肉 + 饭团 + 蔬菜沙拉 — 约 480 kcal，22 元 `这几天碳水偏多，来点高蛋白`
 >
 > 想吃哪个？或者告诉我你在别的地方，我来帮你搭配。
 
+**After recommending**, append an entry to `recent_recommendations[]`:
+```json
+{
+  "date": "2026-03-16",
+  "meal_slot": "lunch",
+  "restaurant": "沙县小吃（中关村店）",
+  "meal": "馄饨 + 卤蛋",
+  "accepted": false
+}
+```
+Update `accepted` to `true` if the user picks that option. Auto-prune entries older than 14 days.
+
 #### If the user sends a menu (photo or text)
 
-Analyze the menu items and pick the best 2–3 options that fit the budget. Highlight what to order and what modifications to request.
+Analyze the menu items and pick the best 2–3 options that fit the budget. Highlight what to order and what modifications to request. Offer to add suitable combos to the restaurant's `meals[]` cache.
 
 ---
 
@@ -409,10 +512,10 @@ The user may discover new restaurants over time:
 
 ### Refreshing
 
-- Auto-refresh when data is > 30 days old (on next activation)
-- User says "帮我重新搜一下附近的餐厅" → full refresh
-- User moves to a new location → clear cache and re-search
+- Auto-refresh when a location's `updated_at` is > 30 days old (on next activation)
+- User says "帮我重新搜一下附近的餐厅" → refresh the active location's restaurants
 - Add new restaurants without removing existing ones during partial updates
+- Refreshing one location does not affect other locations' data
 
 ---
 
@@ -491,7 +594,7 @@ Do NOT fabricate specific restaurant names, addresses, or menus. Instead:
 Always clearly distinguish between verified search results and general suggestions. Never cache unverified restaurants to `data/nearby-restaurants.json`.
 
 **User is traveling / not at their usual location:**
-Ask for the temporary location, search for nearby options, but do NOT overwrite the cached home-location data. Either use a temporary context or ask if they want to update their saved location.
+Ask for a label (e.g., "出差-上海"). Add it as a new location in `locations{}`, search for nearby restaurants, and set `active_location` to it. Existing locations are preserved. If the user says they're done traveling, switch `active_location` back.
 
 ---
 
