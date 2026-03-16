@@ -4,7 +4,7 @@ When this skill is used without a prior weight-loss-planner session, and the use
 
 ## Quick Flow
 
-1. Ask: height, weight, age, sex, activity level
+1. Ask: height, weight, age, sex, activity level (see `weight-loss-planner/references/formulas.md > Activity Level Selection Policy` — default to `lightly_active` unless the user's description clearly fits another level; do not use levels above `moderately_active` in normal cases)
 2. Run the planner-calc script to compute TDEE and calorie target:
 
 ```bash

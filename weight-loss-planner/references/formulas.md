@@ -90,18 +90,30 @@ TDEE = BMR × Activity Multiplier
 
 **Important:** These multipliers are population averages. Individual variation of ±10–15% is common. Factors like NEAT (non-exercise activity thermogenesis), genetics, thyroid function, and body composition all play a role. The TDEE range (one level above and below) helps account for this uncertainty.
 
+### Activity Level Selection Policy
+
+**Default to Lightly Active (×1.375)** for most users. The majority of people overestimate their activity level, and lightly active is the most representative multiplier for a typical adult.
+
+**Selection rules:**
+1. **Lightly Active (×1.375)** — use by default for most users, including those who describe occasional walking, light exercise, or a mix of sedentary and mildly active days
+2. **Sedentary (×1.2)** — only when the user's description strongly indicates near-zero activity (e.g., works from home, no exercise at all, rarely leaves the house)
+3. **Moderately Active (×1.55)** — only when the user clearly and specifically describes regular moderate exercise 3–5 days/week (e.g., gym sessions, running, swimming) or has a physically active job
+4. **Very Active (×1.725) and Extremely Active (×1.9)** — do not use under normal circumstances. Reserve only for users who are clearly professional athletes, manual laborers with daily intense training, or similar exceptional cases
+
+**Do not expose multiplier values to the user.** Activity level classification is an internal calculation detail. Present TDEE results without mentioning the specific multiplier used.
+
 ### TDEE Range Calculation
 
 TDEE estimation is inherently imprecise. To give the user a practical range, present TDEE as a **point estimate ± 100 kcal**.
 
 **Procedure:**
-1. Based on the user's activity description, select the best-fit multiplier as the primary estimate
+1. Based on the user's activity description, select the best-fit multiplier per the selection policy above (default: lightly active)
 2. Calculate: `TDEE_low = TDEE - 100`, `TDEE_high = TDEE + 100`
 
 **Example:**
-- User describes: "I go to the gym 3x/week and walk my dog daily"
-- Best fit: Moderately Active (×1.55)
-- BMR = 1,800 → TDEE = **2,790** (range: 2,690 – 2,890)
+- User describes: "I work in an office and sometimes go for walks on weekends"
+- Best fit: Lightly Active (×1.375) — default
+- BMR = 1,800 → TDEE = **2,475** (range: 2,375 – 2,575)
 
 This ±100 kcal range accounts for day-to-day variation in activity and measurement imprecision. If the user feels the estimate is too high or too low, they can adjust within the range or request a recalculation with a different activity level.
 
