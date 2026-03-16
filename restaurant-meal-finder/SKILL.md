@@ -177,11 +177,20 @@ Use web search to find restaurants near the user's location. Run 2–3 targeted 
 - Price range
 - Popular menu items
 
+> ⚠️ **NEVER FABRICATE RESTAURANT DATA.** Only include restaurants that
+> appear in actual search results with verifiable names and addresses.
+> If web search returns no usable restaurant results for the area (common
+> for smaller neighborhoods where data is locked inside apps like 大众点评
+> or 美团), do NOT invent restaurant names, addresses, or menus. Instead,
+> follow the "Web search returns limited results" edge case below.
+
 **Then build `recommended_meals` for each restaurant:**
 - Use nutritional knowledge to estimate calories and macros for popular dishes
 - Pre-screen meals in the 400–700 kcal range (typical single-meal budget)
 - Include 1–2 recommended meals per restaurant
 - Add a calorie-saving tip for each meal
+- Calorie/macro estimates for **verified real restaurants** are fine to generate from nutritional knowledge
+- Menu item names must come from search results, the user, or widely known chain menus — never invented
 
 **Save the results** to `data/nearby-restaurants.json`.
 
@@ -373,7 +382,14 @@ Parse the menu items, identify options that fit the budget, and provide the same
 Provide the same recommendations but formatted for ordering: specific dish names, customization notes they can add in the order comments. Reference the `platforms` field from the cached restaurant data.
 
 **Web search returns limited results:**
-Supplement with general knowledge of common chain restaurants in the user's locale. Note which recommendations are from search results vs. general knowledge.
+Do NOT fabricate specific restaurant names, addresses, or menus. Instead:
+
+1. **Ask the user for help**: "搜索结果不多，你平时在附近吃哪几家？告诉我店名，我帮你搭配热量合适的点餐方案。" / "I couldn't find many results online. What restaurants are near you? Tell me the names and I'll help you pick calorie-smart meals."
+2. **Offer general chain guidance**: If the user's area likely has common chains (沙县小吃, 兰州拉面, McDonald's, Subway, etc.), you may mention these as *possibilities to check* — but frame them as suggestions to verify, not as confirmed nearby options. Example: "附近一般会有沙县、兰州拉面这类店，你看看有没有？有的话我帮你配餐。"
+3. **Offer cuisine-type guidance**: If the user describes what type of food is available (e.g., "楼下有个快餐店"), provide calorie-smart ordering strategies for that cuisine type without inventing a specific restaurant.
+4. **Menu photo fallback**: Ask the user to share a menu photo or screenshot from a delivery app: "你在外卖App上截个图发我，我直接帮你挑。"
+
+Always clearly distinguish between verified search results and general suggestions. Never cache unverified restaurants to `data/nearby-restaurants.json`.
 
 **User is traveling / not at their usual location:**
 Ask for the temporary location, search for nearby options, but do NOT overwrite the cached home-location data. Either use a temporary context or ask if they want to update their saved location.
