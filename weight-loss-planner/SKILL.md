@@ -192,28 +192,24 @@ The user may want to:
 - **Slow down** → decrease the rate (recalculate; explain that slower is often more sustainable)
 - **Change the goal weight** → recalculate everything
 
-Each adjustment triggers a recalculation. Re-present the updated plan and confirm. Repeat until the user is satisfied. If they push for an unsafe rate, stand firm kindly — health first, always.
+Each adjustment triggers a recalculation. After recalculating, **re-present the updated plan using the full Plan Presentation format defined in Step 2** (Opening → Body metrics → Safety floor → Plan details → Rate explanation → Follow-up question). Do NOT use abbreviated summaries or comparison tables — always show the complete plan so the user can confirm with full context. Repeat until the user is satisfied. If they push for an unsafe rate, stand firm kindly — health first, always.
 
 ---
 
-### Step 4: Output Final Plan & Save PLAN.md
+### Step 4: Save PLAN.md & Transition to Meal Planner
 
-Once the user confirms the plan from Step 2/3, present the plan in chat and silently save it as `PLAN.md`. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
-
-The Plan Presentation from Step 2 IS the final plan. Present it following the same format defined in Step 2's Plan Presentation section.
+Once the user confirms the plan presented in Step 2/3, **do NOT re-present the plan** — the user has just seen it. Proceed directly with the following actions:
 
 **Internal actions (do NOT mention to user):**
 
-1. Silently save the Plan Presentation content as `PLAN.md` in the current workspace. The PLAN.md contains only the Plan Presentation content — no macro breakdowns, no diet mode, no meal-related information.
+1. Silently save the most recently presented Plan Presentation content as `PLAN.md` in the current workspace. The PLAN.md contains only the Plan Presentation content — no macro breakdowns, no diet mode, no meal-related information. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
 2. Do not generate PDF or send via Slack.
-
-Do not tell the user the filename, file format, or that a file is being saved.
 
 **Do NOT mention meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled by the `daily-notification-skill` and will be configured automatically when the `meal-planner` skill collects the user's meal schedule. Do not mention, summarize, or set up any reminder schedule during the weight-loss planning phase.
 
-**Transition to Meal Planner** — Once the plan is confirmed, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target from the conversation context and collect diet preferences (diet mode, meal schedule, taste/restrictions) on its own. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
+**Transition to Meal Planner** — After saving, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target from the conversation context and collect diet preferences (diet mode, meal schedule, taste/restrictions) on its own. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
 
-**If the user wants to adjust the plan** after seeing it, help them modify it (go back to Step 3). **If the plan is confirmed**, transition directly to the meal planner — do not detour into reminders or other topics.
+**If the user wants to adjust the plan** after confirmation, help them modify it (go back to Step 3). **If the plan is confirmed**, transition directly to the meal planner — do not detour into reminders or other topics.
 
 ---
 
