@@ -315,7 +315,7 @@ After presenting the diet template, **immediately introduce the daily tracking w
 
 ### Bootstrap Meal Reminders (Silent)
 
-After presenting the diet template, **activate `daily-notification-skill`** so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create the corresponding cron jobs (meal reminders + weight reminders). Do NOT create cron jobs directly via `scheduled-reminders` here — `daily-notification-skill` owns all reminder lifecycle management.
+After presenting the diet template, **activate `notification-manager`** so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create the corresponding cron jobs (meal reminders + weight reminders). `notification-manager` owns all reminder lifecycle management.
 
 Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
 

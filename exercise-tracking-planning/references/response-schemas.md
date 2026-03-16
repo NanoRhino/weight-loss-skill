@@ -327,7 +327,7 @@ Return this when a new training plan is accepted by the user. Store the full obj
 
 ### How Other Skills Use `training_plan.active`
 
-- `daily-notification`: reads `schedule[today].label` to mention today's workout in reminders (e.g., "今天是全身训练 A 的日子").
+- `notification-composer`: reads `schedule[today].label` to mention today's workout in reminders (e.g., "今天是全身训练 A 的日子").
 - `weekly-report`: reads plan to compare planned vs. actual sessions logged in `logs.exercise.*`.
 - `habit-builder`: reads `days_per_week` and schedule to recommend exercise-adjacent habits (e.g., "gym bag prep the night before").
 

@@ -537,7 +537,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 ### Read by other skills
 
 - `weekly-report` reads `logs.exercise.{date}` and `logs.exercise_weekly_summary.{week}` for weekly progress reports.
-- `daily-notification` reads `training_plan.active` to reference today's scheduled workout in reminders.
+- `notification-composer` reads `training_plan.active` to reference today's scheduled workout in reminders.
 - `habit-builder` reads `logs.exercise.{date}` to detect movement patterns and recommend exercise-related habits.
 
 ---

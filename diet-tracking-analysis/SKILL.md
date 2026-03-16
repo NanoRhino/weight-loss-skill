@@ -258,7 +258,7 @@ If the user later provides details about the missed meal → record it, re-run `
 
 The below-BMR safety check runs **weekly** (not per-meal). This avoids noisy daily alerts while still catching sustained under-eating patterns.
 
-**Trigger:** Run `weekly-low-cal-check` once per week — either on a fixed day (e.g. Monday) via the daily-notification system, or whenever the user asks for a weekly summary.
+**Trigger:** Run `weekly-low-cal-check` once per week — either on a fixed day (e.g. Monday) via the `notification-composer` system, or whenever the user asks for a weekly summary.
 
 **Inputs needed:** `--bmr` from the user's profile (PLAN.md or USER.md). If unavailable, calculate using Mifflin-St Jeor (see `weight-loss-planner/references/formulas.md`).
 
