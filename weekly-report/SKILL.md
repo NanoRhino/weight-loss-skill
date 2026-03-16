@@ -1,7 +1,7 @@
 ---
 name: weekly-report
 version: 1.0.0
-description: "Generate a personalized weekly progress report for the user's weight-loss journey. Use this skill every Monday (or when the user asks for a weekly summary). Compiles 7 days of meal logs, weight records, and macro data into a visual Markdown report with logging streaks, calorie analysis, weight trends, macronutrient breakdown, achievements, and actionable suggestions. Trigger phrases: 'weekly report', 'week summary', 'how did I do this week', '本周报告', '周报', '这周怎么样'."
+description: "Generate a personalized weekly progress report for the user's weight-loss journey. Use this skill every Monday (or when the user asks for a weekly summary). Compiles 7 days of meal logs, weight records, and macro data into an in-chat summary plus a styled HTML report with logging streaks, calorie analysis, weight trends, macronutrient breakdown, achievements, and actionable suggestions. Trigger phrases: 'weekly report', 'week summary', 'how did I do this week', '本周报告', '周报', '这周怎么样'."
 metadata:
   openclaw:
     emoji: "bar_chart"
@@ -99,45 +99,21 @@ User can request a report at any time:
 
 ## Report Structure
 
-The report has 7 sections. Generate them in order. Each section adapts to the
-user's actual data — skip or simplify sections with no data.
+The report has 6 sections. Generate them in order. Each section adapts to the
+user's actual data — skip or simplify sections with no data. The header
+(title, date range, greeting) is handled by the HTML template's
+`.report-header` and the in-chat summary — not a separate section.
 
-### Section 1: Header
+### Section 1: Logging Overview
 
-```
-📊 Weekly Report
-{Mon date} – {Sun date}
-```
-
-Use the language from locale.json. Chinese example: `📊 本周报告  2月10日 – 2月16日`
-
-If user's name is available, add: `Hi {Name}! Here's your week.` /
-`{Name}，这是你这周的总结！`
-
----
-
-### Section 2: Logging Overview
-
-Show each day of the week with a status indicator for whether the user logged
-meals that day.
+Show each day of the week with a status indicator. See `.logging-grid` in the
+HTML template.
 
 **Data logic:**
 - For each day (Mon–Sun), call `nutrition-calc.py load --date YYYY-MM-DD` to check:
   - If at least 1 meal has `status: "logged"` → ✅
   - If all meals are `"skipped"` or `"no_reply"` or no log exists → ❌
 - Count total days with ✅ → `{X}/7 days logged`
-
-**Display format (Markdown):**
-
-```
-### 📅 Logging Overview
-
-| Mon | Tue | Wed | Thu | Fri | Sat | Sun |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| ✅  | ✅  | ✅  | ❌  | ✅  | ✅  | ❌  |
-
-**5/7 days logged** — Nice consistency!
-```
 
 **Commentary rules:**
 - 7/7 → `"Perfect week! 🎉"` / `"满勤！🎉"`
@@ -147,38 +123,19 @@ meals that day.
 
 ---
 
-### Section 3: Calorie Analysis
+### Section 2: Calorie Analysis
 
-Show daily calorie intake vs the user's target range. Classify each day.
+Show daily calorie intake vs target range with bar chart. See `.calorie-table`
+and `.calorie-bar` in the HTML template.
 
 **Data logic:**
 - For each day, call `nutrition-calc.py load --date YYYY-MM-DD` and sum `cal` across all meals
 - Compare against `Daily Calorie Range` from `PLAN.md`:
-  - Below range min → `📉 Below`
-  - Within range → `✅ On Target`
-  - Above range max → `📈 Over`
+  - Below range min → `📉 Below` (bar class: `below`)
+  - Within range → `✅ On Target` (bar class: `on-target`)
+  - Above range max → `📈 Over` (bar class: `over`)
 - Days with no data → `—` (skip from calculations)
-
-**Display format:**
-
-```
-### 🔥 Calorie Analysis
-
-Daily target: {min} – {max} kcal
-
-| Day | Intake | Status |
-|-----|--------|--------|
-| Mon | 1,620 kcal | ✅ On Target |
-| Tue | 1,480 kcal | 📉 Below |
-| Wed | 1,750 kcal | ✅ On Target |
-| Thu | — | — |
-| Fri | 1,830 kcal | ✅ On Target |
-| Sat | 2,150 kcal | 📈 Over |
-| Sun | — | — |
-
-**Average: 1,766 kcal/day** (target midpoint: {midpoint} kcal)
-On Target: 3 days · Below: 1 day · Over: 1 day
-```
+- Bar width = `(day_calories / max_calories_in_week) * 100%`
 
 **Commentary rules:**
 - Average within range → `"Right on track this week."` / `"这周热量控制得很好。"`
@@ -188,32 +145,16 @@ On Target: 3 days · Below: 1 day · Over: 1 day
 
 ---
 
-### Section 4: Weight Progress
+### Section 3: Weight Progress
 
-Show weight readings recorded during the week and the net change.
+Show weight readings and net change. See `.weight-table` and `.weight-change`
+in the HTML template.
 
 **Data logic:**
 - Call `weight-tracker.py load --from <start> --to <end> --display-unit <unit>` to collect all entries within the period
 - If 2+ readings: calculate change = last reading − first reading
 - If 1 reading: show it, compare to previous week's last reading if available
-- If 0 readings: skip this section entirely, add a gentle note
-
-**Display format:**
-
-```
-### ⚖️ Weight Progress
-
-| Date | Weight |
-|------|--------|
-| Mon 2/10 | 75.2 kg |
-| Thu 2/13 | 74.8 kg |
-
-**This week: −0.4 kg ↓**
-Total progress: 80.0 kg → 74.8 kg (−5.2 kg toward goal of 65.0 kg)
-```
-
-Use the user's preferred unit system (kg or lbs) — read from existing weight
-log entries' `unit` field.
+- If 0 readings: skip this section entirely (remove the card), add a gentle note
 
 **Commentary rules:**
 - Loss within expected rate (from `PLAN.md` weekly rate) → `"Right on pace."` / `"进度刚好。"`
@@ -226,27 +167,16 @@ suggest the user weigh more often than 2x/week.
 
 ---
 
-### Section 5: Macronutrient Analysis
+### Section 4: Macronutrient Analysis
 
-Compare the user's average daily macro intake against their target ranges.
+Compare average daily macro intake against target ranges. See `.macro-table`
+in the HTML template.
 
 **Data logic:**
 - Calculate average daily protein, fat, carb from logged meals across the week
   (use `meal_totals` from food logs or `daily_summary` data)
 - Compare each macro's average against the range from `PLAN.md`
 - Classify: `Below Range` / `In Range` / `Above Range`
-
-**Display format:**
-
-```
-### 🥗 Macronutrient Analysis
-
-| Macro   | Avg Intake | Target Range | Status |
-|---------|-----------|--------------|--------|
-| Protein | 82 g/day  | 84–112 g/day | 📉 Slightly Below |
-| Fat     | 58 g/day  | 50–70 g/day  | ✅ In Range |
-| Carb    | 225 g/day | 181–254 g/day | ✅ In Range |
-```
 
 **Commentary rules:**
 - All in range → `"Balanced macros this week — keep it up!"` / `"三大营养素都在范围内，继续保持！"`
@@ -256,27 +186,16 @@ Compare the user's average daily macro intake against their target ranges.
 
 ---
 
-### Section 6: Habit Progress
+### Section 5: Habit Progress
 
-Show the status of active habits, if any exist. Read `habits.active` and
-`habits.daily_log.{date}` for the week.
+Show the status of active habits. See `.habit-item` in the HTML template.
 
 **Data logic:**
-- For each active habit, count completions, misses, and no_responses during the week
+- Read `habits.active` and `habits.daily_log.{date}` for the week
+- For each active habit, count completions, misses, and no_responses
 - Calculate completion rate for the week
 - Check for graduation signals (see `habit-builder` SKILL.md)
-- If no active habits exist, skip this section entirely
-
-**Display format:**
-
-```
-### 🌱 Habit Progress
-
-**Walk after dinner** (Week 2)
-This week: ✅✅✅❌✅ — 4/5 mentions completed
-
-Looking solid — becoming part of your routine.
-```
+- If no active habits exist, skip this section entirely (remove the card)
 
 **Commentary rules:**
 - High completion (≥ 80%) → celebrate casually: `"This one's becoming automatic."` / `"快变成习惯了。"`
@@ -291,10 +210,10 @@ If `habits.daily_log` data across the week reveals a pattern worth addressing
 
 ---
 
-### Section 7: Key Achievements & Suggestions
+### Section 6: Key Achievements & Suggestions
 
-Two sub-sections: what went well, and what to focus on next week. Both are
-AI-generated based on the week's actual data.
+Two sub-sections in a single card. See `.achievement-list` and
+`.suggestion-list` in the HTML template.
 
 #### Achievements (max 3)
 
@@ -324,21 +243,6 @@ Specific, actionable improvements for next week. Based on the week's gaps.
 - Never suggest calorie counting if user is on IF mode
 - Tone: collaborative, not prescriptive — `"One thing to try next week:"` not `"You need to:"`
 
-**Display format:**
-
-```
-### 🏆 Key Achievements
-
-- Logged meals 5 out of 7 days — building a strong habit.
-- 3 days within calorie target — that's real progress.
-- Down 0.4 kg this week — steady and sustainable.
-
-### 💡 Suggestions for Next Week
-
-- **Boost protein**: Averaged 82g vs 84–112g target. Try adding an egg to breakfast or a handful of nuts as a snack.
-- **Weekend logging**: Missed both weekend days — even a quick note helps keep awareness up.
-```
-
 ---
 
 ## Formatting Rules
@@ -346,7 +250,6 @@ Specific, actionable improvements for next week. Based on the week's gaps.
 - **Units:** Use the user's preferred system consistently. Read from existing weight logs or `PLAN.md`. Never show dual units.
 - **Numbers:** Use locale-appropriate formatting. English: `1,620 kcal`. Chinese: `1620 kcal`.
 - **Tone:** Warm, data-driven, encouraging. Like a supportive coach reviewing game tape with an athlete.
-- **Length:** The full report should be scannable in under 60 seconds. Keep commentary to 1-2 sentences per section max.
 
 ---
 
@@ -363,29 +266,19 @@ Don't generate a full report. Send a short message:
 `"这周没有数据，准备重新开始？💪"`
 
 **User has no PLAN.md (no calorie/macro targets):**
-Skip Sections 3 and 5 (calorie and macro analysis). Show logging overview and
+Skip Sections 2 and 4 (calorie and macro analysis). Show logging overview and
 weight progress only. Add note: `"Set up a weight loss plan to unlock calorie and macro tracking in your weekly report."` /
 `"创建减重计划后，周报会加入热量和营养素分析。"`
 
 **Health flags (ED-related):**
 If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
-- Skip Section 4 (Weight Progress) entirely
+- Skip Section 3 (Weight Progress) entirely
 - In calorie section, focus on consistency of eating, not numbers
 - Achievements: focus on variety and balance, not restriction
 
 ---
 
 ## Workspace
-
-### Reads
-
-| Path | How | Purpose |
-|------|-----|---------|
-| `USER.md` | direct read | User identity, name, health flags |
-| `health-profile.md` | direct read | Health data, goals, meal schedule, unit preference |
-| `PLAN.md` | direct read | Calorie targets, macro ranges, weekly loss rate, diet mode |
-| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load` | Meal logging status, food descriptions, calories, macros |
-| `data/weight.json` | `weight-tracker.py load` | Weight readings |
 
 ### Writes
 
@@ -433,7 +326,7 @@ Full report attached below 👇
 
 Generate a self-contained HTML file using the template at
 `templates/weekly-report.html`. Write the file to `data/reports/weekly-report-{start_date}.html`
-and attach it in the response. The HTML report contains all 7 sections with
+and attach it in the response. The HTML report contains all 6 sections with
 full detail, charts, and styling.
 
 **HTML generation rules:**
