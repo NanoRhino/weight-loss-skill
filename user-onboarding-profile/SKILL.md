@@ -204,11 +204,14 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 
 ## Cooking & Kitchen
 [Kitchen equipment, cooking skill, meal prep willingness, grocery access — or empty if none mentioned]
+
+## Restaurant & Dining
+[Favorite restaurant types, cuisine preferences when eating out, dining habits — or empty if none mentioned]
 ```
 
 Each entry follows the format: `- [YYYY-MM-DD] Preference description`
 
-> **Note:** The `health-preferences.md` file starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-tracking-planning, etc.) detect and append new preferences during future conversations.
+> **Note:** The `health-preferences.md` file starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-tracking-planning, restaurant-meal-finder, etc.) detect and append new preferences during future conversations.
 
 ---
 
@@ -244,6 +247,7 @@ During onboarding, the user often reveals preferences beyond the standard profil
 - Scheduling details (e.g., "I work late on Wednesdays", "I skip breakfast on workdays") → `## Scheduling & Lifestyle`
 - Exercise preferences beyond the "Exercise Habits" field (e.g., "I hate running", "I prefer yoga") → `## Exercise`
 - Budget sensitivity (e.g., "I'm on a tight budget") → `## Dietary`
+- Restaurant/dining preferences (e.g., "I eat out a lot for lunch", "I love Japanese food", "I prefer fast casual") → `## Restaurant & Dining`
 - Any other health-related preference that could inform future meal plans, exercise programs, or coaching
 
 **Communication preferences** (tone, pace, emoji preference, etc.) go to `USER.md > Communication Preferences`, NOT to health-preferences.md.

@@ -74,7 +74,7 @@ health-profile.md (body data) + health-preferences.md (food prefs)
 |------|--------|-------|---------|
 | `data/nearby-restaurants.json` | Read/Write | **This skill** | Cached list of nearby restaurants with menus and calorie info |
 | `PLAN.md` | Read | weight-loss-planner | Daily calorie target and macro ranges |
-| `health-preferences.md` | Read | user-onboarding-profile | Food preferences, allergies, cuisine likes |
+| `health-preferences.md` | Read/Append | user-onboarding-profile | Food preferences, allergies, cuisine likes; `## Restaurant & Dining` for dining habits and cuisine preferences |
 | `health-profile.md` | Read | user-onboarding-profile | Diet mode, body stats, meal schedule, location |
 | `locale.json` | Read | system | Language and region for locale adaptation |
 | `data/meals/YYYY-MM-DD.json` | Read | diet-tracking-analysis | Today's logged meals (to calculate remaining budget) |
@@ -107,7 +107,19 @@ This skill **owns** this file. It is the single source of truth for the user's n
           "price": "约 18 元",
           "tips": "蒸饺比煎饺少约 100 kcal"
         }
-      ]
+      ],
+      "visits": [
+        {
+          "date": "2026-03-10",
+          "meal": "蒸饺 8 个 + 紫菜蛋花汤",
+          "rating": 4,
+          "note": "分量刚好，汤很鲜"
+        }
+      ],
+      "visit_count": 1,
+      "last_visited": "2026-03-10",
+      "user_rating": 4,
+      "tags": ["工作日午餐", "性价比高"]
     }
   ]
 }
@@ -123,6 +135,11 @@ This skill **owns** this file. It is the single source of truth for the user's n
   - `platforms` — how to order (到店, 美团外卖, 饿了么, Uber Eats, DoorDash, etc.)
   - `price_range` — approximate per-person cost
   - `recommended_meals[]` — pre-screened meals that fit typical calorie budgets (400–700 kcal), each with name, calories, macros, approximate price, and one calorie-saving tip
+  - `visits[]` — (optional) array of visit records, each with `date` (ISO), `meal` (what was ordered), `rating` (1–5, optional), and `note` (optional free text)
+  - `visit_count` — (optional, derived) total number of visits, auto-updated when visits[] changes
+  - `last_visited` — (optional, derived) date of most recent visit
+  - `user_rating` — (optional) overall user rating 1–5, updated as average of visit ratings
+  - `tags[]` — (optional) user-generated labels like "工作日午餐", "聚会好去处", "quick lunch"
 
 ---
 
@@ -291,6 +308,95 @@ After the user picks a meal option:
 2. **Offer to pre-log**: "要我先帮你记上吗？吃完后可以再调整。"
 3. If the user agrees, hand off to `diet-tracking-analysis` to log the meal
 4. If the user doesn't want to pre-log, that's fine — they can log after eating
+
+---
+
+## Visit Tracking & History-Based Recommendations
+
+This skill tracks which restaurants the user actually visits and uses that history to make smarter, more personalized recommendations over time.
+
+### Recording Visits (Check-ins)
+
+**When to record a visit:**
+
+1. **User logs a restaurant meal via diet-tracking-analysis** — after the meal is logged and the restaurant is in the cache, silently append a visit record to that restaurant's `visits[]` array. Extract the meal name from the log, use today's date.
+2. **User explicitly checks in** — "我在沙县吃了", "just had lunch at Chipotle" → record the visit.
+3. **User rates a restaurant** — "那家拉面不错" / "上次那个轻食店一般" → record or update the rating.
+
+**How to record:**
+
+Append to the restaurant's `visits[]` in `data/nearby-restaurants.json`:
+
+```json
+{
+  "date": "2026-03-16",
+  "meal": "蒸饺 8 个 + 紫菜蛋花汤",
+  "rating": 4,
+  "note": "分量刚好"
+}
+```
+
+Then update `visit_count`, `last_visited`, and recalculate `user_rating` (average of all visit ratings that have a rating value).
+
+**Tagging:** If the user describes a restaurant with labels ("这家适合赶时间的时候吃", "good for a quick bite"), save those as `tags[]`. Tags are free-form and user-driven — don't auto-generate them.
+
+### History-Based Recommendation Logic
+
+When the user asks "吃什么？" or requests recommendations, **augment** the standard Step 2 flow with visit history signals:
+
+#### Priority 1: Favor visited & liked restaurants
+
+- Restaurants with `user_rating >= 4` and `visit_count >= 1` get a recommendation boost
+- Mention why: "你上次给了 4 星" / "你去过 3 次了，看来挺喜欢的"
+- If a highly-rated restaurant fits the current calorie budget and meal slot, prioritize it
+
+#### Priority 2: Suggest revisiting past favorites
+
+When the user hasn't visited a liked restaurant in a while (> 14 days since `last_visited`):
+
+> 🥟 **沙县小吃** — 你上次去是两周前，评价不错。今天再来一份蒸饺？约 450 kcal，刚好卡在预算里。
+
+#### Priority 3: Recommend similar restaurants
+
+When the user likes a restaurant, suggest similar unvisited ones from the cache based on:
+- **Same `type`** (e.g., both are 快餐 or both are 轻食)
+- **Similar `price_range`**
+- **Matching `tags`** (e.g., both tagged "工作日午餐")
+
+> 你挺喜欢沙县小吃的，附近还有一家 **黄焖鸡米饭** 也是快餐类、价格差不多，要不要试试？
+
+#### Priority 4: Avoid poorly-rated restaurants
+
+- Restaurants with `user_rating <= 2` should be deprioritized (still shown if explicitly asked, but not proactively recommended)
+- If the user asks about a low-rated restaurant, gently remind: "你上次给了 2 星，还想去吗？要不试试旁边的 XX？"
+
+#### Priority 5: Frequency-aware variety
+
+- If the user has visited the same restaurant > 3 times in the last 7 days, suggest alternatives: "这周已经吃了 3 次沙县了，换个口味？"
+- Balance between comfort (returning to favorites) and variety (trying new options)
+
+### Presenting History Context in Recommendations
+
+When recommending, naturally weave in visit history:
+
+> **今天午餐建议** — 剩余预算约 **650 kcal**
+>
+> ⭐ **沙县小吃：** 蒸饺 + 蛋花汤 — 约 450 kcal，18 元 `去过 3 次 · 评分 4.0`
+> 🆕 **轻食沙拉店：** 鸡胸肉沙拉 — 约 380 kcal，35 元 `还没试过，和你喜欢的便利蜂轻食风格类似`
+> 🍜 **兰州拉面：** 牛肉面小碗 — 约 550 kcal，25 元 `上次去是 3 天前`
+
+Use `⭐` for favorites (rating >= 4), `🆕` for unvisited, no marker for regularly visited.
+
+### Preference Detection — Write to health-preferences.md
+
+During restaurant interactions, the user often reveals dining preferences. Append these to `health-preferences.md > ## Restaurant & Dining`:
+
+- Cuisine preferences: "我喜欢吃日料", "I love Thai food" → `- [2026-03-16] 喜欢日料 / 泰国菜`
+- Dining habits: "午饭基本都在外面吃", "I eat out every day for lunch" → `- [2026-03-16] 工作日午餐基本外食`
+- Restaurant type preferences: "喜欢去那种有套餐的店", "prefer fast casual" → `- [2026-03-16] 偏好有套餐的快餐店`
+- Price sensitivity for dining: "外卖太贵了，还是去店里吃" → `- [2026-03-16] 外卖预算敏感，偏好到店`
+
+Do this silently — never mention file updates to the user.
 
 ---
 
