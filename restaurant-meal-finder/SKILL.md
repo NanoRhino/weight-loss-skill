@@ -74,7 +74,7 @@ health-profile.md (body data) + health-preferences.md (food prefs)
 |------|--------|-------|---------|
 | `data/nearby-restaurants.json` | Read/Write | **This skill** | Cached list of nearby restaurants with menus and calorie info |
 | `PLAN.md` | Read | weight-loss-planner | Daily calorie target and macro ranges |
-| `health-preferences.md` | Read/Append | user-onboarding-profile | Food preferences, allergies, cuisine likes; `## Restaurant & Dining` for dining habits and cuisine preferences |
+| `health-preferences.md` | Read/Append | user-onboarding-profile | Food preferences, allergies, cuisine likes |
 | `health-profile.md` | Read | user-onboarding-profile | Diet mode, body stats, meal schedule, location |
 | `locale.json` | Read | system | Language and region for locale adaptation |
 | `data/meals/YYYY-MM-DD.json` | Read | diet-tracking-analysis | Today's logged meals (to calculate remaining budget) |
@@ -350,13 +350,7 @@ When the user asks "吃什么？" or requests recommendations, **augment** the s
 - Mention why: "你上次给了 4 星" / "你去过 3 次了，看来挺喜欢的"
 - If a highly-rated restaurant fits the current calorie budget and meal slot, prioritize it
 
-#### Priority 2: Suggest revisiting past favorites
-
-When the user hasn't visited a liked restaurant in a while (> 14 days since `last_visited`):
-
-> 🥟 **沙县小吃** — 你上次去是两周前，评价不错。今天再来一份蒸饺？约 450 kcal，刚好卡在预算里。
-
-#### Priority 3: Recommend similar restaurants
+#### Priority 2: Recommend similar restaurants
 
 When the user likes a restaurant, suggest similar unvisited ones from the cache based on:
 - **Same `type`** (e.g., both are 快餐 or both are 轻食)
@@ -365,12 +359,12 @@ When the user likes a restaurant, suggest similar unvisited ones from the cache 
 
 > 你挺喜欢沙县小吃的，附近还有一家 **黄焖鸡米饭** 也是快餐类、价格差不多，要不要试试？
 
-#### Priority 4: Avoid poorly-rated restaurants
+#### Priority 3: Avoid poorly-rated restaurants
 
 - Restaurants with `user_rating <= 2` should be deprioritized (still shown if explicitly asked, but not proactively recommended)
 - If the user asks about a low-rated restaurant, gently remind: "你上次给了 2 星，还想去吗？要不试试旁边的 XX？"
 
-#### Priority 5: Frequency-aware variety
+#### Priority 4: Frequency-aware variety
 
 - If the user has visited the same restaurant > 3 times in the last 7 days, suggest alternatives: "这周已经吃了 3 次沙县了，换个口味？"
 - Balance between comfort (returning to favorites) and variety (trying new options)
@@ -389,12 +383,11 @@ Use `⭐` for favorites (rating >= 4), `🆕` for unvisited, no marker for regul
 
 ### Preference Detection — Write to health-preferences.md
 
-During restaurant interactions, the user often reveals dining preferences. Append these to `health-preferences.md > ## Restaurant & Dining`:
+During restaurant interactions, the user often reveals preferences. Append to the appropriate existing section in `health-preferences.md`:
 
-- Cuisine preferences: "我喜欢吃日料", "I love Thai food" → `- [2026-03-16] 喜欢日料 / 泰国菜`
-- Dining habits: "午饭基本都在外面吃", "I eat out every day for lunch" → `- [2026-03-16] 工作日午餐基本外食`
-- Restaurant type preferences: "喜欢去那种有套餐的店", "prefer fast casual" → `- [2026-03-16] 偏好有套餐的快餐店`
-- Price sensitivity for dining: "外卖太贵了，还是去店里吃" → `- [2026-03-16] 外卖预算敏感，偏好到店`
+- Cuisine/food preferences: "我喜欢吃日料", "I love Thai food" → `## Dietary`
+- Dining schedule patterns: "午饭基本都在外面吃", "I eat out every day" → `## Scheduling & Lifestyle`
+- Budget sensitivity: "外卖太贵了" → `## Dietary`
 
 Do this silently — never mention file updates to the user.
 

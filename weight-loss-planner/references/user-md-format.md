@@ -86,9 +86,6 @@ Contains user preferences accumulated across all conversations. Each entry is ti
 
 ## Cooking & Kitchen
 - [YYYY-MM-DD] Equipment, cooking skill, meal prep willingness
-
-## Restaurant & Dining
-- [YYYY-MM-DD] Cuisine preferences, favorite restaurant types, dining habits
 ```
 
 This section is appended to over time as users reveal preferences during conversations. Not all entries will be present from onboarding — preferences accumulate across sessions. All skills that read user data should check for and use this file when generating personalized content.
