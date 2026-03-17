@@ -22,6 +22,7 @@
   "skills": [
     "./SKILL-ROUTING",
     "./chat-greeting",
+    "./daily-notification",
     "./diet-tracking-analysis",
     "./emotional-support",
     "./exercise-tracking-planning",
