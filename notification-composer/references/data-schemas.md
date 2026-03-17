@@ -75,5 +75,5 @@ All data is written to the user's workspace and readable by any part of the syst
 |------|---------------|-----|
 | Weight records | `data/weight.json` | `weight-tracker.py save/load` (from `weight-tracking` skill) |
 | Meal records | `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py save/load` (from `diet-tracking-analysis` skill) |
-| Engagement stage | `engagement.notification_stage` | direct read/write |
-| Adaptive config | `engagement.reminder_config` | direct read/write |
+| Engagement stage | `data/engagement.json > notification_stage` | direct read/write |
+| Adaptive config | `data/engagement.json > reminder_config` | direct read/write |
