@@ -31,6 +31,28 @@ Repeated `"No pressure"` / `"It's fine"` / `"No worries"` (once max per conversa
 
 ---
 
+## Legacy Cron Migration
+
+When a cron job fires with a `--message` that references the old skill names
+(`daily-notification`, `daily-notification-skill`, or `scheduled-reminders`),
+treat it as a `notification-composer` trigger:
+
+1. **Detect:** The incoming message contains `daily-notification` instead of
+   `notification-composer` (e.g., `"Run daily-notification pre-send checks for lunch..."`).
+2. **Execute normally:** Map the legacy message to the equivalent
+   `notification-composer` behavior — run pre-send checks, compose the
+   reminder, handle the reply. The user experience is identical.
+3. **Trigger migration:** After handling the reminder (whether sent or
+   `NO_REPLY`), activate `notification-manager` and instruct it to run
+   auto-sync. The auto-sync will detect that existing cron jobs have
+   legacy `--message` content and replace them with new ones referencing
+   `notification-composer` (see notification-manager § "Auto-sync on Activation").
+
+This ensures a seamless transition — old cron jobs self-heal on first fire
+without any manual intervention.
+
+---
+
 ## Pre-send Checks (MANDATORY — run before every reminder)
 
 **Every meal reminder MUST run these checks before sending. Any fail = reply with ONLY `NO_REPLY` (nothing else). No exceptions.**

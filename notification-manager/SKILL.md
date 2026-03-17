@@ -103,7 +103,8 @@ Use the cron tool directly for listing and removing:
 3. Compare:
    - **Missing jobs** (expected time has no matching cron) → create them.
    - **Stale jobs** (cron exists but its time doesn't match any current meal time) → remove then recreate.
-   - **Matching jobs** → no action.
+   - **Legacy jobs** (cron exists and time matches, but `--message` references `daily-notification` or `daily-notification-skill` instead of `notification-composer`) → remove then recreate with the correct `notification-composer` message. This ensures old cron jobs from before the skill split are automatically migrated.
+   - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
 4. Also verify the weight reminder cron job exists (Mon & Thu, 30 min before breakfast — see § "Weight reminders" below). Create if missing.
 5. Do all of this **silently** — do not mention it to the user.
 
