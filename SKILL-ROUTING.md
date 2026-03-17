@@ -320,6 +320,25 @@ three cases, asking again makes things worse. Move forward with what you have.
 
 ---
 
+## Legacy Skill Aliases
+
+Renamed or split skills may still be referenced by old cron jobs or saved
+prompts. When the agent receives a message referencing a retired skill name,
+route to the replacement skill instead of failing.
+
+| Legacy Name | Routes To | Notes |
+|-------------|-----------|-------|
+| `daily-notification` | `notification-composer` | Skill was split into `notification-composer` + `notification-manager` |
+| `daily-notification-skill` | `notification-composer` | Same as above (alternate naming) |
+| `scheduled-reminders` | `notification-manager` | Script moved to `notification-manager/scripts/` |
+
+After handling a legacy-routed trigger, the receiving skill should activate
+`notification-manager` auto-sync so that the underlying cron jobs are updated
+to reference the current skill names. This makes the migration self-healing —
+each legacy cron job only fires with the old name once.
+
+---
+
 ## Edge Cases
 
 **User switches intent mid-conversation:**

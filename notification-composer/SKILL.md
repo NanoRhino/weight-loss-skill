@@ -1,7 +1,8 @@
 ---
 name: notification-composer
 version: 1.0.0
-description: "Per-trigger execution logic for daily reminders. Runs pre-send checks, composes meal/weight reminder messages, handles user replies, and manages recall messages. Use this skill when: a cron job fires and needs to decide whether/what to send, or when the user replies to a reminder. Do NOT use for cron management, lifecycle transitions, or reminder settings — that is notification-manager's job."
+description: "Per-trigger execution logic for daily reminders. Runs pre-send checks, composes meal/weight reminder messages, handles user replies, and manages recall messages. Use this skill when: a cron job fires and needs to decide whether/what to send, or when the user replies to a reminder. Also handles legacy cron jobs that reference the old skill names (daily-notification, daily-notification-skill, scheduled-reminders) — treat those as notification-composer triggers. Do NOT use for cron management, lifecycle transitions, or reminder settings — that is notification-manager's job."
+aliases: ["daily-notification", "daily-notification-skill"]
 metadata:
   openclaw:
     emoji: "speech_balloon"
