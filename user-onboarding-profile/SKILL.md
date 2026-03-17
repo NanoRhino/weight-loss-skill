@@ -257,7 +257,7 @@ During onboarding, the user often reveals preferences beyond the standard profil
 - Budget sensitivity (e.g., "I'm on a tight budget") → `## Dietary`
 - Any other health-related preference that could inform future meal plans, exercise programs, or coaching
 
-**Communication preferences** (tone, pace, emoji preference, etc.) go to `USER.md > Communication Preferences`, NOT to health-preferences.md.
+**Communication preferences** (tone, pace, emoji preference, etc.) go to `USER.md > Communication Preferences`, NOT to health-preferences.md. Do NOT write language preference here — language is managed solely by `locale.json`.
 
 **How to save:**
 1. After generating files, check if the user mentioned any preferences during the conversation that aren't covered by standard profile fields

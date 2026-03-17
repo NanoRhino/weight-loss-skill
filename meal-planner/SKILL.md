@@ -181,11 +181,10 @@ After the user confirms their diet mode, ask about their meal schedule. **Only a
 
 > 你一天通常吃几餐，大概什么时间？
 
-(Adapt language to match the user — see Language policy inherited from the conversation.)
 
 **Wait for the user to answer.**
 
-After the user provides their meal schedule, **in the same reply**, confirm the reminder and ask Round 3's question together (adapt to the user's language):
+After the user provides their meal schedule, **in the same reply**, confirm the reminder and ask Round 3's question together:
 
 > 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
 >
@@ -196,8 +195,6 @@ This combines the reminder confirmation with Round 3 in one message to keep the 
 ### Round 3: Taste Preferences & Food Restrictions
 
 (Already asked above together with the reminder confirmation.)
-
-(Adapt language to match the user.)
 
 **Wait for the user to answer (or skip) before proceeding.**
 
@@ -256,7 +253,7 @@ Most users don't need a detailed 7-day plan to start eating better. A clear temp
 
 ### Selecting the Diet Template by Locale
 
-Match the diet template to the user's language/locale (resolved in Step 1). The template should reflect:
+Match the diet template to the user's locale (resolved in Step 1). The template should reflect:
 - **Local foods** the user actually eats daily
 - **Local portion conventions** (hand portions, bowls, cups, etc.)
 - **Local meal structure** (e.g., Chinese breakfast is very different from American breakfast)
@@ -331,7 +328,7 @@ If the user proactively requests a detailed 7-day meal plan, follow the full gen
 
 Introduce the daily tracking workflow **immediately after the diet template** so the user knows exactly how each day will work going forward. If the user later requests and finalizes a 7-day meal plan, present it again after that plan is done. The user should leave this conversation knowing the rhythm of their days ahead.
 
-Present the following message (adapt to the user's language and meal schedule):
+Present the following message (adapt to the user's meal schedule):
 
 > 食谱已就绪！接下来每天的节奏是这样的：
 >

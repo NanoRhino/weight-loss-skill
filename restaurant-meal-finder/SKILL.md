@@ -545,7 +545,7 @@ Follow the same locale resolution as `meal-planner` (Step 1: User Locale & Food 
 - Common modifications: ご飯少なめ, ドレッシング別添え, 揚げ物→焼き物に変更
 
 ### Other locales
-Adapt to local restaurant search platforms, chains, street food, and dining culture. Use the user's language and local food terminology.
+Adapt to local restaurant search platforms, chains, street food, and dining culture. Use local food terminology.
 
 ---
 
@@ -597,7 +597,3 @@ Always clearly distinguish between verified search results and general suggestio
 Ask for a label (e.g., "出差-上海"). Add it as a new location in `locations{}`, search for nearby restaurants, and set `active_location` to it. Existing locations are preserved. If the user says they're done traveling, switch `active_location` back.
 
 ---
-
-## Language Policy
-
-Always reply in the same language the user is writing in. If the user switches language mid-conversation, switch too. All examples in this document are illustrative — adapt to the user's actual language.

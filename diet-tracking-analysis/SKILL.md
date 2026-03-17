@@ -310,7 +310,6 @@ Things to keep in mind:
 Would you like to switch to [detected_mode_name], or keep your current plan? Either way is totally fine — the best diet mode is the one you can stick with.
 ```
 
-- Adapt language to match the user (Chinese, English, etc.)
 - Keep the tone neutral and supportive — this is a suggestion, not a correction
 - Only show the top 2-3 pros and 1-2 cons from the `pros_cons` output
 - Do not mention this again for at least 7 days after the user declines
