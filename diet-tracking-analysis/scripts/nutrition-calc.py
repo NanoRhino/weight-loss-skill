@@ -12,6 +12,8 @@ Commands:
   load         — Load today's (or a given date's) meal records.
   evaluate     — Evaluate cumulative intake at a meal checkpoint (range-based).
   check-missing — Check which main meals are missing before the current meal.
+  meal-history  — Analyze meal history for a meal type over N days.
+  save-recommendation — Save meal recommendations for today.
   weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
 
 Usage:
@@ -24,6 +26,9 @@ Usage:
   python3 nutrition-calc.py evaluate --weight 65 --cal 1500 --meals 3 \
       --current-meal lunch --log '[...]'
   python3 nutrition-calc.py check-missing --meals 3 --current-meal lunch --log '[...]'
+  python3 nutrition-calc.py meal-history --data-dir /path/to/data --days 30 --meal-type lunch
+  python3 nutrition-calc.py save-recommendation --data-dir /path/to/data \
+      --meal-type lunch --items '["鸡胸肉+糙米+西兰花", "牛肉面+茶叶蛋", "沙拉+全麦面包+酸奶"]'
   python3 nutrition-calc.py weekly-low-cal-check --data-dir /path/to/data --bmr 1400
 """
 
@@ -683,6 +688,141 @@ def _get_pros_cons(current_mode: str, detected_mode: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Meal history & recommendations
+# ---------------------------------------------------------------------------
+
+def _get_recommendations_dir(data_dir: str) -> str:
+    """Return the recommendations directory, sibling to data_dir."""
+    return os.path.join(os.path.dirname(data_dir), "recommendations")
+
+
+def meal_history(data_dir: str, meal_type: str, days: int = 30,
+                 ref_date: str = None) -> dict:
+    """Analyze meal history for a given meal type over the last N days.
+
+    Returns top foods by frequency, average macros, recent 3 days of actual
+    meals, and recent 3 days of recommendations.
+    """
+    end = date.fromisoformat(ref_date) if ref_date else date.today()
+
+    food_counts: dict[str, list[float]] = {}  # name -> list of calorie values
+    macro_sums = {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0}
+    days_with_data = 0
+    recent_3: list[dict] = []
+
+    for offset in range(days):
+        day = (end - timedelta(days=offset)).isoformat()
+        path = get_log_path(data_dir, day)
+        if not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            all_meals = _migrate_meals(json.load(f))
+
+        matched = [m for m in all_meals if m.get("meal_type") == meal_type
+                    or m.get("name") == meal_type]
+        if not matched:
+            continue
+
+        days_with_data += 1
+
+        for m in matched:
+            macro_sums["calories"] += m.get("calories", 0)
+            macro_sums["protein"] += m.get("protein", 0)
+            macro_sums["carbs"] += m.get("carbs", 0)
+            macro_sums["fat"] += m.get("fat", 0)
+
+            for food in m.get("foods", []):
+                fname = food.get("name", "")
+                if not fname:
+                    continue
+                fcal = food.get("calories", 0)
+                food_counts.setdefault(fname, []).append(fcal)
+
+        if len(recent_3) < 3:
+            day_foods = []
+            for m in matched:
+                day_foods.extend(f.get("name", "") for f in m.get("foods", [])
+                                 if f.get("name"))
+            recent_3.append({"date": day, "foods": day_foods})
+
+    # Build top foods
+    top_foods = sorted(food_counts.items(), key=lambda x: len(x[1]),
+                       reverse=True)[:10]
+    top_foods_out = [
+        {"name": name, "count": len(cals),
+         "avg_calories": round(sum(cals) / len(cals), 1)}
+        for name, cals in top_foods
+    ]
+
+    # Average macros
+    avg_macros = {k: round(v / days_with_data, 1) if days_with_data else 0
+                  for k, v in macro_sums.items()}
+
+    # Data level
+    if days_with_data >= 7:
+        data_level = "rich"
+    elif days_with_data >= 1:
+        data_level = "limited"
+    else:
+        data_level = "none"
+
+    # Recent recommendations
+    rec_dir = _get_recommendations_dir(data_dir)
+    recent_recs: list[dict] = []
+    for offset in range(days):
+        if len(recent_recs) >= 3:
+            break
+        day = (end - timedelta(days=offset)).isoformat()
+        rec_path = os.path.join(rec_dir, f"{day}.json")
+        if not os.path.exists(rec_path):
+            continue
+        with open(rec_path, "r", encoding="utf-8") as f:
+            rec_data = json.load(f)
+        if meal_type in rec_data:
+            entry = rec_data[meal_type]
+            recent_recs.append({
+                "date": day,
+                "items": entry.get("items", []),
+                "picked": entry.get("picked"),
+            })
+
+    return {
+        "meal_type": meal_type,
+        "data_level": data_level,
+        "days_with_data": days_with_data,
+        "top_foods": top_foods_out,
+        "avg_macros": avg_macros,
+        "recent_3_days": recent_3,
+        "recent_recommendations": recent_recs,
+    }
+
+
+def save_recommendation(data_dir: str, meal_type: str, items: list,
+                         day: str = None) -> dict:
+    """Save meal recommendations for a given meal type today."""
+    rec_dir = _get_recommendations_dir(data_dir)
+    os.makedirs(rec_dir, exist_ok=True)
+    day = day or date.today().isoformat()
+    path = os.path.join(rec_dir, f"{day}.json")
+
+    existing: dict = {}
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            existing = json.load(f)
+
+    existing[meal_type] = {
+        "items": items,
+        "picked": None,
+    }
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+
+    return {"saved": True, "file": path, "meal_type": meal_type,
+            "items": items}
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -734,6 +874,28 @@ def main():
     cm.add_argument("--current-meal", type=str, required=True)
     cm.add_argument("--log", type=str, required=True,
                    help="JSON array of all logged meals today")
+
+    mh = sub.add_parser("meal-history",
+                         help="Analyze meal history for a meal type over N days")
+    mh.add_argument("--data-dir", type=str, required=True,
+                    help="Directory with daily JSON logs")
+    mh.add_argument("--meal-type", type=str, required=True,
+                    help="Meal type to analyze (e.g. breakfast, lunch, dinner)")
+    mh.add_argument("--days", type=int, default=30,
+                    help="Number of days to look back (default 30)")
+    mh.add_argument("--date", type=str, default=None,
+                    help="End date (YYYY-MM-DD), default today")
+
+    sr = sub.add_parser("save-recommendation",
+                         help="Save meal recommendations for today")
+    sr.add_argument("--data-dir", type=str, required=True,
+                    help="Directory with daily JSON logs (recommendations stored as sibling)")
+    sr.add_argument("--meal-type", type=str, required=True,
+                    help="Meal type (e.g. breakfast, lunch, dinner)")
+    sr.add_argument("--items", type=str, required=True,
+                    help="JSON array of recommendation strings")
+    sr.add_argument("--date", type=str, default=None,
+                    help="Date override (YYYY-MM-DD)")
 
     wlc = sub.add_parser("weekly-low-cal-check",
                           help="Check if weekly average calorie intake is below BMR")
@@ -796,6 +958,17 @@ def main():
             print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
             sys.exit(1)
         result = check_missing(args.meals, args.current_meal, log)
+    elif args.cmd == "meal-history":
+        result = meal_history(args.data_dir, args.meal_type, args.days,
+                              args.date)
+    elif args.cmd == "save-recommendation":
+        try:
+            items = json.loads(args.items)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --items JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = save_recommendation(args.data_dir, args.meal_type, items,
+                                     args.date)
     elif args.cmd == "weekly-low-cal-check":
         result = weekly_low_cal_check(args.data_dir, args.bmr, args.date)
     elif args.cmd == "detect-diet-pattern":
