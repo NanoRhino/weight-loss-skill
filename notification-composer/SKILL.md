@@ -287,8 +287,8 @@ stop the current workflow and hand off immediately.
 | `data/meals/*.json` (30 days) | via `nutrition-calc.py meal-history` | User eating habits, top foods, recent meals for recommendation generation |
 | `data/recommendations/YYYY-MM-DD.json` | via `nutrition-calc.py meal-history` | Recent recommendations for deduplication |
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
-| `engagement.notification_stage` | direct read | Stage detection (choose normal/recall/silent) |
-| `engagement.last_interaction` | direct read | Stage detection |
+| `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
+| `data/engagement.json` | `last_interaction` — direct read | Stage detection |
 
 ### Writes
 

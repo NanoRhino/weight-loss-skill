@@ -170,11 +170,11 @@ Stage 4: SILENT — send nothing. Wait for user to return.
 
 Recall replaces the next meal reminder slot — don't send at random hours.
 Weight reminders also stop at Stage 2. Write current stage to
-`engagement.notification_stage`.
+`data/engagement.json > notification_stage`.
 
-**Stage transition logic:** This skill periodically checks `engagement.last_interaction`
+**Stage transition logic:** This skill periodically checks `data/engagement.json > last_interaction`
 to detect when the user has gone silent. When a stage transition occurs, update
-`engagement.notification_stage`. The `notification-composer` reads this value to
+`data/engagement.json > notification_stage`. The `notification-composer` reads this value to
 decide whether to send a normal reminder, a recall message, or nothing at all.
 
 **When a silent user returns:**
@@ -200,7 +200,7 @@ Users may ask to change reminders in natural language. Handle inline:
 
 | User says | Action |
 |-----------|--------|
-| "Stop breakfast reminders" | Stop that meal's reminders. Update `engagement.reminder_config`. Confirm: `"Done — no more breakfast reminders. Let me know if you change your mind."` |
+| "Stop breakfast reminders" | Stop that meal's reminders. Update `data/engagement.json > reminder_config`. Confirm: `"Done — no more breakfast reminders. Let me know if you change your mind."` |
 | "Change dinner to 8 PM" | Update `health-profile.md > Meal Schedule` with the new time. The auto-sync will update the cron on next activation. Confirm: `"Got it — dinner reminders moved to 7:45 PM."` |
 | "Stop all reminders" | Stop everything, move to Stage 4. `"All reminders off. I'm still here if you want to chat. 💛"` |
 | "Remind me more" / "Can you also remind me for snacks" | Outside current scope — acknowledge and note for future: `"I can only do meals and weight for now, but I'll keep that in mind."` |
@@ -215,14 +215,14 @@ Users may ask to change reminders in natural language. Handle inline:
 | Source | Field / Path | Purpose |
 |--------|-------------|---------|
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
-| `engagement.last_interaction` | direct read | Stage detection |
+| `data/engagement.json` | `last_interaction` | Stage detection |
 
 ### Writes
 
 | Path | How | When |
 |------|-----|------|
-| `engagement.notification_stage` | direct write | Stage transitions |
-| `engagement.reminder_config` | direct write | Adaptive timing changes, user setting changes |
+| `data/engagement.json` | `notification_stage` — direct write | Stage transitions |
+| `data/engagement.json` | `reminder_config` — direct write | Adaptive timing changes, user setting changes |
 | `health-profile.md > Meal Schedule` | direct write | Adaptive timing updates, user-requested time changes |
 
 ---
