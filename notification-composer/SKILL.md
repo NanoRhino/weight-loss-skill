@@ -69,66 +69,97 @@ without any manual intervention.
 
 ## Message Templates
 
-### Meal Reminders
+### Meal Reminders — Personalized Meal Recommendations
 
-**Purpose: get the user to tell you what they're eating / what they ate.**
-This is the entry point for diet logging — every reminder should end by
-prompting a food-related reply so the user logs their meal.
+**Purpose: recommend 2-3 meal options based on the user's eating habits, then invite them to photograph their meal before eating.**
+This is both a recommendation and the entry point for diet logging — every reminder should end by prompting the user to share a photo or description of what they're about to eat.
 
 **Style: text like a friend who knows their life, not a system notification.**
-Emotional, personal, connected to the user's real life. Humor, warmth,
-teasing — all fair game. Free-form, no rigid templates.
+Warm, concise, conversational. Each recommendation feels like a friend's suggestion, not a nutrition label.
 
-**How to write a reminder:** Before composing, read workspace data (recent
-meal logs, chat context, lifestyle habits). Find something relevant to the
-user's current life, use it as a hook, and **land on "what are you eating?"**
-No fixed templates needed — here are inspiration sources:
+#### Generation Flow
 
-**1. Start from the user's recent life + steer toward the meal (top priority)**
+1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal}` to get the user's eating habits, recent meals, and recent recommendations.
+2. If earlier meals are already logged today, call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` to get today's intake for nutritional complementing.
+3. Read `health-preferences.md` (taste preferences, food restrictions).
+4. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
+5. Compose 2-3 meal recommendations (see Composition Rules below).
+6. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}'` to record what was recommended.
 
-| User context | Example |
-|-------------|---------|
-| Had a big dinner party last night | `"How was last night? Maybe something light for breakfast — what are you having?"` |
-| Salad 3 days in a row | `"Salad streak day 3… still going or finally staging a rebellion? What's it gonna be? 😂"` |
-| Mentioned working late | `"Late night yesterday — treat yourself at lunch. What are you having?"` |
-| Just exercised over the weekend | `"5k yesterday! Earned something good today — what are you thinking?"` |
-| Trying new recipes lately | `"That tomato pasta looked great last time — making it again?"` |
-| Been eating healthy all week | `"This week's been ridiculously disciplined. Keeping it up or going wild today?"` |
+#### Composition Rules
 
-Reference the user's **life moments and trends**, not raw data points.
-`"You've been on a salad kick"` ✓ vs `"On March 8 at 12:30 you consumed 320 cal of salad"` ✗
+**Recommendation sources (by `data_level`):**
 
-**2. Tie to time / situation + steer toward the meal**
+| `data_level` | Strategy |
+|-------------|----------|
+| `rich` (≥ 7 days) | Base recommendations on the user's real eating habits (`top_foods`). Combine familiar ingredients into varied meals. |
+| `limited` (1-6 days) | Mix available history with the diet template. Use known favorites where possible, fill gaps from the template. |
+| `none` (0 days) | Use the diet template + `health-preferences.md` preferences entirely. |
 
-Go beyond generic "TGIF" — connect to the user's rhythm and land on food:
+**Each recommendation = food combo + short tip (joined by ` — `).**
+The tip (≤ 10 Chinese characters / ≤ 6 English words) explains *why this option fits right now* — in a casual, friend-like tone. Not a nutrition lecture.
 
-- `"Monday morning… fuel up before facing the world. What are you having?"`
-- `"Friday night — eating out or staying in?"`
-- `"Rainy day calls for something warm. What sounds good?"`
+Tip sources:
+- Nutritional complement to earlier meals today ("早上碳水少了，补一点")
+- Habit acknowledgment ("你的经典搭配，稳")
+- Variety ("换换口味")
+- Situational ("今天想轻一点的话")
 
-**3. Occasional micro-tip (≤ 1 in 5, like a friend's offhand remark)**
+**Deduplication — avoid repetitive recommendations:**
+- Read `recent_recommendations` from `meal-history` output.
+- Of the 2-3 options, at least 2 must differ from yesterday's `items` for the same meal type.
+- Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
+- If the user picked the same recommendation 3+ days in a row, don't force a change — respect their preference.
 
-- `"Oh right, you said you wanted more protein — got a plan for lunch?"`
-- `"Fun fact: veggies first actually keeps you full longer. Anyway — what are you having? 😂"`
+**Closing line:** Always end with an invitation to photograph the meal. Examples:
+- `"吃之前拍给我，现场帮你看~"`
+- `"Snap a photo before you eat — I'll check it out for you~"`
 
-**4. Free-form style, consistent landing point**
+Adapt the closing to the user's language.
 
-Teasing, warm, minimal, callback to inside jokes — anything goes, as long
-as it ends by drawing out a food-related reply:
+#### Message Format
 
-- `"The eternal question: what's for lunch?"`
-- `"Long day — what sounds good for dinner?"`
-- `"Lunch time~ what are you having?"`
+```
+{opening line — optional, 1 sentence max}
 
-**Don'ts:**
-- Don't sound like a corporate wellness app (`"Please log your lunch"` ✗)
-- Don't repeat the same question type back to back (asking "cook or eat out" three times gets old)
-- Don't just chat without steering toward logging (user replies "thanks" and the thread dies ✗)
+1. {food combo} — {short tip}
+2. {food combo} — {short tip}
+3. {food combo} — {short tip}
+
+{closing — photo invitation}
+```
+
+The opening line is optional — use it for context when relevant (time of day, callback to yesterday, etc.), skip it when it adds nothing.
+
+#### Examples
+
+**Chinese (lunch):**
+```
+午餐想好了吗？
+
+1. 鸡胸肉 + 糙米 + 西兰花 — 你的经典搭配，稳
+2. 牛肉面 + 茶叶蛋 — 换换口味，蛋白质也够
+3. 沙拉 + 全麦面包 + 酸奶 — 今天想轻一点的话
+
+吃之前拍给我，现场帮你看~
+```
+
+**English (breakfast):**
+```
+Morning! A few ideas:
+
+1. Oatmeal + boiled eggs + milk — your go-to, solid
+2. Avocado toast + Greek yogurt — switch it up
+3. Smoothie bowl + granola — light start today
+
+Snap a pic before you eat — I'll take a look~
+```
+
+#### Don'ts
+- Don't include calorie numbers or macro breakdowns in the recommendation message — save that for after the user logs
+- Don't sound like a corporate wellness app (`"Please select a meal option"` ✗)
 - Don't cite precise data that feels like surveillance
-
-**Freshness:** Review your last 3 reminders before sending. If the new one
-matches any of them in structure, tone, or rhythm — rewrite it. Especially
-vary across the same day: sentence length, energy level, emoji usage.
+- Don't recommend foods the user dislikes or is allergic to (check `health-preferences.md`)
 
 **Time-of-day energy:**
 Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy (between meetings) · Evening = relaxed, warm (winding down)
@@ -252,7 +283,9 @@ stop the current workflow and hand off immediately.
 | `health-profile.md` | `Body > Unit Preference` | Display unit for weight (kg/lb) |
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
 | `health-profile.md` | `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
-| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged |
+| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged; get today's intake for nutritional complementing |
+| `data/meals/*.json` (30 days) | via `nutrition-calc.py meal-history` | User eating habits, top foods, recent meals for recommendation generation |
+| `data/recommendations/YYYY-MM-DD.json` | via `nutrition-calc.py meal-history` | Recent recommendations for deduplication |
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `engagement.notification_stage` | direct read | Stage detection (choose normal/recall/silent) |
 | `engagement.last_interaction` | direct read | Stage detection |
@@ -262,8 +295,9 @@ stop the current workflow and hand off immediately.
 | Path | How | When |
 |------|-----|------|
 | `data/weight.json` | `weight-tracker.py save` | User reports weight |
+| `data/recommendations/YYYY-MM-DD.json` | `nutrition-calc.py save-recommendation` | After sending each meal recommendation |
 
-Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals via `nutrition-calc.py` from `diet-tracking-analysis`.
+Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals and recommendations via `nutrition-calc.py` from `diet-tracking-analysis`.
 Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.
 
 ---
@@ -281,5 +315,5 @@ is **Priority Tier P4 (Reporting)**. Key scenarios:
 
 ## Performance
 
-- Reminder: 1-2 sentences, < 25 words
+- Meal recommendation message: ≤ 120 characters (Chinese) / 80 words (English), excluding the recommendation list itself
 - Reply handling: max 2 turns (reminder → reply → response → done)
