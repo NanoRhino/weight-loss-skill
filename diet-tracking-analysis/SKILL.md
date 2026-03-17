@@ -380,11 +380,11 @@ Every food log reply must contain up to three sections:
 **② Nutrition Summary** (cumulative intake evaluation up to this checkpoint — always show, based on `evaluate` output)
 
 ```
-📊 So far today: XXX / YYYY calories [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+📊 So far today: XXX calories [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
 [1-sentence overall comment]
 ```
 
-- Show cumulative `actual` values from `evaluate` against `checkpoint_target` values
+- Show cumulative `actual` values from `evaluate`; do NOT show checkpoint target numbers — only show status indicators to convey the relationship to the target
 - Status indicators: ✅ on track, ⬆️ high, ⬇️ low (mapped from `status` field)
 - The 1-sentence comment summarizes the overall picture concisely — e.g. "Protein is solid, carbs running a bit low — easy to make up at dinner." or "Everything looks balanced so far, keep it up!"
 - When adjustment is needed, the comment can naturally lead into the suggestion below — keep the two sections complementary, not repetitive
