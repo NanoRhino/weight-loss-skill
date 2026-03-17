@@ -49,7 +49,7 @@ One-shot reminders auto-delete after running. Use `--keep` to preserve them.
 ```bash
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Lunch reminder" \
-  --message "Run notification-composer pre-send checks for lunch. If passed, compose and send a lunch reminder per notification-composer message templates." \
+  --message "Run notification-composer for lunch." \
   --cron "0 12 * * *"
 ```
 
@@ -114,23 +114,23 @@ Use the cron tool directly for listing and removing:
 
 Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
 
-Every meal cron `--message` MUST instruct the agent to run `notification-composer` pre-send checks first, then — only if all checks pass — compose a reminder per the message templates, using a different technique and question angle from earlier reminders that day. Already-logged meals are silent calorie-budget context only — never re-ask.
+Every meal cron `--message` MUST tell the agent to run `notification-composer` for that meal. Keep it minimal — notification-composer owns pre-send checks, message composition, and reply handling. Do not duplicate its rules in the cron message.
 
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Breakfast reminder" \
-  --message "Run notification-composer pre-send checks for breakfast. If passed, send a friendly breakfast reminder per notification-composer message templates. Rotate technique; vary question angle from recent reminders." \
+  --message "Run notification-composer for breakfast." \
   --cron "45 6 * * *"
 
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Lunch reminder" \
-  --message "Run notification-composer pre-send checks for lunch. If passed, send a lunch reminder per notification-composer message templates. Earlier meals today = silent calorie context only, never re-ask. Use a different technique from today's breakfast reminder." \
+  --message "Run notification-composer for lunch." \
   --cron "45 11 * * *"
 
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Dinner reminder" \
-  --message "Run notification-composer pre-send checks for dinner. If passed, send a dinner reminder per notification-composer message templates. Earlier meals today = silent calorie context only, never re-ask. Use a different technique from today's earlier reminders." \
+  --message "Run notification-composer for dinner." \
   --cron "45 17 * * *"
 ```
 
@@ -142,7 +142,7 @@ Cron time = breakfast time minus **30 min** (not 15 min like meals). Derive from
 # Example assumes breakfast at 07:00 → weight cron at 06:30
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Weight check-in reminder" \
-  --message "Run notification-composer pre-send checks for weight. If passed, send a casual weight check-in per notification-composer weight reminder templates. Rotate style. Optional feel comes from casual delivery, not explicit reassurance." \
+  --message "Run notification-composer for weight." \
   --cron "30 6 * * 1,4"
 ```
 
