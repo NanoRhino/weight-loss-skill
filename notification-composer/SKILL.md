@@ -60,11 +60,10 @@ without any manual intervention.
 > ⚠️ **CRITICAL:** When any check fails, your entire response must be exactly `NO_REPLY` — no explanations, no reasoning, no "SKIP" messages. Any text you output WILL be delivered to the user. `NO_REPLY` is the only way to suppress delivery.
 
 1. `health-profile.md` exists? If not → user not onboarded → `NO_REPLY`
-2. Quiet hours? Read `timezone.json` to get user's local time. Before 6 AM / after 9 PM local time → `NO_REPLY`
-3. User in silent mode? (Stage 4) → `NO_REPLY`
-4. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → `NO_REPLY`. This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
-5. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders). If constraint applies → `NO_REPLY`
-6. All clear → send
+2. User in silent mode? (Stage 4) → `NO_REPLY`
+3. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → `NO_REPLY`. This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
+4. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders). If constraint applies → `NO_REPLY`
+5. All clear → send
 
 ---
 
