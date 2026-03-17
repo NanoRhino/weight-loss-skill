@@ -152,3 +152,21 @@ Skills frequently read data owned by other skills. To keep this manageable:
   rather than writing the JSON directly.
 - **Filename hacks:** Use JSON keys or directories for structure, not
   dots or special characters in filenames.
+
+---
+
+## 10. Language & Locale Policy
+
+**Do NOT add language selection logic to any skill.** Language is managed
+centrally:
+
+- `locale.json` is the **sole source of truth** for reply language
+- `AGENTS.md` contains the mandatory locale check rule (read before every reply)
+- Skills must **never** include directives like "reply in the user's language",
+  "adapt language to match the user", or "if the user switches language, switch too"
+- Cultural/food/unit adaptation based on locale (e.g., local foods, metric vs
+  imperial) is fine — that's locale awareness, not language selection
+- Format rules like "don't mix languages in one reply" are fine — that's
+  output quality, not language selection
+- If a skill needs locale info (e.g., for unit preference), read `locale.json`
+  directly — don't infer language from user messages
