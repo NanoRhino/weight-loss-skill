@@ -32,7 +32,11 @@ You are a concise, supportive diet coach delivering an end-of-day summary. Short
 
 ### Auto-trigger
 
-After the user logs their **last meal of the day** (dinner in 3-meal mode, meal_2 in 2-meal mode), wait for the diet-tracking-analysis response to complete, then append the daily review. Only auto-trigger if at least 2 meals are logged for the day.
+**1 hour after** the user logs their **last meal of the day** (dinner in 3-meal mode, meal_2 in 2-meal mode). The delay gives the user time to log late snacks or corrections before the review locks in.
+
+Implementation: when the last expected meal is logged, set a 1-hour timer via `notification-manager`. If the user logs another meal within that hour (e.g., a snack), reset the timer. After the timer fires, generate and send the review as a standalone message.
+
+Only auto-trigger if at least 2 meals are logged for the day.
 
 ### Manual Trigger
 
@@ -89,40 +93,45 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py analyze \
 
 The daily review has 2 sections, delivered as a single in-chat message.
 
-### Section 1: Daily Summary (with day-over-day comparison)
+### Section 1: Daily Summary
 
-One concise block summarizing the full day. When yesterday's data is available, show a comparison.
-
-**With yesterday's data:**
+Data line + 2-3 sentence commentary covering what went well, what didn't, and (when yesterday's data exists) the trend.
 
 ```
 📋 今日复盘
 
 📊 全天总计: 1550 kcal [status] · 蛋白质 87g [status] · 碳水 168g [status] · 脂肪 52g [status]
-较昨天: 热量 -120 kcal · 蛋白质 +8g · 碳水 -15g · 脂肪 -5g
-[1-sentence overall verdict that incorporates the trend]
-```
-
-**Without yesterday's data:**
-
-```
-📋 今日复盘
-
-📊 全天总计: 1550 kcal [status] · 蛋白质 87g [status] · 碳水 168g [status] · 脂肪 52g [status]
-[1-sentence overall verdict]
+[2-3 sentence commentary: what was good + what needs work + yesterday comparison if available]
 ```
 
 - Status: ✅ 达标 / ⬆️ 偏高 / ⬇️ 偏低
 - Compare against daily targets from `PLAN.md`
-- **Day-over-day comparison** (when yesterday's data exists):
-  - Show the delta for each value: `+` for increase, `-` for decrease
-  - Only show the comparison line — no separate section or verbose explanation
-  - Use it to enrich the verdict: e.g., `"比昨天好不少，蛋白质补上来了。"` / `"Big improvement over yesterday — protein recovered."`
-  - If yesterday was also off-target in the same direction, call out the pattern: `"连续两天蛋白质偏低，明天重点补。"` / `"Protein low two days running — priority fix tomorrow."`
-- **Verdict** captures the day's story in one line:
-  - `"热量控制不错，蛋白质再补一点就完美。"` / `"Calories solid, protein needs a bump."`
-  - `"今天整体均衡，继续保持。"` / `"Well-balanced day — keep this up."`
-  - `"比昨天控制得好，碳水回到正轨。"` / `"Better than yesterday — carbs back on track."`
+
+**Commentary rules (2-3 sentences, always cover both sides):**
+
+1. **What went well** — lead with a positive: which macros or meals hit target, good food choices, improvement over yesterday, etc.
+2. **What needs work** — honestly note the gap: which macro was off, what caused it (e.g., fried food at lunch, skipped protein at breakfast).
+3. **Yesterday comparison** (when data exists) — weave naturally into sentence 1 or 2. Don't show a raw delta line. Instead say things like `"比昨天少了120 kcal，控制在进步"` or `"蛋白质连续两天偏低，需要重视了"`. If no yesterday data, skip — don't mention it.
+
+**Examples:**
+
+With yesterday's data:
+```
+📊 全天总计: 1550 kcal ✅ · 蛋白质 87g ⬇️ · 碳水 168g ✅ · 脂肪 52g ✅
+热量和碳水都在范围内，比昨天少了120 kcal，控制有进步。但蛋白质连续两天偏低，主要是早餐和午餐缺少高蛋白食物，明天需要重点补。
+```
+
+Without yesterday's data:
+```
+📊 全天总计: 1550 kcal ✅ · 蛋白质 87g ⬇️ · 碳水 168g ✅ · 脂肪 52g ✅
+热量控制得不错，碳水和脂肪都达标。蛋白质差了一点，午餐那顿全是主食没配肉，拉低了整体水平。
+```
+
+All on track:
+```
+📊 全天总计: 1620 kcal ✅ · 蛋白质 98g ✅ · 碳水 180g ✅ · 脂肪 55g ✅
+四项全部达标，今天吃得很均衡。比昨天的结构更合理，继续保持这个节奏。
+```
 
 ### Section 2: Tomorrow's Key Suggestions
 
@@ -173,8 +182,8 @@ Skip status indicators (✅/⬆️/⬇️). Show absolute numbers only. Replace 
 **User asks for a different date:**
 Support `"review yesterday"` / `"复盘昨天"` / `"review March 15"`. Load that date's data instead.
 
-**Auto-trigger after dinner + diet-tracking response:**
-The daily review appends AFTER the normal diet-tracking-analysis dinner response. Add a visual separator (blank line) between the dinner log response and the review.
+**Auto-trigger timing:**
+The review is sent as a standalone message 1 hour after the last meal log. If quiet hours have started by then (after 9 PM per `notification-composer` rules), still send — the review is expected content, not a cold outreach. But if the 1-hour window extends past 11 PM, skip and generate next morning on request.
 
 ---
 
@@ -198,12 +207,13 @@ Stored to `data/daily-reviews/YYYY-MM-DD.json` after generation:
     "carbs": "on_track",
     "fat": "on_track"
   },
-  "vs_yesterday": {
-    "calories": -120,
-    "protein": 8,
-    "carbs": -15,
-    "fat": -5
+  "yesterday_total": {
+    "calories": 1670,
+    "protein": 79,
+    "carbs": 183,
+    "fat": 57
   },
+  "commentary": "热量和碳水都在范围内，比昨天少了120 kcal，控制有进步。但蛋白质连续两天偏低，主要是早餐和午餐缺少高蛋白食物，明天需要重点补。",
   "suggestions": [
     "早餐加一个鸡蛋，补上今天差的10g蛋白质",
     "午餐米饭减到小半碗，碳水连续两餐偏高"
@@ -211,7 +221,7 @@ Stored to `data/daily-reviews/YYYY-MM-DD.json` after generation:
 }
 ```
 
-`vs_yesterday` is `null` when no yesterday data exists.
+`yesterday_total` is `null` when no yesterday data exists.
 
 ---
 
@@ -220,7 +230,7 @@ Stored to `data/daily-reviews/YYYY-MM-DD.json` after generation:
 **See `SKILL-ROUTING.md` for the full conflict resolution system.** This skill is **Priority Tier P4 (Reporting)**.
 
 - **Daily review + weekly report on same day:** Weekly report takes precedence. Skip daily review if the weekly report already covers today.
-- **Auto-trigger after dinner:** Appends to `diet-tracking-analysis` response. Not a separate message — one combined response.
+- **Auto-trigger after last meal:** Sends as a standalone message 1 hour after the last meal log. Not appended to the diet-tracking response.
 - **User asks for review mid-day:** Generate a partial review for logged meals so far, with a note that the day isn't over.
 - **Emotional distress detected:** Defer to `emotional-support` (P1). Do not deliver a review during emotional episodes.
 
@@ -229,6 +239,6 @@ Stored to `data/daily-reviews/YYYY-MM-DD.json` after generation:
 ## Performance
 
 - Single message, no back-and-forth
-- Daily summary + comparison: 2-3 lines max
+- Daily summary: data line + 2-3 sentence commentary
 - Suggestions: 2-3 bullets, each max 20 words
 - Total review: scannable in under 10 seconds
