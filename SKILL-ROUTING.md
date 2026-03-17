@@ -29,7 +29,7 @@ when conflicts arise.
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
 | **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder` | Designing programs and plans. |
-| **P4 — Reporting** | `weekly-report`, `daily-notification` | Summaries and proactive outreach. |
+| **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
 **Rule:** When two skills from different tiers conflict, the higher-priority
@@ -172,7 +172,7 @@ their lead.
 
 ---
 
-### Pattern 5: Daily Notification + Other Active Skill (P4 vs Any)
+### Pattern 5: Notification Composer + Other Active Skill (P4 vs Any)
 
 **Trigger:** A scheduled reminder fires while the user is mid-conversation
 with another skill.
@@ -310,7 +310,7 @@ This rule applies to:
 - Any clarifying question across all skills
 
 This rule does NOT apply to:
-- **Scheduled reminders** (`daily-notification` cron-based meal/weight reminders) —
+- **Scheduled reminders** (`notification-composer` cron-based meal/weight reminders) —
   these follow their own lifecycle (Active → Pause → Recall → Silent) and are
   expected to recur on schedule.
 

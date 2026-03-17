@@ -8,7 +8,7 @@ description: >
   or any emotional pain related to weight, food, or appearance. ALSO trigger
   when the user shares excitement, pride, milestones, breakthroughs, or any
   positive feeling about their progress, body, or habits. Also trigger when
-  another skill (daily-notification, diet-tracking, habit-builder, etc.)
+  another skill (notification-composer, diet-tracking, habit-builder, etc.)
   detects emotional signals and defers here. This skill takes priority over
   data collection, logging, and meal reminders — emotional presence comes
   first.
@@ -602,8 +602,8 @@ Other skills should defer to emotional-support when they detect signals:
 
 | Source skill | Trigger | Handoff |
 |-------------|---------|---------|
-| daily-notification | Weight reply + distress emoji/words ("165 😩") | Switch from data logging to emotional support before acknowledging the number |
-| daily-notification | Junk food + pattern of negative emotion/resignation | Soft door-opener: "感觉你今天不太开心？" |
+| notification-composer | Weight reply + distress emoji/words ("165 😩") | Switch from data logging to emotional support before acknowledging the number |
+| notification-composer | Junk food + pattern of negative emotion/resignation | Soft door-opener: "感觉你今天不太开心？" |
 | diet-tracking | User logs a binge then goes quiet | Next interaction: check in on feelings before food |
 | habit-builder | 3+ consecutive missed habits + self-blame | Acknowledge the feeling before offering restart options |
 | weekly-report | Weight went up + user engagement dropped | Soften the report tone; add a check-in question |
@@ -612,8 +612,8 @@ Other skills should defer to emotional-support when they detect signals:
 
 | Source skill | Trigger | Handoff |
 |-------------|---------|---------|
-| daily-notification | Weight reply + new low / excitement emoji ("64.8! 🎉") | Celebrate before logging — the emotion comes first |
-| daily-notification | All meals logged + user adds positive comment | Acknowledge the streak and consistency |
+| notification-composer | Weight reply + new low / excitement emoji ("64.8! 🎉") | Celebrate before logging — the emotion comes first |
+| notification-composer | All meals logged + user adds positive comment | Acknowledge the streak and consistency |
 | diet-tracking | User hits macro/calorie target for first time | Name the achievement specifically |
 | habit-builder | Streak milestone (7, 14, 30 days) | Proactive celebration: "等等——你已经连续X天了" |
 | weekly-report | Weight trend is down + all habits met | Lead with celebration, then present data |

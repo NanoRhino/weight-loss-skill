@@ -1,4 +1,4 @@
-# Data Schemas — Daily Notification
+# Data Schemas — Notification Composer
 
 Detailed JSON schemas for all data records produced by this Skill.
 
@@ -20,7 +20,7 @@ weight reminder.
   "fasting": true,
   "recorded_at": "2025-02-26T07:18:00Z",
   "reminder_sent_at": "2025-02-26T07:00:00Z",
-  "source": "daily-notification"
+  "source": "notification-composer"
 }
 ```
 
@@ -31,7 +31,7 @@ weight reminder.
 | `fasting` | `true` if user weighed before eating, `false` if user had already eaten. Used for trend accuracy — fasting readings are more comparable. |
 | `recorded_at` | Timestamp when user actually replied |
 | `reminder_sent_at` | Timestamp when the reminder was sent |
-| `source` | Always `"daily-notification"` (distinguishes from other logging sources) |
+| `source` | Always `"notification-composer"` (distinguishes from other logging sources) |
 
 ---
 
@@ -51,7 +51,7 @@ but what was skipped.
   "estimated_calories": 450,
   "reminder_sent_at": "2025-02-26T12:15:00Z",
   "replied_at": "2025-02-26T12:22:00Z",
-  "source": "daily-notification"
+  "source": "notification-composer"
 }
 ```
 
@@ -63,7 +63,7 @@ but what was skipped.
 | `estimated_calories` | From nutrition RAG if available. `null` if not available or not applicable. |
 | `reminder_sent_at` | When the reminder was sent |
 | `replied_at` | When the user responded. `null` if no reply. |
-| `source` | Always `"daily-notification"` |
+| `source` | Always `"notification-composer"` |
 
 ---
 

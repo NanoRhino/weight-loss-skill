@@ -9,9 +9,9 @@ description: >
   a behavioral pattern worth addressing. Also use when evaluating habit
   progress, deciding when a habit has "graduated," or handling a restart
   after the user falls off. This skill does not send its own reminders —
-  habit check-ins are woven into meal conversations managed by Daily
-  Notification. This skill owns the check-in logic (when, how often, tone);
-  Daily Notification provides the conversation vehicle.
+  habit check-ins are woven into meal conversations managed by Notification
+  Composer. This skill owns the check-in logic (when, how often, tone);
+  Notification Composer provides the conversation vehicle.
 ---
 
 # Habit Builder
@@ -45,7 +45,7 @@ weight — one they can sustain for years.
 ## How Habits Get Into Conversations
 
 This skill owns the full check-in logic for habits. Habits surface inside
-meal conversations managed by Daily Notification — they do NOT get their
+meal conversations managed by Notification Composer — they do NOT get their
 own separate reminders.
 
 **Before each meal reminder,** read `habits.active`. If an active habit

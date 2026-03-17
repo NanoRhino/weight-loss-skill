@@ -205,7 +205,7 @@ Once the user confirms the plan presented in Step 2/3, **do NOT re-present the p
 1. Silently save the most recently presented Plan Presentation content as `PLAN.md` in the current workspace. The PLAN.md contains only the Plan Presentation content — no macro breakdowns, no diet mode, no meal-related information. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
 2. Do not generate PDF or send via Slack.
 
-**Do NOT mention meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled by the `daily-notification-skill` and will be configured automatically when the `meal-planner` skill collects the user's meal schedule. Do not mention, summarize, or set up any reminder schedule during the weight-loss planning phase.
+**Do NOT mention meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled by the `notification-manager` and will be configured automatically when the `meal-planner` skill collects the user's meal schedule. Do not mention, summarize, or set up any reminder schedule during the weight-loss planning phase.
 
 **Transition to Meal Planner** — After saving, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target from the conversation context and collect diet preferences (diet mode, meal schedule, taste/restrictions) on its own. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
 
