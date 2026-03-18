@@ -44,8 +44,8 @@ User can request a report at any time:
 ### Pre-send Checks
 
 1. User in Stage 4 (silent)? → skip auto-send, but still generate if manually requested
-2. Less than 2 days of data in the period? → send a short message instead: `"Not enough data for a full report this week — let's make next week count! 💪"`
-3. All clear → generate and send
+2. Fewer than 2 days with at least 1 logged meal in the period? → send a short message instead: `"Not enough data for a full report this week — let's make next week count! 💪"`
+3. All clear → generate and send (if period has 2–6 logged days, treat as first-week partial report — see Edge Cases)
 
 ---
 
@@ -264,7 +264,7 @@ Specific, actionable improvements for next week. Based on the week's gaps.
 
 ## Edge Cases
 
-**First week (< 7 days of data):**
+**Partial week (2–6 days with logged meals in the period):**
 Generate a partial report with whatever data exists. Prefix with:
 `"This is your first report — it'll get more useful as we collect more data!"` /
 `"这是你的第一份周报，数据越多越有参考价值！"`
