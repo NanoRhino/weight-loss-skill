@@ -103,6 +103,7 @@ Stores structured data for cross-week trend analysis and historical reference.
     "Boost protein: averaged 82g vs 84–112g target",
     "Try logging on weekends for a fuller picture"
   ],
+  "next_week_focus": "午饭加豆腐或鸡蛋，把蛋白质从83g补到95g以上",
   "generated_at": "2025-02-17T09:00:00Z"
 }
 ```
@@ -141,6 +142,10 @@ Stores structured data for cross-week trend analysis and historical reference.
 **achievements:** array of 1–3 strings describing the week's wins
 
 **suggestions:** array of 1–2 strings with actionable next-week improvements
+
+**next_week_focus:** plain text string — the single action item from the 🎯 section,
+stored for continuity checking when the following week's report is generated.
+`null` if no focus was set.
 
 **generated_at:** ISO timestamp of when the report was generated
 
