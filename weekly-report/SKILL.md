@@ -163,10 +163,12 @@ and `.calorie-bar` in the HTML template.
 ### Section 3: Weight Progress
 
 Show weight readings and net change. See `.weight-table` and `.weight-change`
-in the HTML template.
+in the HTML template. Include **all** entries for the week — both scheduled
+weigh-in days and casual mentions (the user may report weight at any time).
 
 **Data logic:**
 - Call `weight-tracker.py load --from <start> --to <end> --display-unit <unit>` to collect all entries within the period
+- All entries are treated equally — no distinction between reminder-triggered and user-initiated recordings
 - If 2+ readings: calculate weekly change = last reading − first reading
 - If 1 reading: show it, compare to previous week's last reading if available
 - If 0 readings: skip this section entirely (remove the card), add a gentle note

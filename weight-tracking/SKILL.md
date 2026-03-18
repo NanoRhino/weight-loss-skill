@@ -152,6 +152,7 @@ The server runs in UTC. To record the correct local datetime:
 
 ## Interaction Guidelines
 
+- **Record weight whenever mentioned.** Weight recording is NOT limited to scheduled weigh-in days. If the user mentions a specific weight number in any context — casual conversation, progress check-in, replying to a reminder, or unprompted — call `save` to record it. Examples: "今天早上74.5"、"刚称了一下79"、"I was 165 this morning". The only exception is when the user is clearly referring to a past or hypothetical number, not a current reading (e.g., "我以前80公斤"、"if I were 70kg").
 - **Never comment on weight changes unprompted.** Just log and confirm. Emotional reactions to weight (positive or negative) are handled by the `emotional-support` skill.
 - **Always display in preferred unit**, rounded to 1 decimal place.
 - **Accept any common unit** in user input: kg, lb, lbs, 斤 (catty = 0.5 kg), 公斤. Convert to standard kg or lb for storage.
