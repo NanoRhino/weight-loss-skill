@@ -43,6 +43,18 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 
 
+def _local_date(tz_offset: int = None) -> str:
+    """Return local date as YYYY-MM-DD string.
+    If tz_offset (seconds from UTC) is given, compute local date from UTC now.
+    Otherwise fall back to server's date.today().
+    """
+    if tz_offset is not None:
+        utc_now = datetime.now(timezone.utc)
+        local_dt = utc_now + timedelta(seconds=tz_offset)
+        return local_dt.date().isoformat()
+    return date.today().isoformat()
+
+
 # ---------------------------------------------------------------------------
 # Backward compatibility: migrate old short field names to full names
 # ---------------------------------------------------------------------------
@@ -172,8 +184,8 @@ def _sum_macros(meal_list: list) -> dict:
     return {k: round(v, 1) for k, v in s.items()}
 
 
-def get_log_path(data_dir: str, day: str = None) -> str:
-    day = day or date.today().isoformat()
+def get_log_path(data_dir: str, day: str = None, tz_offset: int = None) -> str:
+    day = day or _local_date(tz_offset)
     return os.path.join(data_dir, f"{day}.json")
 
 
@@ -268,11 +280,11 @@ def analyze(weight: float, daily_cal: int, meals: int, log: list,
     }
 
 
-def save_meal(data_dir: str, meal: dict, day: str = None) -> dict:
+def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None) -> dict:
     """Save a meal to the daily log. Same meal name overwrites (supports corrections)."""
     os.makedirs(data_dir, exist_ok=True)
     meal = _migrate_meal(meal)
-    path = get_log_path(data_dir, day)
+    path = get_log_path(data_dir, day, tz_offset)
 
     existing: list = []
     if os.path.exists(path):
@@ -295,14 +307,15 @@ def save_meal(data_dir: str, meal: dict, day: str = None) -> dict:
     return {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
 
 
-def load_meals(data_dir: str, day: str = None) -> dict:
+def load_meals(data_dir: str, day: str = None, tz_offset: int = None) -> dict:
     """Load all meals for a given day, migrating old format if needed."""
-    path = get_log_path(data_dir, day)
+    path = get_log_path(data_dir, day, tz_offset)
+    resolved_day = day or _local_date(tz_offset)
     if not os.path.exists(path):
-        return {"date": day or date.today().isoformat(), "meals": [], "meals_count": 0}
+        return {"date": resolved_day, "meals": [], "meals_count": 0}
     with open(path, "r", encoding="utf-8") as f:
         meals = _migrate_meals(json.load(f))
-    return {"date": day or date.today().isoformat(), "meals": meals, "meals_count": len(meals)}
+    return {"date": resolved_day, "meals": meals, "meals_count": len(meals)}
 
 
 def evaluate(weight: float, daily_cal: int, meals: int,
@@ -1084,10 +1097,16 @@ def main():
     s.add_argument("--data-dir", type=str, required=True, help="Directory to store daily JSON logs")
     s.add_argument("--meal", type=str, required=True, help="JSON object for the meal")
     s.add_argument("--date", type=str, default=None, help="Date override (YYYY-MM-DD)")
+    s.add_argument("--tz-offset", type=int, default=None,
+                   help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8). "
+                        "Used to compute local date when --date is omitted.")
 
     l = sub.add_parser("load", help="Load today's meal records")
     l.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
     l.add_argument("--date", type=str, default=None, help="Date to load (YYYY-MM-DD), default today")
+    l.add_argument("--tz-offset", type=int, default=None,
+                   help="Timezone offset from UTC in seconds. "
+                        "Used to compute local date when --date is omitted.")
 
     e = sub.add_parser("evaluate", help="Evaluate cumulative intake at a meal checkpoint")
     e.add_argument("--weight", type=float, required=True)
@@ -1182,9 +1201,9 @@ def main():
         except json.JSONDecodeError as e:
             print(f"Error: invalid --meal JSON: {e}", file=sys.stderr)
             sys.exit(1)
-        result = save_meal(args.data_dir, meal, args.date)
+        result = save_meal(args.data_dir, meal, args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "load":
-        result = load_meals(args.data_dir, args.date)
+        result = load_meals(args.data_dir, args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "evaluate":
         try:
             log = json.loads(args.log)

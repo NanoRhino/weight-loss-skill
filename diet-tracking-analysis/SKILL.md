@@ -247,6 +247,8 @@ The server runs in UTC. To ensure meals are saved under the correct local date:
 2. **Use `local_date`** as the `--date` parameter for `save`, `load`, `check-missing`, and `evaluate` commands.
 3. This replaces manual date calculation — `detect-meal` handles all timezone math.
 
+**Fallback:** If you don't have `local_date` from `detect-meal`, pass `--tz-offset <seconds>` (from `timezone.json`) to `save` and `load` commands. The script will compute the local date automatically. **Never calculate the date yourself — always let the script do it.**
+
 **Example:** User is in `Asia/Shanghai` (UTC+8). Message arrives at UTC 16:30 (local 00:30 next day). `detect-meal` returns `local_date: "2026-03-18"` (the next day), which you pass as `--date` to all subsequent commands.
 
 ## Workflow
