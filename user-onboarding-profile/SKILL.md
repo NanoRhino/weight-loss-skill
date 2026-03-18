@@ -123,19 +123,32 @@ Ask about their work type and exercise habits together. These are essential for 
 
 > Example: "Got it! Next — is your job mostly sitting or physically active? And do you exercise at all currently? If so, what do you do?"
 
-### Step 2 — Confirm & Output
+### Step 2 — Confirm Activity Level & TDEE
 
-Do three things:
+After receiving the user's answer in Round 4, do the following:
 
-1. **Brief summary** — Show the user a readable summary (not raw JSON) of what you collected. Keep it to a few lines. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
+1. **Map to activity level** — Determine the activity level based on work type and exercise habits:
+   - Sedentary job + no exercise → `sedentary`
+   - Sedentary job + light exercise (1–2 days/week, or commute-level activity like short daily walks/cycling) → `lightly_active`
+   - Sedentary job + moderate exercise (3–5 days/week) → `moderately_active`
+   - Active job or heavy daily training → `very_active`
 
-2. **Ask for confirmation** — "Does this look right? Anything you'd like to change?"
+2. **Compute TDEE** — Run:
+   ```bash
+   python3 {weight-loss-planner:baseDir}/scripts/planner-calc.py tdee \
+     --weight <current_kg> --height <cm> --age <years> --sex <male|female> \
+     --activity <activity_level>
+   ```
 
-3. **Generate the Profile** — After confirmation, create and output the file.
+3. **Confirm work type + exercise + TDEE** — Show only these two fields (not a full summary of all collected data). Explain what TDEE means and what activity level you assigned them. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
 
-4. **Timezone** — Do NOT handle timezone here. It is auto-initialized by the agent's boot sequence (see AGENTS.md). By the time onboarding runs, `timezone.json` should already exist.
+   > Example: "明白了！根据你的情况（久坐工作 + 每周一次舞蹈 + 每天骑车通勤），我把你归为轻度活跃，也就是说你每天维持现有体重大约需要消耗 1750–1950 大卡。TDEE（总每日能量消耗）是我们后续制定饮食方案的基准。这个判断看起来合适吗？有没有想调整的地方？"
 
-5. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
+4. **Generate the Profile** — After the user confirms, silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
+
+5. **Timezone** — Do NOT handle timezone here. It is auto-initialized by the agent's boot sequence (see AGENTS.md). By the time onboarding runs, `timezone.json` should already exist.
+
+6. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "很好，你的信息已经记录好了！接下来我来给你制定一个减重计划。" The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
 
 ## Health Safety Note
 
