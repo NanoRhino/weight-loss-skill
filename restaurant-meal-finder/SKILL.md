@@ -223,80 +223,70 @@ The user may eat at different places on different days. This skill supports mult
 3. **`active_location`** — fall back to the last-used location in `data/nearby-restaurants.json`.
 4. **`health-profile.md`** — may contain city or address.
 
-**If no location is saved at all** (first activation), ask the user:
+**If no location is saved at all** (first activation), ask the user for location AND their usual restaurants in one shot:
 
-> 你平时在哪附近吃饭？可以告诉我一两个常去的地方（比如公司附近、家附近），我帮你搜一下，以后就不用每次都搜了。
+> 你平时在哪附近吃饭？告诉我地点（比如公司附近、家附近），顺便说说你常去的几家店，我帮你建个专属的餐厅列表，以后直接从里面推荐，不用每次重新找。
 
 English equivalent:
-> Where do you usually eat? Give me one or two spots (near office, near home) and I'll search nearby options for each. I'll save them so we don't have to search again.
+> Where do you usually eat? Tell me the area (near office, near home) and name a few places you go regularly — I'll build a saved list for you so I can recommend from it instantly every time.
 
-**Single-ask rule applies** — ask at most once. If the user only gives one location, that's fine — more can be added later.
+**Single-ask rule applies** — ask at most once per new location.
 
 **Adding a new location later:**
-- User says "我搬家了" / "今天在另一个地方" → add a new location label, search, and save. Don't overwrite existing locations.
+- User says "我搬家了" / "今天在另一个地方" → add a new location label and ask for restaurants there. Don't overwrite existing locations.
 - User says "删掉XX那个地点吧" → remove the location and its restaurants from the cache.
 
 After the user provides a location, **save the address to `health-profile.md`** under `## Location` so other skills can also benefit.
 
 ---
 
-### Step 1: Discover Nearby Restaurants (Web Search)
+### Step 1: Build the Restaurant List
 
-**When to search:**
-- First time the skill is activated (no `data/nearby-restaurants.json` exists)
-- User adds a new location not yet in `locations{}`
-- User explicitly asks to refresh ("帮我重新搜一下", "I moved", "换个地方了")
-- The active location's `updated_at` is > 30 days old
+> ⚠️ **Why not web search first?** For most users (especially in China), restaurant data is locked inside apps like 美团/大众点评 and does NOT appear in public web searches. Attempting to web-search a neighborhood will usually return generic articles or empty results — wasting time and giving the user nothing. **The primary and most reliable source is the user themselves.**
 
-**When NOT to search (use cache):**
-- The resolved location exists in `locations{}` and its data is < 30 days old
-- User names a specific restaurant already in the cache
+#### Primary path: user-provided restaurants (always works)
 
-**How to search:**
+When the user names restaurants (in Step 0 or at any time), immediately add them to the cache using AI nutritional knowledge:
 
-Use web search to find restaurants near the user's location. Run 2–3 targeted searches:
+1. **Well-known chains** (沙县小吃, 兰州拉面, 黄焖鸡, McDonald's, Subway, 7-Eleven, Lawson, Chipotle, etc.) — populate `meals[]` directly from nutritional knowledge. No search needed. You know their typical menus and calorie ranges.
 
-1. **General nearby dining**: `"{location}" 附近 餐厅 推荐` or `restaurants near {location}`
-2. **Delivery options**: `"{location}" 外卖 推荐` or `food delivery near {location}`
-3. **Healthy/diet-friendly options** (optional): `"{location}" 轻食 健康餐` or `healthy restaurants near {location}`
+2. **Local/unknown restaurants** — ask the user for 1–2 of their usual orders at that place, then estimate calories from the dish description. Example:
+   > 那家店你一般点什么？告诉我菜名大概就行，我帮你估热量。
 
-**From search results, extract:**
-- Restaurant names (prefer specific branches, not just chain names)
-- Restaurant type/cuisine
-- Approximate distance
-- Available ordering platforms
-- Price range
-- Popular menu items
+3. **User sends a menu photo or screenshot** — parse it, identify suitable dishes, build `meals[]` from the visible items.
 
-> ⚠️ **NEVER FABRICATE RESTAURANT DATA.** Only include restaurants that
-> appear in actual search results with verifiable names and addresses.
-> If web search returns no usable restaurant results for the area (common
-> for smaller neighborhoods where data is locked inside apps like 大众点评
-> or 美团), do NOT invent restaurant names, addresses, or menus. Instead,
-> follow the "Web search returns limited results" edge case below.
+**Present the result immediately** after the user provides restaurants:
 
-**Then build `meals[]` for each restaurant:**
-- Pre-screen 2–3 meal combos per restaurant that fit typical calorie budgets (400–700 kcal)
-- Use nutritional knowledge to estimate calories and macros for each combo
-- Add a calorie-saving tip for each meal where relevant
-- Calorie/macro estimates for **verified real restaurants** are fine to generate from nutritional knowledge
-- Meal/dish names must come from search results, the user, or widely known chain menus — never invented
-- Set each restaurant's `location` field to the current location label
-- More combos can be added over time as the user provides info or visits the restaurant (see "meals[] — building and growing over time")
-
-**Save the results** to `data/nearby-restaurants.json`, adding to the `restaurants[]` array and updating the relevant entry in `locations{}`.
-
-**Present the discovery results to the user** conversationally:
-
-> 帮你搜到了附近这些可以吃的地方：
+> 好的，帮你建好了！
 >
-> 1. 🥟 **沙县小吃** — 步行 5 分钟，人均 15-25 元
-> 2. 🍜 **兰州拉面（中关村店）** — 步行 8 分钟，人均 20-30 元
-> 3. 🏪 **便利蜂** — 步行 3 分钟，人均 15-25 元
-> 4. 🥗 **轻食沙拉店** — 美团外卖 30 分钟，人均 35-50 元
-> 5. 🍱 **黄焖鸡米饭** — 步行 6 分钟 / 饿了么外卖，人均 20-30 元
+> 📍 **公司附近** — 已保存 4 家：
+> 1. 🥟 **沙县小吃** — 步行 5 分钟（我已根据常见菜单帮你估好热量）
+> 2. 🍜 **兰州拉面** — 步行 8 分钟
+> 3. 🏪 **便利蜂** — 步行 3 分钟
+> 4. 🍱 **楼下那家盖饭** — 已按你说的"鸡腿饭+汤"帮你估了热量
 >
-> 已经帮你记下来了，以后问我吃什么直接从这里面推荐。想现在就选一个吗？
+> 以后直接问我吃什么，我从这里推荐。想现在就选一个吗？
+
+#### Secondary path: web search (optional supplement)
+
+Use web search **only** in these cases:
+- User is outside China (Google Maps/Yelp results are reliably accessible)
+- User explicitly asks: "帮我搜一下附近有没有新的店" / "search for healthy options near me"
+- Large Chinese city + user wants to discover new places beyond what they named
+
+**Even then:** only add restaurants to cache if they appear in actual search results with verifiable names. Never fabricate. If search yields nothing useful, fall back to asking the user.
+
+**When NOT to search:**
+- Chinese neighborhood / residential area (data is behind app walls — don't waste the attempt)
+- User already named their restaurants → build from those immediately, no search needed
+- The active location already has fresh cached restaurants (< 30 days old)
+
+#### Growing the list over time
+
+The restaurant list grows naturally through use — no need to build it all at once:
+- User mentions a new place in passing → add it
+- User orders something new at a cached restaurant → add the dish to `meals[]`
+- User shares a delivery app screenshot → extract and add
 
 ---
 
@@ -501,9 +491,9 @@ Do this silently — never mention file updates to the user.
 ### Adding restaurants
 
 The user may discover new restaurants over time:
-- "我发现楼下新开了一家轻食店" → ask for details, search if needed, add to cache
+- "我发现楼下新开了一家轻食店" → ask what they usually order there, estimate calories, add to cache
 - The user orders from a new place and logs it → silently ask if they want to add it to their list
-- During web search refresh, new restaurants may appear → add them
+- Known chain: add immediately from nutritional knowledge, no info needed from user
 
 ### Removing restaurants
 
@@ -583,15 +573,8 @@ Parse the menu items, identify options that fit the budget, and provide the same
 **User asks for delivery/takeout platforms:**
 Provide the same recommendations but formatted for ordering: specific dish names, customization notes they can add in the order comments. Reference the `platforms` field from the cached restaurant data.
 
-**Web search returns limited results:**
-Do NOT fabricate specific restaurant names, addresses, or menus. Instead:
-
-1. **Ask the user for help**: "搜索结果不多，你平时在附近吃哪几家？告诉我店名，我帮你搭配热量合适的点餐方案。" / "I couldn't find many results online. What restaurants are near you? Tell me the names and I'll help you pick calorie-smart meals."
-2. **Offer general chain guidance**: If the user's area likely has common chains (沙县小吃, 兰州拉面, McDonald's, Subway, etc.), you may mention these as *possibilities to check* — but frame them as suggestions to verify, not as confirmed nearby options. Example: "附近一般会有沙县、兰州拉面这类店，你看看有没有？有的话我帮你配餐。"
-3. **Offer cuisine-type guidance**: If the user describes what type of food is available (e.g., "楼下有个快餐店"), provide calorie-smart ordering strategies for that cuisine type without inventing a specific restaurant.
-4. **Menu photo fallback**: Ask the user to share a menu photo or screenshot from a delivery app: "你在外卖App上截个图发我，我直接帮你挑。"
-
-Always clearly distinguish between verified search results and general suggestions. Never cache unverified restaurants to `data/nearby-restaurants.json`.
+**No restaurants cached yet (first time asking "吃什么？"):**
+Ask in one message: location + usual restaurants. Build `meals[]` from AI nutritional knowledge for known chains; ask "你一般点什么" for unknown local spots. Do NOT attempt web search for Chinese neighborhoods — it returns nothing useful. Get the user to 3+ cached restaurants within one exchange, then go straight to recommendations.
 
 **User is traveling / not at their usual location:**
 Ask for a label (e.g., "出差-上海"). Add it as a new location in `locations{}`, search for nearby restaurants, and set `active_location` to it. Existing locations are preserved. If the user says they're done traveling, switch `active_location` back.
