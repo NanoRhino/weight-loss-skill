@@ -73,6 +73,8 @@ python3 {baseDir}/scripts/nutrition-calc.py save \
 
 `meal_type` records the user's original meal designation (e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). In 2-meal mode, `name` is the system slot (`meal_1`/`meal_2`) while `meal_type` preserves what the user actually said (e.g. `"lunch"`, `"dinner"`).
 
+**China region:** Include `vegetables_g` (grams of vegetables) and `fruits_g` (grams of fruit) in the meal JSON when these are present. Both fields are optional and default to 0 when absent. Example: `{"name":"lunch","meal_type":"lunch","calories":520,...,"vegetables_g":200,"fruits_g":0}`
+
 Saves to `data/meals/YYYY-MM-DD.json`. Same meal name overwrites (supports corrections). Returns all saved meals for the day.
 
 ### 3. Load Records — `load` (read before logging or when querying)
@@ -121,7 +123,21 @@ python3 {baseDir}/scripts/nutrition-calc.py check-missing --meals <2|3> \
 
 Returns list of main meals missing before the current one.
 
-### 7. Weekly Low-Calorie Check — `weekly-low-cal-check`
+### 7. Produce Check — `produce-check` (China region only)
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py produce-check --meals <2|3> \
+  --current-meal "lunch" \
+  --log '[...]'
+```
+
+Evaluates cumulative vegetable and fruit intake at the current checkpoint. Only run when `locale.json` `region` is `"CN"`.
+
+Each meal in `--log` may include optional fields `vegetables_g` (grams of vegetables) and `fruits_g` (grams of fruit); missing fields default to 0.
+
+Returns: `is_final_meal`, `vegetables_actual_g`, `vegetables_target_g`, `has_vegetable_target`, `vegetable_status` (`"on_track"` / `"low"` / `null`), `fruits_actual_g`, `fruits_daily_min_g`, `fruits_daily_max_g`, `fruit_status` (`"on_track"` / `"low"` / `"high"` / `null`)
+
+### 8. Weekly Low-Calorie Check — `weekly-low-cal-check`
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
@@ -237,10 +253,11 @@ When user describes what they're about to eat (or what they already ate):
 3. **Call load** — get today's existing records
 4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
 5. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
-6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g
-7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`)
+6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g. **China region:** also estimate `vegetables_g` and `fruits_g` for this meal.
+7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). **China region:** include `vegetables_g` and `fruits_g` in the meal JSON.
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
-9. **Reply in format** — meal details + nutrition summary + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
+9. **China region:** Call `produce-check` — pass all meals from save output, evaluate cumulative produce intake
+10. **Reply in format** — meal details + nutrition summary + produce status (China only) + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
 
 ### Missing Meal Handling
 
@@ -325,9 +342,46 @@ Not enough days with logged meals (less than 3 within the 7-day lookback window)
 
 ---
 
+### Produce Tracking (China Region)
+
+**Only active when `locale.json` `region` is `"CN"`.**
+
+Read `locale.json` at the start of each conversation. If `region` is `"CN"`, activate produce tracking for every meal log reply.
+
+#### Targets
+
+| Produce | Target |
+|---------|--------|
+| Vegetables | ≥300g/day; ≥150g cumulative by lunch (or meal_1); ≥300g cumulative by dinner (or meal_2); no target at breakfast |
+| Fruit | 200–350g/day total; checked only at the final meal of the day |
+
+#### Estimating produce amounts
+
+When the user logs a meal, estimate the gram weight of vegetables and fruits:
+- Use standard portion sizes (e.g. a plate of stir-fried greens ≈ 200g, one medium apple ≈ 180g, half a cucumber ≈ 100g)
+- Prefix estimated amounts with `~` in the response
+- Common vegetables: leafy greens, broccoli, cucumber, tomato, carrot, eggplant, etc.
+- Common fruits: apple, orange, banana, grapes, watermelon, etc.
+- Starchy vegetables (potato, sweet potato, taro, corn) count toward carbs/calories but **not** toward the vegetable target
+
+#### Priority rules
+
+Produce targets have **lower priority** than calories and macros:
+- If a vegetable is high in oil or sugar and causes calories/macros to exceed targets, suggest reducing that vegetable
+- For all other vegetables, **never suggest reducing them** — only suggest adding more if the target is not met
+- If there is a conflict between adding vegetables and staying within calorie targets, the calorie/macro target takes precedence; acknowledge both without pushing the user to over-eat
+
+#### Suggestions
+
+- **Vegetable target not met at lunch/meal_1:** Gently note the gap and suggest adding vegetables at dinner (e.g. "再加一份青菜就达标了")
+- **Vegetable target not met at dinner/meal_2 (final):** Suggest adding a side of low-calorie vegetables now or note it for next time
+- **Fruit target not met at final meal:** Suggest a suitable fruit as a snack or dessert, only if calories allow
+- **Fruit over target:** Briefly mention it; no strong push to eliminate
+- When produce targets are met, give a brief positive note
+
 ### Querying Progress
 
-User asks "how much have I eaten today" / "how much can I still eat" → call `load` → call `evaluate` → output checkpoint summary.
+User asks "how much have I eaten today" / "how much can I still eat" → call `load` → call `evaluate` → output checkpoint summary. **China region:** also call `produce-check` and include produce status in the reply.
 
 ---
 
@@ -376,7 +430,7 @@ Every food log reply must contain up to three sections:
 · Food 2 — portion — XXX kcal
 ```
 
-**② Nutrition Summary** (cumulative intake evaluation up to this checkpoint — always show, based on `evaluate` output)
+**② Nutrition Summary** (cumulative intake evaluation up to this checkpoint — always show, based on `evaluate` output; China region: also show produce status inline)
 
 ```
 📊 So far today: XXX calories [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
@@ -389,6 +443,11 @@ Every food log reply must contain up to three sections:
 - When adjustment is needed, the comment can naturally lead into the suggestion below — keep the two sections complementary, not repetitive
 - Language consistency: do not mix languages (e.g. no "蛋白质on track" or "Protein达标"). Use localized nutrient names when replying in non-English (e.g. 蛋白质, 碳水, 脂肪 for Chinese)
 - For forgotten/assumed meals: only show real recorded values (consistent with existing rule)
+- **China region:** After the macro status line, add a produce status line (from `produce-check` output) when `has_vegetable_target` is true or `is_final_meal` is true:
+  ```
+  🥦 蔬菜: ~XXXg ✅ / ⬇️ 还差XXg   🍎 水果: ~XXXg ✅ / ⬇️ 今天还没有水果 (only at final meal)
+  ```
+  Use ✅ when status is `on_track`, ⬇️ when `low`, ⬆️ when `high`. Omit the produce line when `has_vegetable_target` is false and `is_final_meal` is false (i.e., breakfast checkpoint).
 
 **③ Suggestion** (based on evaluate output + meal timing detection — only one suggestion type per meal)
 
