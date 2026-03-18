@@ -53,8 +53,8 @@ User can request a report at any time:
 ### Pre-send Checks
 
 1. User in Stage 4 (silent)? → skip auto-send, but still generate if manually requested
-2. Less than 2 days of data in the period? → send a short message instead: `"Not enough data for a full report this week — let's make next week count! 💪"`
-3. All clear → generate and send
+2. Fewer than 2 days with at least 1 logged meal in the period? → skip silently, do not send any message
+3. All clear → generate and send (if period has 2–6 logged days, treat as first-week partial report — see Edge Cases)
 
 ---
 
@@ -88,6 +88,7 @@ User can request a report at any time:
 | `Carb Range` | Macro analysis |
 | `Weight Loss Rate` | Expected weekly loss for progress assessment |
 | `Diet Mode` | Context for suggestions |
+| `Created Date` | Week number calculation (Week 1 = first Mon–Sun on or after plan creation) |
 
 ### Reads from data (workspace)
 
@@ -110,6 +111,11 @@ user's actual data — skip or simplify sections with no data. The header
 (title, date range, greeting) is handled by the HTML template's
 `.report-header` and the in-chat summary — not a separate section.
 
+**Week number calculation:**
+- Week 1 = the first Mon–Sun period on or after `PLAN.md > Created Date`
+- Week N = `floor((report_start_date − first_week_start) / 7) + 1`
+- If PLAN.md does not exist, omit the week number and show date range only
+
 ### Section 1: Logging Overview
 
 Show each day of the week with a status indicator. See `.logging-grid` in the
@@ -117,9 +123,12 @@ HTML template.
 
 **Data logic:**
 - For each day (Mon–Sun), call `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` to check:
-  - If at least 1 meal has `status: "logged"` → ✅
-  - If all meals are `"skipped"` or `"no_reply"` or no log exists → ❌
+  - Count meals with `status: "logged"` → daily check-in count (e.g. `3`)
+  - Expected meals per day = `Meal Schedule > Meals per Day` from `health-profile.md`
+  - If count ≥ 1 → ✅ ; if count = 0 → ❌
+  - Display per-day count as `{logged}/{expected}` (e.g. `3/3`, `2/3`, `0/3`)
 - Count total days with ✅ → `{X}/7 days logged`
+- Weekly total check-ins = sum of daily logged meal counts across the week
 
 **Commentary rules:**
 - 7/7 → `"Perfect week! 🎉"` / `"满勤！🎉"`
@@ -158,18 +167,27 @@ in the HTML template.
 
 **Data logic:**
 - Call `weight-tracker.py load --from <start> --to <end> --display-unit <unit>` to collect all entries within the period
-- If 2+ readings: calculate change = last reading − first reading
+- If 2+ readings: calculate weekly change = last reading − first reading
 - If 1 reading: show it, compare to previous week's last reading if available
 - If 0 readings: skip this section entirely (remove the card), add a gentle note
+- **Overall progress** (show whenever at least 1 reading exists):
+  - Starting weight = first ever entry from `data/weight.json`
+  - Current weight = most recent entry
+  - Target weight = `Goals > Target Weight` from `health-profile.md`
+  - Total lost = starting weight − current weight
+  - Remaining = current weight − target weight
+  - Progress % = total lost / (starting weight − target weight) × 100, capped at 100%
 
 **Commentary rules:**
 - Loss within expected rate (from `PLAN.md` weekly rate) → `"Right on pace."` / `"进度刚好。"`
 - Loss faster than expected → `"Great progress — just make sure you're not undereating."` / `"进度不错，注意别吃太少。"`
 - No change or slight gain → `"Weight fluctuates — one week doesn't define the trend. 💛"` / `"体重会波动，一周说明不了什么。💛"`
 - No readings → `"No weigh-ins this week — want to add one next week?"` / `"这周没有称重记录，下周要不要试试？"`
+- Progress % ≥ 50% → `"You're more than halfway there!"` / `"已经超过一半了！"`
 
 **Never:** compare to target weight in a pressuring way, criticize a gain, or
-suggest the user weigh more often than 2x/week.
+suggest the user weigh more often than 2x/week. Never show progress % if
+`health-profile.md` target weight is not set.
 
 ---
 
@@ -261,15 +279,13 @@ Specific, actionable improvements for next week. Based on the week's gaps.
 
 ## Edge Cases
 
-**First week (< 7 days of data):**
+**Partial week (2–6 days with logged meals in the period):**
 Generate a partial report with whatever data exists. Prefix with:
 `"This is your first report — it'll get more useful as we collect more data!"` /
 `"这是你的第一份周报，数据越多越有参考价值！"`
 
 **Week with zero data:**
-Don't generate a full report. Send a short message:
-`"No data to report this week — ready to start fresh? 💪"` /
-`"这周没有数据，准备重新开始？💪"`
+Skip silently. Do not send any message.
 
 **User has no PLAN.md (no calorie/macro targets):**
 Skip Sections 2 and 4 (calorie and macro analysis). Show logging overview and
@@ -307,25 +323,27 @@ Send a concise 3–5 sentence summary in the chat as plain text. This summary
 should give the user a quick snapshot without needing to open the full report.
 
 **Structure:**
-1. Greeting + date range
+1. Greeting + week number + date range
 2. Key stats (days logged, average calories, weight change)
-3. One highlight (biggest win of the week)
-4. One suggestion (most impactful thing to try next week)
-5. Pointer to the full HTML report
+3. Overall progress toward goal (current weight → target weight, % complete) — only if target weight is set
+4. One highlight (biggest win of the week)
+5. One suggestion (most impactful thing to try next week)
+6. Pointer to the full HTML report
 
 **Example (Chinese):**
 ```
-小明，这是你 2月10日–16日 的周报摘要：这周记录了5/7天，平均摄入
-1,766 kcal，体重下降了 0.4 kg。亮点是连续5天坚持记录饮食，蛋白质
-摄入可以再提高一些——试试早餐加个鸡蛋。完整报告已生成，请查看附件 👇
+小明，这是你的第3周周报（2月10日–16日）：这周记录了5/7天，平均摄入
+1,766 kcal，体重下降了 0.4 kg。总进度：74.8 kg → 目标 65.0 kg，已
+完成 34%。亮点是连续5天坚持记录饮食，蛋白质摄入可以再提高一些——
+试试早餐加个鸡蛋。完整报告已生成，请查看附件 👇
 ```
 
 **Example (English):**
 ```
-Hi Ming, here's your week in review (Feb 10–16): You logged 5/7 days,
-averaged 1,766 kcal/day, and dropped 0.4 kg. Highlight: 5-day logging
-streak! One thing to try: add an egg to breakfast to boost protein.
-Full report attached below 👇
+Hi Ming, here's your Week 3 report (Feb 10–16): You logged 5/7 days,
+averaged 1,766 kcal/day, and dropped 0.4 kg. Overall progress: 74.8 kg →
+goal 65.0 kg, 34% there. Highlight: 5-day logging streak! One thing to
+try: add an egg to breakfast to boost protein. Full report attached below 👇
 ```
 
 #### Part 2: HTML Report (file attachment)
@@ -347,7 +365,10 @@ full detail, charts, and styling.
 
 After displaying the report to the user, write a structured JSON summary to
 `logs.weekly_report.{start_date}` for cross-session reference and trend
-analysis. Schema in `references/data-schemas.md`.
+analysis. Schema in `references/data-schemas.md`. Include
+`logging.daily_checkins` — a map of `YYYY-MM-DD → {logged: N, expected: N}`
+— so future reports and the `diet-tracking-analysis` skill can surface
+per-day meal completion trends.
 
 ---
 
