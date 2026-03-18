@@ -350,18 +350,17 @@ Scannable in under 10 seconds.
 
 **Inline context rules for the stats line:**
 
-Calorie context (append in parentheses after the number):
-- Within target range → `（达标）`
-- Above target max → `（↑{diff} 超目标）`
-- Below target min → `（↓{diff} 低于目标）`
-- No PLAN.md → omit parenthetical
+Calorie context (append symbol after the number, no parentheses):
+- Within target range → ` ✓`
+- Above target max → ` ↑`
+- Below target min → ` ↓`
+- No PLAN.md → omit symbol
 
-Weight context (append after the number):
-- Change matches expected rate ±20% → `（与预期一致）`
-- Slower than expected → `（略慢于预期）`
-- Faster than expected AND 快完成 phase → `（偏快，注意别吃太少）`
-- Faster than expected otherwise → `（快于预期）`
-- Only 1 reading this week → show change vs last week's reading, no context label
+Weight context (append symbol after the number, no parentheses):
+- Change matches expected rate ±20% → ` ✓`
+- Slower than expected → ` ↑`
+- Faster than expected → ` ↓`
+- Only 1 reading this week → show change vs last week's reading, no symbol
 - 0 readings → replace ⚖️ line with `⚖️ 本周未称重`
 
 Expected rate comes from `PLAN.md > Weight Loss Rate`.
