@@ -17,7 +17,8 @@ An open-source [Claude Code](https://docs.anthropic.com/en/docs/claude-code) ski
 
 ```bash
 # Install individual skills
-clawhub install NanoRhino/daily-notification
+clawhub install NanoRhino/notification-manager
+clawhub install NanoRhino/notification-composer
 clawhub install NanoRhino/diet-tracking-analysis
 clawhub install NanoRhino/user-onboarding-profile
 clawhub install NanoRhino/weight-loss-planner
@@ -28,7 +29,8 @@ clawhub install NanoRhino/weekly-report
 
 ```bash
 git clone https://github.com/NanoRhino/weight-loss-skill.git
-cp -r weight-loss-skill/daily-notification-skill   ~/.openclaw/skills/
+cp -r weight-loss-skill/notification-manager        ~/.openclaw/skills/
+cp -r weight-loss-skill/notification-composer       ~/.openclaw/skills/
 cp -r weight-loss-skill/diet-tracking-analysis      ~/.openclaw/skills/
 cp -r weight-loss-skill/user-onboarding-profile     ~/.openclaw/skills/
 cp -r weight-loss-skill/weight-loss-planner         ~/.openclaw/skills/
@@ -45,7 +47,8 @@ claude plugin install NanoRhino/weight-loss-skill
 
 ```bash
 git clone https://github.com/NanoRhino/weight-loss-skill.git
-cp -r weight-loss-skill/daily-notification-skill   ~/.claude/skills/
+cp -r weight-loss-skill/notification-manager        ~/.claude/skills/
+cp -r weight-loss-skill/notification-composer       ~/.claude/skills/
 cp -r weight-loss-skill/diet-tracking-analysis      ~/.claude/skills/
 cp -r weight-loss-skill/user-onboarding-profile     ~/.claude/skills/
 cp -r weight-loss-skill/weight-loss-planner         ~/.claude/skills/
@@ -58,7 +61,8 @@ cp -r weight-loss-skill/weekly-report               ~/.claude/skills/
 |-------|-------------|
 | `user-onboarding-profile` | Build a user profile through natural conversation (height, weight, goals, etc.) |
 | `diet-tracking-analysis` | Log food, estimate calories/macros, get practical suggestions |
-| `daily-notification` | Proactive meal-time reminders and weight-logging nudges |
+| `notification-manager` | Cron infrastructure and reminder lifecycle management |
+| `notification-composer` | Meal-time reminder composition, weight-logging nudges, and reply handling |
 | `emotional-support` | Detect and respond to negative emotions — body image distress, food guilt, hopelessness |
 | `weight-loss-planner` | Goal-setting with BMI, TDEE, calorie targets, and milestone roadmaps |
 | `weekly-report` | Personalized weekly progress report with logging streaks, calorie/macro analysis, weight trends, and suggestions |
@@ -69,7 +73,11 @@ cp -r weight-loss-skill/weekly-report               ~/.claude/skills/
 weight-loss-skill/
 ├── .claude-plugin/
 │   └── plugin.json                # Claude Code plugin manifest
-├── daily-notification-skill/
+├── notification-manager/
+│   ├── SKILL.md
+│   ├── evals/
+│   └── scripts/
+├── notification-composer/
 │   ├── SKILL.md
 │   ├── evals/
 │   └── references/

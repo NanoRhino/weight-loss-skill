@@ -73,6 +73,32 @@ Wednesday (Cook Day): Batch-prep 1–2 Tier A dishes → covers Thu, Fri
 Sat/Sun:             Fresh-cook or eat out (good days for Tier C dishes — noodle soup, stir-fried greens, fried foods)
 ```
 
+> **⚠️ Timeline consistency:** The pattern above assumes Sunday is **before** the plan week (i.e., a pre-week cook day). If the meal plan starts on Monday (Day 1), the "Sunday cook day" refers to the day before Day 1 — NOT Day 7 (Sunday at the end of the week). When annotating prep days in the plan, always ensure the prep day precedes the consumption day. For a plan starting on Monday: Day 1 (Mon) meals can reference "Sunday prep" (= pre-plan), but Day 2 (Tue) meals must NOT reference "Sunday prep" using the day name "周日" / "Sunday" because within the plan, Sunday = Day 7. Instead, label them as "Monday prep" or "Day 1 batch-prep". See the Prep-Day Timeline Rule below.
+
+### Prep-Day Timeline Rule
+
+When generating a multi-day meal plan, prep-day annotations (e.g., "周日备餐", "prepped on Sunday") must be **temporally valid** within the plan's own timeline:
+
+1. **Identify the plan's start day.** If the plan runs Monday → Sunday, then Monday = Day 1, Sunday = Day 7.
+2. **Prep day must come before consumption day.** A dish consumed on Day N can only reference prep done on Day M where M < N (or "the evening before Day 1" for the first day's meals).
+3. **Never reference a later day for prep.** If the plan starts Monday, Tuesday's (Day 2) food cannot say "周日备餐" (Sunday prep) — because Sunday is Day 7 in this plan. The correct annotation is "周一备餐" (Monday prep) or "Day 1 batch-prep".
+4. **Day 1 cook-day pattern.** For most plans, Day 1 is the first batch-cook day. Label Day 1 meals as fresh-cooked and Days 2–3 meals as "Day 1 batch-prep" (or the Day 1 weekday name, e.g., "周一备餐").
+5. **Mid-week cook day.** If there's a second cook day (e.g., Day 4), meals on Days 5–6 reference Day 4 as their prep day.
+
+**Example (plan starts Monday):**
+```
+✅ Correct:
+  Mon (Day 1): Cook fresh — also batch-prep for Tue & Wed
+  Tue (Day 2): "周一备餐" (Monday prep) ✓
+  Wed (Day 3): "周一备餐" (Monday prep) ✓
+  Thu (Day 4): Cook fresh — also batch-prep for Fri & Sat
+  Fri (Day 5): "周四备餐" (Thursday prep) ✓
+
+❌ Wrong:
+  Tue (Day 2): "周日备餐" (Sunday prep) ✗ — Sunday is Day 7, not before Day 2
+  Wed (Day 3): "周日备餐" (Sunday prep) ✗ — same problem
+```
+
 ### Rules for Weekly Plan Assignment
 
 1. **Batch-prep meals (Tier A) go on weekdays** — when the user is busiest and least likely to cook. These are grab-from-fridge-and-reheat meals.
@@ -167,3 +193,5 @@ When a meal-plan dish is meant to be reheated, briefly include the recommended m
 7. **Ignoring that cooked rice needs proper handling.** Cooked rice left at room temperature grows Bacillus cereus. Cool and refrigerate within 1 hour. Reheat thoroughly. Don't store more than 3 days. Include these notes when rice is a batch-prep staple.
 
 8. **Making one giant container of stir-fry for the week.** Even Tier A dishes get monotonous after 3 days. Prep 2–3 different dishes and rotate. Sunday → Dish A (Mon-Tue) + Dish B (Tue-Wed); Wednesday → Dish C (Thu-Fri).
+
+9. **Prep-day references that violate the plan's own timeline.** If the meal plan starts on Monday (Day 1), you cannot label Tuesday's dishes as "prepared on Sunday" — Sunday is Day 7, which hasn't happened yet. Prep-day annotations must always reference a day that falls **before** the consumption day within the plan's timeline. The first day of the plan has no prior prep day available, so Day 1 meals must either be cooked fresh or reference prep done "the evening before" (i.e., before the plan period begins) — never a named day that appears later in the plan.

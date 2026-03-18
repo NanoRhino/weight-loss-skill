@@ -1,5 +1,5 @@
 {
-  "skill_name": "daily-notification",
+  "skill_name": "notification-composer",
   "evals": [
     {
       "id": 1,
@@ -7,10 +7,11 @@
       "prompt": "[SYSTEM: First reminder ever. Lunch slot 11:45. user_profile.json: meals_per_day=3, meal_times=['07:00 breakfast','12:00 lunch','18:00 dinner'], language='en', name=null]",
       "expected_output": "Confirm schedule, set expectations, open conversation. All in one message.",
       "expectations": [
-        "Confirms schedule with correct times (6:45, 11:45, 17:45)",
-        "Sets expectation that replying is optional",
-        "Opens conversation with a food question",
-        "All three elements in one message",
+        "Signals that reminders have started without listing all times",
+        "Includes a food suggestion or diet plan reference for the upcoming meal",
+        "Nudges user to share what they're eating BEFORE the meal (pre-meal logging), NOT after",
+        "All elements in one compact message — no duplication (no two greeting blocks or two questions)",
+        "Does NOT say 'reply when you can' / 'skip when you can't' or any variant framing replies as optional",
         "Uses English",
         "Does NOT use a name (name=null)",
         "Under 50 words equivalent"
@@ -32,33 +33,6 @@
     },
     {
       "id": 3,
-      "name": "user-changes-reminder-time",
-      "prompt": "[SYSTEM: Lunch reminder 11:45]\nUser: I actually usually eat lunch around 1 PM, can you change the reminder to 12:45?",
-      "expected_output": "Confirms change, transitions back to conversation.",
-      "expectations": [
-        "Confirms the time change",
-        "Accepts naturally with no friction",
-        "Transitions back to conversation",
-        "Does NOT explain app settings",
-        "Updates workspace"
-      ]
-    },
-    {
-      "id": 4,
-      "name": "user-stops-breakfast-reminders",
-      "prompt": "[SYSTEM: Breakfast reminder 6:45]\nUser: No need to remind me about breakfast, I usually skip it",
-      "expected_output": "Stop reminders without judgment.",
-      "expectations": [
-        "Confirms breakfast reminders stopped",
-        "Does NOT lecture about skipping breakfast",
-        "Does NOT ask why",
-        "Leaves door open to resume",
-        "Brief",
-        "No judgment"
-      ]
-    },
-    {
-      "id": 5,
       "name": "recall-first",
       "prompt": "[SYSTEM: User silent 2 full days. 6 reminders ignored. Zero messages. Trigger Stage 2. Lunch slot. en]",
       "expected_output": "Warm recall. Not a meal reminder. No guilt.",
@@ -73,7 +47,7 @@
       ]
     },
     {
-      "id": 6,
+      "id": 4,
       "name": "recall-second",
       "prompt": "[SYSTEM: First recall sent 3 days ago, no reply. Trigger Stage 3. Dinner slot 17:45. en]",
       "expected_output": "Lighter and shorter than first recall.",
@@ -87,7 +61,7 @@
       ]
     },
     {
-      "id": 7,
+      "id": 5,
       "name": "silent-user-returns",
       "prompt": "[SYSTEM: User in Stage 4 for 10 days.]\nUser: Haven't been around for a while, sorry about that",
       "expected_output": "Warm greeting. Remove guilt. Offer to restart reminders.",
@@ -102,20 +76,19 @@
       ]
     },
     {
-      "id": 8,
-      "name": "soft-restart-day1",
-      "prompt": "[SYSTEM: User returned yesterday. Day 1 soft restart. Historical: dinner most replied. Only dinner reminder 17:45. en]",
-      "expected_output": "Only 1 reminder. Normal tone. No meta-commentary about restart.",
+      "id": 6,
+      "name": "return-normal-reminders",
+      "prompt": "[SYSTEM: User returned yesterday after Stage 4 silent. Full schedule: breakfast 7:30, lunch 12:00, dinner 17:45. Current: lunch 12:00. en]",
+      "expected_output": "Normal lunch reminder. No meta-commentary about return or absence.",
       "expectations": [
-        "Only dinner reminder sent",
-        "Normal dinner reminder tone",
-        "No 'easing back in' or 'taking it slow'",
+        "Normal lunch reminder sent",
+        "No 'welcome back' or 'easing back in'",
         "No reference to absence",
         "Brief and casual"
       ]
     },
     {
-      "id": 9,
+      "id": 7,
       "name": "weight-distress-self-hatred",
       "prompt": "[SYSTEM: Weight reminder Mon 6:45]\nUser: 81kg now, getting fatter and fatter, I really hate myself",
       "expected_output": "Log. Normalize briefly. Empathize with self-hatred. Flag body image.",
@@ -126,13 +99,13 @@
         "Empathizes with 'hate myself'",
         "Does NOT agree or dismiss",
         "Does NOT reference goal weight (60kg)",
-        "Writes body_image flag",
+        "Defers to emotional-support (which writes body_image flag)",
         "Does NOT continue normal check-in",
         "Under 50 words equivalent"
       ]
     },
     {
-      "id": 10,
+      "id": 8,
       "name": "junk-food-no-judgment",
       "prompt": "[SYSTEM: Dinner reminder 17:45]\nUser: Ate a whole bag of chips and two milk teas, don't even care anymore",
       "expected_output": "Log without judgment. Detect possible emotional context.",
@@ -143,6 +116,19 @@
         "Does NOT moralize",
         "Brief response",
         "Detects resignation ('don't even care anymore') and adds soft door-opener if pattern suggests distress"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "skip-reminder-meal-already-logged",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. nutrition-calc.py load returns: dinner already logged today at 17:32 (肉末豆腐 + 凉拌黄瓜 + 米饭, 450 kcal). zh]",
+      "expected_output": "No message sent. Reminder skipped silently.",
+      "expectations": [
+        "Does NOT send any reminder message",
+        "Does NOT ask what the user is eating for dinner",
+        "Does NOT ask about other meals (breakfast/lunch)",
+        "Silently skips — sends nothing to the user",
+        "Pre-send check #3 (meal already logged) causes skip"
       ]
     }
   ]

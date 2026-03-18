@@ -1,7 +1,7 @@
 ---
 name: plan-export
-version: 2.1.0
-description: "Convert Markdown plans to styled HTML web pages (hosted on S3 with presigned URLs) or PDFs, and deliver them to users. Supports weight loss plans (PLAN.md) and meal plans (MEAL-PLAN.md) with different HTML templates. Trigger when: (1) weight-loss-planner finishes generating PLAN.md, (2) meal-planner finishes generating MEAL-PLAN.md, (3) any time a Markdown document should be delivered as a professional document to the user, (4) user asks for their plan link and the previous one has expired."
+version: 2.2.0
+description: "Convert Markdown plans to styled HTML web pages (hosted on cloud storage with presigned URLs) or PDFs, and deliver them to users. Supports weight loss plans (PLAN.md) and meal plans (MEAL-PLAN.md) with different HTML templates. Trigger when: (1) weight-loss-planner finishes generating PLAN.md, (2) meal-planner finishes generating MEAL-PLAN.md, (3) any time a Markdown document should be delivered as a professional document to the user, (4) user asks for their plan link and the previous one has expired."
 metadata:
   openclaw:
     emoji: "page_facing_up"
@@ -9,11 +9,14 @@ metadata:
 
 # Plan Export (HTML Web / PDF)
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 Convert Markdown plans into professionally styled documents and deliver them to users.
 
-**Primary mode:** HTML web page uploaded to S3 — generates a beautiful, mobile-friendly web page and provides a presigned URL (valid 7 days).
+**Primary mode:** HTML web page uploaded to cloud storage — generates a beautiful, mobile-friendly web page and provides a presigned URL (valid 7 days).
 
-**Fallback mode:** PDF via Slack file upload — used when S3 is not configured.
+**Fallback mode:** PDF via Slack file upload — used when cloud storage is not configured.
 
 ## Supported Document Types
 
@@ -22,13 +25,25 @@ Convert Markdown plans into professionally styled documents and deliver them to 
 | Weight Loss Plan | `PLAN.md` | (default) | `weight-loss-plan` | `generate-html.py` |
 | Meal Plan | `MEAL-PLAN.md` | `meal-plan` | `meal-plan` | `generate-meal-plan-html.py` |
 
-## Primary Mode: HTML + S3 Presigned URL
+## Primary Mode: HTML + Cloud Storage Presigned URL
 
-### Prerequisites
+### Storage Backend (Auto-Detected)
 
+The upload script automatically detects the storage backend:
+
+1. **`PLAN_STORAGE_BACKEND`** env var (`aws` or `jdoss`) — force a specific backend
+2. **`JD_OSS_ACCESS_KEY`** is set → JD Cloud OSS
+3. **`aws sts get-caller-identity`** succeeds → AWS S3
+4. None detected → error
+
+**AWS S3 prerequisites:**
 - S3 bucket with 30-day lifecycle rule (auto-deletion)
 - AWS CLI credentials with `s3:PutObject` + `s3:GetObject` permission
-- Bucket: `nanorhino-im-plans` (us-west-1)
+- Default bucket: `nanorhino-im-plans` (us-west-1)
+
+**JD Cloud OSS prerequisites:**
+- Environment variables: `JD_OSS_ACCESS_KEY`, `JD_OSS_SECRET_KEY`, `JD_OSS_ENDPOINT`
+- Default bucket: `JD_OSS_BUCKET` env var, or override with `--bucket`
 
 ### How to Use
 
@@ -37,7 +52,8 @@ Convert Markdown plans into professionally styled documents and deliver them to 
 URL=$(bash {baseDir}/scripts/generate-and-send.sh \
   --agent <YOUR_AGENT_ID> \
   --input PLAN.md \
-  --bucket nanorhino-im-plans \
+  --bucket <BUCKET_NAME> \
+  --username <USERNAME> \
   --workspace <AGENT_WORKSPACE_PATH> \
   --key weight-loss-plan)
 
@@ -45,7 +61,8 @@ URL=$(bash {baseDir}/scripts/generate-and-send.sh \
 URL=$(bash {baseDir}/scripts/generate-and-send.sh \
   --agent <YOUR_AGENT_ID> \
   --input MEAL-PLAN.md \
-  --bucket nanorhino-im-plans \
+  --bucket <BUCKET_NAME> \
+  --username <USERNAME> \
   --workspace <AGENT_WORKSPACE_PATH> \
   --template meal-plan \
   --key meal-plan)
@@ -54,12 +71,13 @@ URL=$(bash {baseDir}/scripts/generate-and-send.sh \
 Parameters:
 - `--agent` (required): Your agent ID (e.g., `007-zhuoran`)
 - `--input` (required): Path to the Markdown file
-- `--bucket` (required for HTML mode): S3 bucket name
+- `--bucket` (required for HTML mode): Storage bucket name. For JD OSS, falls back to `JD_OSS_BUCKET` env var if omitted. For AWS, defaults to `nanorhino-im-plans`.
+- `--username` (required for HTML mode): User identifier for the S3 key path. Auto-detect from workspace path: if it matches `workspace-wechat-dm-{id}`, use `{id}`; otherwise use the agent ID (e.g., `007-zhuoran`)
 - `--workspace` (optional): Agent workspace path — if provided, writes `plan-url.json` there
 - `--template` (optional): `meal-plan` for meal plan HTML. Omit for default (weight loss plan).
-- `--key` (optional): Document key in `plan-url.json`. Enables multi-document URL tracking.
+- `--key` (required for HTML mode): Document key, used in both S3 path and `plan-url.json` (e.g., `weight-loss-plan`, `meal-plan`)
 
-The script outputs the presigned URL to stdout. **You are responsible for sending this URL to the user using the message tool** (works with any channel: Slack, Telegram, etc.).
+The script outputs the public URL to stdout. **You are responsible for sending this URL to the user using the message tool** (works with any channel: Slack, Telegram, etc.).
 
 ### After Sending
 
@@ -69,7 +87,7 @@ Tell the user their plan is ready and include the link. Example:
 
 ### When PLAN.md or MEAL-PLAN.md is Updated
 
-**Whenever a plan file is modified by any skill**, **always re-run the upload script** to push the new version to S3. Each update generates a new UUID file and a new presigned URL. Send the new link to the user so they always have the latest version.
+**Whenever a plan file is modified by any skill**, **always re-run the upload script** to push the new version to cloud storage. The file is uploaded to the same S3 key (`{username}/{key}.html`), so the public URL stays the same. You only need to send the link once; subsequent updates are reflected automatically at the same URL.
 
 ### plan-url.json (Multi-Document)
 
@@ -78,26 +96,22 @@ When `--workspace` and `--key` are provided, the script writes/merges into `plan
 ```json
 {
   "weight-loss-plan": {
-    "url": "https://nanorhino-im-plans.s3.us-west-1.amazonaws.com/plans/uuid1.html?X-Amz-...",
-    "uploaded_at": "2026-03-09T04:15:00Z",
-    "expires_at": "2026-03-16T04:15:00Z"
+    "url": "https://nanorhino.ai/zhuoran/weight-loss-plan.html",
+    "uploaded_at": "2026-03-09T04:15:00Z"
   },
   "meal-plan": {
-    "url": "https://nanorhino-im-plans.s3.us-west-1.amazonaws.com/plans/uuid2.html?X-Amz-...",
-    "uploaded_at": "2026-03-09T07:00:00Z",
-    "expires_at": "2026-03-16T07:00:00Z"
+    "url": "https://nanorhino.ai/zhuoran/meal-plan.html",
+    "uploaded_at": "2026-03-09T07:00:00Z"
   }
 }
 ```
 
 Each key is updated independently — uploading a new meal plan doesn't affect the weight loss plan entry.
 
-**Backward compatibility:** If `--key` is omitted, the script writes a flat single-document JSON (old format). If the script encounters an old-format file when using `--key`, it auto-migrates it.
-
 **When a user asks for their plan link:**
 1. Read `plan-url.json` → find the relevant key
-2. If `expires_at` has NOT passed → send the existing `url`
-3. If `expires_at` HAS passed → re-run the script with the source `.md` file to generate a new upload, then send the new URL
+2. Send the existing `url` — URLs are permanent (no expiry)
+3. If the plan content has been updated since last upload, re-run the script to push the new version (URL stays the same)
 
 ## Fallback Mode: PDF via Slack
 
@@ -130,13 +144,15 @@ The meal plan script expects Markdown in the schema defined at `meal-planner/ref
 bash {baseDir}/scripts/generate-pdf.sh <input.md> [output.pdf]
 ```
 
-### Upload to S3 only
+### Upload to cloud storage only
 ```bash
 bash {baseDir}/scripts/upload-to-s3.sh \
   --file <path.html> \
   --bucket <name> \
+  --username <username> \
+  --key <document-key> \
   [--workspace <path>] \
-  [--key <document-key>]
+  [--base-url <url>]
 ```
 
 ### Send file to Slack only (legacy)
@@ -150,6 +166,7 @@ bash {baseDir}/scripts/send-to-slack.sh --agent <id> --file <path> [--message <t
 - Meal plan HTML: green theme, day-card layout, responsive, print-friendly
 - PDF mode uses WeasyPrint (Python) — no Chrome/browser dependency
 - All formats support Chinese, English, and mixed-language content
-- S3 objects auto-deleted after 30 days by lifecycle rule
-- Presigned URLs valid for 7 days; re-run script to get a new URL if expired
+- Cloud storage objects: set lifecycle rule on bucket for auto-cleanup (optional)
+- Public URLs are permanent (`{base-url}/{username}/{key}.html`), served via Cloudflare Worker
+- Same S3 key is overwritten on each upload — URL stays stable
 - Agent-to-Slack-user mapping (PDF fallback) is auto-resolved from `openclaw.json` bindings

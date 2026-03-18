@@ -55,7 +55,8 @@ jobs:
           generate_release_notes: true
           files: |
             dist/claude-plugin/weight-loss-skill-v${{ steps.version.outputs.version }}-claude.zip
-            dist/clawhub/daily-notification-skill-v${{ steps.version.outputs.version }}.zip
+            dist/clawhub/notification-manager-v${{ steps.version.outputs.version }}.zip
+            dist/clawhub/notification-composer-v${{ steps.version.outputs.version }}.zip
             dist/clawhub/diet-tracking-analysis-v${{ steps.version.outputs.version }}.zip
             dist/clawhub/user-onboarding-profile-v${{ steps.version.outputs.version }}.zip
             dist/clawhub/weight-loss-planner-v${{ steps.version.outputs.version }}.zip
@@ -90,7 +91,8 @@ jobs:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
           SKILLS=(
-            "daily-notification-skill"
+            "notification-manager"
+            "notification-composer"
             "diet-tracking-analysis"
             "user-onboarding-profile"
             "weight-loss-planner"

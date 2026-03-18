@@ -39,7 +39,16 @@ import argparse
 import json
 import math
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+
+
+def _local_today(tz_offset: int = None) -> date:
+    """Return the user's local date. If tz_offset (seconds) is given,
+    compute from UTC now; otherwise fall back to server date."""
+    if tz_offset is not None:
+        utc_now = datetime.now(timezone.utc)
+        return (utc_now + timedelta(seconds=tz_offset)).date()
+    return date.today()
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -229,7 +238,7 @@ def calc_macro_targets(weight_kg: float, daily_cal: int,
 def forward_calc(weight_kg: float, height_cm: float, age: int, sex: str,
                  activity: str, target_weight_kg: float,
                  mode: str = "balanced", meals: int = 3,
-                 bmi_standard: str = "who") -> dict:
+                 bmi_standard: str = "who", tz_offset: int = None) -> dict:
     """Full forward calculation: no timeline given → recommend rate → derive timeline."""
     bmr = calc_bmr_mifflin(weight_kg, height_cm, age, sex)
     tdee_info = calc_tdee(bmr, activity)
@@ -255,7 +264,7 @@ def forward_calc(weight_kg: float, height_cm: float, age: int, sex: str,
         cal_info["daily_cal_range"] = {"min": floor - 100, "max": floor + 100}
 
     weeks = round(to_lose / rate, 1) if rate > 0 else 0
-    completion = _add_weeks(date.today(), weeks)
+    completion = _add_weeks(_local_today(tz_offset), weeks)
 
     bmi_current = calc_bmi(weight_kg, height_cm)
     bmi_target = calc_bmi(target_weight_kg, height_cm)
@@ -292,7 +301,7 @@ def forward_calc(weight_kg: float, height_cm: float, age: int, sex: str,
 def reverse_calc(weight_kg: float, height_cm: float, age: int, sex: str,
                  activity: str, target_weight_kg: float, deadline: str,
                  mode: str = "balanced", meals: int = 3,
-                 bmi_standard: str = "who") -> dict:
+                 bmi_standard: str = "who", tz_offset: int = None) -> dict:
     """Reverse calculation: timeline given → derive required rate."""
     bmr = calc_bmr_mifflin(weight_kg, height_cm, age, sex)
     tdee_info = calc_tdee(bmr, activity)
@@ -300,7 +309,7 @@ def reverse_calc(weight_kg: float, height_cm: float, age: int, sex: str,
 
     to_lose = round(weight_kg - target_weight_kg, 1)
     deadline_date = date.fromisoformat(deadline)
-    available_days = (deadline_date - date.today()).days
+    available_days = (deadline_date - _local_today(tz_offset)).days
     available_weeks = available_days / 7 if available_days > 0 else 1
 
     required_rate = round(to_lose / available_weeks, 2)
@@ -351,7 +360,7 @@ def reverse_calc(weight_kg: float, height_cm: float, age: int, sex: str,
         "safe_rate_kg": safe_rate,
         "safe_daily_cal": safe_daily_cal,
         "safe_weeks": safe_weeks,
-        "safe_completion": _add_weeks(date.today(), safe_weeks),
+        "safe_completion": _add_weeks(_local_today(tz_offset), safe_weeks),
         "macros": macros,
     }
 
@@ -467,6 +476,8 @@ def main():
                    choices=list(DIET_MODE_FAT.keys()))
     p.add_argument("--meals", type=int, default=3, choices=[2, 3])
     p.add_argument("--bmi-standard", choices=["who", "asian"], default="who")
+    p.add_argument("--tz-offset", type=int, default=None,
+                   help="Timezone offset from UTC in seconds")
 
     # --- reverse-calc ---
     p = sub.add_parser("reverse-calc", help="Reverse calculation from deadline")
@@ -482,6 +493,8 @@ def main():
                    choices=list(DIET_MODE_FAT.keys()))
     p.add_argument("--meals", type=int, default=3, choices=[2, 3])
     p.add_argument("--bmi-standard", choices=["who", "asian"], default="who")
+    p.add_argument("--tz-offset", type=int, default=None,
+                   help="Timezone offset from UTC in seconds")
 
     # --- maintenance-tdee ---
     p = sub.add_parser("maintenance-tdee", help="TDEE at goal weight")
@@ -550,6 +563,7 @@ def main():
             args.weight, args.height, args.age, args.sex,
             args.activity, args.target_weight,
             args.mode, args.meals, args.bmi_standard,
+            getattr(args, 'tz_offset', None),
         )
 
     elif args.cmd == "reverse-calc":
@@ -557,6 +571,7 @@ def main():
             args.weight, args.height, args.age, args.sex,
             args.activity, args.target_weight, args.deadline,
             args.mode, args.meals, args.bmi_standard,
+            getattr(args, 'tz_offset', None),
         )
 
     elif args.cmd == "maintenance-tdee":

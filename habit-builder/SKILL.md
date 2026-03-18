@@ -8,14 +8,16 @@ description: >
   fails, the user asks about building habits, or Weekly Review identifies
   a behavioral pattern worth addressing. Also use when evaluating habit
   progress, deciding when a habit has "graduated," or handling a restart
-  after the user falls off. This skill does NOT send its own reminders —
-  it writes habit data to the workspace that Daily Notification reads and
-  weaves into existing meal conversations.
+  after the user falls off. This skill does not send its own reminders —
+  habit check-ins are woven into meal conversations managed by Notification
+  Composer. This skill owns the check-in logic (when, how often, tone);
+  Notification Composer provides the conversation vehicle.
 ---
 
 # Habit Builder
 
-Always reply in the same language the user is writing in. If the user switches language mid-conversation, switch too.
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
 
 The engine for sustainable lifestyle change. Not a habit tracker — a system
 that gradually migrates a user's daily life from patterns that make weight
@@ -40,23 +42,28 @@ weight — one they can sustain for years.
 
 ## How Habits Get Into Conversations
 
-This skill does NOT send its own reminders. Instead, it writes active habits
-to the workspace (`habits.active`). Daily Notification reads that data and
-naturally weaves habit check-ins into existing meal conversations.
+This skill owns the full check-in logic for habits. Habits surface inside
+meal conversations managed by Notification Composer — they do NOT get their
+own separate reminders.
 
-### Habit types and how they surface
+**Before each meal reminder,** read `habits.active`. If an active habit
+exists, decide whether this reminder slot should include a habit mention
+(see frequency rules below). Pick the slot that best matches the habit type.
 
-| Type | How it shows up | Example |
+### Habit types and when they surface
+
+| Type | When to mention | Example |
 |------|----------------|---------|
-| Meal-bound (before/during meal) | Built into the meal reminder itself | "Lunch time — protein first today?" |
-| Post-meal | AI mentions it when user replies to meal check-in | User logs dinner → "Nice. Going for a walk after?" |
-| End-of-day | Attached to last meal conversation of the day | After dinner reply → "Try to wrap up by 11 tonight?" |
-| Next-morning recovery | Confirmed in the next day's first conversation | "Morning! Did you make it to bed by 11 last night?" |
-| All-day (water, steps) | Dropped into a random meal conversation | "How's the water going today?" |
+| Meal-bound (before/during meal) | Built into the meal reminder itself | `"Lunch time — protein first today?"` |
+| Post-meal | When user replies to meal check-in | User logs dinner → `"Nice. Going for a walk after?"` |
+| End-of-day | Attached to last meal conversation of the day | After dinner reply → `"Try to wrap up by 11 tonight?"` |
+| Next-morning recovery | In the next day's first conversation | `"Morning! Did you make it to bed by 11 last night?"` |
+| All-day (water, steps) | Dropped into a random meal conversation | `"How's the water going today?"` |
 
-### How often to mention a habit
+### How often to mention
 
-Not every day. Frequency depends on how established the habit is:
+Frequency depends on how established the habit is. Track mention count in
+`habits.mention_counter` to space them out evenly.
 
 | Phase | Frequency | Why |
 |-------|-----------|-----|
@@ -67,6 +74,14 @@ Not every day. Frequency depends on how established the habit is:
 **If the user doesn't engage with a habit mention 3 times in a row,**
 stop mentioning it short-term. Pick it up again at the next Weekly Review
 to ask if they still want to continue.
+
+### Rules for habit mentions
+
+- **One sentence max.** The habit mention is woven into the meal conversation,
+  not a separate topic.
+- If the user responds to the mention, record it to `habits.daily_log.{date}`
+  (see Tracking completion below for signal → record mapping).
+- Don't mention a habit if the last mention was < 2 reminders ago.
 
 ### Tone of habit mentions
 
@@ -215,7 +230,9 @@ Once a habit is accepted, write it to `habits.active` with:
 }
 ```
 
-Daily Notification reads this and weaves it into conversations.
+This data is used by the check-in logic above (§ "How Habits Get Into
+Conversations") to decide when and how to mention the habit in meal
+conversations.
 
 ### Tracking completion
 
@@ -301,7 +318,8 @@ Three paths:
 
 **Never say:**
 `"You failed"` · `"You broke your streak"` · `"Don't give up"` ·
-`"You were doing so well"` · `"Remember your goals"`
+`"You were doing so well"` · `"Remember your goals"` ·
+`"No pressure"` · `"不用有压力"` (repeating this creates the opposite effect)
 
 ### Scaling up
 
@@ -373,10 +391,16 @@ conversational — not a dashboard readout.
 | `habits.daily_log.{date}` | Each completion/miss/no_response record |
 | `habits.lifestyle_gaps` | Identified gaps from analysis (for Weekly Review) |
 
+### Writes (during check-ins)
+
+| Path | When |
+|------|------|
+| `habits.mention_counter` | After each habit mention, to track frequency |
+| `habits.daily_log.{date}` | When user responds to a habit mention (completed/missed/no_response) |
+
 ### Read by other skills
 
-Daily Notification reads `habits.active` to weave habit mentions into
-meal conversations. Weekly Review reads `habits.*` for progress summaries.
+Weekly Review reads `habits.*` for progress summaries.
 
 ---
 

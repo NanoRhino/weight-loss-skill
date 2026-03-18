@@ -12,6 +12,9 @@ description: >
 
 # Memory Consolidation
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 ## Role
 
 You are the memory manager for the nutritionist agent. Your job is to maintain
@@ -301,7 +304,7 @@ This is defined in the agent's AGENTS.md template.
 | Skill | Interaction |
 |-------|-------------|
 | **All skills** | After handling a user message, the agent may call `short-term-update` to record the conversation |
-| **daily-notification** | Can trigger daily consolidation (short→medium) during the morning check |
+| **notification-composer** | Can trigger daily consolidation (short→medium) during the morning check |
 | **weekly-report** | Can trigger weekly consolidation (medium→long) alongside the report |
 | **user-onboarding-profile** | After onboarding completes, call `init` to create memory files, then write initial long-term entries |
 

@@ -10,6 +10,9 @@ metadata:
 
 # Weight Tracking
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 Manage body weight records with full CRUD operations. All data lives in a
 single JSON file; display always uses the user's preferred unit.
 
@@ -152,7 +155,7 @@ The server runs in UTC. To record the correct local datetime:
 - **Never comment on weight changes unprompted.** Just log and confirm. Emotional reactions to weight (positive or negative) are handled by the `emotional-support` skill.
 - **Always display in preferred unit**, rounded to 1 decimal place.
 - **Accept any common unit** in user input: kg, lb, lbs, 斤 (catty = 0.5 kg), 公斤. Convert to standard kg or lb for storage.
-- **Fasting tag**: if the user mentions they haven't eaten yet, or it's a morning weigh-in before breakfast, note `fasting: true` in the response context (for daily-notification to use). If they've already eaten, note `fasting: false`.
+- **Fasting tag**: if the user mentions they haven't eaten yet, or it's a morning weigh-in before breakfast, note `fasting: true` in the response context (for notification-composer to use). If they've already eaten, note `fasting: false`.
 
 ## Used By Other Skills
 
@@ -160,7 +163,7 @@ This skill's script is called by other skills for weight data access:
 
 | Skill | Usage |
 |-------|-------|
-| `daily-notification` | `save` when user replies to weight reminder; `load --last 1` to check if already weighed today |
+| `notification-composer` | `save` when user replies to weight reminder; `load --last 1` to check if already weighed today |
 | `weekly-report` | `load --from --to` for weekly weight trend |
 | `emotional-support` | `load --last N` for recent weight context |
 | `habit-builder` | `load` for weight trend analysis |

@@ -1,0 +1,164 @@
+{
+  "skill_name": "restaurant-meal-finder",
+  "evals": [
+    {
+      "id": 1,
+      "name": "first-time-no-location",
+      "prompt": "[SYSTEM: No data/nearby-restaurants.json exists. health-profile.md has no location. locale.json: lang=zh-CN. PLAN.md: 1700 kcal/day.]\nUser: 中午吃什么好？",
+      "expected_output": "Asks for the user's location naturally before searching. Does not guess or assume.",
+      "expectations": [
+        "Asks for the user's usual dining location (neighborhood, office area, landmark)",
+        "Explains briefly why — to search nearby options and save for future use",
+        "Does NOT guess a location or provide generic recommendations yet",
+        "Conversational tone, not a form to fill",
+        "Uses Chinese",
+        "Does NOT mention data files, caching, or technical details"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "location-provided-first-search",
+      "prompt": "[SYSTEM: No data/nearby-restaurants.json exists. PLAN.md: 1700 kcal/day. locale.json: lang=zh-CN.]\nUser: 我在中关村上班，附近吃什么好？",
+      "expected_output": "Searches for nearby restaurants, presents a list, saves to cache, and asks if the user wants to pick one now.",
+      "expectations": [
+        "Performs web search for restaurants near 中关村",
+        "Presents a numbered list of 4-6 real nearby restaurants with type, distance, and price range",
+        "Each restaurant has at least a brief description (type of food)",
+        "Tells the user the list is saved for future use (in natural language, no tech jargon)",
+        "Asks if the user wants to pick one now or wants more details",
+        "Saves results to data/nearby-restaurants.json",
+        "Saves location to health-profile.md",
+        "Uses Chinese"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "cache-exists-quick-recommendation",
+      "prompt": "[SYSTEM: data/nearby-restaurants.json exists with 5 restaurants near 中关村, updated 3 days ago. Today's meals logged: breakfast 450 kcal. PLAN.md: 1700 kcal/day. Meal schedule: lunch at 12:00. Current time: 11:45.]\nUser: 中午吃啥？",
+      "expected_output": "Immediately recommends from cached restaurants without searching. Shows remaining budget.",
+      "expectations": [
+        "Does NOT perform a new web search (cache is fresh)",
+        "Does NOT ask for location (already known)",
+        "Calculates remaining budget (~1250 kcal, lunch allocation ~550-650 kcal)",
+        "Picks 3-4 options from cached restaurants that fit the budget",
+        "Each option includes: restaurant name, specific dish, calories, macros, price",
+        "Includes a 💡 tip for at least one option",
+        "Fast and actionable — no preamble",
+        "Uses Chinese"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "specific-restaurant-in-cache",
+      "prompt": "[SYSTEM: data/nearby-restaurants.json has 沙县小吃 in the list. Today's remaining budget: ~600 kcal for lunch.]\nUser: 今天想去沙县，吃什么比较好？",
+      "expected_output": "Provides 2-3 specific meal combos at 沙县小吃 with calorie/macro breakdowns.",
+      "expectations": [
+        "Recognizes 沙县 refers to 沙县小吃 in the cache",
+        "Provides 2-3 concrete meal combos (not single dishes)",
+        "Each combo has: dish names, total calories, protein/carbs/fat, approximate price",
+        "At least one option is clearly within budget (~450-550 kcal)",
+        "Includes ordering modifications (e.g., 蒸饺 > 煎饺, 少喝汤)",
+        "Does NOT suggest going somewhere else",
+        "Conversational and encouraging"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "specific-restaurant-not-in-cache",
+      "prompt": "[SYSTEM: data/nearby-restaurants.json exists but does NOT include 海底捞. Remaining budget for dinner: ~700 kcal.]\nUser: 朋友约我去海底捞，怎么吃不会超？",
+      "expected_output": "Provides hot pot ordering strategy within calorie budget. Offers to add to the list.",
+      "expectations": [
+        "Does NOT say 'this restaurant is not in your list' or refuse to help",
+        "Provides practical hot pot strategy: what to order, what to avoid",
+        "Specific food recommendations (e.g., 多涮蔬菜豆腐, 少吃丸子, 蘸料选醋+蒜泥)",
+        "Approximate calorie estimate for the recommended approach",
+        "Asks if user wants to add 海底捞 to their saved restaurant list",
+        "No judgment about eating hot pot",
+        "Acknowledges the social context (friends gathering)"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "over-budget-no-shame",
+      "prompt": "[SYSTEM: data/nearby-restaurants.json exists. Today's logged meals: breakfast 500 kcal + lunch 750 kcal + snack 300 kcal = 1550 kcal. PLAN.md target: 1700 kcal/day. Remaining: 150 kcal.]\nUser: 晚上还想吃点东西，有什么推荐的吗？",
+      "expected_output": "Acknowledges limited remaining budget matter-of-factly, suggests light options. No shaming.",
+      "expectations": [
+        "States remaining budget honestly (~150 kcal) without judgment",
+        "Does NOT say 'you've eaten too much' or anything guilt-inducing",
+        "Suggests ultra-light options from cached restaurants (e.g., soup, salad, convenience store snacks)",
+        "Also offers the option to slightly exceed if needed, with a 'tomorrow balance' perspective",
+        "Practical and supportive tone",
+        "Does NOT lecture about overeating"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "delivery-platform-formatting",
+      "prompt": "[SYSTEM: data/nearby-restaurants.json exists with platforms info. Remaining lunch budget: ~600 kcal.]\nUser: 下雨了不想出去，帮我推荐个外卖",
+      "expected_output": "Recommends from cached restaurants that support delivery, formatted for ordering.",
+      "expectations": [
+        "Filters to restaurants available on delivery platforms (美团/饿了么)",
+        "Includes specific dish names the user can search on the platform",
+        "Mentions which platform to order from",
+        "Includes ordering notes (e.g., 备注少油, 不要米饭)",
+        "Calorie and macro estimates included",
+        "Empathizes with the weather briefly"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "menu-photo-analysis",
+      "prompt": "[SYSTEM: data/nearby-restaurants.json exists. Remaining budget: ~650 kcal for lunch.]\nUser: [sends a photo of a restaurant menu with items like 红烧肉套餐 38元, 清炒时蔬 18元, 番茄鸡蛋面 22元, 水煮鱼 48元, 蒸鸡腿饭 28元]\n帮我看看点什么好",
+      "expected_output": "Analyzes menu items and picks the best 2-3 options within budget.",
+      "expectations": [
+        "Analyzes multiple menu items with calorie estimates",
+        "Recommends 2-3 specific items ranked by diet-friendliness",
+        "Clearly explains why each is recommended (or not recommended)",
+        "Includes modification tips for chosen items",
+        "Does NOT recommend all items — makes a clear choice for the user",
+        "Flags high-calorie items (like 红烧肉, 水煮鱼) with reason, not judgment"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "user-picks-meal-pre-log",
+      "prompt": "[SYSTEM: Just recommended 3 options from cached restaurants.]\nUser: 就第一个吧，沙县蒸饺",
+      "expected_output": "Confirms the choice, offers to pre-log.",
+      "expectations": [
+        "Confirms the choice briefly and warmly",
+        "Offers to pre-log the meal (optional, not forced)",
+        "Does NOT re-explain the calories — just a brief confirmation",
+        "Short response — 2-3 sentences max",
+        "If user agrees to log, hands off to diet-tracking-analysis"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "refresh-request",
+      "prompt": "[SYSTEM: data/nearby-restaurants.json exists, location=中关村, updated 45 days ago.]\nUser: 帮我重新搜一下附近有什么新餐厅",
+      "expected_output": "Performs a fresh web search, updates the cache, and presents updated list.",
+      "expectations": [
+        "Performs new web searches for the same location",
+        "Updates data/nearby-restaurants.json with new results",
+        "Preserves restaurants that still exist, adds new ones, removes closed ones",
+        "Presents the updated list to the user",
+        "Notes any changes (new additions, closures) if found",
+        "Does NOT ask for location again"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "traveling-different-location",
+      "prompt": "[SYSTEM: data/nearby-restaurants.json exists, location=中关村. PLAN.md: 1700 kcal/day.]\nUser: 我今天在三里屯这边，午饭吃什么好？",
+      "expected_output": "Searches for restaurants near 三里屯 without overwriting the saved 中关村 data.",
+      "expectations": [
+        "Recognizes 三里屯 is different from saved location 中关村",
+        "Searches for restaurants near 三里屯",
+        "Provides recommendations based on the new location",
+        "Does NOT overwrite the cached 中关村 data",
+        "May ask if the user has moved permanently or is just visiting",
+        "Treats it as a temporary context by default"
+      ]
+    }
+  ]
+}

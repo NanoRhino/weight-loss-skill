@@ -9,6 +9,9 @@ metadata:
 
 # Diet Tracking & Daily Progress
 
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+
+
 ## Role
 
 You are a registered dietitian providing one-on-one diet tracking via chat. Be concise, friendly, judgment-free, and practical.
@@ -51,6 +54,30 @@ All nutrition calculations and data storage **MUST** be done via scripts — nev
 
 Script path: `python3 {baseDir}/scripts/nutrition-calc.py`
 Data directory: `{workspaceDir}/data/meals`
+
+### 0. Detect Meal Type — `detect-meal` (must call when user does NOT explicitly state meal type)
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py detect-meal \
+  --tz-offset <seconds> \
+  --meals <2|3> \
+  [--schedule '{"breakfast":"09:00","lunch":"12:00","dinner":"18:00"}'] \
+  [--log '[...]'] \
+  [--timestamp <ISO-8601 UTC>]
+```
+
+**When to call:** Every time a user logs food WITHOUT explicitly stating which meal it is (e.g. sends a photo with no text, or just says "吃了这个"). If the user says "这是我的午饭" or "早餐", use their statement directly — do NOT call this command.
+
+**Parameters:**
+- `--tz-offset`: from `timezone.json` → `tz_offset` (seconds, e.g. 28800 for UTC+8)
+- `--meals`: 2 or 3 (from `health-profile.md`)
+- `--schedule`: optional, from `health-profile.md > Meal Schedule` (e.g. `{"breakfast":"09:00","lunch":"12:00","dinner":"18:00"}`)
+- `--log`: optional, JSON array of already-logged meals today (from `load` output). Enables snack detection: if the main meal for this window is already logged AND current time is >1.5h past that meal time, returns the corresponding snack type instead.
+- `--timestamp`: optional, the UTC timestamp of the user's message. **Always pass this** from the inbound message metadata to avoid clock drift. If omitted, uses current server UTC time.
+
+**Returns:** `detected_meal`, `local_time`, `local_date`, `method` ("schedule"|"default"|"fallback"), `window_start`, `window_end`
+
+**Use `local_date` from the response** as the `--date` parameter for subsequent `load`, `save`, `check-missing`, and `evaluate` calls — this ensures correct date handling across timezones.
 
 ### 1. Set Target — `target`
 
@@ -137,6 +164,11 @@ Returns: `logged_days`, `daily_totals`, `weekly_avg_cal`, `bmr`, `calorie_floor`
 
 ## Meal Type Assignment
 
+### How to determine meal type
+
+1. **User explicitly states meal type** → use it directly (e.g. "这是午饭", "dinner", "早餐吃了这个")
+2. **User does NOT state meal type** → call `detect-meal` command (see §0 above) to determine it from the message timestamp and meal schedule. **Do NOT guess the time or use stale time info from earlier in the session.**
+
 ### 3-meal mode (default)
 
 `meal_type` must be one of: `breakfast` / `lunch` / `dinner` / `snack_am` / `snack_pm`
@@ -167,9 +199,11 @@ If the user uses traditional names (breakfast, lunch, dinner), the script automa
 
 In 2-meal mode there is no separate dinner checkpoint. `meal_2` (or "dinner" when aliased) is the final checkpoint at 100%.
 
-**User's own statement always takes priority over time of day.**
+**User's own statement always takes priority over `detect-meal`.**
 
-Time-of-day fallback (only if user doesn't specify):
+The `detect-meal` command handles all time-based logic internally:
+- If `--schedule` is provided (from `health-profile.md > Meal Schedule`), it uses midpoint-based windows between meals.
+- If no schedule, it falls back to default time windows:
 
 | Time | 3-meal mode | 2-meal mode |
 |------|-------------|-------------|
@@ -209,12 +243,13 @@ Backfilled meals from missing-meal handling are always "already eaten."
 
 The server runs in UTC. To ensure meals are saved under the correct local date:
 
-1. **Before calling `save` or `load` without an explicit `--date`**, read `timezone.json` to get `tz_offset`
-2. Calculate the user's local date: `UTC now + tz_offset`
-3. Pass `--date YYYY-MM-DD` (the user's local date) to `save` and `load` commands
-4. This ensures that a meal logged at 11 PM local time is saved to the correct day, not the next UTC day
+1. **Call `detect-meal`** with `--tz-offset` from `timezone.json` and `--timestamp` from the message metadata — the response includes `local_date` (the user's local date, correctly computed).
+2. **Use `local_date`** as the `--date` parameter for `save`, `load`, `check-missing`, and `evaluate` commands.
+3. This replaces manual date calculation — `detect-meal` handles all timezone math.
 
-**Example:** User is in `Asia/Shanghai` (UTC+8). At UTC 16:30 (local 00:30 next day), `--date` should be the next day's date.
+**Fallback:** If you don't have `local_date` from `detect-meal`, pass `--tz-offset <seconds>` (from `timezone.json`) to `save` and `load` commands. The script will compute the local date automatically. **Never calculate the date yourself — always let the script do it.**
+
+**Example:** User is in `Asia/Shanghai` (UTC+8). Message arrives at UTC 16:30 (local 00:30 next day). `detect-meal` returns `local_date: "2026-03-18"` (the next day), which you pass as `--date` to all subsequent commands.
 
 ## Workflow
 
@@ -229,15 +264,17 @@ When user says "set my target" or provides weight/calorie goal:
 
 When user describes what they're about to eat (or what they already ate):
 
-1. **Determine meal type** — user's statement takes priority; otherwise use time-of-day fallback
+1. **Determine meal type** — if user explicitly states the meal type, use it directly. Otherwise, **call `detect-meal`** (see §0) passing `--tz-offset`, `--meals`, `--schedule` (from health-profile.md), `--timestamp` (from message metadata), and `--log` (from step 3). Use the returned `detected_meal` as the meal type and `local_date` as the date for all subsequent commands.
 2. **Detect meal timing** — determine if the user is logging before eating (default) or reporting a meal already eaten (see Meal Timing Detection above)
-3. **Call load** — get today's existing records
+3. **Call load** — get today's existing records (use `local_date` from `detect-meal` as `--date`)
 4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
 5. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
 6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g
 7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`)
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
 9. **Reply in format** — meal details + nutrition summary + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
+
+> **⚠️ Important:** When calling `detect-meal`, always pass `--timestamp` from the inbound message metadata (the UTC timestamp of the user's message). Never rely on `session_status` or cached time — the session may have been idle for hours.
 
 ### Missing Meal Handling
 
@@ -255,7 +292,7 @@ If the user later provides details about the missed meal → record it, re-run `
 
 The below-BMR safety check runs **weekly** (not per-meal). This avoids noisy daily alerts while still catching sustained under-eating patterns.
 
-**Trigger:** Run `weekly-low-cal-check` once per week — either on a fixed day (e.g. Monday) via the daily-notification system, or whenever the user asks for a weekly summary.
+**Trigger:** Run `weekly-low-cal-check` once per week — either on a fixed day (e.g. Monday) via the `notification-composer` system, or whenever the user asks for a weekly summary.
 
 **Inputs needed:** `--bmr` from the user's profile (PLAN.md or USER.md). If unavailable, calculate using Mifflin-St Jeor (see `weight-loss-planner/references/formulas.md`).
 
@@ -307,7 +344,6 @@ Things to keep in mind:
 Would you like to switch to [detected_mode_name], or keep your current plan? Either way is totally fine — the best diet mode is the one you can stick with.
 ```
 
-- Adapt language to match the user (Chinese, English, etc.)
 - Keep the tone neutral and supportive — this is a suggestion, not a correction
 - Only show the top 2-3 pros and 1-2 cons from the `pros_cons` output
 - Do not mention this again for at least 7 days after the user declines
@@ -377,11 +413,11 @@ Every food log reply must contain up to three sections:
 **② Nutrition Summary** (cumulative intake evaluation up to this checkpoint — always show, based on `evaluate` output)
 
 ```
-📊 So far today: XXX / YYYY calories [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+📊 So far today: XXX calories [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
 [1-sentence overall comment]
 ```
 
-- Show cumulative `actual` values from `evaluate` against `checkpoint_target` values
+- Show cumulative `actual` values from `evaluate`; do NOT show checkpoint target numbers — only show status indicators to convey the relationship to the target
 - Status indicators: ✅ on track, ⬆️ high, ⬇️ low (mapped from `status` field)
 - The 1-sentence comment summarizes the overall picture concisely — e.g. "Protein is solid, carbs running a bit low — easy to make up at dinner." or "Everything looks balanced so far, keep it up!"
 - When adjustment is needed, the comment can naturally lead into the suggestion below — keep the two sections complementary, not repetitive

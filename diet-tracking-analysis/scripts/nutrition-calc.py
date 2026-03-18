@@ -6,15 +6,21 @@
 Nutrition calculator for diet-tracking-analysis skill.
 
 Commands:
+  detect-meal  — Detect meal type from timestamp, timezone, and meal schedule.
   target       — Compute daily macro targets from weight & calorie goal.
   analyze      — Compute cumulative intake, compare with targets, output status.
   save         — Persist a meal record to today's log file.
   load         — Load today's (or a given date's) meal records.
   evaluate     — Evaluate cumulative intake at a meal checkpoint (range-based).
   check-missing — Check which main meals are missing before the current meal.
+  meal-history  — Analyze meal history for a meal type over N days.
+  save-recommendation — Save meal recommendations for today.
   weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
 
 Usage:
+  python3 nutrition-calc.py detect-meal --tz-offset 28800 --meals 3 \
+      [--schedule '{"breakfast":"09:00","lunch":"12:00","dinner":"18:00"}'] \
+      [--log '[...]'] [--timestamp 2026-03-17T11:14:13Z]
   python3 nutrition-calc.py target  --weight 65 --cal 1500 [--meals 3]
   python3 nutrition-calc.py analyze --weight 65 --cal 1500 --meals 3 \
       --log '[{"name":"breakfast","calories":379,"protein":24,"carbs":45,"fat":12}]'
@@ -24,6 +30,9 @@ Usage:
   python3 nutrition-calc.py evaluate --weight 65 --cal 1500 --meals 3 \
       --current-meal lunch --log '[...]'
   python3 nutrition-calc.py check-missing --meals 3 --current-meal lunch --log '[...]'
+  python3 nutrition-calc.py meal-history --data-dir /path/to/data --days 30 --meal-type lunch
+  python3 nutrition-calc.py save-recommendation --data-dir /path/to/data \
+      --meal-type lunch --items '["鸡胸肉+糙米+西兰花", "牛肉面+茶叶蛋", "沙拉+全麦面包+酸奶"]'
   python3 nutrition-calc.py weekly-low-cal-check --data-dir /path/to/data --bmr 1400
 """
 
@@ -31,7 +40,19 @@ import argparse
 import json
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+
+
+def _local_date(tz_offset: int = None) -> str:
+    """Return local date as YYYY-MM-DD string.
+    If tz_offset (seconds from UTC) is given, compute local date from UTC now.
+    Otherwise fall back to server's date.today().
+    """
+    if tz_offset is not None:
+        utc_now = datetime.now(timezone.utc)
+        local_dt = utc_now + timedelta(seconds=tz_offset)
+        return local_dt.date().isoformat()
+    return date.today().isoformat()
 
 
 # ---------------------------------------------------------------------------
@@ -163,8 +184,8 @@ def _sum_macros(meal_list: list) -> dict:
     return {k: round(v, 1) for k, v in s.items()}
 
 
-def get_log_path(data_dir: str, day: str = None) -> str:
-    day = day or date.today().isoformat()
+def get_log_path(data_dir: str, day: str = None, tz_offset: int = None) -> str:
+    day = day or _local_date(tz_offset)
     return os.path.join(data_dir, f"{day}.json")
 
 
@@ -259,11 +280,11 @@ def analyze(weight: float, daily_cal: int, meals: int, log: list,
     }
 
 
-def save_meal(data_dir: str, meal: dict, day: str = None) -> dict:
+def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None) -> dict:
     """Save a meal to the daily log. Same meal name overwrites (supports corrections)."""
     os.makedirs(data_dir, exist_ok=True)
     meal = _migrate_meal(meal)
-    path = get_log_path(data_dir, day)
+    path = get_log_path(data_dir, day, tz_offset)
 
     existing: list = []
     if os.path.exists(path):
@@ -286,14 +307,15 @@ def save_meal(data_dir: str, meal: dict, day: str = None) -> dict:
     return {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
 
 
-def load_meals(data_dir: str, day: str = None) -> dict:
+def load_meals(data_dir: str, day: str = None, tz_offset: int = None) -> dict:
     """Load all meals for a given day, migrating old format if needed."""
-    path = get_log_path(data_dir, day)
+    path = get_log_path(data_dir, day, tz_offset)
+    resolved_day = day or _local_date(tz_offset)
     if not os.path.exists(path):
-        return {"date": day or date.today().isoformat(), "meals": [], "meals_count": 0}
+        return {"date": resolved_day, "meals": [], "meals_count": 0}
     with open(path, "r", encoding="utf-8") as f:
         meals = _migrate_meals(json.load(f))
-    return {"date": day or date.today().isoformat(), "meals": meals, "meals_count": len(meals)}
+    return {"date": resolved_day, "meals": meals, "meals_count": len(meals)}
 
 
 def evaluate(weight: float, daily_cal: int, meals: int,
@@ -425,8 +447,8 @@ def check_missing(meals: int, current_meal: str, log: list) -> dict:
 
 
 def weekly_low_cal_check(data_dir: str, bmr: float,
-                         ref_date: str = None) -> dict:
-    end = date.fromisoformat(ref_date) if ref_date else date.today()
+                         ref_date: str = None, tz_offset: int = None) -> dict:
+    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
     calorie_floor = max(bmr, 1000)
 
     daily_totals: list[dict] = []
@@ -506,8 +528,8 @@ def _matches_mode(p_pct: float, c_pct: float, f_pct: float,
 
 
 def detect_diet_pattern(data_dir: str, current_mode: str,
-                        ref_date: str = None) -> dict:
-    end = date.fromisoformat(ref_date) if ref_date else date.today()
+                        ref_date: str = None, tz_offset: int = None) -> dict:
+    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
 
     daily_splits: list[dict] = []
     for offset in range(7):
@@ -683,12 +705,411 @@ def _get_pros_cons(current_mode: str, detected_mode: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Meal history & recommendations
+# ---------------------------------------------------------------------------
+
+def _get_recommendations_dir(data_dir: str) -> str:
+    """Return the recommendations directory, sibling to data_dir."""
+    return os.path.join(os.path.dirname(data_dir), "recommendations")
+
+
+def meal_history(data_dir: str, meal_type: str, days: int = 30,
+                 ref_date: str = None, tz_offset: int = None) -> dict:
+    """Analyze meal history for a given meal type over the last N days.
+
+    Returns top foods by frequency, average macros, recent 3 days of actual
+    meals, and recent 3 days of recommendations.
+    """
+    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
+
+    food_counts: dict[str, list[float]] = {}  # name -> list of calorie values
+    macro_sums = {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0}
+    days_with_data = 0
+    recent_3: list[dict] = []
+
+    for offset in range(days):
+        day = (end - timedelta(days=offset)).isoformat()
+        path = get_log_path(data_dir, day)
+        if not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            all_meals = _migrate_meals(json.load(f))
+
+        matched = [m for m in all_meals if m.get("meal_type") == meal_type
+                    or m.get("name") == meal_type]
+        if not matched:
+            continue
+
+        days_with_data += 1
+
+        for m in matched:
+            macro_sums["calories"] += m.get("calories", 0)
+            macro_sums["protein"] += m.get("protein", 0)
+            macro_sums["carbs"] += m.get("carbs", 0)
+            macro_sums["fat"] += m.get("fat", 0)
+
+            for food in m.get("foods", []):
+                fname = food.get("name", "")
+                if not fname:
+                    continue
+                fcal = food.get("calories", 0)
+                food_counts.setdefault(fname, []).append(fcal)
+
+        if len(recent_3) < 3:
+            day_foods = []
+            for m in matched:
+                day_foods.extend(f.get("name", "") for f in m.get("foods", [])
+                                 if f.get("name"))
+            recent_3.append({"date": day, "foods": day_foods})
+
+    # Build top foods
+    top_foods = sorted(food_counts.items(), key=lambda x: len(x[1]),
+                       reverse=True)[:10]
+    top_foods_out = [
+        {"name": name, "count": len(cals),
+         "avg_calories": round(sum(cals) / len(cals), 1)}
+        for name, cals in top_foods
+    ]
+
+    # Average macros
+    avg_macros = {k: round(v / days_with_data, 1) if days_with_data else 0
+                  for k, v in macro_sums.items()}
+
+    # Data level
+    if days_with_data >= 7:
+        data_level = "rich"
+    elif days_with_data >= 1:
+        data_level = "limited"
+    else:
+        data_level = "none"
+
+    # Recent recommendations
+    rec_dir = _get_recommendations_dir(data_dir)
+    recent_recs: list[dict] = []
+    for offset in range(days):
+        if len(recent_recs) >= 3:
+            break
+        day = (end - timedelta(days=offset)).isoformat()
+        rec_path = os.path.join(rec_dir, f"{day}.json")
+        if not os.path.exists(rec_path):
+            continue
+        with open(rec_path, "r", encoding="utf-8") as f:
+            rec_data = json.load(f)
+        if meal_type in rec_data:
+            entry = rec_data[meal_type]
+            recent_recs.append({
+                "date": day,
+                "items": entry.get("items", []),
+                "picked": entry.get("picked"),
+            })
+
+    return {
+        "meal_type": meal_type,
+        "data_level": data_level,
+        "days_with_data": days_with_data,
+        "top_foods": top_foods_out,
+        "avg_macros": avg_macros,
+        "recent_3_days": recent_3,
+        "recent_recommendations": recent_recs,
+    }
+
+
+def save_recommendation(data_dir: str, meal_type: str, items: list,
+                         day: str = None, tz_offset: int = None) -> dict:
+    """Save meal recommendations for a given meal type today."""
+    rec_dir = _get_recommendations_dir(data_dir)
+    os.makedirs(rec_dir, exist_ok=True)
+    day = day or _local_date(tz_offset)
+    path = os.path.join(rec_dir, f"{day}.json")
+
+    existing: dict = {}
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            existing = json.load(f)
+
+    existing[meal_type] = {
+        "items": items,
+        "picked": None,
+    }
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+
+    return {"saved": True, "file": path, "meal_type": meal_type,
+            "items": items}
+
+
+# ---------------------------------------------------------------------------
+# Meal type detection from timestamp + schedule
+# ---------------------------------------------------------------------------
+
+# Default time windows (3-meal mode) — used when no custom schedule provided.
+# Format: (start_hour, end_hour, meal_name)
+# Hours are in local time. Windows that cross midnight use end > 24.
+DEFAULT_WINDOWS_3 = [
+    (5,  10, "breakfast"),
+    (10, 11, "snack_am"),
+    (11, 14, "lunch"),
+    (14, 17, "snack_pm"),
+    (17, 21, "dinner"),
+    (21, 29, "snack_pm"),   # 21:00 – 05:00 next day (29 = 24+5)
+]
+
+DEFAULT_WINDOWS_2 = [
+    (5,  10, "meal_1"),
+    (10, 11, "snack_1"),
+    (11, 14, "meal_1"),
+    (14, 17, "snack_2"),
+    (17, 21, "meal_2"),
+    (21, 29, "snack_2"),
+]
+
+
+def _parse_hhmm(s: str) -> float:
+    """Parse 'HH:MM' to fractional hours (e.g. '09:30' → 9.5)."""
+    parts = s.strip().split(":")
+    return int(parts[0]) + int(parts[1]) / 60.0
+
+
+def _build_schedule_windows(schedule: dict, meals: int) -> list:
+    """Build time windows from a custom meal schedule.
+
+    Strategy: each meal owns the time from the midpoint with the previous meal
+    to the midpoint with the next meal. Snack detection uses a post-meal offset.
+
+    Args:
+        schedule: {"breakfast": "09:00", "lunch": "12:00", "dinner": "18:00"}
+                  or {"meal_1": "12:00", "meal_2": "18:00"} for 2-meal mode.
+        meals: 2 or 3.
+
+    Returns: list of (start_hour, end_hour, meal_name) tuples.
+    """
+    if meals == 3:
+        keys = ["breakfast", "lunch", "dinner"]
+    else:
+        keys = ["meal_1", "meal_2"]
+
+    # Parse schedule times
+    times = []
+    for k in keys:
+        if k not in schedule:
+            return None  # Incomplete schedule, fall back to default
+        times.append((k, _parse_hhmm(schedule[k])))
+
+    # Sort by time (should already be in order, but be safe)
+    times.sort(key=lambda x: x[1])
+
+    windows = []
+    n = len(times)
+    for i in range(n):
+        name, t = times[i]
+        # Previous meal time (wrap around midnight)
+        _, t_prev = times[(i - 1) % n]
+        _, t_next = times[(i + 1) % n]
+
+        # Midpoint with previous meal
+        if i == 0:
+            # First meal: midpoint with last meal of previous day
+            gap_prev = (t - t_prev) % 24
+            start = (t - gap_prev / 2) % 24
+        else:
+            gap_prev = t - t_prev
+            start = t_prev + gap_prev / 2
+
+        # Midpoint with next meal
+        if i == n - 1:
+            # Last meal: midpoint with first meal of next day
+            gap_next = (t_next - t) % 24
+            end = t + gap_next / 2
+            if end < start:
+                end += 24  # Crosses midnight
+        else:
+            gap_next = t_next - t
+            end = t + gap_next / 2
+
+        windows.append((start, end, name))
+
+    return windows
+
+
+# Snack offset: if current time is more than this many hours AFTER the main
+# meal time AND that meal is already logged, classify as snack instead.
+_SNACK_OFFSET_HOURS = 1.5
+
+# Map main meal → snack name (3-meal mode)
+_SNACK_MAP_3 = {
+    "breakfast": "snack_am",
+    "lunch": "snack_pm",
+    # dinner has no snack after it in standard mode
+}
+
+_SNACK_MAP_2 = {
+    "meal_1": "snack_1",
+    # meal_2 has no snack after it
+}
+
+
+# ---------------------------------------------------------------------------
+# Local date utility
+# ---------------------------------------------------------------------------
+
+def local_date_info(tz_offset: int) -> dict:
+    """Return local date info: today, weekday, and current week's Mon-Sun range.
+
+    Useful for any skill that needs the user's local date without relying
+    on the LLM to compute it.
+    """
+    utc_now = datetime.now(timezone.utc)
+    local_dt = utc_now + timedelta(seconds=tz_offset)
+    today = local_dt.date()
+    weekday = today.isoweekday()  # Mon=1, Sun=7
+    monday = today - timedelta(days=weekday - 1)
+    sunday = monday + timedelta(days=6)
+    prev_monday = monday - timedelta(days=7)
+    prev_sunday = monday - timedelta(days=1)
+
+    return {
+        "today": today.isoformat(),
+        "weekday": today.strftime("%A"),
+        "weekday_num": weekday,
+        "local_time": local_dt.strftime("%H:%M:%S"),
+        "current_week": {
+            "monday": monday.isoformat(),
+            "sunday": sunday.isoformat(),
+        },
+        "previous_week": {
+            "monday": prev_monday.isoformat(),
+            "sunday": prev_sunday.isoformat(),
+        },
+    }
+
+
+def detect_meal(tz_offset: int, meals: int,
+                schedule: dict = None,
+                log: list = None,
+                timestamp: str = None) -> dict:
+    """Detect which meal type the current time corresponds to.
+
+    Args:
+        tz_offset: Timezone offset from UTC in seconds (e.g. 28800 for UTC+8).
+        meals: 2 or 3.
+        schedule: Optional custom meal schedule dict.
+        log: Optional list of already-logged meals today (for snack detection).
+        timestamp: Optional ISO-8601 UTC timestamp. Defaults to now.
+
+    Returns: dict with detected_meal, local_time, local_date, method, etc.
+    """
+    # 1. Determine local time
+    if timestamp:
+        # Parse ISO timestamp — support Python 3.6+ (no fromisoformat with tz)
+        ts_clean = timestamp.replace("Z", "").rstrip("+00:00").split("+")[0].split("-")
+        # Try common ISO formats
+        ts_bare = timestamp.replace("Z", "").split("+")[0]
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M"):
+            try:
+                utc_dt = datetime.strptime(ts_bare, fmt).replace(tzinfo=timezone.utc)
+                break
+            except ValueError:
+                continue
+        else:
+            raise ValueError(f"Cannot parse timestamp: {timestamp}")
+    else:
+        utc_dt = datetime.now(timezone.utc)
+
+    local_dt = utc_dt + timedelta(seconds=tz_offset)
+    local_hour = local_dt.hour + local_dt.minute / 60.0
+    local_time_str = local_dt.strftime("%H:%M")
+    local_date_str = local_dt.strftime("%Y-%m-%d")
+
+    # 2. Build or select windows
+    method = "default"
+    windows = None
+    if schedule:
+        windows = _build_schedule_windows(schedule, meals)
+        if windows:
+            method = "schedule"
+
+    if windows is None:
+        windows = DEFAULT_WINDOWS_3 if meals == 3 else DEFAULT_WINDOWS_2
+
+    # 3. Find which window the current time falls into
+    detected = None
+    win_start_str = None
+    win_end_str = None
+
+    # Normalize local_hour for windows that cross midnight
+    for start, end, name in windows:
+        h = local_hour
+        # If window crosses midnight (end > 24), check both raw and +24
+        if end > 24:
+            if h < start:
+                h += 24
+            if start <= h < end:
+                detected = name
+                win_start_str = f"{int(start % 24):02d}:{int((start % 1) * 60):02d}"
+                win_end_str = f"{int(end % 24):02d}:{int((end % 1) * 60):02d}"
+                break
+        else:
+            if start <= h < end:
+                detected = name
+                win_start_str = f"{int(start):02d}:{int((start % 1) * 60):02d}"
+                win_end_str = f"{int(end):02d}:{int((end % 1) * 60):02d}"
+                break
+
+    # Fallback if no window matched (shouldn't happen with proper windows)
+    if detected is None:
+        detected = "snack_pm" if meals == 3 else "snack_2"
+        method = "fallback"
+
+    # 4. Snack upgrade: if the main meal is already logged and we're past
+    #    the meal time by _SNACK_OFFSET_HOURS, switch to snack.
+    snack_map = _SNACK_MAP_3 if meals == 3 else _SNACK_MAP_2
+    if detected in snack_map and log:
+        logged_names = set()
+        for m in log:
+            n = m.get("name", "")
+            logged_names.add(n)
+            mt = m.get("meal_type", "")
+            if mt:
+                logged_names.add(mt)
+
+        if detected in logged_names:
+            # Main meal already logged → this is a snack
+            meal_time_hour = None
+            if schedule and detected in schedule:
+                meal_time_hour = _parse_hhmm(schedule[detected])
+            if meal_time_hour is not None and local_hour > meal_time_hour + _SNACK_OFFSET_HOURS:
+                detected = snack_map[detected]
+
+    return {
+        "detected_meal": detected,
+        "local_time": local_time_str,
+        "local_date": local_date_str,
+        "method": method,
+        "window_start": win_start_str,
+        "window_end": win_end_str,
+    }
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(description="Nutrition calculator")
     sub = parser.add_subparsers(dest="cmd")
+
+    dm = sub.add_parser("detect-meal", help="Detect meal type from timestamp and schedule")
+    dm.add_argument("--tz-offset", type=int, required=True,
+                    help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8)")
+    dm.add_argument("--meals", type=int, default=3, choices=[2, 3],
+                    help="Meals per day (2 or 3)")
+    dm.add_argument("--schedule", type=str, default=None,
+                    help='JSON object with meal times, e.g. \'{"breakfast":"09:00","lunch":"12:00","dinner":"18:00"}\'')
+    dm.add_argument("--log", type=str, default=None,
+                    help='JSON array of already-logged meals today (for snack detection)')
+    dm.add_argument("--timestamp", type=str, default=None,
+                    help="ISO-8601 UTC timestamp of the message (default: current UTC time)")
 
     t = sub.add_parser("target", help="Compute daily macro targets")
     t.add_argument("--weight", type=float, required=True, help="Body weight in kg")
@@ -711,10 +1132,16 @@ def main():
     s.add_argument("--data-dir", type=str, required=True, help="Directory to store daily JSON logs")
     s.add_argument("--meal", type=str, required=True, help="JSON object for the meal")
     s.add_argument("--date", type=str, default=None, help="Date override (YYYY-MM-DD)")
+    s.add_argument("--tz-offset", type=int, default=None,
+                   help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8). "
+                        "Used to compute local date when --date is omitted.")
 
     l = sub.add_parser("load", help="Load today's meal records")
     l.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
     l.add_argument("--date", type=str, default=None, help="Date to load (YYYY-MM-DD), default today")
+    l.add_argument("--tz-offset", type=int, default=None,
+                   help="Timezone offset from UTC in seconds. "
+                        "Used to compute local date when --date is omitted.")
 
     e = sub.add_parser("evaluate", help="Evaluate cumulative intake at a meal checkpoint")
     e.add_argument("--weight", type=float, required=True)
@@ -735,6 +1162,32 @@ def main():
     cm.add_argument("--log", type=str, required=True,
                    help="JSON array of all logged meals today")
 
+    mh = sub.add_parser("meal-history",
+                         help="Analyze meal history for a meal type over N days")
+    mh.add_argument("--data-dir", type=str, required=True,
+                    help="Directory with daily JSON logs")
+    mh.add_argument("--meal-type", type=str, required=True,
+                    help="Meal type to analyze (e.g. breakfast, lunch, dinner)")
+    mh.add_argument("--days", type=int, default=30,
+                    help="Number of days to look back (default 30)")
+    mh.add_argument("--date", type=str, default=None,
+                    help="End date (YYYY-MM-DD), default today")
+    mh.add_argument("--tz-offset", type=int, default=None,
+                    help="Timezone offset from UTC in seconds")
+
+    sr = sub.add_parser("save-recommendation",
+                         help="Save meal recommendations for today")
+    sr.add_argument("--data-dir", type=str, required=True,
+                    help="Directory with daily JSON logs (recommendations stored as sibling)")
+    sr.add_argument("--meal-type", type=str, required=True,
+                    help="Meal type (e.g. breakfast, lunch, dinner)")
+    sr.add_argument("--items", type=str, required=True,
+                    help="JSON array of recommendation strings")
+    sr.add_argument("--date", type=str, default=None,
+                    help="Date override (YYYY-MM-DD)")
+    sr.add_argument("--tz-offset", type=int, default=None,
+                    help="Timezone offset from UTC in seconds")
+
     wlc = sub.add_parser("weekly-low-cal-check",
                           help="Check if weekly average calorie intake is below BMR")
     wlc.add_argument("--data-dir", type=str, required=True,
@@ -743,6 +1196,8 @@ def main():
                      help="User's BMR in kcal/day")
     wlc.add_argument("--date", type=str, default=None,
                      help="End date for the 7-day window (YYYY-MM-DD), default today")
+    wlc.add_argument("--tz-offset", type=int, default=None,
+                     help="Timezone offset from UTC in seconds")
 
     ddp = sub.add_parser("detect-diet-pattern",
                           help="Detect if eating pattern differs from selected diet mode")
@@ -753,10 +1208,33 @@ def main():
                      help="User's currently selected diet mode")
     ddp.add_argument("--date", type=str, default=None,
                      help="End date for the 3-day window (YYYY-MM-DD), default today")
+    ddp.add_argument("--tz-offset", type=int, default=None,
+                     help="Timezone offset from UTC in seconds")
+
+    ld = sub.add_parser("local-date",
+                         help="Get the user's local date, weekday, and week ranges")
+    ld.add_argument("--tz-offset", type=int, required=True,
+                    help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8)")
 
     args = parser.parse_args()
 
-    if args.cmd == "target":
+    if args.cmd == "detect-meal":
+        sched = None
+        if args.schedule:
+            try:
+                sched = json.loads(args.schedule)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --schedule JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        log = None
+        if args.log:
+            try:
+                log = json.loads(args.log)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = detect_meal(args.tz_offset, args.meals, sched, log, args.timestamp)
+    elif args.cmd == "target":
         result = calc_targets(args.weight, args.cal, args.meals, args.mode)
     elif args.cmd == "analyze":
         try:
@@ -771,9 +1249,9 @@ def main():
         except json.JSONDecodeError as e:
             print(f"Error: invalid --meal JSON: {e}", file=sys.stderr)
             sys.exit(1)
-        result = save_meal(args.data_dir, meal, args.date)
+        result = save_meal(args.data_dir, meal, args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "load":
-        result = load_meals(args.data_dir, args.date)
+        result = load_meals(args.data_dir, args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "evaluate":
         try:
             log = json.loads(args.log)
@@ -796,10 +1274,25 @@ def main():
             print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
             sys.exit(1)
         result = check_missing(args.meals, args.current_meal, log)
+    elif args.cmd == "meal-history":
+        result = meal_history(args.data_dir, args.meal_type, args.days,
+                              args.date, getattr(args, 'tz_offset', None))
+    elif args.cmd == "save-recommendation":
+        try:
+            items = json.loads(args.items)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --items JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = save_recommendation(args.data_dir, args.meal_type, items,
+                                     args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "weekly-low-cal-check":
-        result = weekly_low_cal_check(args.data_dir, args.bmr, args.date)
+        result = weekly_low_cal_check(args.data_dir, args.bmr, args.date,
+                                      getattr(args, 'tz_offset', None))
     elif args.cmd == "detect-diet-pattern":
-        result = detect_diet_pattern(args.data_dir, args.current_mode, args.date)
+        result = detect_diet_pattern(args.data_dir, args.current_mode, args.date,
+                                     getattr(args, 'tz_offset', None))
+    elif args.cmd == "local-date":
+        result = local_date_info(args.tz_offset)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

@@ -1,0 +1,32 @@
+{
+  "skill_name": "notification-manager",
+  "evals": [
+    {
+      "id": 1,
+      "name": "user-changes-reminder-time",
+      "prompt": "[SYSTEM: Lunch reminder 11:45]\nUser: I actually usually eat lunch around 1 PM, can you change the reminder to 12:45?",
+      "expected_output": "Confirms change, transitions back to conversation.",
+      "expectations": [
+        "Confirms the time change",
+        "Accepts naturally with no friction",
+        "Transitions back to conversation",
+        "Does NOT explain app settings",
+        "Updates workspace"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "user-stops-breakfast-reminders",
+      "prompt": "[SYSTEM: Breakfast reminder 6:45]\nUser: No need to remind me about breakfast, I usually skip it",
+      "expected_output": "Stop reminders without judgment.",
+      "expectations": [
+        "Confirms breakfast reminders stopped",
+        "Does NOT lecture about skipping breakfast",
+        "Does NOT ask why",
+        "Leaves door open to resume",
+        "Brief",
+        "No judgment"
+      ]
+    }
+  ]
+}
