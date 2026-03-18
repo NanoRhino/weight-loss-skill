@@ -41,9 +41,8 @@ These are the only fields you MUST collect before moving on. Each round focuses 
 5. Sex
 6. Target weight
 7. Core motivation (why they want to lose weight)
-8. Work type (sedentary / mostly_sedentary / mixed / active)
+8. Activity level (4-option pick — see Round 4)
 9. Exercise habits & preferences
-10. Daily movement pattern (commute, walking, steps — for activity level estimation)
 
 > **Note:** Meal timing, taste preferences, and food restrictions are NOT collected during onboarding. These are asked later — after the user has seen and accepted their weight loss plan — to produce a personalized diet template.
 
@@ -104,17 +103,30 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Single-ask rule:** Every question is asked at most once. If the user ignores a question or changes the subject, do not repeat it — use `null` or a sensible default for that field and continue to the next round. See `SKILL-ROUTING.md > Single-Ask Rule` for the full policy.
 
-**Round 4 — Work type & exercise habits (required):**
+**Round 4 — Activity level & exercise habits (required):**
 
-Ask about their daily activity patterns and exercise habits. These are essential for calculating TDEE and building an appropriate plan. Do NOT ask a simple binary question (e.g., "sitting or active?") — this creates large gaps in the activity coefficient. Instead, ask questions that reveal the user's **typical day in concrete terms** so you can accurately estimate their activity level later.
+These are essential for calculating TDEE. Present **four concrete options** so the user can quickly pick the one that matches — do NOT ask open-ended questions or a simple binary ("sitting or active?").
 
-Ask **two things** in a natural way:
-1. **Daily movement pattern** — How they commute, how much they sit/stand/walk during the day, and roughly how many steps or how much walking they do.
-2. **Exercise habits** — Whether they exercise, how many days per week, and what type.
+> Example: "Got it! Next, which of these best describes your daily activity?
+> A. 几乎不动 — 居家办公/很少出门，没有运动习惯
+> B. 日常久坐为主 — 正常上下班通勤，偶尔散步或轻度运动
+> C. 比较活跃 — 每周运动 4 次以上，或者工作本身需要经常走动
+> D. 高强度 — 体力劳动 + 每天运动，或专业运动员
+>
+> 选个最接近的字母就行！"
 
-> Example: "Got it! Next — can you describe a typical day for me? For instance, do you drive or walk to work? Are you mostly sitting during the day, or do you move around quite a bit? And do you exercise currently — if so, how many days a week and what kind?"
+**Mapping to activity levels** (internal — do not expose to user):
 
-The goal is to collect enough detail to map the user to one of the five activity levels (sedentary → extremely active) defined in `weight-loss-planner/references/formulas.md`. A simple "sitting vs. active" binary is NOT sufficient — the difference between sedentary (×1.2) and lightly active (×1.375) alone is ~200 kcal/day for an average adult.
+| Option | Activity Level | Multiplier |
+|--------|---------------|------------|
+| A | sedentary | ×1.2 |
+| B | lightly_active | ×1.375 |
+| C | moderately_active | ×1.55 |
+| D | very_active | ×1.725 |
+
+**Key design intent:** Most office workers will naturally pick B rather than A, because A's description ("几乎不动/居家办公/很少出门") clearly doesn't match their life — they commute, walk around, run errands. This prevents the common mis-classification where users say "久坐" but are actually lightly active (×1.375 not ×1.2), which causes a ~200 kcal/day error.
+
+After the user picks an option, ask a brief follow-up about exercise habits if not already covered: "Do you exercise at all currently? If so, what do you do and how often?" This helps refine the level and fills the Exercise Habits field.
 
 ### Step 2 — Confirm & Output
 
@@ -178,10 +190,9 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 - **Unit Preference:** [kg | lb]
 
 ## Activity & Lifestyle
-- **Work Type:** [sedentary | mostly_sedentary | mixed | active | —]
-- **Activity Level:** —
+- **Work Type:** [sedentary | active | —]
+- **Activity Level:** [sedentary | lightly_active | moderately_active | very_active | —]
 - **Exercise Habits:** [string | —]
-- **Daily Movement Notes:** [string | —]
 
 ## Fitness
 - **Fitness Level:** —
