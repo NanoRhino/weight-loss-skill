@@ -289,45 +289,194 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 ---
 
+## Phase Detection
+
+Determine the user's journey phase before composing the Part 1 message.
+Phase affects structure, tone, and what gets shown.
+
+**Count past reports:** `report_count` = number of entries in `logs.weekly_report.*`
+(not counting the one being generated now).
+
+**Calculate progress percentage:**
+```
+progress_pct = (start_weight − current_weight) / (start_weight − target_weight) × 100
+```
+`start_weight` = weight at first report (or onboarding weight from `USER.md`).
+`current_weight` = most recent weight reading available.
+
+| Phase | Condition |
+|-------|-----------|
+| 初始 | `report_count < 4` |
+| 中段 | `report_count ≥ 4` AND `progress_pct < 80%` |
+| 快完成 | `report_count ≥ 4` AND `progress_pct ≥ 80%` |
+
+**Progress bar** (中段 and 快完成 only):
+- 12 characters total: `▓` × `round(progress_pct / 100 × 12)`, remainder `░`
+- Example at 68%: `▓▓▓▓▓▓▓▓░░░░`
+
+---
+
+## next_week_focus Tracking
+
+### Writing
+After composing the 🎯 section, write the focus action to
+`logs.weekly_report.{start_date}` as `next_week_focus` (plain text string).
+
+### Reading (at report generation start)
+Before composing this week's report, read `logs.weekly_report.{previous_start_date}`
+and check `next_week_focus`.
+
+Determine if the user acted on it by inspecting relevant data for the current week
+(e.g., if the focus was protein, check this week's protein average against last week's).
+
+| Outcome | Action |
+|---------|--------|
+| Acted on it | Add to ✨ 本周亮点: `"上周说要{focus_summary}——做到了。"` |
+| Did not act on it | Carry it forward as the first bullet in 🎯，no guilt language |
+| Unclear (insufficient data) | Skip — do not mention either way |
+
+---
+
 ## Output
 
 ### Delivery (two parts)
 
-The weekly report is delivered in two parts:
+#### Part 1: WeChat Message
 
-#### Part 1: Natural Language Summary (in-chat message)
+Delivered as plain text in chat. No Markdown. Emoji serve as visual anchors.
+Scannable in under 10 seconds.
 
-Send a concise 3–5 sentence summary in the chat as plain text. This summary
-should give the user a quick snapshot without needing to open the full report.
+---
 
-**Structure:**
-1. Greeting + date range
-2. Key stats (days logged, average calories, weight change)
-3. One highlight (biggest win of the week)
-4. One suggestion (most impactful thing to try next week)
-5. Pointer to the full HTML report
+**Inline context rules for the stats line:**
 
-**Example (Chinese):**
+Calorie context (append in parentheses after the number):
+- Within target range → `（达标）`
+- Above target max → `（↑{diff} 超目标）`
+- Below target min → `（↓{diff} 低于目标）`
+- No PLAN.md → omit parenthetical
+
+Weight context (append after the number):
+- Change matches expected rate ±20% → `（与预期一致）`
+- Slower than expected → `（略慢于预期）`
+- Faster than expected AND 快完成 phase → `（偏快，注意别吃太少）`
+- Faster than expected otherwise → `（快于预期）`
+- Only 1 reading this week → show change vs last week's reading, no context label
+- 0 readings → replace ⚖️ line with `⚖️ 本周未称重`
+
+Expected rate comes from `PLAN.md > Weight Loss Rate`.
+
+---
+
+**Phase: 初始（report_count < 4）**
+
 ```
-小明，这是你 2月10日–16日 的周报摘要：这周记录了5/7天，平均摄入
-1,766 kcal，体重下降了 0.4 kg。亮点是连续5天坚持记录饮食，蛋白质
-摄入可以再提高一些——试试早餐加个鸡蛋。完整报告已生成，请查看附件 👇
+📊 第{N}周小结
+
+📅 记录 {X}/7 天   🔥 {cal_avg} kcal{calorie_context}   ⚖️ {weight_change}{weight_context}
+
+{one_sentence_summary}
+
+✨ 本周亮点
+· {achievement_1}
+· {achievement_2}
+
+🎯 下周一件事
+{focus_action}
+
+完整数据 👇
 ```
 
-**Example (English):**
+- No progress bar — too early to show a meaningful arc
+- `one_sentence_summary`: freely written, focuses on "getting started" and what
+  the user overcame this week. Not a data restatement.
+- Achievements: celebrate showing up, first completions, small resistances
+- Max 2 achievement bullets
+
+---
+
+**Phase: 中段（report_count ≥ 4，progress_pct < 80%）**
+
 ```
-Hi Ming, here's your week in review (Feb 10–16): You logged 5/7 days,
-averaged 1,766 kcal/day, and dropped 0.4 kg. Highlight: 5-day logging
-streak! One thing to try: add an egg to breakfast to boost protein.
-Full report attached below 👇
+📊 第{N}周 · {weekly_headline}
+
+{progress_bar}  已走 {progress_pct}%
+{start_weight} → {current_weight} kg → 目标 {target_weight} kg
+
+📅 记录 {X}/7 天   🔥 {cal_avg} kcal{calorie_context}   ⚖️ {weight_change}{weight_context}
+
+{one_sentence_summary}
+
+✨ 本周亮点
+· {achievement_1}
+· {achievement_2}
+
+🎯 下周一件事
+{focus_action}
+
+完整数据 👇
 ```
+
+- `weekly_headline`: freely written one phrase summarizing the week's character
+  (e.g. "低谷期也没停下来" / "节奏回来了" / "这周数字说明不了你").
+  Not picked from a fixed list — generate based on actual data and tone.
+- `one_sentence_summary`: pattern-level observation, not a data restatement.
+  Focus on what this week reveals about the user's trajectory.
+- Max 2 achievement bullets; if `next_week_focus` was acted on, it counts as one
+
+---
+
+**Phase: 快完成（report_count ≥ 4，progress_pct ≥ 80%）**
+
+```
+📊 第{N}周 · {weekly_headline} 🏁
+
+{progress_bar}  已走 {progress_pct}%
+{start_weight} → {current_weight} kg → 目标 {target_weight} kg  只差 {remaining} kg
+
+📅 记录 {X}/7 天   🔥 {cal_avg} kcal{calorie_context}   ⚖️ {weight_change}{weight_context}
+
+{one_sentence_summary}
+
+✨ 本周亮点
+· {achievement_1}
+· {achievement_2}
+
+🎯 下周一件事
+{focus_action}
+
+完整数据 👇
+```
+
+- `weekly_headline`: freely written, can reference the finish line or the journey
+- `remaining` = `current_weight − target_weight` (display in user's unit)
+- `one_sentence_summary`: connect this week to the full journey arc —
+  acknowledge how far they've come, not just this week's numbers
+- Achievements: at least one should reference the longer journey
+  (e.g. "从{start_weight}走到今天" / "这几个月积累的结果")
+- 🎯 **still gives a concrete action** — typically protein/muscle preservation
+  focus, or preparing for maintenance transition. Do not replace with
+  "keep it up" — always give something specific and actionable.
+- Estimated weeks remaining: append after `{focus_action}` if computable:
+  `按这个节奏，大约还有 {estimated_weeks} 周。`
+
+---
+
+**ED / avoid_weight_focus flag:**
+If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
+- Omit the ⚖️ line entirely
+- Omit the progress bar and weight fields
+- 本周亮点 focuses on consistency, variety, energy — never weight or restriction
+
+---
 
 #### Part 2: HTML Report (file attachment)
 
 Generate a self-contained HTML file using the template at
-`templates/weekly-report.html`. Write the file to `data/reports/weekly-report-{start_date}.html`
-and attach it in the response. The HTML report contains all 6 sections with
-full detail, charts, and styling.
+`templates/weekly-report.html`. Write the file to
+`data/reports/weekly-report-{start_date}.html` and attach it in the response.
+The HTML report contains all 6 original sections with full detail, charts,
+and styling — unchanged from the template.
 
 **HTML generation rules:**
 - Replace all `{{PLACEHOLDER}}` values with actual data
@@ -341,7 +490,7 @@ full detail, charts, and styling.
 
 After displaying the report to the user, write a structured JSON summary to
 `logs.weekly_report.{start_date}` for cross-session reference and trend
-analysis. Schema in `references/data-schemas.md`.
+analysis. Schema in `references/data-schemas.md`. Includes `next_week_focus`.
 
 ---
 
@@ -359,6 +508,6 @@ is **Priority Tier P4 (Reporting)**. Key scenarios:
 ## Performance
 
 - Report generation: single message, no back-and-forth
-- In-chat summary: 3–5 sentences, scannable in under 10 seconds
-- HTML report: aim for 40–60 lines of visible content
-- Commentary: 1–2 sentences per section, max
+- Part 1 WeChat message: scannable in under 10 seconds
+- HTML report: aim for 40–60 lines of visible content; unchanged template structure
+- Commentary per section: 1–2 sentences max
