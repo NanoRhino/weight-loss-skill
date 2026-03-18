@@ -108,9 +108,12 @@ HTML template.
 
 **Data logic:**
 - For each day (Mon–Sun), call `nutrition-calc.py load --date YYYY-MM-DD` to check:
-  - If at least 1 meal has `status: "logged"` → ✅
-  - If all meals are `"skipped"` or `"no_reply"` or no log exists → ❌
+  - Count meals with `status: "logged"` → daily check-in count (e.g. `3`)
+  - Expected meals per day = `Meal Schedule > Meals per Day` from `health-profile.md`
+  - If count ≥ 1 → ✅ ; if count = 0 → ❌
+  - Display per-day count as `{logged}/{expected}` (e.g. `3/3`, `2/3`, `0/3`)
 - Count total days with ✅ → `{X}/7 days logged`
+- Weekly total check-ins = sum of daily logged meal counts across the week
 
 **Commentary rules:**
 - 7/7 → `"Perfect week! 🎉"` / `"满勤！🎉"`
@@ -349,7 +352,10 @@ full detail, charts, and styling.
 
 After displaying the report to the user, write a structured JSON summary to
 `logs.weekly_report.{start_date}` for cross-session reference and trend
-analysis. Schema in `references/data-schemas.md`.
+analysis. Schema in `references/data-schemas.md`. Include
+`logging.daily_checkins` — a map of `YYYY-MM-DD → {logged: N, expected: N}`
+— so future reports and the `diet-tracking-analysis` skill can surface
+per-day meal completion trends.
 
 ---
 
