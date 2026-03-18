@@ -41,8 +41,9 @@ These are the only fields you MUST collect before moving on. Each round focuses 
 5. Sex
 6. Target weight
 7. Core motivation (why they want to lose weight)
-8. Work type (sedentary / active)
+8. Work type (sedentary / mostly_sedentary / mixed / active)
 9. Exercise habits & preferences
+10. Daily movement pattern (commute, walking, steps — for activity level estimation)
 
 > **Note:** Meal timing, taste preferences, and food restrictions are NOT collected during onboarding. These are asked later — after the user has seen and accepted their weight loss plan — to produce a personalized diet template.
 
@@ -105,9 +106,15 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Round 4 — Work type & exercise habits (required):**
 
-Ask about their work type and exercise habits together. These are essential for calculating TDEE and building an appropriate plan.
+Ask about their daily activity patterns and exercise habits. These are essential for calculating TDEE and building an appropriate plan. Do NOT ask a simple binary question (e.g., "sitting or active?") — this creates large gaps in the activity coefficient. Instead, ask questions that reveal the user's **typical day in concrete terms** so you can accurately estimate their activity level later.
 
-> Example: "Got it! Next — is your job mostly sitting or physically active? And do you exercise at all currently? If so, what do you do?"
+Ask **two things** in a natural way:
+1. **Daily movement pattern** — How they commute, how much they sit/stand/walk during the day, and roughly how many steps or how much walking they do.
+2. **Exercise habits** — Whether they exercise, how many days per week, and what type.
+
+> Example: "Got it! Next — can you describe a typical day for me? For instance, do you drive or walk to work? Are you mostly sitting during the day, or do you move around quite a bit? And do you exercise currently — if so, how many days a week and what kind?"
+
+The goal is to collect enough detail to map the user to one of the five activity levels (sedentary → extremely active) defined in `weight-loss-planner/references/formulas.md`. A simple "sitting vs. active" binary is NOT sufficient — the difference between sedentary (×1.2) and lightly active (×1.375) alone is ~200 kcal/day for an average adult.
 
 ### Step 2 — Confirm & Output
 
@@ -171,9 +178,10 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 - **Unit Preference:** [kg | lb]
 
 ## Activity & Lifestyle
-- **Work Type:** [sedentary | active | —]
+- **Work Type:** [sedentary | mostly_sedentary | mixed | active | —]
 - **Activity Level:** —
 - **Exercise Habits:** [string | —]
+- **Daily Movement Notes:** [string | —]
 
 ## Fitness
 - **Fitness Level:** —
