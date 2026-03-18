@@ -89,11 +89,20 @@ After hearing their motivation, transition to collecting numbers. Explain that h
 
 **Important:** Never comment on the user's weight being "high" or "overweight". Just acknowledge the numbers neutrally and move on. If the user seems hesitant, reassure them: "These numbers are just for calculations — no judgment, no good or bad."
 
-**Round 3 — Target weight:**
+**Round 3 — BMR reveal + target weight:**
 
-Acknowledge the data, then ask about their target. Explain why.
+After receiving the body data from Round 2, compute BMR and share it before asking for target weight. Run:
 
-> Example: "Thanks! So what's your target weight? I need this to calculate a realistic pace for you."
+```bash
+python3 {weight-loss-planner:baseDir}/scripts/planner-calc.py bmr \
+  --weight <current_kg> --height <cm> --age <years> --sex <male|female>
+```
+
+Share the BMR result naturally and briefly explain what it means, then ask for target weight.
+
+> Example: "收到！根据你的身体数据，你的基础代谢率（BMR）是 1380 大卡——就是完全静止不动每天也需要消耗的热量。那你的目标体重是多少呢？有了这个我才能帮你计算一个合理的节奏。"
+
+If the user doesn't know their target weight, help them think about it or leave as `null`.
 
 If the user doesn't know, help them think about it or leave as `null`.
 
