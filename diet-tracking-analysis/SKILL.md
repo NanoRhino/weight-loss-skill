@@ -457,6 +457,26 @@ Every food log reply must contain up to three sections:
 
 ---
 
+## Closing the Day
+
+**Trigger:** User signals they're done eating for the day — e.g. "今天都吃完了", "done eating for today", "no more meals today", "今天就这些了".
+
+**This is NOT a goodnight signal.** "Done eating" means the food log is closed — NOT that the user is going to sleep or ending the conversation. The user may still want to chat, ask questions, review their day, or log a forgotten snack.
+
+### Workflow
+
+1. **Call `load`** — get all meals for today
+2. **Call `evaluate`** — evaluate final daily totals (use `dinner` or the last logged meal as `--current-meal`)
+3. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
+4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
+5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
+
+### If the user also runs `detect-diet-pattern` criteria
+
+If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pattern` (see Diet Pattern Detection above). Append pattern feedback after the daily summary if `has_pattern` is true.
+
+---
+
 ## Special Scenarios
 
 - **Forgotten meals**: progress shows actual values only; suggestions use assumed standard values (avoids compensatory overeating)
