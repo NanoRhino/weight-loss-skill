@@ -125,12 +125,19 @@ fi
 
 echo "Agent: $AGENT → Channel: $CHANNEL → To: $TO"
 
+# --- Wrap message with delivery instructions ---
+# Cron isolated sessions auto-deliver via announce. Without this wrapper,
+# the agent may also try to send via exec/message tool → duplicate messages.
+WRAPPED_MESSAGE="Your reply will be automatically delivered to the user. Do NOT use exec, message, or any tool to send it yourself. Just output the reminder text and nothing else.
+
+${MESSAGE}"
+
 # --- Build the cron command ---
 CMD=(openclaw cron add
   --name "$NAME"
   --session isolated
   --agent "$AGENT"
-  --message "$MESSAGE"
+  --message "$WRAPPED_MESSAGE"
   --announce
   --channel "$CHANNEL"
   --to "$TO"
