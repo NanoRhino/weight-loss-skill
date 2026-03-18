@@ -44,7 +44,7 @@ User can request a report at any time:
 ### Pre-send Checks
 
 1. User in Stage 4 (silent)? → skip auto-send, but still generate if manually requested
-2. Fewer than 2 days with at least 1 logged meal in the period? → send a short message instead: `"Not enough data for a full report this week — let's make next week count! 💪"`
+2. Fewer than 2 days with at least 1 logged meal in the period? → skip silently, do not send any message
 3. All clear → generate and send (if period has 2–6 logged days, treat as first-week partial report — see Edge Cases)
 
 ---
@@ -270,9 +270,7 @@ Generate a partial report with whatever data exists. Prefix with:
 `"这是你的第一份周报，数据越多越有参考价值！"`
 
 **Week with zero data:**
-Don't generate a full report. Send a short message:
-`"No data to report this week — ready to start fresh? 💪"` /
-`"这周没有数据，准备重新开始？💪"`
+Skip silently. Do not send any message.
 
 **User has no PLAN.md (no calorie/macro targets):**
 Skip Sections 2 and 4 (calorie and macro analysis). Show logging overview and
