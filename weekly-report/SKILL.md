@@ -79,6 +79,7 @@ User can request a report at any time:
 | `Carb Range` | Macro analysis |
 | `Weight Loss Rate` | Expected weekly loss for progress assessment |
 | `Diet Mode` | Context for suggestions |
+| `Created Date` | Week number calculation (Week 1 = first Mon–Sun on or after plan creation) |
 
 ### Reads from data (workspace)
 
@@ -100,6 +101,11 @@ The report has 6 sections. Generate them in order. Each section adapts to the
 user's actual data — skip or simplify sections with no data. The header
 (title, date range, greeting) is handled by the HTML template's
 `.report-header` and the in-chat summary — not a separate section.
+
+**Week number calculation:**
+- Week 1 = the first Mon–Sun period on or after `PLAN.md > Created Date`
+- Week N = `floor((report_start_date − first_week_start) / 7) + 1`
+- If PLAN.md does not exist, omit the week number and show date range only
 
 ### Section 1: Logging Overview
 
@@ -308,7 +314,7 @@ Send a concise 3–5 sentence summary in the chat as plain text. This summary
 should give the user a quick snapshot without needing to open the full report.
 
 **Structure:**
-1. Greeting + date range
+1. Greeting + week number + date range
 2. Key stats (days logged, average calories, weight change)
 3. Overall progress toward goal (current weight → target weight, % complete) — only if target weight is set
 4. One highlight (biggest win of the week)
@@ -317,7 +323,7 @@ should give the user a quick snapshot without needing to open the full report.
 
 **Example (Chinese):**
 ```
-小明，这是你 2月10日–16日 的周报摘要：这周记录了5/7天，平均摄入
+小明，这是你的第3周周报（2月10日–16日）：这周记录了5/7天，平均摄入
 1,766 kcal，体重下降了 0.4 kg。总进度：74.8 kg → 目标 65.0 kg，已
 完成 34%。亮点是连续5天坚持记录饮食，蛋白质摄入可以再提高一些——
 试试早餐加个鸡蛋。完整报告已生成，请查看附件 👇
@@ -325,7 +331,7 @@ should give the user a quick snapshot without needing to open the full report.
 
 **Example (English):**
 ```
-Hi Ming, here's your week in review (Feb 10–16): You logged 5/7 days,
+Hi Ming, here's your Week 3 report (Feb 10–16): You logged 5/7 days,
 averaged 1,766 kcal/day, and dropped 0.4 kg. Overall progress: 74.8 kg →
 goal 65.0 kg, 34% there. Highlight: 5-day logging streak! One thing to
 try: add an egg to breakfast to boost protein. Full report attached below 👇
