@@ -105,28 +105,26 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Round 4 — Activity level & exercise habits (required):**
 
-These are essential for calculating TDEE. Present **four concrete options** so the user can quickly pick the one that matches — do NOT ask open-ended questions or a simple binary ("sitting or active?").
+Present four options for the user to pick. Then ask about exercise habits.
 
-> Example: "Got it! Next, which of these best describes your daily activity?
-> A. 几乎不动 — 居家办公/很少出门，没有运动习惯
-> B. 日常久坐为主 — 正常上下班通勤，偶尔散步或轻度运动
-> C. 比较活跃 — 每周运动 4 次以上，或者工作本身需要经常走动
-> D. 高强度 — 体力劳动 + 每天运动，或专业运动员
+> Example: "Got it! 你平时日常活动大概是哪种？
+> A. 几乎不出门，也不运动
+> B. 正常上下班，偶尔走走
+> C. 经常运动或工作需要走动
+> D. 重体力劳动或每天高强度训练
 >
-> 选个最接近的字母就行！"
+> 另外你现在有运动习惯吗？做什么运动，大概一周几次？"
 
-**Mapping to activity levels** (internal — do not expose to user):
+Activity level mapping (internal — do not expose multipliers to user):
 
-| Option | Activity Level | Multiplier |
-|--------|---------------|------------|
-| A | sedentary | ×1.2 |
-| B | lightly_active | ×1.375 |
-| C | moderately_active | ×1.55 |
-| D | very_active | ×1.725 |
+| Option | activity_level | ×     |
+|--------|---------------|-------|
+| A      | sedentary          | 1.2   |
+| B      | lightly_active     | 1.375 |
+| C      | moderately_active  | 1.55  |
+| D      | very_active        | 1.725 |
 
-**Key design intent:** Most office workers will naturally pick B rather than A, because A's description ("几乎不动/居家办公/很少出门") clearly doesn't match their life — they commute, walk around, run errands. This prevents the common mis-classification where users say "久坐" but are actually lightly active (×1.375 not ×1.2), which causes a ~200 kcal/day error.
-
-After the user picks an option, ask a brief follow-up about exercise habits if not already covered: "Do you exercise at all currently? If so, what do you do and how often?" This helps refine the level and fills the Exercise Habits field.
+Option A 的描述（"几乎不出门也不运动"）排除了正常上班族，防止他们误选 A 而被归为 ×1.2。
 
 ### Step 2 — Confirm & Output
 
