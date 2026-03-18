@@ -6,6 +6,7 @@
 Nutrition calculator for diet-tracking-analysis skill.
 
 Commands:
+  detect-meal  — Detect meal type from timestamp, timezone, and meal schedule.
   target       — Compute daily macro targets from weight & calorie goal.
   analyze      — Compute cumulative intake, compare with targets, output status.
   save         — Persist a meal record to today's log file.
@@ -17,6 +18,9 @@ Commands:
   weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
 
 Usage:
+  python3 nutrition-calc.py detect-meal --tz-offset 28800 --meals 3 \
+      [--schedule '{"breakfast":"09:00","lunch":"12:00","dinner":"18:00"}'] \
+      [--log '[...]'] [--timestamp 2026-03-17T11:14:13Z]
   python3 nutrition-calc.py target  --weight 65 --cal 1500 [--meals 3]
   python3 nutrition-calc.py analyze --weight 65 --cal 1500 --meals 3 \
       --log '[{"name":"breakfast","calories":379,"protein":24,"carbs":45,"fat":12}]'
@@ -36,7 +40,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 
 # ---------------------------------------------------------------------------
@@ -823,12 +827,241 @@ def save_recommendation(data_dir: str, meal_type: str, items: list,
 
 
 # ---------------------------------------------------------------------------
+# Meal type detection from timestamp + schedule
+# ---------------------------------------------------------------------------
+
+# Default time windows (3-meal mode) — used when no custom schedule provided.
+# Format: (start_hour, end_hour, meal_name)
+# Hours are in local time. Windows that cross midnight use end > 24.
+DEFAULT_WINDOWS_3 = [
+    (5,  10, "breakfast"),
+    (10, 11, "snack_am"),
+    (11, 14, "lunch"),
+    (14, 17, "snack_pm"),
+    (17, 21, "dinner"),
+    (21, 29, "snack_pm"),   # 21:00 – 05:00 next day (29 = 24+5)
+]
+
+DEFAULT_WINDOWS_2 = [
+    (5,  10, "meal_1"),
+    (10, 11, "snack_1"),
+    (11, 14, "meal_1"),
+    (14, 17, "snack_2"),
+    (17, 21, "meal_2"),
+    (21, 29, "snack_2"),
+]
+
+
+def _parse_hhmm(s: str) -> float:
+    """Parse 'HH:MM' to fractional hours (e.g. '09:30' → 9.5)."""
+    parts = s.strip().split(":")
+    return int(parts[0]) + int(parts[1]) / 60.0
+
+
+def _build_schedule_windows(schedule: dict, meals: int) -> list:
+    """Build time windows from a custom meal schedule.
+
+    Strategy: each meal owns the time from the midpoint with the previous meal
+    to the midpoint with the next meal. Snack detection uses a post-meal offset.
+
+    Args:
+        schedule: {"breakfast": "09:00", "lunch": "12:00", "dinner": "18:00"}
+                  or {"meal_1": "12:00", "meal_2": "18:00"} for 2-meal mode.
+        meals: 2 or 3.
+
+    Returns: list of (start_hour, end_hour, meal_name) tuples.
+    """
+    if meals == 3:
+        keys = ["breakfast", "lunch", "dinner"]
+    else:
+        keys = ["meal_1", "meal_2"]
+
+    # Parse schedule times
+    times = []
+    for k in keys:
+        if k not in schedule:
+            return None  # Incomplete schedule, fall back to default
+        times.append((k, _parse_hhmm(schedule[k])))
+
+    # Sort by time (should already be in order, but be safe)
+    times.sort(key=lambda x: x[1])
+
+    windows = []
+    n = len(times)
+    for i in range(n):
+        name, t = times[i]
+        # Previous meal time (wrap around midnight)
+        _, t_prev = times[(i - 1) % n]
+        _, t_next = times[(i + 1) % n]
+
+        # Midpoint with previous meal
+        if i == 0:
+            # First meal: midpoint with last meal of previous day
+            gap_prev = (t - t_prev) % 24
+            start = (t - gap_prev / 2) % 24
+        else:
+            gap_prev = t - t_prev
+            start = t_prev + gap_prev / 2
+
+        # Midpoint with next meal
+        if i == n - 1:
+            # Last meal: midpoint with first meal of next day
+            gap_next = (t_next - t) % 24
+            end = t + gap_next / 2
+            if end < start:
+                end += 24  # Crosses midnight
+        else:
+            gap_next = t_next - t
+            end = t + gap_next / 2
+
+        windows.append((start, end, name))
+
+    return windows
+
+
+# Snack offset: if current time is more than this many hours AFTER the main
+# meal time AND that meal is already logged, classify as snack instead.
+_SNACK_OFFSET_HOURS = 1.5
+
+# Map main meal → snack name (3-meal mode)
+_SNACK_MAP_3 = {
+    "breakfast": "snack_am",
+    "lunch": "snack_pm",
+    # dinner has no snack after it in standard mode
+}
+
+_SNACK_MAP_2 = {
+    "meal_1": "snack_1",
+    # meal_2 has no snack after it
+}
+
+
+def detect_meal(tz_offset: int, meals: int,
+                schedule: dict = None,
+                log: list = None,
+                timestamp: str = None) -> dict:
+    """Detect which meal type the current time corresponds to.
+
+    Args:
+        tz_offset: Timezone offset from UTC in seconds (e.g. 28800 for UTC+8).
+        meals: 2 or 3.
+        schedule: Optional custom meal schedule dict.
+        log: Optional list of already-logged meals today (for snack detection).
+        timestamp: Optional ISO-8601 UTC timestamp. Defaults to now.
+
+    Returns: dict with detected_meal, local_time, local_date, method, etc.
+    """
+    # 1. Determine local time
+    if timestamp:
+        # Parse ISO timestamp — support Python 3.6+ (no fromisoformat with tz)
+        ts_clean = timestamp.replace("Z", "").rstrip("+00:00").split("+")[0].split("-")
+        # Try common ISO formats
+        ts_bare = timestamp.replace("Z", "").split("+")[0]
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M"):
+            try:
+                utc_dt = datetime.strptime(ts_bare, fmt).replace(tzinfo=timezone.utc)
+                break
+            except ValueError:
+                continue
+        else:
+            raise ValueError(f"Cannot parse timestamp: {timestamp}")
+    else:
+        utc_dt = datetime.now(timezone.utc)
+
+    local_dt = utc_dt + timedelta(seconds=tz_offset)
+    local_hour = local_dt.hour + local_dt.minute / 60.0
+    local_time_str = local_dt.strftime("%H:%M")
+    local_date_str = local_dt.strftime("%Y-%m-%d")
+
+    # 2. Build or select windows
+    method = "default"
+    windows = None
+    if schedule:
+        windows = _build_schedule_windows(schedule, meals)
+        if windows:
+            method = "schedule"
+
+    if windows is None:
+        windows = DEFAULT_WINDOWS_3 if meals == 3 else DEFAULT_WINDOWS_2
+
+    # 3. Find which window the current time falls into
+    detected = None
+    win_start_str = None
+    win_end_str = None
+
+    # Normalize local_hour for windows that cross midnight
+    for start, end, name in windows:
+        h = local_hour
+        # If window crosses midnight (end > 24), check both raw and +24
+        if end > 24:
+            if h < start:
+                h += 24
+            if start <= h < end:
+                detected = name
+                win_start_str = f"{int(start % 24):02d}:{int((start % 1) * 60):02d}"
+                win_end_str = f"{int(end % 24):02d}:{int((end % 1) * 60):02d}"
+                break
+        else:
+            if start <= h < end:
+                detected = name
+                win_start_str = f"{int(start):02d}:{int((start % 1) * 60):02d}"
+                win_end_str = f"{int(end):02d}:{int((end % 1) * 60):02d}"
+                break
+
+    # Fallback if no window matched (shouldn't happen with proper windows)
+    if detected is None:
+        detected = "snack_pm" if meals == 3 else "snack_2"
+        method = "fallback"
+
+    # 4. Snack upgrade: if the main meal is already logged and we're past
+    #    the meal time by _SNACK_OFFSET_HOURS, switch to snack.
+    snack_map = _SNACK_MAP_3 if meals == 3 else _SNACK_MAP_2
+    if detected in snack_map and log:
+        logged_names = set()
+        for m in log:
+            n = m.get("name", "")
+            logged_names.add(n)
+            mt = m.get("meal_type", "")
+            if mt:
+                logged_names.add(mt)
+
+        if detected in logged_names:
+            # Main meal already logged → this is a snack
+            meal_time_hour = None
+            if schedule and detected in schedule:
+                meal_time_hour = _parse_hhmm(schedule[detected])
+            if meal_time_hour is not None and local_hour > meal_time_hour + _SNACK_OFFSET_HOURS:
+                detected = snack_map[detected]
+
+    return {
+        "detected_meal": detected,
+        "local_time": local_time_str,
+        "local_date": local_date_str,
+        "method": method,
+        "window_start": win_start_str,
+        "window_end": win_end_str,
+    }
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(description="Nutrition calculator")
     sub = parser.add_subparsers(dest="cmd")
+
+    dm = sub.add_parser("detect-meal", help="Detect meal type from timestamp and schedule")
+    dm.add_argument("--tz-offset", type=int, required=True,
+                    help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8)")
+    dm.add_argument("--meals", type=int, default=3, choices=[2, 3],
+                    help="Meals per day (2 or 3)")
+    dm.add_argument("--schedule", type=str, default=None,
+                    help='JSON object with meal times, e.g. \'{"breakfast":"09:00","lunch":"12:00","dinner":"18:00"}\'')
+    dm.add_argument("--log", type=str, default=None,
+                    help='JSON array of already-logged meals today (for snack detection)')
+    dm.add_argument("--timestamp", type=str, default=None,
+                    help="ISO-8601 UTC timestamp of the message (default: current UTC time)")
 
     t = sub.add_parser("target", help="Compute daily macro targets")
     t.add_argument("--weight", type=float, required=True, help="Body weight in kg")
@@ -918,7 +1151,23 @@ def main():
 
     args = parser.parse_args()
 
-    if args.cmd == "target":
+    if args.cmd == "detect-meal":
+        sched = None
+        if args.schedule:
+            try:
+                sched = json.loads(args.schedule)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --schedule JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        log = None
+        if args.log:
+            try:
+                log = json.loads(args.log)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = detect_meal(args.tz_offset, args.meals, sched, log, args.timestamp)
+    elif args.cmd == "target":
         result = calc_targets(args.weight, args.cal, args.meals, args.mode)
     elif args.cmd == "analyze":
         try:
