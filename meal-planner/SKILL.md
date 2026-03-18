@@ -266,16 +266,17 @@ Use the templates below as defaults. If the user's diet mode is non-standard (e.
 
 ### Single-Meal Item Cap (Mandatory)
 
-Each meal has a **hard cap on the number of food items**. This prevents meals from becoming physically too large to eat in one sitting — a common failure mode where the plan looks fine calorie-wise but is unrealistic volume-wise.
+Each meal has a **hard upper limit on food items** — this is a ceiling, not a target. A meal with fewer items is perfectly fine as long as it meets the calorie/macro goal. This prevents meals from becoming physically too large to eat in one sitting — a common failure mode where the plan looks fine calorie-wise but is unrealistic volume-wise.
 
-| Meal | Structure | Max Items |
+| Meal | Upper Limit | Example |
 |---|---|---|
-| **Breakfast** | 1 主食 + 1 蛋白 + 1 饮品或小菜 | **3** |
-| **Lunch / Dinner** | 1 主食 + 2 成品菜 | **3** |
+| **Breakfast** | **≤ 3 items** | e.g., 1 主食 + 1 蛋白; or 1 主食 + 1 蛋白 + 1 饮品 |
+| **Lunch / Dinner** | **≤ 1 主食 + 2 菜** | e.g., 1 主食 + 1 菜; or 1 主食 + 2 菜 |
 
-**"1 主食 + 2 菜" means:**
-- **1 staple/carb** — rice, noodles, bread, oatmeal, congee, etc. Never 2 staples in one meal (e.g., rice + bread, noodles + buns).
-- **2 dishes** — each dish is a ready-to-eat item the user would plate or order as one unit: a stir-fry, a braised meat, a salad, a soup, a steamed fish, etc. A dish typically contains its own protein and/or vegetables — don't split "protein" and "veggie" into separate items when they naturally form one dish (e.g., "鸡肉炒西兰花" is 1 dish, not "鸡胸肉" + "炒西兰花" as 2).
+**Key constraints:**
+- **At most 1 staple/carb per meal** — rice, noodles, bread, oatmeal, congee, etc. Never 2 staples in one meal (e.g., rice + bread, noodles + buns).
+- **At most 2 dishes** — each dish is a ready-to-eat item the user would plate or order as one unit: a stir-fry, a braised meat, a salad, a soup, a steamed fish, etc. A dish typically contains its own protein and/or vegetables — don't split "protein" and "veggie" into separate items when they naturally form one dish (e.g., "鸡肉炒西兰花" is 1 dish, not "鸡胸肉" + "炒西兰花" as 2).
+- Fewer items is fine — "1 主食 + 1 菜" is a perfectly valid lunch if the portions meet the calorie target.
 
 **Counting rules:**
 - Each `●` line = 1 item.
