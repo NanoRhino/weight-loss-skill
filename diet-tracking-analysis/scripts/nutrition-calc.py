@@ -16,6 +16,7 @@ Commands:
   meal-history  — Analyze meal history for a meal type over N days.
   save-recommendation — Save meal recommendations for today.
   weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
+  produce-check — Evaluate cumulative vegetable and fruit intake (China region).
 
 Usage:
   python3 nutrition-calc.py detect-meal --tz-offset 28800 --meals 3 \
@@ -34,6 +35,7 @@ Usage:
   python3 nutrition-calc.py save-recommendation --data-dir /path/to/data \
       --meal-type lunch --items '["鸡胸肉+糙米+西兰花", "牛肉面+茶叶蛋", "沙拉+全麦面包+酸奶"]'
   python3 nutrition-calc.py weekly-low-cal-check --data-dir /path/to/data --bmr 1400
+  python3 nutrition-calc.py produce-check --meals 3 --current-meal lunch --log '[...]'
 """
 
 import argparse
@@ -136,6 +138,23 @@ DIET_MODE_MACROS = {
     "mediterranean": {"protein": (20, 30), "carbs": (40, 50), "fat": (25, 35)},
     "plant_based":   {"protein": (20, 30), "carbs": (45, 55), "fat": (20, 30)},
 }
+
+# ---------------------------------------------------------------------------
+# Produce tracking constants (China region)
+# ---------------------------------------------------------------------------
+
+# Cumulative vegetable target (g) by checkpoint. None = no target at this checkpoint.
+# Key: (meals_per_day, block_index)
+PRODUCE_VEG_TARGETS: dict = {
+    (3, 0): None,   # breakfast block — no vegetable requirement
+    (3, 1): 150,    # by lunch — cumulative ≥150g
+    (3, 2): 300,    # by dinner — cumulative ≥300g
+    (2, 0): 150,    # by meal_1 — cumulative ≥150g
+    (2, 1): 300,    # by meal_2 — cumulative ≥300g
+}
+
+PRODUCE_FRUIT_DAILY_MIN = 200  # g — minimum daily fruit intake
+PRODUCE_FRUIT_DAILY_MAX = 350  # g — maximum daily fruit intake
 
 
 # ---------------------------------------------------------------------------
@@ -443,6 +462,67 @@ def check_missing(meals: int, current_meal: str, log: list) -> dict:
         "current_meal": current_meal,
         "missing": missing,
         "has_missing": len(missing) > 0,
+    }
+
+
+def produce_check(meals: int, current_meal: str, log: list) -> dict:
+    """Evaluate cumulative vegetable and fruit intake at the current checkpoint.
+
+    Vegetables: cumulative target based on checkpoint (None = no target at that point).
+    Fruits: checked only at the final meal of the day (200–350 g daily total).
+
+    Meal JSON records may include optional fields:
+      - vegetables_g: grams of vegetables in this meal
+      - fruits_g: grams of fruit in this meal
+    Missing fields default to 0.
+    """
+    log = _migrate_meals(log)
+    blocks = get_meal_blocks(meals)
+    block_idx = find_block_index(current_meal, meals)
+    if block_idx is None:
+        return {"error": f"Unknown meal name: {current_meal}"}
+
+    checkpoint_meal_names: set[str] = set()
+    for i in range(block_idx + 1):
+        checkpoint_meal_names.update(blocks[i]["meals"])
+
+    checkpoint_log = [
+        m for m in log
+        if resolve_meal_name(m.get("name", ""), meals) in checkpoint_meal_names
+    ]
+
+    veg_total = round(sum((m.get("vegetables_g") or 0) for m in checkpoint_log), 1)
+    fruit_total = round(sum((m.get("fruits_g") or 0) for m in checkpoint_log), 1)
+
+    is_final = block_idx == len(blocks) - 1
+
+    veg_target = PRODUCE_VEG_TARGETS.get((meals, block_idx))
+    has_veg_target = veg_target is not None
+
+    veg_status: str | None = None
+    if has_veg_target:
+        veg_status = "on_track" if veg_total >= veg_target else "low"
+
+    fruit_status: str | None = None
+    if is_final:
+        if fruit_total < PRODUCE_FRUIT_DAILY_MIN:
+            fruit_status = "low"
+        elif fruit_total > PRODUCE_FRUIT_DAILY_MAX:
+            fruit_status = "high"
+        else:
+            fruit_status = "on_track"
+
+    return {
+        "current_meal": current_meal,
+        "is_final_meal": is_final,
+        "vegetables_actual_g": veg_total,
+        "vegetables_target_g": veg_target,
+        "has_vegetable_target": has_veg_target,
+        "vegetable_status": veg_status,
+        "fruits_actual_g": fruit_total,
+        "fruits_daily_min_g": PRODUCE_FRUIT_DAILY_MIN if is_final else None,
+        "fruits_daily_max_g": PRODUCE_FRUIT_DAILY_MAX if is_final else None,
+        "fruit_status": fruit_status,
     }
 
 
@@ -1216,6 +1296,15 @@ def main():
     ld.add_argument("--tz-offset", type=int, required=True,
                     help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8)")
 
+    pc = sub.add_parser("produce-check",
+                         help="Evaluate cumulative vegetable and fruit intake (China region)")
+    pc.add_argument("--meals", type=int, default=3, choices=[2, 3],
+                    help="Meals per day (2 or 3)")
+    pc.add_argument("--current-meal", type=str, required=True,
+                    help="Current meal checkpoint (e.g. breakfast, lunch, dinner, meal_1, meal_2)")
+    pc.add_argument("--log", type=str, required=True,
+                    help="JSON array of all logged meals today (each may include vegetables_g, fruits_g)")
+
     args = parser.parse_args()
 
     if args.cmd == "detect-meal":
@@ -1293,6 +1382,13 @@ def main():
                                      getattr(args, 'tz_offset', None))
     elif args.cmd == "local-date":
         result = local_date_info(args.tz_offset)
+    elif args.cmd == "produce-check":
+        try:
+            log = json.loads(args.log)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = produce_check(args.meals, args.current_meal, log)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
