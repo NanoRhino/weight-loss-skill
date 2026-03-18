@@ -268,20 +268,23 @@ Use the templates below as defaults. If the user's diet mode is non-standard (e.
 
 Each meal has a **hard cap on the number of food items**. This prevents meals from becoming physically too large to eat in one sitting — a common failure mode where the plan looks fine calorie-wise but is unrealistic volume-wise.
 
-| Meal | Max Items | Typical Composition |
+| Meal | Structure | Max Items |
 |---|---|---|
-| **Breakfast** | **3** | 1 carb + 1 protein + 1 drink OR side |
-| **Lunch** | **4** | 1 carb + 1 protein + 1–2 veggie/side |
-| **Dinner** | **4** | 1 carb + 1 protein + 1–2 veggie/side |
+| **Breakfast** | 1 主食 + 1 蛋白 + 1 饮品或小菜 | **3** |
+| **Lunch / Dinner** | 1 主食 + 2 成品菜 | **3** |
+
+**"1 主食 + 2 菜" means:**
+- **1 staple/carb** — rice, noodles, bread, oatmeal, congee, etc. Never 2 staples in one meal (e.g., rice + bread, noodles + buns).
+- **2 dishes** — each dish is a ready-to-eat item the user would plate or order as one unit: a stir-fry, a braised meat, a salad, a soup, a steamed fish, etc. A dish typically contains its own protein and/or vegetables — don't split "protein" and "veggie" into separate items when they naturally form one dish (e.g., "鸡肉炒西兰花" is 1 dish, not "鸡胸肉" + "炒西兰花" as 2).
 
 **Counting rules:**
-- Each `●` line in the example = 1 item. A combined veggie dish (e.g., "steamed broccoli & carrots") counts as 1 item.
+- Each `●` line = 1 item.
 - Drinks (soy milk, milk, soup) count as items — they take stomach volume.
 - Fruit counts as an item.
 
-**When you need more items than the cap allows** (e.g., the calorie/macro target requires more food), do NOT cram them all into the meal. Instead:
-1. Keep the core items (primary carb + main protein + 1 veggie or side) in the meal.
-2. Move the overflow (extra fruit, extra drink, secondary side) to a **snack slot** (加餐).
+**When the calorie/macro target requires more food than this structure allows**, do NOT add more items. Instead:
+1. Increase portion sizes within the existing items (bigger rice bowl, more meat in the dish).
+2. If still not enough, move supplementary items (fruit, yogurt, drink, nuts) to a **snack slot** (加餐).
 3. Add a note: "如果一餐吃不下这么多，[moved items] 可以放到加餐，时间自由安排" / "If this is too much for one sitting, move [moved items] to a snack — eat whenever works for you."
 
 **This rule is non-negotiable.** Apply it to every meal in both the diet template and the 7-day plan. Breakfast is especially prone to overflow because many people have smaller morning appetites.
