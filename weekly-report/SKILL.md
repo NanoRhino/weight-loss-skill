@@ -33,9 +33,15 @@ things to focus on next week.
 ### Schedule
 
 Auto-generate every **Monday at 9:00 AM** (user's local time), covering the
-previous Monday–Sunday. Read `timezone.json` to determine the user's local
-time and correctly calculate the Mon–Sun date range. If the user's quiet hours
-extend past 9 AM, delay to end of quiet hours.
+previous Monday–Sunday. To get the correct date range, run:
+
+```bash
+python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py local-date --tz-offset {tz_offset}
+```
+
+This returns `today`, `current_week` (monday–sunday), and `previous_week` (monday–sunday). Use `previous_week` as the report range. **Never calculate dates yourself** — always use the script output.
+
+If the user's quiet hours extend past 9 AM, delay to end of quiet hours.
 
 ### Manual Trigger
 
@@ -87,7 +93,7 @@ User can request a report at any time:
 
 | Path | How | Purpose |
 |------|-----|---------|
-| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load --date YYYY-MM-DD` for each day in range | Logging status, food descriptions, estimated calories per meal |
+| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` for each day in range | Logging status, food descriptions, estimated calories per meal |
 | `data/weight.json` | `weight-tracker.py load --from YYYY-MM-DD --to YYYY-MM-DD --display-unit <unit>` | Weight readings for the week |
 | `habits.active` | direct read | Current active habits for habit progress section |
 | `habits.daily_log.{date}` | direct read | Daily habit completion/miss/no_response records |
@@ -110,7 +116,7 @@ Show each day of the week with a status indicator. See `.logging-grid` in the
 HTML template.
 
 **Data logic:**
-- For each day (Mon–Sun), call `nutrition-calc.py load --date YYYY-MM-DD` to check:
+- For each day (Mon–Sun), call `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` to check:
   - If at least 1 meal has `status: "logged"` → ✅
   - If all meals are `"skipped"` or `"no_reply"` or no log exists → ❌
 - Count total days with ✅ → `{X}/7 days logged`
@@ -129,7 +135,7 @@ Show daily calorie intake vs target range with bar chart. See `.calorie-table`
 and `.calorie-bar` in the HTML template.
 
 **Data logic:**
-- For each day, call `nutrition-calc.py load --date YYYY-MM-DD` and sum `cal` across all meals
+- For each day, call `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` and sum `cal` across all meals
 - Compare against `Daily Calorie Range` from `PLAN.md`:
   - Below range min → `📉 Below` (bar class: `below`)
   - Within range → `✅ On Target` (bar class: `on-target`)

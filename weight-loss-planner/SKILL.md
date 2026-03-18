@@ -62,6 +62,8 @@ Calculate the following using the planner-calc script — do not ask the user fo
 
 **Use the calculation script** (`python3 {baseDir}/scripts/planner-calc.py`) instead of computing manually. Available commands:
 
+> 📅 **Date handling:** Read `timezone.json` to get `tz_offset`. Pass `--tz-offset {tz_offset}` to `forward-calc` and `reverse-calc` so completion dates are computed from the user's local date. **Never compute dates yourself.**
+
 ```bash
 # Individual calculations:
 python3 {baseDir}/scripts/planner-calc.py bmi --weight <kg> --height <cm> [--standard who|asian]
@@ -72,7 +74,8 @@ python3 {baseDir}/scripts/planner-calc.py tdee --weight <kg> --height <cm> --age
 python3 {baseDir}/scripts/planner-calc.py forward-calc \
   --weight <kg> --height <cm> --age <years> --sex male|female \
   --activity sedentary|lightly_active|moderately_active|very_active|extremely_active \
-  --target-weight <kg> --mode balanced [--bmi-standard who|asian]
+  --target-weight <kg> --mode balanced [--bmi-standard who|asian] \
+  --tz-offset {tz_offset}
 ```
 
 The `forward-calc` command returns: BMI (current + target with classification), BMR, TDEE (with ±100 range), calorie floor, recommended rate, daily calorie target, macro ranges (protein/fat/carb), per-meal allocation, estimated weeks, completion date, and maintenance TDEE.
@@ -81,7 +84,8 @@ If the user provides a deadline, use `reverse-calc` instead:
 ```bash
 python3 {baseDir}/scripts/planner-calc.py reverse-calc \
   --weight <kg> --height <cm> --age <years> --sex male|female \
-  --activity <level> --target-weight <kg> --deadline YYYY-MM-DD --mode balanced
+  --activity <level> --target-weight <kg> --deadline YYYY-MM-DD --mode balanced \
+  --tz-offset {tz_offset}
 ```
 
 The script handles safety floors (max(BMR, 1000)), rate clamping, and all edge cases automatically. See `references/formulas.md` for the underlying science.

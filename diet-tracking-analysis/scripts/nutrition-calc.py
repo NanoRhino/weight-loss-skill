@@ -447,8 +447,8 @@ def check_missing(meals: int, current_meal: str, log: list) -> dict:
 
 
 def weekly_low_cal_check(data_dir: str, bmr: float,
-                         ref_date: str = None) -> dict:
-    end = date.fromisoformat(ref_date) if ref_date else date.today()
+                         ref_date: str = None, tz_offset: int = None) -> dict:
+    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
     calorie_floor = max(bmr, 1000)
 
     daily_totals: list[dict] = []
@@ -528,8 +528,8 @@ def _matches_mode(p_pct: float, c_pct: float, f_pct: float,
 
 
 def detect_diet_pattern(data_dir: str, current_mode: str,
-                        ref_date: str = None) -> dict:
-    end = date.fromisoformat(ref_date) if ref_date else date.today()
+                        ref_date: str = None, tz_offset: int = None) -> dict:
+    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
 
     daily_splits: list[dict] = []
     for offset in range(7):
@@ -714,13 +714,13 @@ def _get_recommendations_dir(data_dir: str) -> str:
 
 
 def meal_history(data_dir: str, meal_type: str, days: int = 30,
-                 ref_date: str = None) -> dict:
+                 ref_date: str = None, tz_offset: int = None) -> dict:
     """Analyze meal history for a given meal type over the last N days.
 
     Returns top foods by frequency, average macros, recent 3 days of actual
     meals, and recent 3 days of recommendations.
     """
-    end = date.fromisoformat(ref_date) if ref_date else date.today()
+    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
 
     food_counts: dict[str, list[float]] = {}  # name -> list of calorie values
     macro_sums = {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0}
@@ -815,11 +815,11 @@ def meal_history(data_dir: str, meal_type: str, days: int = 30,
 
 
 def save_recommendation(data_dir: str, meal_type: str, items: list,
-                         day: str = None) -> dict:
+                         day: str = None, tz_offset: int = None) -> dict:
     """Save meal recommendations for a given meal type today."""
     rec_dir = _get_recommendations_dir(data_dir)
     os.makedirs(rec_dir, exist_ok=True)
-    day = day or date.today().isoformat()
+    day = day or _local_date(tz_offset)
     path = os.path.join(rec_dir, f"{day}.json")
 
     existing: dict = {}
@@ -947,6 +947,41 @@ _SNACK_MAP_2 = {
     "meal_1": "snack_1",
     # meal_2 has no snack after it
 }
+
+
+# ---------------------------------------------------------------------------
+# Local date utility
+# ---------------------------------------------------------------------------
+
+def local_date_info(tz_offset: int) -> dict:
+    """Return local date info: today, weekday, and current week's Mon-Sun range.
+
+    Useful for any skill that needs the user's local date without relying
+    on the LLM to compute it.
+    """
+    utc_now = datetime.now(timezone.utc)
+    local_dt = utc_now + timedelta(seconds=tz_offset)
+    today = local_dt.date()
+    weekday = today.isoweekday()  # Mon=1, Sun=7
+    monday = today - timedelta(days=weekday - 1)
+    sunday = monday + timedelta(days=6)
+    prev_monday = monday - timedelta(days=7)
+    prev_sunday = monday - timedelta(days=1)
+
+    return {
+        "today": today.isoformat(),
+        "weekday": today.strftime("%A"),
+        "weekday_num": weekday,
+        "local_time": local_dt.strftime("%H:%M:%S"),
+        "current_week": {
+            "monday": monday.isoformat(),
+            "sunday": sunday.isoformat(),
+        },
+        "previous_week": {
+            "monday": prev_monday.isoformat(),
+            "sunday": prev_sunday.isoformat(),
+        },
+    }
 
 
 def detect_meal(tz_offset: int, meals: int,
@@ -1137,6 +1172,8 @@ def main():
                     help="Number of days to look back (default 30)")
     mh.add_argument("--date", type=str, default=None,
                     help="End date (YYYY-MM-DD), default today")
+    mh.add_argument("--tz-offset", type=int, default=None,
+                    help="Timezone offset from UTC in seconds")
 
     sr = sub.add_parser("save-recommendation",
                          help="Save meal recommendations for today")
@@ -1148,6 +1185,8 @@ def main():
                     help="JSON array of recommendation strings")
     sr.add_argument("--date", type=str, default=None,
                     help="Date override (YYYY-MM-DD)")
+    sr.add_argument("--tz-offset", type=int, default=None,
+                    help="Timezone offset from UTC in seconds")
 
     wlc = sub.add_parser("weekly-low-cal-check",
                           help="Check if weekly average calorie intake is below BMR")
@@ -1157,6 +1196,8 @@ def main():
                      help="User's BMR in kcal/day")
     wlc.add_argument("--date", type=str, default=None,
                      help="End date for the 7-day window (YYYY-MM-DD), default today")
+    wlc.add_argument("--tz-offset", type=int, default=None,
+                     help="Timezone offset from UTC in seconds")
 
     ddp = sub.add_parser("detect-diet-pattern",
                           help="Detect if eating pattern differs from selected diet mode")
@@ -1167,6 +1208,13 @@ def main():
                      help="User's currently selected diet mode")
     ddp.add_argument("--date", type=str, default=None,
                      help="End date for the 3-day window (YYYY-MM-DD), default today")
+    ddp.add_argument("--tz-offset", type=int, default=None,
+                     help="Timezone offset from UTC in seconds")
+
+    ld = sub.add_parser("local-date",
+                         help="Get the user's local date, weekday, and week ranges")
+    ld.add_argument("--tz-offset", type=int, required=True,
+                    help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8)")
 
     args = parser.parse_args()
 
@@ -1228,7 +1276,7 @@ def main():
         result = check_missing(args.meals, args.current_meal, log)
     elif args.cmd == "meal-history":
         result = meal_history(args.data_dir, args.meal_type, args.days,
-                              args.date)
+                              args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "save-recommendation":
         try:
             items = json.loads(args.items)
@@ -1236,11 +1284,15 @@ def main():
             print(f"Error: invalid --items JSON: {e}", file=sys.stderr)
             sys.exit(1)
         result = save_recommendation(args.data_dir, args.meal_type, items,
-                                     args.date)
+                                     args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "weekly-low-cal-check":
-        result = weekly_low_cal_check(args.data_dir, args.bmr, args.date)
+        result = weekly_low_cal_check(args.data_dir, args.bmr, args.date,
+                                      getattr(args, 'tz_offset', None))
     elif args.cmd == "detect-diet-pattern":
-        result = detect_diet_pattern(args.data_dir, args.current_mode, args.date)
+        result = detect_diet_pattern(args.data_dir, args.current_mode, args.date,
+                                     getattr(args, 'tz_offset', None))
+    elif args.cmd == "local-date":
+        result = local_date_info(args.tz_offset)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

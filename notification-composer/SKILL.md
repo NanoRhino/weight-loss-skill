@@ -57,11 +57,13 @@ without any manual intervention.
 
 **Every meal reminder MUST run these checks before sending. Any fail = reply with ONLY `NO_REPLY` (nothing else). No exceptions.**
 
+> 📅 **Date handling:** Read `timezone.json` to get `tz_offset` (seconds from UTC). Pass `--tz-offset {tz_offset}` to ALL `nutrition-calc.py` commands. **Never compute dates yourself** — the script handles timezone math internally.
+
 > ⚠️ **CRITICAL:** When any check fails, your entire response must be exactly `NO_REPLY` — no explanations, no reasoning, no "SKIP" messages. Any text you output WILL be delivered to the user. `NO_REPLY` is the only way to suppress delivery.
 
 1. `health-profile.md` exists? If not → user not onboarded → `NO_REPLY`
 2. User in silent mode? (Stage 4) → `NO_REPLY`
-3. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → `NO_REPLY`. This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
+3. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → `NO_REPLY`. This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
 4. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders). If constraint applies → `NO_REPLY`
 5. All clear → send
 
@@ -79,12 +81,12 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 
 #### Generation Flow
 
-1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal}` to get the user's eating habits, recent meals, and recent recommendations.
-2. If earlier meals are already logged today, call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals` to get today's intake for nutritional complementing.
+1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get the user's eating habits, recent meals, and recent recommendations.
+2. If earlier meals are already logged today, call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get today's intake for nutritional complementing.
 3. Read `health-preferences.md` (taste preferences, food restrictions).
 4. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
 5. Compose 2-3 meal recommendations (see Composition Rules below).
-6. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}'` to record what was recommended.
+6. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended.
 
 #### Composition Rules
 
@@ -213,7 +215,8 @@ user's weekly average calorie intake is not consistently below their BMR.
 ```bash
 python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
   --data-dir {workspaceDir}/data/meals \
-  --bmr <user BMR from PLAN.md>
+  --bmr <user BMR from PLAN.md> \
+  --tz-offset {tz_offset}
 ```
 
 - If `below_floor` is `true`: include a gentle note in the next meal reminder
