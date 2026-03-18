@@ -119,6 +119,32 @@ These require immediate safety response (see Safety Escalation section):
 - `"心情特别好"` · `"I'm so happy today"` · `"开心！"`
 - Sharing joy with the bot as a companion
 
+### Emoji-based signals
+
+Emojis are primary emotional signals — not decorative. When an emoji appears
+alongside a food log or other factual statement, treat it as an explicit
+emotional expression equivalent to the text-based signals above.
+
+**Distress emojis** (trigger P1 — emotional support leads):
+- Sad / crying: 😢 😭 🥹 😞 😔 😿 💔
+- Guilt / shame: 🫣 🫠 🤦 🤦‍♀️ 🤦‍♂️
+- Frustration / despair: 😩 😫 😤 😣 🫤
+- Resignation: 😶 🙃 💀 🪦
+
+**Positive emojis** (trigger celebration per Categories 6-9):
+- Pride / excitement: 🎉 🥳 💪 🏆 ✨ 🔥 🙌
+- Happy / satisfied: 😊 😄 🥰 😁 🤩
+
+**Ambiguous emojis** (interpret from context, lean toward emotional detection):
+- 😅 after overeating → likely guilt, not amusement
+- 🥲 → "smiling through pain" → treat as distress
+- 🫥 → emotional numbness → soft door-opener
+
+**Key rule:** When a food-related message includes a distress emoji (e.g.,
+"我吃了所有小零食🥹"), this is Pattern 2A — emotional support leads, food
+logging defers. The emoji IS the emotional signal. Do not treat it as
+decoration and log the food cheerfully.
+
 ### Detection from conversation context
 
 Not all distress is explicit. Watch for:
