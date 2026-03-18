@@ -149,18 +149,27 @@ in the HTML template.
 
 **Data logic:**
 - Call `weight-tracker.py load --from <start> --to <end> --display-unit <unit>` to collect all entries within the period
-- If 2+ readings: calculate change = last reading − first reading
+- If 2+ readings: calculate weekly change = last reading − first reading
 - If 1 reading: show it, compare to previous week's last reading if available
 - If 0 readings: skip this section entirely (remove the card), add a gentle note
+- **Overall progress** (show whenever at least 1 reading exists):
+  - Starting weight = first ever entry from `data/weight.json`
+  - Current weight = most recent entry
+  - Target weight = `Goals > Target Weight` from `health-profile.md`
+  - Total lost = starting weight − current weight
+  - Remaining = current weight − target weight
+  - Progress % = total lost / (starting weight − target weight) × 100, capped at 100%
 
 **Commentary rules:**
 - Loss within expected rate (from `PLAN.md` weekly rate) → `"Right on pace."` / `"进度刚好。"`
 - Loss faster than expected → `"Great progress — just make sure you're not undereating."` / `"进度不错，注意别吃太少。"`
 - No change or slight gain → `"Weight fluctuates — one week doesn't define the trend. 💛"` / `"体重会波动，一周说明不了什么。💛"`
 - No readings → `"No weigh-ins this week — want to add one next week?"` / `"这周没有称重记录，下周要不要试试？"`
+- Progress % ≥ 50% → `"You're more than halfway there!"` / `"已经超过一半了！"`
 
 **Never:** compare to target weight in a pressuring way, criticize a gain, or
-suggest the user weigh more often than 2x/week.
+suggest the user weigh more often than 2x/week. Never show progress % if
+`health-profile.md` target weight is not set.
 
 ---
 
@@ -300,23 +309,25 @@ should give the user a quick snapshot without needing to open the full report.
 **Structure:**
 1. Greeting + date range
 2. Key stats (days logged, average calories, weight change)
-3. One highlight (biggest win of the week)
-4. One suggestion (most impactful thing to try next week)
-5. Pointer to the full HTML report
+3. Overall progress toward goal (current weight → target weight, % complete) — only if target weight is set
+4. One highlight (biggest win of the week)
+5. One suggestion (most impactful thing to try next week)
+6. Pointer to the full HTML report
 
 **Example (Chinese):**
 ```
 小明，这是你 2月10日–16日 的周报摘要：这周记录了5/7天，平均摄入
-1,766 kcal，体重下降了 0.4 kg。亮点是连续5天坚持记录饮食，蛋白质
-摄入可以再提高一些——试试早餐加个鸡蛋。完整报告已生成，请查看附件 👇
+1,766 kcal，体重下降了 0.4 kg。总进度：74.8 kg → 目标 65.0 kg，已
+完成 34%。亮点是连续5天坚持记录饮食，蛋白质摄入可以再提高一些——
+试试早餐加个鸡蛋。完整报告已生成，请查看附件 👇
 ```
 
 **Example (English):**
 ```
 Hi Ming, here's your week in review (Feb 10–16): You logged 5/7 days,
-averaged 1,766 kcal/day, and dropped 0.4 kg. Highlight: 5-day logging
-streak! One thing to try: add an egg to breakfast to boost protein.
-Full report attached below 👇
+averaged 1,766 kcal/day, and dropped 0.4 kg. Overall progress: 74.8 kg →
+goal 65.0 kg, 34% there. Highlight: 5-day logging streak! One thing to
+try: add an egg to breakfast to boost protein. Full report attached below 👇
 ```
 
 #### Part 2: HTML Report (file attachment)
