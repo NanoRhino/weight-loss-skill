@@ -264,6 +264,28 @@ Use the templates below as defaults. If the user's diet mode is non-standard (e.
 - Each food category in the template maps to exactly one item in the example.
 - If the template uses "or" to list alternatives (e.g., "nuts or yogurt"), the example must pick **one** of them, not combine both. For instance, if the template says `Snack ~140 kcal: handful of nuts or 1 small cup yogurt`, a correct example is `● Walnuts 2 pieces` or `● Plain Greek yogurt 100g` — **not** `● Plain Greek yogurt 100g + Walnuts 2 pieces`.
 
+### Single-Meal Item Cap (Mandatory)
+
+Each meal has a **hard cap on the number of food items**. This prevents meals from becoming physically too large to eat in one sitting — a common failure mode where the plan looks fine calorie-wise but is unrealistic volume-wise.
+
+| Meal | Max Items | Typical Composition |
+|---|---|---|
+| **Breakfast** | **3** | 1 carb + 1 protein + 1 drink OR side |
+| **Lunch** | **4** | 1 carb + 1 protein + 1–2 veggie/side |
+| **Dinner** | **4** | 1 carb + 1 protein + 1–2 veggie/side |
+
+**Counting rules:**
+- Each `●` line in the example = 1 item. A combined veggie dish (e.g., "steamed broccoli & carrots") counts as 1 item.
+- Drinks (soy milk, milk, soup) count as items — they take stomach volume.
+- Fruit counts as an item.
+
+**When you need more items than the cap allows** (e.g., the calorie/macro target requires more food), do NOT cram them all into the meal. Instead:
+1. Keep the core items (primary carb + main protein + 1 veggie or side) in the meal.
+2. Move the overflow (extra fruit, extra drink, secondary side) to a **snack slot** (加餐).
+3. Add a note: "如果一餐吃不下这么多，[moved items] 可以放到加餐，时间自由安排" / "If this is too much for one sitting, move [moved items] to a snack — eat whenever works for you."
+
+**This rule is non-negotiable.** Apply it to every meal in both the diet template and the 7-day plan. Breakfast is especially prone to overflow because many people have smaller morning appetites.
+
 ### Precision Rule
 
 When specifying amounts, the **minimum granularity is 0.5** — never use values like 0.3 or 0.7. Valid values: 0.5, 1, 1.5, 2, 2.5, etc. Ranges use the same granularity (e.g., "0.5–1 fist", "1–2 cups").
