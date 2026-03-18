@@ -41,7 +41,7 @@ These are the only fields you MUST collect before moving on. Each round focuses 
 5. Sex
 6. Target weight
 7. Core motivation (why they want to lose weight)
-8. Work type (sedentary / active)
+8. Activity level (4-option pick — see Round 4)
 9. Exercise habits & preferences
 
 > **Note:** Meal timing, taste preferences, and food restrictions are NOT collected during onboarding. These are asked later — after the user has seen and accepted their weight loss plan — to produce a personalized diet template.
@@ -103,11 +103,24 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Single-ask rule:** Every question is asked at most once. If the user ignores a question or changes the subject, do not repeat it — use `null` or a sensible default for that field and continue to the next round. See `SKILL-ROUTING.md > Single-Ask Rule` for the full policy.
 
-**Round 4 — Work type & exercise habits (required):**
+**Round 4 — Activity level & exercise habits (required):**
 
-Ask about their work type and exercise habits together. These are essential for calculating TDEE and building an appropriate plan.
+Present three options for the user to pick. Then ask about exercise habits.
 
-> Example: "Got it! Next — is your job mostly sitting or physically active? And do you exercise at all currently? If so, what do you do?"
+> Example: "Got it! 你平时日常活动大概是哪种？
+> A. 几乎不出门，也不运动
+> B. 正常上下班，偶尔散步或运动
+> C. 经常做中高强度运动
+>
+> 另外你现在有运动习惯吗？做什么运动，大概一周几次？"
+
+Activity level mapping (internal — do not expose multipliers to user):
+
+| Option | activity_level | ×     |
+|--------|---------------|-------|
+| A      | sedentary          | 1.2   |
+| B      | lightly_active     | 1.375 |
+| C      | active             | 1.55  |
 
 ### Step 2 — Confirm & Output
 
@@ -172,7 +185,7 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 
 ## Activity & Lifestyle
 - **Work Type:** [sedentary | active | —]
-- **Activity Level:** —
+- **Activity Level:** [sedentary | lightly_active | moderately_active | very_active | —]
 - **Exercise Habits:** [string | —]
 
 ## Fitness
