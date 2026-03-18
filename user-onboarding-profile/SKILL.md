@@ -105,13 +105,12 @@ If the user doesn't know, help them think about it or leave as `null`.
 
 **Round 4 — Activity level & exercise habits (required):**
 
-Present four options for the user to pick. Then ask about exercise habits.
+Present three options for the user to pick. Then ask about exercise habits.
 
 > Example: "Got it! 你平时日常活动大概是哪种？
 > A. 几乎不出门，也不运动
-> B. 正常上下班，偶尔走走
-> C. 经常运动或工作需要走动
-> D. 重体力劳动或每天高强度训练
+> B. 正常上下班，偶尔散步或运动
+> C. 经常做中高强度运动
 >
 > 另外你现在有运动习惯吗？做什么运动，大概一周几次？"
 
@@ -121,10 +120,7 @@ Activity level mapping (internal — do not expose multipliers to user):
 |--------|---------------|-------|
 | A      | sedentary          | 1.2   |
 | B      | lightly_active     | 1.375 |
-| C      | moderately_active  | 1.55  |
-| D      | very_active        | 1.725 |
-
-Option A 的描述（"几乎不出门也不运动"）排除了正常上班族，防止他们误选 A 而被归为 ×1.2。
+| C      | active             | 1.55  |
 
 ### Step 2 — Confirm & Output
 
