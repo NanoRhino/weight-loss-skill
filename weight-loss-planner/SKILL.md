@@ -158,9 +158,14 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 **[Opening]** — One warm sentence: greet the user by name (if known), acknowledge their data is ready, and transition to the plan.
 
 **[Body metrics block]** — "Based on your data, here's what I calculated:" followed by bullet list:
-• Current BMI: [X.X] ([classification per regional standard])
-• Target BMI: [X.X] ([classification])
-• Daily expenditure (TDEE): ~[X,XXX] kcal/day ([brief activity context — e.g., "based on your daily routine and exercise habits". Do NOT mention specific multiplier values])
+
+- **Path A (post-onboarding):** BMI was already shown to the user during onboarding (after they provided their target weight). **Skip the BMI lines** — do not repeat them. Only show:
+  • Daily expenditure (TDEE): ~[X,XXX] kcal/day ([brief activity context — e.g., "based on your daily routine and exercise habits". Do NOT mention specific multiplier values])
+
+- **Path B (standalone):** BMI has not been shown yet. Include all three bullets:
+  • Current BMI: [X.X] ([classification per regional standard])
+  • Target BMI: [X.X] ([classification])
+  • Daily expenditure (TDEE): ~[X,XXX] kcal/day ([brief activity context])
 
 **[Safety floor explanation]** — One sentence explaining that BMR is [X,XXX] kcal/day and daily intake should not consistently drop below this number for safety. Mention that this will be checked on a weekly basis. Use this to naturally justify the calorie target that follows.
 

@@ -97,7 +97,21 @@ Acknowledge the data, then ask about their target. Explain why.
 
 If the user doesn't know, help them think about it or leave as `null`.
 
-**When acknowledging the target:** Reference current weight → target weight (e.g., "80kg to 65kg, that's 15kg to lose"). Never mix in height — it's irrelevant here.
+**When the user provides their target weight:** Calculate and share both current and target BMI. Use the `weight-loss-planner` skill's script (you already have height and current weight from Round 2):
+
+```bash
+python3 {weight-loss-planner:baseDir}/scripts/planner-calc.py bmi \
+  --weight <current_kg> --height <cm> [--standard who|asian]
+
+python3 {weight-loss-planner:baseDir}/scripts/planner-calc.py bmi \
+  --weight <target_kg> --height <cm> [--standard who|asian]
+```
+
+Share the results naturally alongside the weight gap, e.g., "Going from 80kg to 65kg (15kg to lose) — your BMI would move from 27.8 (overweight) → 22.5 (normal range)."
+
+**BMI standard selection:** Use Asian standard (`--standard asian`) if the user's locale or language is Chinese, Japanese, or Korean; otherwise use WHO standard (`--standard who`).
+
+If target weight is `null`, only show current BMI.
 
 **Handling terse users:** If a user gives very short answers (e.g., "health", "not sure"), accept it. Map it to the closest field value and move on. Don't push for elaboration — partial data is fine, you can always use `null`.
 
