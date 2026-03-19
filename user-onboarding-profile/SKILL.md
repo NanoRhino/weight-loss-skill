@@ -56,7 +56,7 @@ Before your first message, check if `channel-source.json` exists in the workspac
 
 The user has already received an automated welcome message BEFORE this conversation. That welcome message already introduced the coach and asked for their name. The current welcome message is:
 
-> "你好！我是小犀牛，你的减重营养师，很高兴能陪你一起走这段旅程。先问一下——我该怎么称呼你？"
+> "你好！我是小犀牛，你的减脂营养师，很高兴能陪你一起走这段旅程。先问一下——我该怎么称呼你？"
 
 The exact wording may change over time, but the key points are: self-introduction as a weight-loss nutritionist + asking what to call them.
 
@@ -202,7 +202,7 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 ```markdown
 # Health Preferences
 
-> 从对话中积累的健康/减重场景个性化信息。各 skill 持续追加。
+> 从对话中积累的健康/减脂场景个性化信息。各 skill 持续追加。
 
 ## Dietary
 [Food likes/dislikes, flavor preferences, allergies beyond Food Restrictions — or empty if none mentioned]
