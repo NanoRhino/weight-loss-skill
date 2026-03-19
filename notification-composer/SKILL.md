@@ -90,7 +90,6 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 5. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
 6. Compose 2-3 meal recommendations (see Composition Rules below).
 7. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended.
-8. **After last meal reminder of the day:** Write today's advice summary to `memory/daily-advice-summary.md` (see § Daily Advice Summary). If this is the day's only meal (e.g., user only tracks dinner), write after that meal.
 
 #### Composition Rules
 
@@ -268,7 +267,7 @@ If yes → back to Stage 1, normal reminders resume.
 
 ## Daily Advice Summary
 
-`memory/daily-advice-summary.md` stores a concise summary of today's advice and intake observations. Used by the next morning's breakfast recommendation (`< 7 days`) to reference yesterday's situation.
+`memory/daily-advice-summary.md` stores a concise summary of today's advice and intake observations. Written by `diet-tracking-analysis` after each meal log; read by this skill for next morning's breakfast recommendation (`< 7 days`).
 
 ### Format
 
@@ -288,14 +287,13 @@ date: YYYY-MM-DD
 
 ### Lifecycle
 
-- **Write:** After the day's last meal reminder, overwrite `memory/daily-advice-summary.md` with today's summary. Use today's intake data (from `nutrition-calc.py load`) and the advice given during the day's reminders.
+- **Write:** `diet-tracking-analysis` overwrites this file after each meal log, using the latest `evaluate` output. See `diet-tracking-analysis` SKILL.md § Daily Advice Summary for details.
 - **Read:** Next morning's breakfast reminder reads this file (Generation Flow step 3).
-- **Clear:** On the first meal reminder of a new day, if the file's `date` is older than yesterday → delete the file (stale data, not useful). If it's yesterday's → keep it for the breakfast reference, then it will be overwritten after today's last meal.
+- **Clear:** On the first meal reminder of a new day, if the file's `date` is older than yesterday → delete the file (stale data, not useful). If it's yesterday's → keep it for the breakfast reference, then it will be overwritten after today's first meal log.
 
 ### Rules
 - Keep the summary short — this is a reference for the agent, not user-facing content.
-- Only write if at least one meal was logged or advised today. If nothing happened, don't create the file.
-- Owner: `notification-composer`.
+- Owner: `diet-tracking-analysis`.
 
 ---
 
@@ -393,7 +391,6 @@ stop the current workflow and hand off immediately.
 |------|-----|------|
 | `data/weight.json` | `weight-tracker.py save` | User reports weight |
 | `data/recommendations/YYYY-MM-DD.json` | `nutrition-calc.py save-recommendation` | After sending each meal recommendation |
-| `memory/daily-advice-summary.md` | Direct write | After last meal reminder of the day; delete if stale on first reminder of new day |
 
 Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals and recommendations via `nutrition-calc.py` from `diet-tracking-analysis`.
 Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.

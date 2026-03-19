@@ -273,6 +273,7 @@ When user describes what they're about to eat (or what they already ate):
 7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`)
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
 9. **Reply in format** — meal details + nutrition summary + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
+10. **Update daily advice summary** — overwrite `memory/daily-advice-summary.md` with the latest intake overview and advice given so far today (see § Daily Advice Summary below)
 
 > **⚠️ Important:** When calling `detect-meal`, always pass `--timestamp` from the inbound message metadata (the UTC timestamp of the user's message). Never rely on `session_status` or cached time — the session may have been idle for hours.
 
@@ -483,6 +484,40 @@ P1 (emotional support) when those signals are detected.
 
 ---
 
+
+## Daily Advice Summary
+
+After each meal log (step 10), overwrite `memory/daily-advice-summary.md` with a snapshot of today's intake and advice. This file is read by `notification-composer` the next morning to generate breakfast suggestions for `< 7 days` users.
+
+### What to write
+
+Use the `evaluate` output from step 8 to summarize:
+- **Intake Overview:** 1-2 sentences on overall calorie/macro status vs targets (e.g., "蛋白质偏低，碳水达标，总热量略超")
+- **Advice Given:** for each meal logged so far today, note the suggestion given (from step 9) or "on track" if no adjustment was needed
+
+### Format
+
+```markdown
+# Daily Advice Summary
+
+date: YYYY-MM-DD
+
+## Intake Overview
+{1-2 sentences from evaluate output}
+
+## Advice Given
+- breakfast: {summary of suggestion or "on track"}
+- lunch: {summary of suggestion or "on track"}
+- dinner: {summary of suggestion or "on track"}
+```
+
+### Rules
+- Overwrite the file on every meal log — always reflect the latest state.
+- Only include meals that have been logged. Don't pre-fill future meals.
+- Keep it concise — this is agent-facing, not user-facing.
+- If `memory/` directory doesn't exist, create it.
+
+---
 
 ## Reference Files
 
