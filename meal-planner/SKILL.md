@@ -134,7 +134,7 @@ After resolving the calorie target and user context, collect the user's dietary 
 
 **Skip any round whose answer is already available** in `health-preferences.md` or `health-profile.md` or from earlier conversation context. Only ask what's missing.
 
-**Out-of-order information:** Users often volunteer answers to later rounds early (e.g., providing meal times and food restrictions before being asked). When this happens, acknowledge all provided info immediately in the current reply — including the reminder confirmation if meal times were given — then skip the already-answered rounds and continue with the next unanswered one.
+**Out-of-order information:** Users often volunteer answers to later rounds early (e.g., providing meal times and food restrictions before being asked). When this happens, acknowledge all provided info immediately in the current reply, then skip the already-answered rounds and continue with the next unanswered one.
 
 **Single-ask rule:** Each round's question is asked at most once. If the user ignores a question or skips it, accept the silence — use a sensible default (e.g., Balanced for diet mode, 3 meals for schedule) and move on. Do not repeat or rephrase the question. See `SKILL-ROUTING.md > Single-Ask Rule`.
 
@@ -185,19 +185,17 @@ After the user confirms their diet mode, ask about their meal schedule.
 
 **Wait for the user to answer.**
 
-**Reminder confirmation rule:** The very first reply that acknowledges/confirms the user's meal schedule **must** include the reminder confirmation line. This applies regardless of conversation order — if the user volunteers meal times early (e.g., before diet mode selection), confirm the reminder right there, not in a later round. Never delay the reminder mention to a subsequent reply.
+After acknowledging the meal schedule, ask Round 3's question in the same reply:
 
-After acknowledging the meal schedule (with the reminder confirmation), ask Round 3's question in the same reply:
-
-> 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
+> 收到，[确认餐数和时间]。
 >
 > 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
 
-This combines the reminder confirmation with Round 3 in one message to keep the conversation flowing naturally.
+**Do NOT mention reminders (餐前提醒) here.** Reminder setup is introduced later in the "Introduce Daily Tracking Workflow" section together with the full daily rhythm, to avoid repetition.
 
 ### Round 3: Taste Preferences & Food Restrictions
 
-(Already asked above together with the reminder confirmation.)
+(Already asked above in the meal schedule acknowledgment reply.)
 
 **Wait for the user to answer (or skip) before proceeding.**
 
@@ -317,7 +315,7 @@ After presenting the diet template, **immediately introduce the daily tracking w
 
 After presenting the diet template, **activate `notification-manager`** so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create the corresponding cron jobs (meal reminders + weight reminders). `notification-manager` owns all reminder lifecycle management.
 
-Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
+Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user learns about reminders through the "Introduce Daily Tracking Workflow" section that follows the diet template.
 
 ---
 
