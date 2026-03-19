@@ -12,6 +12,8 @@ metadata:
 
 > ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
 
+> 🚫 **NO SELF-DELIVERY:** Your reply is automatically delivered to the user by the cron system. Do NOT use `exec`, `message`, or any other tool to send it yourself — that causes duplicate messages. Just output the reminder text (or `NO_REPLY`) and nothing else. No reasoning, no check results, no narration. Your entire output is delivered to the user as-is.
+
 
 Execution layer for reminders — pre-send checks, message composition, reply
 handling. This skill decides **what to say** each time a cron job fires.

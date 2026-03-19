@@ -170,3 +170,27 @@ centrally:
   output quality, not language selection
 - If a skill needs locale info (e.g., for unit preference), read `locale.json`
   directly — don't infer language from user messages
+
+---
+
+## 11. Cron Job Delivery Policy
+
+Cron isolated sessions use **announce delivery** — the agent's text output
+is automatically delivered to the user by the OpenClaw cron system. This
+means:
+
+- **Never add "don't self-deliver" instructions to `payload.message`.**
+  The no-self-delivery rule belongs in the **skill SKILL.md** (currently
+  `notification-composer`), not in each cron job's payload text.
+- **`payload.message` should contain only the task instruction** — e.g.,
+  `"Run notification-composer pre-send checks for breakfast."` Keep it
+  short and action-oriented.
+- The no-self-delivery rule is enforced at two layers:
+  1. **Skill layer:** `notification-composer` SKILL.md contains the
+     `NO SELF-DELIVERY` directive (primary enforcement).
+  2. **Agent layer:** `AGENTS.md` template contains a general rule that
+     cron sessions should only output text, not call delivery tools
+     (fallback enforcement).
+- When creating new cron jobs (in `create-reminder.sh` or any other
+  script), do **not** prepend wrapper text to `--message`. Pass the raw
+  instruction only.
