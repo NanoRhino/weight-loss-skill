@@ -104,6 +104,8 @@ When user logs exercise, follow these steps:
 
 ## Calorie Estimation
 
+> **Relationship to TDEE:** The user's TDEE (from `weight-loss-planner`) is calculated using a **NEAT-only activity multiplier** — it covers daily lifestyle activity (job, commuting, errands) but deliberately **excludes** intentional exercise. Exercise calories estimated here are therefore **additional** to the TDEE baseline, not double-counted. However, per SKILL-ROUTING Pattern 1, exercise calories remain informational context and do NOT offset the daily calorie target for diet tracking.
+
 ### Calculation Script
 
 **Use the exercise-calc script** (`python3 {baseDir}/scripts/exercise-calc.py`) for all calorie estimations instead of computing manually. This ensures consistent and accurate MET lookups and interpolation.
