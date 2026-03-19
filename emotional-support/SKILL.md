@@ -523,7 +523,7 @@ Bot: 破了！！三周了，终于看到这个数字了。你这三周可不是
      [Step 1: match their excitement + name the effort]
 
 User: 开心死了 感觉一切都值了
-Bot: 当然值了。而且你想想，这三周你不光是在减重——你从"记录好麻烦"到现在
+Bot: 当然值了。而且你想想，这三周你不光是在减脂——你从"记录好麻烦"到现在
      每天自动打卡，这个习惯本身就比秤上的数字值钱。
      [Step 2: expand the meaning — from weight to habit identity]
 
