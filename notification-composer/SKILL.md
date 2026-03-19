@@ -85,10 +85,12 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 
 1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get the user's eating habits, recent meals, and recent recommendations.
 2. If earlier meals are already logged today, call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get today's intake for nutritional complementing.
-3. Read `health-preferences.md` (taste preferences, food restrictions).
-4. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
-5. Compose 2-3 meal recommendations (see Composition Rules below).
-6. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended.
+3. **Breakfast + `< 7 days` only:** Read `memory/daily-advice-summary.md` for yesterday's advice summary. If the file date doesn't match yesterday → treat as empty (no prior advice to reference). See § Daily Advice Summary for format.
+4. Read `health-preferences.md` (taste preferences, food restrictions).
+5. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
+6. Compose 2-3 meal recommendations (see Composition Rules below).
+7. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended.
+8. **After last meal reminder of the day:** Write today's advice summary to `memory/daily-advice-summary.md` (see § Daily Advice Summary). If this is the day's only meal (e.g., user only tracks dinner), write after that meal.
 
 #### Composition Rules
 
@@ -97,7 +99,7 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 | `data_level` | Strategy |
 |-------------|----------|
 | `rich` (≥ 7 days) | Base recommendations on the user's real eating habits (`top_foods`). Combine familiar ingredients into varied meals. Recommend 2-3 concrete food combos for the current meal. |
-| `< 7 days` (0-6 days) | **Breakfast:** base on yesterday's overall intake (e.g., "昨天蛋白质偏少，早餐加个蛋"). **Other meals:** base on today's earlier meals. **If on track:** send a short encouragement + photo invitation. **If has suggestion:** send 1 brief directional suggestion — no specific food combos. |
+| `< 7 days` (0-6 days) | **Breakfast:** read `memory/daily-advice-summary.md` for yesterday's intake overview and advice given; base the breakfast suggestion on that (e.g., "昨天蛋白质偏少，早餐加个蛋"). If summary is missing or stale, fall back to a general encouragement. **Other meals:** base on today's earlier meals. **If on track:** send a short encouragement + photo invitation. **If has suggestion:** send 1 brief directional suggestion — no specific food combos. |
 
 **`rich` food-combo recommendations** use the format: food combo + short tip (joined by ` — `).
 The tip (≤ 10 Chinese characters / ≤ 6 English words) explains *why this option fits right now* — in a casual, friend-like tone. Not a nutrition lecture.
@@ -264,6 +266,39 @@ If yes → back to Stage 1, normal reminders resume.
 
 ---
 
+## Daily Advice Summary
+
+`memory/daily-advice-summary.md` stores a concise summary of today's advice and intake observations. Used by the next morning's breakfast recommendation (`< 7 days`) to reference yesterday's situation.
+
+### Format
+
+```markdown
+# Daily Advice Summary
+
+date: YYYY-MM-DD
+
+## Intake Overview
+{1-2 sentences: overall calorie/macro status vs targets, e.g., "蛋白质偏低，碳水达标，总热量略超"}
+
+## Advice Given
+- breakfast: {summary of advice or "on track"}
+- lunch: {summary of advice or "on track"}
+- dinner: {summary of advice or "on track"}
+```
+
+### Lifecycle
+
+- **Write:** After the day's last meal reminder, overwrite `memory/daily-advice-summary.md` with today's summary. Use today's intake data (from `nutrition-calc.py load`) and the advice given during the day's reminders.
+- **Read:** Next morning's breakfast reminder reads this file (Generation Flow step 3).
+- **Clear:** On the first meal reminder of a new day, if the file's `date` is older than yesterday → delete the file (stale data, not useful). If it's yesterday's → keep it for the breakfast reference, then it will be overwritten after today's last meal.
+
+### Rules
+- Keep the summary short — this is a reference for the agent, not user-facing content.
+- Only write if at least one meal was logged or advised today. If nothing happened, don't create the file.
+- Owner: `notification-composer`.
+
+---
+
 ## Weekly Low-Calorie Check
 
 Once per week (default: Monday, at first meal reminder time), run the
@@ -350,6 +385,7 @@ stop the current workflow and hand off immediately.
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
 | `data/engagement.json` | `last_interaction` — direct read | Stage detection |
+| `memory/daily-advice-summary.md` | `date`, `Intake Overview`, `Advice Given` — direct read | Breakfast (`< 7 days`): reference yesterday's intake & advice |
 
 ### Writes
 
@@ -357,6 +393,7 @@ stop the current workflow and hand off immediately.
 |------|-----|------|
 | `data/weight.json` | `weight-tracker.py save` | User reports weight |
 | `data/recommendations/YYYY-MM-DD.json` | `nutrition-calc.py save-recommendation` | After sending each meal recommendation |
+| `memory/daily-advice-summary.md` | Direct write | After last meal reminder of the day; delete if stale on first reminder of new day |
 
 Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals and recommendations via `nutrition-calc.py` from `diet-tracking-analysis`.
 Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.
