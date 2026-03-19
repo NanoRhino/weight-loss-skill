@@ -380,7 +380,9 @@ For non-US locales, follow the same **template (portion guide) + one-day example
 
 ### Snacks Are Always Included by Default
 
-Every diet template **must include a Snack slot** as part of the standard meal structure — this is not optional. Snacks help stabilize blood sugar, prevent overeating at main meals, and make the overall plan more sustainable.
+Every diet template **must include a Snack slot** as part of the standard meal structure. Snacks help stabilize blood sugar, prevent overeating at main meals, and make the overall plan more sustainable.
+
+**User override:** If the user explicitly states they do not want snacks (e.g., "不要加餐", "no snacks"), respect their preference — omit the Snack slot from the template and redistribute snack calories into the main meals. Do not push back or try to convince them otherwise. Record this preference in `health-preferences.md`.
 
 **After presenting the template, always add a flexibility note** to let the user know they can adjust snack timing and content freely. Use language appropriate to the user's locale:
 
