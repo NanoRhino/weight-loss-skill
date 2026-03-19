@@ -35,7 +35,7 @@ This step has two paths. Check which one applies before doing anything else.
 
 Another skill may have already collected the user's body data during onboarding and stored it across two files:
 - `USER.md` — identity info: height, age, biological sex
-- `health-profile.md` — health data: activity level, exercise habits, target weight, unit preference
+- `health-profile.md` — health data: daily activity level (NEAT-based, excludes exercise), target weight, unit preference
 - `data/weight.json` — current weight (read via `weight-tracker.py load --last 1` from the `weight-tracking` skill)
 
 Check whether these files exist in the workspace. If they do, read them for required fields. Field names and formats may vary — look for semantic matches.
@@ -53,7 +53,7 @@ If no `USER.md` or `health-profile.md` is found, this skill works independently.
 - Current weight
 - Age (years)
 - Biological sex (male / female — needed for metabolic formulas)
-- Daily activity description (not just a dropdown — ask them to describe their typical day and exercise habits so you can estimate more accurately)
+- Daily activity description (not just a dropdown — ask them to describe their typical day: what kind of work they do, how they commute, how much they're on their feet. Focus on **lifestyle and job activity**, not exercise — exercise is tracked separately and must not be double-counted in TDEE)
 
 #### After resolving data (both paths): Calculate TDEE via script
 
@@ -240,7 +240,7 @@ This skill focuses on weight loss. If the user's BMI is below 18.5 or they want 
 Focus on the first major phase (e.g., first 20–25 kg / 50 lbs), with a note to reassess and create a new plan at that point. Losing 45+ kg is a multi-year journey — framing it as one continuous plan can feel overwhelming.
 
 **User is vague about activity:**
-Probe with specific questions: "What does a typical weekday look like for you — do you walk or drive to work? Sit most of the day? How many times a week do you exercise, and what do you do?" This yields a better activity estimate than asking them to self-classify. If still unclear after probing, default to Lightly Active (×1.375). See `references/formulas.md > Activity Level Selection Policy` for the full selection rules.
+Probe with specific questions about their **daily lifestyle**, not exercise: "What does a typical weekday look like for you — do you walk or drive to work? Sit most of the day? Are you on your feet a lot at work?" Classify based on job type and daily movement patterns only — exercise habits are tracked separately by the exercise skill and must not influence the activity level. If still unclear after probing, default to Lightly Active (×1.375). See `references/formulas.md > Activity Level Selection Policy` for the full selection rules.
 
 **User changes goal mid-plan:**
 No problem — recalculate from the current state. Acknowledge the change positively ("Goals evolve — that's totally fine!") and regenerate the plan.
