@@ -71,7 +71,7 @@ Build a 7-day meal plan based on the confirmed calories, macros, diet mode, and 
 
 ## Meal Structure
 
-Default to **3 meals + 1–2 snacks** unless the user's diet mode dictates otherwise:
+**Always include snacks by default.** Every 7-day plan ships with snacks as a standard component — do not omit them or make them optional. The specific structure depends on diet mode:
 - **IF 16:8** → 2 meals + 1 snack within the eating window
 - **IF 5:2** → Normal structure for 5 days; 2 low-calorie days with 2 small meals
 - **All other modes** → 3 meals + 1–2 snacks
@@ -147,6 +147,14 @@ Don't moralize about snacks. A 200 kcal cookie that fits the macro budget is fin
 ## Present the Plan & Let User Customize
 
 The meal plan has been saved as `MEAL-PLAN.md` and uploaded as HTML to S3. In the chat, provide the brief summary with the link and ask for feedback. **Do NOT mention "Markdown", `.md`, or internal implementation details to the user.**
+
+**Include snack flexibility note** in the chat message when delivering the plan. Remind the user that snacks are included by default and can be arranged flexibly:
+
+Chinese:
+> 💡 每天都安排了加餐，时间和内容可以灵活调整——上午、下午、晚上都行，看你自己方便。
+
+English:
+> 💡 Snacks are included every day — feel free to move them around (morning, afternoon, or evening) based on what works for you.
 
 After presenting, ask:
 - "How does this look? Any meals you'd want to swap out?"
