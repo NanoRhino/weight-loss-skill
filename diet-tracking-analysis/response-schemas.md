@@ -25,7 +25,7 @@ Start logging your first meal!
 · Chicken breast salad — one large plate — 280 kcal
 · Whole wheat bread — 2 slices — 180 kcal
 
-📊 So far today: 839/1500 kcal ✅ | Protein 62g ✅ | Carbs 87g ⬇️ | Fat 33g ✅
+📊 So far today: 839 kcal ✅ | Protein 62g ✅ | Carbs 87g ⬇️ | Fat 33g ✅
 Protein and fat are on track, carbs slightly low — adding a bit of grain at dinner will sort that out.
 
 ✨ Great protein choice with the chicken breast!
@@ -41,7 +41,7 @@ Protein and fat are on track, carbs slightly low — adding a bit of grain at di
 · Fried rice — ~1 bowl — 520 kcal
 · Bubble tea — 1 cup — 380 kcal
 
-📊 So far today: 1279/1500 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
+📊 So far today: 1279 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
 Calories and carbs are running high while protein is low — the rice + bubble tea combo pushed carbs up.
 
 ⚡ Right now: Swap the bubble tea for unsweetened tea and add a side of grilled chicken (~100g) to boost protein. That would bring this meal to ~640 kcal with much better protein. For dinner, go lighter — steamed fish + veggies, skip the rice.
@@ -56,7 +56,7 @@ Calories and carbs are running high while protein is low — the rice + bubble t
 · Fried rice — ~1 bowl — 520 kcal
 · Bubble tea — 1 cup — 380 kcal
 
-📊 So far today: 1279/1500 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
+📊 So far today: 1279 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
 Calories and carbs are running high while protein is low — the fried rice and bubble tea are tasty but carb-heavy.
 
 💡 Next meal: Dinner idea — go heavier on protein and lighter on carbs to balance out. Try grilled chicken breast + steamed veggies, keep rice to half a bowl.
