@@ -288,5 +288,12 @@ After the user confirms their summary:
        --tz-offset <from timezone.json>
      ```
    - **Unit preference** — infer from the user's weight input (e.g., "80kg" → `kg`, "165 lbs" → `lb`, "130斤" → `kg`) and write to `health-profile.md > Body > Unit Preference`
+   - **Weekly report cron job** — create the recurring weekly report job so the user starts receiving weekly summaries from day one:
+     ```bash
+     bash {notification-manager:baseDir}/scripts/create-reminder.sh \
+       --agent <your-agent-id> --channel <channel> --name "Weekly report" \
+       --message "Run weekly-report to generate this week's progress report." \
+       --cron "0 21 * * 0"
+     ```
    Do not tell the user the filenames, file format, or mention `.md` — just confirm that their profile has been saved.
 3. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
