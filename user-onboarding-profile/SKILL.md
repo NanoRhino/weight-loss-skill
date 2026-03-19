@@ -104,8 +104,6 @@ Share the BMR result naturally and briefly explain what it means, then ask for t
 
 If the user doesn't know their target weight, help them think about it or leave as `null`.
 
-If the user doesn't know, help them think about it or leave as `null`.
-
 **When the user provides their target weight:** Calculate and share both current and target BMI. Use the `weight-loss-planner` skill's script (you already have height and current weight from Round 2):
 
 ```bash
