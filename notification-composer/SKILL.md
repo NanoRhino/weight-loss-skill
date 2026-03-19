@@ -57,17 +57,38 @@ without any manual intervention.
 
 ## Pre-send Checks (MANDATORY — run before every reminder)
 
-**Every meal reminder MUST run these checks before sending. Any fail = reply with ONLY `NO_REPLY` (nothing else). No exceptions.**
+**Every reminder MUST run the pre-send-check script FIRST. If it returns `NO_REPLY`, your entire response must be exactly `NO_REPLY` — stop immediately, do not compose a message, do not output anything else.**
 
-> 📅 **Date handling:** Read `timezone.json` to get `tz_offset` (seconds from UTC). Pass `--tz-offset {tz_offset}` to ALL `nutrition-calc.py` commands. **Never compute dates yourself** — the script handles timezone math internally.
+> ⚠️ **CRITICAL:** Any text you output WILL be delivered to the user. `NO_REPLY` is the only way to suppress delivery. No explanations, no reasoning, no "check failed" messages.
 
-> ⚠️ **CRITICAL:** When any check fails, your entire response must be exactly `NO_REPLY` — no explanations, no reasoning, no "SKIP" messages. Any text you output WILL be delivered to the user. `NO_REPLY` is the only way to suppress delivery.
+### Step 1: Run the script
 
-1. `health-profile.md` exists? If not → user not onboarded → `NO_REPLY`
-2. User in silent mode? (Stage 4) → `NO_REPLY`
-3. **This meal already logged today?** Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` and check if this meal type (breakfast/lunch/dinner) already exists in today's records. If the meal is already logged → `NO_REPLY`. This is critical — sending a check-in reminder for a meal the user already recorded feels broken and erodes trust.
-4. Check `health-preferences.md > Scheduling & Lifestyle` for scheduling constraints (e.g., "works late on Wednesdays" → delay dinner reminder on Wednesdays; "always skips breakfast on workdays" → skip weekday breakfast reminders). If constraint applies → `NO_REPLY`
-5. All clear → send
+```bash
+python3 {baseDir}/scripts/pre-send-check.py \
+  --workspace-dir {workspaceDir} \
+  --meal-type <breakfast|lunch|dinner|meal_1|meal_2|weight> \
+  --tz-offset {tz_offset}
+```
+
+Read `timezone.json` to get `tz_offset` (seconds from UTC), then run the script with the correct `--meal-type` for this reminder.
+
+### Step 2: Check output
+
+- Output is **`NO_REPLY`** → reply with exactly `NO_REPLY`. Done. Do not continue.
+- Output is **`SEND`** → proceed to compose the reminder message (see Message Templates below).
+
+### What the script checks
+
+The script runs these checks deterministically (no LLM involvement):
+
+1. `health-profile.md` exists? (user onboarded?)
+2. `engagement.json > notification_stage` — user in silent mode (Stage 4)?
+3. Health flags — `avoid_weight_focus` or `history_of_ed` (weight reminders only)?
+4. Scheduling constraints from `health-preferences.md` (e.g., "skips breakfast on workdays")?
+5. Meal already logged today? (via `data/meals/YYYY-MM-DD.json`)
+6. Weight already logged today? (via `data/weight.json`, weight reminders only)
+
+Any fail → `NO_REPLY`. All pass → `SEND`.
 
 ---
 
