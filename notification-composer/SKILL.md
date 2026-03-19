@@ -96,20 +96,24 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 
 | `data_level` | Strategy |
 |-------------|----------|
-| `rich` (≥ 7 days) | Check today's earlier meals against targets. **If on track:** send a short encouragement + photo invitation, no recommendations needed. **If gaps exist (e.g., protein low, carbs high):** send 1 brief suggestion that addresses the gap, based on the user's real eating habits (`top_foods`). |
+| `rich` (≥ 7 days) | Base recommendations on the user's real eating habits (`top_foods`). Combine familiar ingredients into varied meals. Recommend 2-3 concrete food combos for the current meal. |
 | `limited` (1-6 days) | Check today's earlier meals against targets (using available history + diet template). **If on track:** send a short encouragement + photo invitation. **If gaps exist:** send 1 brief directional suggestion (e.g., "蛋白质偏少，加点肉或蛋") — no specific food combos. |
 | `none` (0 days) | Use the diet template + `health-preferences.md` preferences entirely. |
 
-**`rich` food-combo recommendations** use the format: food combo + short tip (joined by ` — `).
+**`rich` / `none` food-combo recommendations** use the format: food combo + short tip (joined by ` — `).
 The tip (≤ 10 Chinese characters / ≤ 6 English words) explains *why this option fits right now* — in a casual, friend-like tone. Not a nutrition lecture.
 
-**`limited` / `rich` brief suggestions** are directional advice, not specific food combos. Keep to 1 sentence, casual tone.
+Tip sources (`rich`):
+- Nutritional complement to earlier meals today ("早上碳水少了，补一点")
+- Habit acknowledgment ("你的经典搭配，稳")
+- Variety ("换换口味")
+- Situational ("今天想轻一点的话")
 
-**`none` food-combo recommendations** follow the same format as `rich` (food combo + short tip).
+**`limited` brief suggestions** are directional advice, not specific food combos. Keep to 1 sentence, casual tone.
 
 **Deduplication — avoid repetitive recommendations:**
 - Read `recent_recommendations` from `meal-history` output.
-- **`rich`:** If a suggestion is given, avoid recommending the exact same item as yesterday's suggestion for the same meal. Encouragement-only messages don't need dedup.
+- **`rich`:** Of the 2-3 options, at least 2 must differ from yesterday's `items` for the same meal type. Among the options, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
 - **`limited`:** If a suggestion is given, vary the angle from yesterday (e.g., don't repeat "加点蛋白质" two days in a row). Encouragement-only messages don't need dedup.
 - **`none`:** Of the 2-3 options, at least 2 must differ from yesterday's `items` for the same meal type. Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
 - If the user picked the same recommendation 3+ days in a row, don't force a change — respect their preference.
@@ -122,18 +126,13 @@ Adapt the closing to the user's language.
 
 #### Message Format
 
-**`rich` — on track (encouragement):**
+**`rich` (2-3 recommendations):**
 ```
-{encouragement — 1-2 sentences, casual}
+{opening line — optional, 1 sentence max}
 
-{closing — photo invitation}
-```
-
-**`rich` — gaps exist (1 brief suggestion):**
-```
-{context — what's off, 1 sentence}
-
-· {food combo} — {short tip}
+1. {food combo} — {short tip}
+2. {food combo} — {short tip}
+3. {food combo} — {short tip}
 
 {closing — photo invitation}
 ```
@@ -167,18 +166,13 @@ The opening line is optional — use it for context when relevant (time of day, 
 
 #### Examples
 
-**Chinese — `rich`, on track (dinner):**
+**Chinese — `rich` (lunch):**
 ```
-今天吃得很均衡，继续保持就好👍
+午餐想好了吗？
 
-晚餐吃之前拍给我，帮你看看~
-```
-
-**Chinese — `rich`, protein low (dinner):**
-```
-今天蛋白质偏少，晚餐补一点。
-
-· 鸡胸肉 + 蔬菜 — 简单高效
+1. 鸡胸肉 + 糙米 + 西兰花 — 你的经典搭配，稳
+2. 牛肉面 + 茶叶蛋 — 换换口味，蛋白质也够
+3. 沙拉 + 全麦面包 + 酸奶 — 今天想轻一点的话
 
 吃之前拍给我，现场帮你看~
 ```
@@ -208,20 +202,15 @@ The opening line is optional — use it for context when relevant (time of day, 
 吃之前拍给我，现场帮你看~
 ```
 
-**English — `rich`, on track (breakfast):**
+**English — `rich` (breakfast):**
 ```
-Yesterday was solid, you're in a good rhythm.
+Morning! A few ideas:
+
+1. Oatmeal + boiled eggs + milk — your go-to, solid
+2. Avocado toast + Greek yogurt — switch it up
+3. Smoothie bowl + granola — light start today
 
 Snap a pic before you eat — I'll take a look~
-```
-
-**English — `rich`, carbs high (dinner):**
-```
-Carbs are running a bit high today — go lighter on starch for dinner.
-
-· Grilled chicken + greens — keeps it balanced
-
-Snap a pic before you eat — I'll check it out~
 ```
 
 **English — `limited`, on track (lunch):**
