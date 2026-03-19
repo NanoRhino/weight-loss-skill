@@ -71,7 +71,7 @@ Build a 7-day meal plan based on the confirmed calories, macros, diet mode, and 
 
 ## Meal Structure
 
-**Always include snacks by default.** Every 7-day plan ships with snacks as a standard component — do not omit them or make them optional. The specific structure depends on diet mode:
+**Always include snacks by default.** Every 7-day plan ships with snacks as a standard component. However, if the user has explicitly requested no snacks (check `health-preferences.md` or conversation context), omit snacks and redistribute their calories into the main meals. The specific structure depends on diet mode:
 - **IF 16:8** → 2 meals + 1 snack within the eating window
 - **IF 5:2** → Normal structure for 5 days; 2 low-calorie days with 2 small meals
 - **All other modes** → 3 meals + 1–2 snacks
