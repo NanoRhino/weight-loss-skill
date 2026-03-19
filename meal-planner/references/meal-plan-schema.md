@@ -56,7 +56,7 @@ Chinese: 1850 kcal · 蛋白 105g · 碳水 196g · 脂肪 62g
 💡 Ask for half rice to save ~100 Cal. Extra veggies are free.
 
 ### 🍎 Snack | 180 kcal · Protein 9g · Carbs 18g · Fat 4g
-- Plain Greek yogurt — 3/4 cup (170g)
+- Plain yogurt — 3/4 cup (170g)
 - 1 medium apple
 
 ## Day 2 | Monday | 1590 kcal · Protein 100g · Carbs 172g · Fat 52g
@@ -89,7 +89,7 @@ Chinese: 1850 kcal · 蛋白 105g · 碳水 196g · 脂肪 62g
 
 ### Dairy & Others
 - Whole milk — 2L
-- Greek yogurt — 500g
+- Plain yogurt — 500g
 - Cheddar cheese — 200g
 ```
 

@@ -42,7 +42,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 - Breakfast: oatmeal + protein powder + banana + peanut butter
 - Lunch: chicken burrito bowl (rice, beans, chicken, veggies, salsa)
 - Dinner: salmon + sweet potato + roasted broccoli
-- Snack: Greek yogurt + berries
+- Snack: plain yogurt + berries
 
 **Key advantage:** Flexible. Pizza on Friday? Fine — adjust the rest of the day.
 **Key risk:** Requires tracking to work. Without monitoring, "flexible" can drift into "uncontrolled."
@@ -71,7 +71,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 | Ground turkey (93% lean) | 4 oz | 22g | 150 |
 | Salmon | 4 oz | 23g | 160 |
 | Eggs | 1 large | 6g | 70 |
-| Greek yogurt (nonfat) | 1 cup (227g) | 20g | 130 |
+| Plain yogurt (unsweetened/low-sugar) | 1 cup (227g) | 12–20g | 100–130 |
 | Cottage cheese (2%) | 1 cup | 24g | 180 |
 | Canned tuna | 1 can (5 oz) | 27g | 120 |
 | Whey protein powder | 1 scoop (~30g) | 24g | 120 |
@@ -238,7 +238,7 @@ So the normal days can actually be slightly higher if the weekly average needs t
 | Chickpeas (cooked) | 1 cup | 15g | 270 |
 | Seitan | 4 oz | 25g | 140 |
 | Pea protein powder | 1 scoop | 24g | 120 |
-| Greek yogurt (vegetarian) | 1 cup | 20g | 130 |
+| Plain yogurt (vegetarian, unsweetened/low-sugar) | 1 cup | 12–20g | 100–130 |
 | Eggs (vegetarian) | 1 large | 6g | 70 |
 
 **Key nutrients to watch:**

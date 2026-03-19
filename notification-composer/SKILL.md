@@ -153,7 +153,7 @@ The opening line is optional — use it for context when relevant (time of day, 
 Morning! A few ideas:
 
 1. Oatmeal + boiled eggs + milk — your go-to, solid
-2. Avocado toast + Greek yogurt — switch it up
+2. Avocado toast + yogurt — switch it up
 3. Smoothie bowl + granola — light start today
 
 Snap a pic before you eat — I'll take a look~
