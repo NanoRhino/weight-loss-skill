@@ -32,6 +32,7 @@
     "./notification-manager",
     "./user-onboarding-profile",
     "./weight-loss-planner",
-    "./weekly-report"
+    "./weekly-report",
+    "./daily-review"
   ]
 }
