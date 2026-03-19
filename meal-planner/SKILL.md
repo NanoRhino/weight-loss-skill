@@ -319,6 +319,23 @@ Each meal has a **hard upper limit on food items** — this is a ceiling, not a 
 
 **This rule is non-negotiable.** Apply it to every meal in both the diet template and the 7-day plan. Breakfast is especially prone to overflow because many people have smaller morning appetites.
 
+### Single-Meal Volume Check
+
+When building a diet template or meal plan, **always validate whether the total food volume of each meal is realistic for one sitting.** People have limited stomach capacity — a meal that looks reasonable on paper (calorie-wise) may be physically too much to eat at once when you add up all the items.
+
+**How to check:**
+- Mentally picture the plate/bowl: could a normal person comfortably finish all listed items in one meal?
+- Pay special attention to high-volume, low-calorie foods (vegetables, salads, soups) — they fill the stomach fast but contribute few calories, so plans tend to pile them on.
+- Watch for meals with both a large grain portion AND multiple side dishes — the total volume adds up quickly.
+- Consider the user's meal structure: if they eat 4–5 meals/day, each meal should be smaller; if 2–3 meals/day, each can be larger.
+
+**If a meal is too much for one sitting:**
+1. Keep the core items (main protein + primary carb source + key vegetables) in the meal.
+2. Move the overflow items (extra fruit, extra dairy, secondary sides) to a **snack slot** (加餐).
+3. Add a note to the user: "如果一餐吃不下这么多，可以把 [moved items] 放到加餐时间吃，时间自由安排就好" / "If this feels like too much for one meal, feel free to move [moved items] to a snack — eat them whenever works for you."
+
+This check applies to **every meal type** — breakfast, lunch, and dinner alike. Breakfast is especially prone to this issue because many people have smaller appetites in the morning.
+
 ### Precision Rule
 
 When specifying amounts, the **minimum granularity is 0.5** — never use values like 0.3 or 0.7. Valid values: 0.5, 1, 1.5, 2, 2.5, etc. Ranges use the same granularity (e.g., "0.5–1 fist", "1–2 cups").
