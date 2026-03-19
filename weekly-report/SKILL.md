@@ -261,7 +261,7 @@ Specific, actionable improvements for next week. Based on the week's gaps.
 
 **Rules:**
 - Each suggestion must reference actual data (e.g., "Protein averaged 82g vs target 84–112g")
-- Must include a concrete action (e.g., "Add a Greek yogurt to breakfast")
+- Must include a concrete action (e.g., "Add a yogurt to breakfast")
 - Respect food restrictions from `health-profile.md`
 - Never suggest weighing more than 2x/week
 - Never suggest calorie counting if user is on IF mode

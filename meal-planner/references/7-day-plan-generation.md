@@ -93,7 +93,7 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 
 **Locale-appropriate foods.** Use foods that match the user's country/region and are available at their local grocery stores, markets, or restaurants. Don't recommend foods that are hard to find or culturally unfamiliar unless the user asks for them.
 
-- **US-based users:** grocery store staples — chicken breast, ground turkey, eggs, Greek yogurt, canned tuna, rice, oats, sweet potatoes, etc. Think Walmart, Trader Joe's, Costco.
+- **US-based users:** grocery store staples — chicken breast, ground turkey, eggs, yogurt, canned tuna, rice, oats, sweet potatoes, etc. Think Walmart, Trader Joe's, Costco.
 - **China-based users:** chicken breast, eggs, tofu, fish/shrimp, brown rice/mixed-grain rice, leafy greens, legumes. Think Hema, Yonghui, wet markets.
 - **Japan-based users:** chicken breast, fish, tofu, natto, brown rice, miso soup, vegetables. Think supermarkets, convenience stores (konbini are a legitimate meal source in Japan).
 - **Other regions:** Adapt accordingly based on local staple foods, common proteins, and typical grocery availability. When unsure, ask the user what's easy for them to get.
@@ -118,7 +118,7 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 - **Cap any single batch-prep dish at 3 consecutive days max.** Even great-storing dishes become monotonous. Alternate 2–3 different prep dishes per week.
 - **Prep-day annotations must be temporally valid.** When noting which day a dish was batch-prepped, the prep day must fall **before** the consumption day within the plan's timeline. If the plan starts on Monday (Day 1), Tuesday's (Day 2) dishes should reference "周一备餐" (Monday prep), NOT "周日备餐" (Sunday prep) — because Sunday is Day 7, which hasn't happened yet. Day 1 meals are cooked fresh (and double as the first batch-prep session). See `references/meal-prep-feasibility.md` § Prep-Day Timeline Rule for detailed examples.
 
-**Egg limit: 1 per day.** Cap whole-egg intake at one egg per day across all meals. This includes boiled eggs, fried eggs, tea eggs, braised eggs, and eggs as a primary ingredient in dishes like tomato egg stir-fry. If the user needs more protein, supplement with other sources — chicken breast, fish, tofu, Greek yogurt, cottage cheese, legumes, or protein powder. When a breakfast already includes an egg, do not schedule egg-heavy dishes (e.g., egg stir-fries, egg-drop soup, shakshuka) for other meals that day. Eggs used as a minor binding ingredient in cooking (e.g., a small amount of egg wash) do not count toward this limit.
+**Egg limit: 1 per day.** Cap whole-egg intake at one egg per day across all meals. This includes boiled eggs, fried eggs, tea eggs, braised eggs, and eggs as a primary ingredient in dishes like tomato egg stir-fry. If the user needs more protein, supplement with other sources — chicken breast, fish, tofu, yogurt, cottage cheese, legumes, or protein powder. When a breakfast already includes an egg, do not schedule egg-heavy dishes (e.g., egg stir-fries, egg-drop soup, shakshuka) for other meals that day. Eggs used as a minor binding ingredient in cooking (e.g., a small amount of egg wash) do not count toward this limit.
 
 **Budget awareness.** Default to affordable staples. If recommending salmon, also offer a canned tuna alternative. If a recipe calls for pine nuts, suggest sunflower seeds as a swap.
 

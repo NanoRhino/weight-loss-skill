@@ -262,7 +262,7 @@ Use the templates below as defaults. If the user's diet mode is non-standard (e.
 
 **Example must strictly match the template structure.** The example is a concrete instantiation of the template — the number of items and their types must correspond exactly:
 - Each food category in the template maps to exactly one item in the example.
-- If the template uses "or" to list alternatives (e.g., "nuts or yogurt"), the example must pick **one** of them, not combine both. For instance, if the template says `Snack ~140 kcal: handful of nuts or 1 small cup yogurt`, a correct example is `● Walnuts 2 pieces` or `● Plain Greek yogurt 100g` — **not** `● Plain Greek yogurt 100g + Walnuts 2 pieces`.
+- If the template uses "or" to list alternatives (e.g., "nuts or yogurt"), the example must pick **one** of them, not combine both. For instance, if the template says `Snack ~140 kcal: handful of nuts or 1 small cup yogurt`, a correct example is `● Walnuts 2 pieces` or `● Plain yogurt 100g` — **not** `● Plain yogurt 100g + Walnuts 2 pieces`.
 
 ### Precision Rule
 
@@ -294,7 +294,7 @@ Dinner:
 ● Roasted bell peppers & asparagus 2 cups
 Snack:
 ● 1 medium apple
-● Plain Greek yogurt 1 cup (8 fl oz)
+● Plain yogurt 1 cup (8 fl oz)
 ```
 
 ### Locale Adaptation
@@ -365,6 +365,8 @@ These principles should guide every decision in the plan. They're not rules to s
 **Prep realism.** Don't design a plan that requires elaborate cooking every day. Match the prep level to the user's actual cooking conditions and willingness. For users who eat out frequently, build the plan around smart restaurant choices rather than forcing them to cook.
 
 **Storage-aware planning.** Every dish in a meal plan should taste good when the user actually eats it — not just when it's freshly made. If a dish is meant to be reheated on Day 3, it must be a dish that genuinely holds up on Day 3 (braised meats, curries, soups — not leafy stir-fries, fried foods, or fish). Schedule fresh-only dishes on cook days or eat-out days. See `references/meal-prep-feasibility.md` for detailed storage tiers and assignment rules.
+
+**Egg limit: 1 per day.** When recommending meals or answering "what should I eat" questions, cap whole-egg intake at one egg per day. Do not routinely recommend 2 eggs — even when protein is low. If the user needs more protein, supplement with other sources: chicken breast, fish, tofu, yogurt, cottage cheese, legumes, or protein powder. This applies to all food recommendations — diet templates, single-meal suggestions, and casual "what should I eat" answers, not just 7-day plans. Eggs used as a minor binding ingredient in cooking (e.g., egg wash) do not count.
 
 **Budget awareness.** Default to affordable staples. If recommending salmon, also offer a canned tuna alternative. If a recipe calls for pine nuts, suggest sunflower seeds as a swap.
 
