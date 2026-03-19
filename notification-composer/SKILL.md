@@ -96,7 +96,7 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 
 | `data_level` | Strategy |
 |-------------|----------|
-| `rich` (≥ 7 days) | Base recommendations on the user's real eating habits (`top_foods`). Combine familiar ingredients into varied meals. |
+| `rich` (≥ 7 days) | Check today's earlier meals against targets. **If on track:** send a short encouragement + photo invitation, no recommendations needed. **If gaps exist (e.g., protein low, carbs high):** send 1 brief suggestion that addresses the gap, based on the user's real eating habits (`top_foods`). |
 | `limited` (1-6 days) | Mix available history with the diet template. Use known favorites where possible, fill gaps from the template. |
 | `none` (0 days) | Use the diet template + `health-preferences.md` preferences entirely. |
 
@@ -111,8 +111,8 @@ Tip sources:
 
 **Deduplication — avoid repetitive recommendations:**
 - Read `recent_recommendations` from `meal-history` output.
-- Of the 2-3 options, at least 2 must differ from yesterday's `items` for the same meal type.
-- Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
+- **`rich`:** If a suggestion is given, avoid recommending the exact same item as yesterday's suggestion for the same meal. Encouragement-only messages don't need dedup.
+- **`limited` / `none`:** Of the 2-3 options, at least 2 must differ from yesterday's `items` for the same meal type. Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
 - If the user picked the same recommendation 3+ days in a row, don't force a change — respect their preference.
 
 **Closing line:** Always end with an invitation to photograph the meal. Examples:
@@ -123,6 +123,23 @@ Adapt the closing to the user's language.
 
 #### Message Format
 
+**`rich` — on track (encouragement):**
+```
+{encouragement — 1-2 sentences, casual}
+
+{closing — photo invitation}
+```
+
+**`rich` — gaps exist (1 brief suggestion):**
+```
+{context — what's off, 1 sentence}
+
+· {food combo} — {short tip}
+
+{closing — photo invitation}
+```
+
+**`limited` / `none` (2-3 recommendations):**
 ```
 {opening line — optional, 1 sentence max}
 
@@ -137,7 +154,23 @@ The opening line is optional — use it for context when relevant (time of day, 
 
 #### Examples
 
-**Chinese (lunch):**
+**Chinese — `rich`, on track (dinner):**
+```
+今天吃得很均衡，继续保持就好👍
+
+晚餐吃之前拍给我，帮你看看~
+```
+
+**Chinese — `rich`, protein low (dinner):**
+```
+今天蛋白质偏少，晚餐补一点。
+
+· 鸡胸肉 + 蔬菜 — 简单高效
+
+吃之前拍给我，现场帮你看~
+```
+
+**Chinese — `limited`/`none` (lunch):**
 ```
 午餐想好了吗？
 
@@ -148,7 +181,23 @@ The opening line is optional — use it for context when relevant (time of day, 
 吃之前拍给我，现场帮你看~
 ```
 
-**English (breakfast):**
+**English — `rich`, on track (breakfast):**
+```
+Yesterday was solid, you're in a good rhythm.
+
+Snap a pic before you eat — I'll take a look~
+```
+
+**English — `rich`, carbs high (dinner):**
+```
+Carbs are running a bit high today — go lighter on starch for dinner.
+
+· Grilled chicken + greens — keeps it balanced
+
+Snap a pic before you eat — I'll check it out~
+```
+
+**English — `limited`/`none` (breakfast):**
 ```
 Morning! A few ideas:
 
