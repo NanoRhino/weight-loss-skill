@@ -97,10 +97,9 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 | `data_level` | Strategy |
 |-------------|----------|
 | `rich` (≥ 7 days) | Base recommendations on the user's real eating habits (`top_foods`). Combine familiar ingredients into varied meals. Recommend 2-3 concrete food combos for the current meal. |
-| `limited` (1-6 days) | Check today's earlier meals against targets (using available history + diet template). **If on track:** send a short encouragement + photo invitation. **If gaps exist:** send 1 brief directional suggestion (e.g., "蛋白质偏少，加点肉或蛋") — no specific food combos. |
-| `none` (0 days) | Use the diet template + `health-preferences.md` preferences entirely. |
+| `< 7 days` (0-6 days) | Check today's earlier meals against targets (using available history + diet template where available). **If on track:** send a short encouragement + photo invitation. **If gaps exist:** send 1 brief directional suggestion (e.g., "蛋白质偏少，加点肉或蛋") — no specific food combos. |
 
-**`rich` / `none` food-combo recommendations** use the format: food combo + short tip (joined by ` — `).
+**`rich` food-combo recommendations** use the format: food combo + short tip (joined by ` — `).
 The tip (≤ 10 Chinese characters / ≤ 6 English words) explains *why this option fits right now* — in a casual, friend-like tone. Not a nutrition lecture.
 
 Tip sources (`rich`):
@@ -109,13 +108,12 @@ Tip sources (`rich`):
 - Variety ("换换口味")
 - Situational ("今天想轻一点的话")
 
-**`limited` brief suggestions** are directional advice, not specific food combos. Keep to 1 sentence, casual tone.
+**`< 7 days` brief suggestions** are directional advice, not specific food combos. Keep to 1 sentence, casual tone.
 
 **Deduplication — avoid repetitive recommendations:**
 - Read `recent_recommendations` from `meal-history` output.
 - **`rich`:** Of the 2-3 options, at least 2 must differ from yesterday's `items` for the same meal type. Among the options, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
-- **`limited`:** If a suggestion is given, vary the angle from yesterday (e.g., don't repeat "加点蛋白质" two days in a row). Encouragement-only messages don't need dedup.
-- **`none`:** Of the 2-3 options, at least 2 must differ from yesterday's `items` for the same meal type. Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
+- **`< 7 days`:** If a suggestion is given, vary the angle from yesterday (e.g., don't repeat "加点蛋白质" two days in a row). Encouragement-only messages don't need dedup.
 - If the user picked the same recommendation 3+ days in a row, don't force a change — respect their preference.
 
 **Closing line:** Always end with an invitation to photograph the meal. Examples:
@@ -137,32 +135,19 @@ Adapt the closing to the user's language.
 {closing — photo invitation}
 ```
 
-**`limited` — on track (encouragement):**
+**`< 7 days` — on track (encouragement):**
 ```
 {encouragement — 1-2 sentences, casual}
 
 {closing — photo invitation}
 ```
 
-**`limited` — gaps exist (1 brief suggestion):**
+**`< 7 days` — gaps exist (1 brief suggestion):**
 ```
 {directional suggestion — 1 sentence, no specific food combos}
 
 {closing — photo invitation}
 ```
-
-**`none` (2-3 recommendations):**
-```
-{opening line — optional, 1 sentence max}
-
-1. {food combo} — {short tip}
-2. {food combo} — {short tip}
-3. {food combo} — {short tip}
-
-{closing — photo invitation}
-```
-
-The opening line is optional — use it for context when relevant (time of day, callback to yesterday, etc.), skip it when it adds nothing.
 
 #### Examples
 
@@ -177,27 +162,16 @@ The opening line is optional — use it for context when relevant (time of day, 
 吃之前拍给我，现场帮你看~
 ```
 
-**Chinese — `limited`, on track (lunch):**
+**Chinese — `< 7 days`, on track (lunch):**
 ```
 今天目前吃得不错，午餐照这个节奏来就行。
 
 吃之前拍给我，帮你看看~
 ```
 
-**Chinese — `limited`, veggies low (lunch):**
+**Chinese — `< 7 days`, veggies low (lunch):**
 ```
 今天蔬菜吃得少，午餐多搭点青菜。
-
-吃之前拍给我，现场帮你看~
-```
-
-**Chinese — `none` (lunch):**
-```
-午餐想好了吗？
-
-1. 鸡胸肉 + 糙米 + 西兰花 — 经典搭配，营养均衡
-2. 牛肉面 + 茶叶蛋 — 换换口味，蛋白质也够
-3. 沙拉 + 全麦面包 + 酸奶 — 今天想轻一点的话
 
 吃之前拍给我，现场帮你看~
 ```
@@ -213,29 +187,18 @@ Morning! A few ideas:
 Snap a pic before you eat — I'll take a look~
 ```
 
-**English — `limited`, on track (lunch):**
+**English — `< 7 days`, on track (lunch):**
 ```
 You're doing great today — keep it up for lunch!
 
 Snap a pic before you eat — I'll take a look~
 ```
 
-**English — `limited`, protein low (dinner):**
+**English — `< 7 days`, protein low (dinner):**
 ```
 Protein's been a bit low today — try adding some meat or eggs at dinner.
 
 Snap a pic before you eat — I'll check it out~
-```
-
-**English — `none` (breakfast):**
-```
-Morning! A few ideas:
-
-1. Oatmeal + boiled eggs + milk — your go-to, solid
-2. Avocado toast + Greek yogurt — switch it up
-3. Smoothie bowl + granola — light start today
-
-Snap a pic before you eat — I'll take a look~
 ```
 
 #### Don'ts
