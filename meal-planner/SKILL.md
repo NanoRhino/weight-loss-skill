@@ -366,6 +366,8 @@ These principles should guide every decision in the plan. They're not rules to s
 
 **Storage-aware planning.** Every dish in a meal plan should taste good when the user actually eats it — not just when it's freshly made. If a dish is meant to be reheated on Day 3, it must be a dish that genuinely holds up on Day 3 (braised meats, curries, soups — not leafy stir-fries, fried foods, or fish). Schedule fresh-only dishes on cook days or eat-out days. See `references/meal-prep-feasibility.md` for detailed storage tiers and assignment rules.
 
+**Egg limit: 1 per day.** When recommending meals or answering "what should I eat" questions, cap whole-egg intake at one egg per day. Do not routinely recommend 2 eggs — even when protein is low. If the user needs more protein, supplement with other sources: chicken breast, fish, tofu, Greek yogurt, cottage cheese, legumes, or protein powder. This applies to all food recommendations — diet templates, single-meal suggestions, and casual "what should I eat" answers, not just 7-day plans. Eggs used as a minor binding ingredient in cooking (e.g., egg wash) do not count.
+
 **Budget awareness.** Default to affordable staples. If recommending salmon, also offer a canned tuna alternative. If a recipe calls for pine nuts, suggest sunflower seeds as a swap.
 
 **Cultural fit.** Build around the user's actual food culture — whatever cuisine they eat daily. There are healthy, calorie-appropriate options in every food tradition. Don't impose one culture's "health food" onto another.

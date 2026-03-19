@@ -70,7 +70,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 | Chicken breast | 4 oz (113g) | 26g | 120 |
 | Ground turkey (93% lean) | 4 oz | 22g | 150 |
 | Salmon | 4 oz | 23g | 160 |
-| Eggs | 2 large | 12g | 140 |
+| Eggs | 1 large | 6g | 70 |
 | Greek yogurt (nonfat) | 1 cup (227g) | 20g | 130 |
 | Cottage cheese (2%) | 1 cup | 24g | 180 |
 | Canned tuna | 1 can (5 oz) | 27g | 120 |
@@ -239,7 +239,7 @@ So the normal days can actually be slightly higher if the weekly average needs t
 | Seitan | 4 oz | 25g | 140 |
 | Pea protein powder | 1 scoop | 24g | 120 |
 | Greek yogurt (vegetarian) | 1 cup | 20g | 130 |
-| Eggs (vegetarian) | 2 large | 12g | 140 |
+| Eggs (vegetarian) | 1 large | 6g | 70 |
 
 **Key nutrients to watch:**
 - **B12:** Supplement required for vegans (not found in plant foods)
