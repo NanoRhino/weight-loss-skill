@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Report · 第5周 3月9日–15日</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    line-height: 1.6; color: #1a1a1a; background: #f5f5f0; padding: 0; margin: 0;
+  }
+  .page { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .report-header { text-align: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e0ddd5; }
+  .report-header h1 { font-size: 1.8rem; font-weight: 700; color: #2d5016; margin-bottom: 0.4rem; }
+  .report-header .subtitle { font-size: 0.95rem; color: #666; }
+  .report-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
+  .card-header { padding: 0.8rem 1.2rem; font-size: 1.1rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
+  .card-body { padding: 1rem 1.2rem; }
+  .card-commentary { font-size: 0.88rem; color: #555; padding: 0.6rem 1.2rem 1rem; border-top: 1px solid #f0ede5; }
+  .logging-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 0; }
+  .logging-grid .day-label { font-size: 0.78rem; color: #888; font-weight: 500; padding: 0.3rem 0; }
+  .logging-grid .day-status { font-size: 1.4rem; padding: 0.2rem 0 0.4rem; }
+  .logging-grid .day-count { font-size: 0.72rem; color: #888; padding-bottom: 0.3rem; }
+  .logging-summary { text-align: center; font-size: 0.92rem; font-weight: 600; color: #333; padding-top: 0.6rem; }
+  .calorie-target { font-size: 0.85rem; color: #888; margin-bottom: 0.8rem; }
+  .calorie-table { width: 100%; border-collapse: collapse; margin-bottom: 0.6rem; }
+  .calorie-table th { text-align: left; font-size: 0.78rem; color: #888; font-weight: 500; padding: 0.4rem 0.6rem; border-bottom: 2px solid #e0ddd5; }
+  .calorie-table td { font-size: 0.88rem; color: #444; padding: 0.5rem 0.6rem; border-bottom: 1px solid #f0ede5; }
+  .calorie-table tr:last-child td { border-bottom: none; }
+  .calorie-table td:first-child { font-weight: 600; color: #2d5016; width: 3.5rem; }
+  .calorie-bar-cell { width: 40%; }
+  .calorie-bar { height: 14px; border-radius: 7px; background: #e8e5dd; overflow: hidden; }
+  .calorie-bar-fill { height: 100%; border-radius: 7px; transition: width 0.3s; }
+  .calorie-bar-fill.on-target { background: #4ade80; }
+  .calorie-bar-fill.below { background: #fbbf24; }
+  .calorie-bar-fill.over { background: #f87171; }
+  .calorie-average { text-align: center; font-size: 0.92rem; font-weight: 600; color: #333; padding-top: 0.4rem; }
+  .calorie-average .sub { font-weight: 400; font-size: 0.82rem; color: #888; }
+  .status-icon { font-size: 0.85rem; }
+  .no-data { color: #ccc; }
+  .weight-table { width: 100%; border-collapse: collapse; margin-bottom: 0.6rem; }
+  .weight-table th { text-align: left; font-size: 0.78rem; color: #888; font-weight: 500; padding: 0.4rem 0.6rem; border-bottom: 2px solid #e0ddd5; }
+  .weight-table td { font-size: 0.88rem; color: #444; padding: 0.5rem 0.6rem; border-bottom: 1px solid #f0ede5; }
+  .weight-table tr:last-child td { border-bottom: none; }
+  .weight-change { text-align: center; font-size: 1rem; font-weight: 700; padding: 0.6rem 0 0.2rem; }
+  .weight-change.loss { color: #16a34a; }
+  .weight-change.gain { color: #dc2626; }
+  .weight-change.same { color: #888; }
+  .weight-progress { text-align: center; font-size: 0.82rem; color: #888; }
+  .macro-table { width: 100%; border-collapse: collapse; }
+  .macro-table th { text-align: left; font-size: 0.78rem; color: #888; font-weight: 500; padding: 0.4rem 0.6rem; border-bottom: 2px solid #e0ddd5; }
+  .macro-table td { font-size: 0.88rem; color: #444; padding: 0.5rem 0.6rem; border-bottom: 1px solid #f0ede5; }
+  .macro-table tr:last-child td { border-bottom: none; }
+  .habit-item { margin-bottom: 0.8rem; }
+  .habit-item:last-child { margin-bottom: 0; }
+  .habit-name { font-size: 0.92rem; font-weight: 600; color: #333; }
+  .habit-name .habit-week { font-weight: 400; font-size: 0.82rem; color: #888; }
+  .habit-track { font-size: 1.1rem; letter-spacing: 0.15rem; margin: 0.2rem 0; }
+  .habit-rate { font-size: 0.82rem; color: #888; }
+  .achievement-list, .suggestion-list { list-style: none; padding: 0; margin: 0; }
+  .achievement-list li, .suggestion-list li { font-size: 0.88rem; color: #444; padding: 0.3rem 0 0.3rem 1.4rem; position: relative; }
+  .achievement-list li::before { content: "\1F3C6"; position: absolute; left: 0; font-size: 0.82rem; }
+  .suggestion-list li::before { content: "\1F4A1"; position: absolute; left: 0; font-size: 0.82rem; }
+  .suggestion-list li strong { color: #2d5016; }
+  .section-subtitle { font-size: 0.92rem; font-weight: 600; color: #2d5016; margin-bottom: 0.4rem; padding-top: 0.4rem; }
+  .section-subtitle:first-child { padding-top: 0; }
+  .suggestions-divider { border: none; border-top: 1px solid #f0ede5; margin: 0.8rem 0; }
+  .report-footer { text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0ddd5; font-size: 0.8rem; color: #aaa; }
+  @media (max-width: 600px) { html { font-size: 14px; } .page { padding: 1rem; } .calorie-bar-cell { width: 30%; } }
+  @media print { body { background: #fff; font-size: 11pt; } .page { max-width: none; padding: 0; } .report-card { break-inside: avoid; border: 1px solid #ccc; } .report-footer { display: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="report-header">
+    <h1>📊 第5周周报</h1>
+    <p class="subtitle">3月9日–15日 · 小明，这周辛苦了</p>
+  </header>
+
+  <!-- SECTION 1: LOGGING OVERVIEW -->
+  <div class="report-card">
+    <div class="card-header">📅 记录概览</div>
+    <div class="card-body">
+      <div class="logging-grid">
+        <div class="day-label">周一</div>
+        <div class="day-label">周二</div>
+        <div class="day-label">周三</div>
+        <div class="day-label">周四</div>
+        <div class="day-label">周五</div>
+        <div class="day-label">周六</div>
+        <div class="day-label">周日</div>
+        <div class="day-status">✅</div>
+        <div class="day-status">✅</div>
+        <div class="day-status">✅</div>
+        <div class="day-status">❌</div>
+        <div class="day-status">✅</div>
+        <div class="day-status">✅</div>
+        <div class="day-status">❌</div>
+        <div class="day-count">3/3</div>
+        <div class="day-count">2/3</div>
+        <div class="day-count">3/3</div>
+        <div class="day-count">0/3</div>
+        <div class="day-count">2/3</div>
+        <div class="day-count">3/3</div>
+        <div class="day-count">0/3</div>
+      </div>
+      <div class="logging-summary">5/7 天有记录</div>
+    </div>
+    <div class="card-commentary">记录很稳！</div>
+  </div>
+
+  <!-- SECTION 2: CALORIE ANALYSIS -->
+  <div class="report-card">
+    <div class="card-header">🔥 热量分析</div>
+    <div class="card-body">
+      <div class="calorie-target">每日目标: 1500 – 1800 kcal</div>
+      <table class="calorie-table">
+        <thead>
+          <tr><th>日期</th><th>摄入</th><th class="calorie-bar-cell"></th><th>状态</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>周一</td><td>1620 kcal</td>
+            <td class="calorie-bar-cell"><div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 78%"></div></div></td>
+            <td><span class="status-icon">✅</span></td>
+          </tr>
+          <tr>
+            <td>周二</td><td>1480 kcal</td>
+            <td class="calorie-bar-cell"><div class="calorie-bar"><div class="calorie-bar-fill below" style="width: 71%"></div></div></td>
+            <td><span class="status-icon">📉</span></td>
+          </tr>
+          <tr>
+            <td>周三</td><td>1750 kcal</td>
+            <td class="calorie-bar-cell"><div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 84%"></div></div></td>
+            <td><span class="status-icon">✅</span></td>
+          </tr>
+          <tr>
+            <td>周四</td><td class="no-data">—</td>
+            <td class="calorie-bar-cell"></td>
+            <td class="no-data">—</td>
+          </tr>
+          <tr>
+            <td>周五</td><td>1580 kcal</td>
+            <td class="calorie-bar-cell"><div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 76%"></div></div></td>
+            <td><span class="status-icon">✅</span></td>
+          </tr>
+          <tr>
+            <td>周六</td><td>2080 kcal</td>
+            <td class="calorie-bar-cell"><div class="calorie-bar"><div class="calorie-bar-fill over" style="width: 100%"></div></div></td>
+            <td><span class="status-icon">📈</span></td>
+          </tr>
+          <tr>
+            <td>周日</td><td class="no-data">—</td>
+            <td class="calorie-bar-cell"></td>
+            <td class="no-data">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="calorie-average">
+        平均: 1702 kcal/天
+        <span class="sub">（目标中位: 1650 kcal）</span>
+      </div>
+    </div>
+    <div class="card-commentary">这周热量控制得很好。周六稍微放纵了一点，不过整体均值仍在范围内。</div>
+  </div>
+
+  <!-- SECTION 3: WEIGHT PROGRESS -->
+  <div class="report-card">
+    <div class="card-header">⚖️ 体重变化</div>
+    <div class="card-body">
+      <table class="weight-table">
+        <thead>
+          <tr><th>日期</th><th>体重</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>周一 3/9</td><td>74.8 kg</td></tr>
+          <tr><td>周三 3/11</td><td>74.5 kg</td></tr>
+          <tr><td>周四 3/12</td><td>74.6 kg</td></tr>
+        </tbody>
+      </table>
+      <div class="weight-change loss">本周: −0.2 kg ↓</div>
+      <div class="weight-progress">总进度: 80.0 kg → 74.6 kg（已减 5.4 kg，目标 65.0 kg，完成 36%）</div>
+    </div>
+    <div class="card-commentary">进度刚好。已经超过三分之一了！</div>
+  </div>
+
+  <!-- SECTION 4: MACRONUTRIENT ANALYSIS -->
+  <div class="report-card">
+    <div class="card-header">🥗 营养素分析</div>
+    <div class="card-body">
+      <table class="macro-table">
+        <thead>
+          <tr><th>营养素</th><th>日均摄入</th><th>目标范围</th><th>状态</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>蛋白质</td><td>78 g/天</td><td>84–112 g/天</td>
+            <td><span class="status-icon">📉</span></td>
+          </tr>
+          <tr>
+            <td>脂肪</td><td>55 g/天</td><td>45–65 g/天</td>
+            <td><span class="status-icon">✅</span></td>
+          </tr>
+          <tr>
+            <td>碳水</td><td>195 g/天</td><td>170–220 g/天</td>
+            <td><span class="status-icon">✅</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-commentary">蛋白质偏低（78 g vs 目标 84–112 g），试试每天多加一个鸡蛋或一份鸡胸肉。</div>
+  </div>
+
+  <!-- SECTION 5: HABIT PROGRESS -->
+  <div class="report-card">
+    <div class="card-header">🌱 习惯养成</div>
+    <div class="card-body">
+      <div class="habit-item">
+        <div class="habit-name">饭前喝一杯水 <span class="habit-week">（第3周）</span></div>
+        <div class="habit-track">✅ ✅ ✅ ❌ ✅ ✅ ❌</div>
+        <div class="habit-rate">5/7 完成</div>
+      </div>
+      <div class="habit-item">
+        <div class="habit-name">晚餐后散步15分钟 <span class="habit-week">（第1周）</span></div>
+        <div class="habit-track">✅ ❌ ✅ ❌ ❌ ✅ ❌</div>
+        <div class="habit-rate">3/7 完成</div>
+      </div>
+    </div>
+    <div class="card-commentary">"饭前喝水"快变成习惯了。"晚餐后散步"这周有点难，要不要调整一下时间？</div>
+  </div>
+
+  <!-- SECTION 6: ACHIEVEMENTS & SUGGESTIONS -->
+  <div class="report-card">
+    <div class="card-header">🏆 本周亮点 & 建议</div>
+    <div class="card-body">
+      <div class="section-subtitle">亮点</div>
+      <ul class="achievement-list">
+        <li>连续5天记录饮食，这就是坚持。</li>
+        <li>3天热量都在目标范围内。</li>
+        <li>体重稳步下降 0.2 kg，累计已减 5.4 kg。</li>
+      </ul>
+
+      <hr class="suggestions-divider">
+
+      <div class="section-subtitle">下周建议</div>
+      <ul class="suggestion-list">
+        <li><strong>提高蛋白质:</strong> 蛋白质日均 78 g，低于目标 84 g。试试早餐加一个水煮蛋，午餐多 50 g 鸡胸肉。</li>
+        <li><strong>周末热量控制:</strong> 周六摄入 2080 kcal，超出目标。提前规划周末的餐食，避免临时凑合。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="report-footer">
+    Generated by AI Health Coach · 仅供参考
+  </footer>
+
+</div>
+</body>
+</html>
