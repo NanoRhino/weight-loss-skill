@@ -41,8 +41,6 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py local-date --
 
 This returns `today`, `current_week` (monday–sunday), and `previous_week` (monday–sunday). Use `current_week` as the report range. **Never calculate dates yourself** — always use the script output.
 
-If the user's quiet hours extend past 9 PM, delay to end of quiet hours.
-
 ### Manual Trigger
 
 User can request a report at any time:
