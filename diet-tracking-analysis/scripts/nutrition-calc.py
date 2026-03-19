@@ -386,14 +386,15 @@ def evaluate(weight: float, daily_cal: int, meals: int,
                 adjusted["carbs"] = round(adjusted["carbs"] + m.get("carbs", 0), 1)
                 adjusted["fat"] = round(adjusted["fat"] + m.get("fat", 0), 1)
 
+    status_base = adjusted if assumed_meals else actual
     status = {
-        "calories": _range_status(actual["calories"], cp_range["calories_min"], cp_range["calories_max"]),
-        "protein": _range_status(actual["protein"], cp_range["protein_min"], cp_range["protein_max"]),
-        "carbs": _range_status(actual["carbs"], cp_range["carbs_min"], cp_range["carbs_max"]),
-        "fat": _range_status(actual["fat"], cp_range["fat_min"], cp_range["fat_max"]),
+        "calories": _range_status(status_base["calories"], cp_range["calories_min"], cp_range["calories_max"]),
+        "protein": _range_status(status_base["protein"], cp_range["protein_min"], cp_range["protein_max"]),
+        "carbs": _range_status(status_base["carbs"], cp_range["carbs_min"], cp_range["carbs_max"]),
+        "fat": _range_status(status_base["fat"], cp_range["fat_min"], cp_range["fat_max"]),
     }
 
-    cal_outside = not _in_range(actual["calories"], cp_range["calories_min"], cp_range["calories_max"])
+    cal_outside = not _in_range(status_base["calories"], cp_range["calories_min"], cp_range["calories_max"])
     macros_outside = sum(1 for k in ["protein", "carbs", "fat"] if status[k] != "on_track")
     needs_adjustment = cal_outside or macros_outside >= 2
 
