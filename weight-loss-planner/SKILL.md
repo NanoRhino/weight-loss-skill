@@ -173,6 +173,8 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 
 **[Rate explanation]** — 1–2 sentences explaining why this rate was chosen. Frame from the user's perspective — what they'll experience, not nutrition theory. If activity level is low/sedentary, mention that adding exercise would help speed up progress. Do NOT mention TDEE or BMR by name. Use *italics* for emphasis where appropriate.
 
+**[Exercise note]** — One sentence telling the user that the calorie target above is based on their daily routine only, and that exercise burns are tracked separately: whenever they work out, they can report it and the system will calculate the extra calorie burn for them. Keep it brief and encouraging — e.g., "The target above is based on your daily routine; exercise burns extra on top of that. Whenever you work out, just let me know and I'll track the calories for you."
+
 **[Follow-up question]** — Ask whether the user accepts this plan:
 "Does this pace feel right, or would you like to adjust?"
 If activity data was assumed or missing, also invite the user to share their exercise habits for a more accurate recalculation.
