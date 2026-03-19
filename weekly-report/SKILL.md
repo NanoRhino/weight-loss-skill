@@ -32,16 +32,16 @@ things to focus on next week.
 
 ### Schedule
 
-Auto-generate every **Monday at 9:00 AM** (user's local time), covering the
-previous Monday–Sunday. To get the correct date range, run:
+Auto-generate every **Sunday at 9:00 PM** (user's local time), covering the
+current Monday–Sunday. To get the correct date range, run:
 
 ```bash
 python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py local-date --tz-offset {tz_offset}
 ```
 
-This returns `today`, `current_week` (monday–sunday), and `previous_week` (monday–sunday). Use `previous_week` as the report range. **Never calculate dates yourself** — always use the script output.
+This returns `today`, `current_week` (monday–sunday), and `previous_week` (monday–sunday). Use `current_week` as the report range. **Never calculate dates yourself** — always use the script output.
 
-If the user's quiet hours extend past 9 AM, delay to end of quiet hours.
+If the user's quiet hours extend past 9 PM, delay to end of quiet hours.
 
 ### Manual Trigger
 
@@ -380,7 +380,7 @@ per-day meal completion trends.
 is **Priority Tier P4 (Reporting)**. Key scenarios:
 
 - **Weekly report + exercise weekly summary** (Pattern 3): This skill is the primary owner of weekly summaries. Exercise weekly data (sessions, duration, calories burned, WHO comparison) is incorporated as a section within this report. `exercise-tracking-planning` does NOT produce a separate weekly summary when this skill is generating.
-- **Monday auto-report**: Include exercise data from the week. No separate exercise summary needed.
+- **Sunday evening auto-report**: Include exercise data from the week. No separate exercise summary needed.
 - **User requests "weekly summary"**: Route here, not to exercise-tracking's weekly summary.
 
 ---
