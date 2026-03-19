@@ -134,6 +134,8 @@ After resolving the calorie target and user context, collect the user's dietary 
 
 **Skip any round whose answer is already available** in `health-preferences.md` or `health-profile.md` or from earlier conversation context. Only ask what's missing.
 
+**Out-of-order information:** Users often volunteer answers to later rounds early (e.g., providing meal times and food restrictions before being asked). When this happens, acknowledge all provided info immediately in the current reply — including the reminder confirmation if meal times were given — then skip the already-answered rounds and continue with the next unanswered one.
+
 **Single-ask rule:** Each round's question is asked at most once. If the user ignores a question or skips it, accept the silence — use a sensible default (e.g., Balanced for diet mode, 3 meals for schedule) and move on. Do not repeat or rephrase the question. See `SKILL-ROUTING.md > Single-Ask Rule`.
 
 ### Round 1: Diet Mode
@@ -177,14 +179,15 @@ If the user wants to see all options, provide the full list. If `health-preferen
 
 ### Round 2: Meal Schedule
 
-After the user confirms their diet mode, ask about their meal schedule. **Only ask about meals and times — do NOT mention reminders yet.**
+After the user confirms their diet mode, ask about their meal schedule.
 
 > 你一天通常吃几餐，大概什么时间？
 
-
 **Wait for the user to answer.**
 
-After the user provides their meal schedule, **in the same reply**, confirm the reminder and ask Round 3's question together:
+**Reminder confirmation rule:** The very first reply that acknowledges/confirms the user's meal schedule **must** include the reminder confirmation line. This applies regardless of conversation order — if the user volunteers meal times early (e.g., before diet mode selection), confirm the reminder right there, not in a later round. Never delay the reminder mention to a subsequent reply.
+
+After acknowledging the meal schedule (with the reminder confirmation), ask Round 3's question in the same reply:
 
 > 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
 >
