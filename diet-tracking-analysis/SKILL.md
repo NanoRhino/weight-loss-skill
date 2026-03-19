@@ -422,7 +422,7 @@ Every food log reply must contain up to three sections:
 - The 1-sentence comment summarizes the overall picture concisely — e.g. "Protein is solid, carbs running a bit low — easy to make up at dinner." or "Everything looks balanced so far, keep it up!"
 - When adjustment is needed, the comment can naturally lead into the suggestion below — keep the two sections complementary, not repetitive
 - Language consistency: do not mix languages (e.g. no "蛋白质on track" or "Protein达标"). Use localized nutrient names when replying in non-English (e.g. 蛋白质, 碳水, 脂肪 for Chinese)
-- For forgotten/assumed meals: only show real recorded values (consistent with existing rule)
+- For forgotten/assumed meals: only show real recorded values (consistent with existing rule); status arrows reflect `adjusted` totals (including assumed meals) so that the indicators match the commentary
 
 **③ Suggestion** (based on evaluate output + meal timing detection — only one suggestion type per meal)
 
@@ -454,6 +454,26 @@ Every food log reply must contain up to three sections:
 ```
 ✨ [1–2 genuine lines tied to their actual food choices, or omit if nothing noteworthy]
 ```
+
+---
+
+## Closing the Day
+
+**Trigger:** User signals they're done eating for the day — e.g. "今天都吃完了", "done eating for today", "no more meals today", "今天就这些了".
+
+**This is NOT a goodnight signal.** "Done eating" means the food log is closed — NOT that the user is going to sleep or ending the conversation. The user may still want to chat, ask questions, review their day, or log a forgotten snack.
+
+### Workflow
+
+1. **Call `load`** — get all meals for today
+2. **Call `evaluate`** — evaluate final daily totals (use `dinner` or the last logged meal as `--current-meal`)
+3. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
+4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
+5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
+
+### If the user also runs `detect-diet-pattern` criteria
+
+If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pattern` (see Diet Pattern Detection above). Append pattern feedback after the daily summary if `has_pattern` is true.
 
 ---
 

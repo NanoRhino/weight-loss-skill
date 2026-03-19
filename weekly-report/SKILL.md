@@ -261,7 +261,7 @@ Specific, actionable improvements for next week. Based on the week's gaps.
 
 **Rules:**
 - Each suggestion must reference actual data (e.g., "Protein averaged 82g vs target 84–112g")
-- Must include a concrete action (e.g., "Add a Greek yogurt to breakfast")
+- Must include a concrete action (e.g., "Add a yogurt to breakfast")
 - Respect food restrictions from `health-profile.md`
 - Never suggest weighing more than 2x/week
 - Never suggest calorie counting if user is on IF mode
@@ -290,7 +290,7 @@ Skip silently. Do not send any message.
 **User has no PLAN.md (no calorie/macro targets):**
 Skip Sections 2 and 4 (calorie and macro analysis). Show logging overview and
 weight progress only. Add note: `"Set up a weight loss plan to unlock calorie and macro tracking in your weekly report."` /
-`"创建减重计划后，周报会加入热量和营养素分析。"`
+`"创建减脂计划后，周报会加入热量和营养素分析。"`
 
 **Health flags (ED-related):**
 If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:

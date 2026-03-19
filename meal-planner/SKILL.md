@@ -262,7 +262,33 @@ Use the templates below as defaults. If the user's diet mode is non-standard (e.
 
 **Example must strictly match the template structure.** The example is a concrete instantiation of the template — the number of items and their types must correspond exactly:
 - Each food category in the template maps to exactly one item in the example.
-- If the template uses "or" to list alternatives (e.g., "nuts or yogurt"), the example must pick **one** of them, not combine both. For instance, if the template says `Snack ~140 kcal: handful of nuts or 1 small cup yogurt`, a correct example is `● Walnuts 2 pieces` or `● Plain Greek yogurt 100g` — **not** `● Plain Greek yogurt 100g + Walnuts 2 pieces`.
+- If the template uses "or" to list alternatives (e.g., "nuts or yogurt"), the example must pick **one** of them, not combine both. For instance, if the template says `Snack ~140 kcal: handful of nuts or 1 small cup yogurt`, a correct example is `● Walnuts 2 pieces` or `● Plain yogurt 100g` — **not** `● Plain yogurt 100g + Walnuts 2 pieces`.
+
+### Single-Meal Item Cap (Mandatory)
+
+Each meal has a **hard upper limit on food items** — this is a ceiling, not a target. A meal with fewer items is perfectly fine as long as it meets the calorie/macro goal. This prevents meals from becoming physically too large to eat in one sitting — a common failure mode where the plan looks fine calorie-wise but is unrealistic volume-wise.
+
+| Meal | Upper Limit | Example |
+|---|---|---|
+| **Breakfast** | **≤ 3 items** | e.g., 1 主食 + 1 蛋白; or 1 主食 + 1 蛋白 + 1 饮品 |
+| **Lunch / Dinner** | **≤ 1 主食 + 2 菜** | e.g., 1 主食 + 1 菜; or 1 主食 + 2 菜 |
+
+**Key constraints:**
+- **At most 1 staple/carb per meal** — rice, noodles, bread, oatmeal, congee, etc. Never 2 staples in one meal (e.g., rice + bread, noodles + buns).
+- **At most 2 dishes** — each dish is a ready-to-eat item the user would plate or order as one unit: a stir-fry, a braised meat, a salad, a soup, a steamed fish, etc. A dish typically contains its own protein and/or vegetables — don't split "protein" and "veggie" into separate items when they naturally form one dish (e.g., "鸡肉炒西兰花" is 1 dish, not "鸡胸肉" + "炒西兰花" as 2).
+- Fewer items is fine — "1 主食 + 1 菜" is a perfectly valid lunch if the portions meet the calorie target.
+
+**Counting rules:**
+- Each `●` line = 1 item.
+- Drinks (soy milk, milk, soup) count as items — they take stomach volume.
+- Fruit counts as an item.
+
+**When the calorie/macro target requires more food than this structure allows**, do NOT add more items. Instead:
+1. Increase portion sizes within the existing items (bigger rice bowl, more meat in the dish).
+2. If still not enough, move supplementary items (fruit, yogurt, drink, nuts) to a **snack slot** (加餐).
+3. Add a note: "如果一餐吃不下这么多，[moved items] 可以放到加餐，时间自由安排" / "If this is too much for one sitting, move [moved items] to a snack — eat whenever works for you."
+
+**This rule is non-negotiable.** Apply it to every meal in both the diet template and the 7-day plan. Breakfast is especially prone to overflow because many people have smaller morning appetites.
 
 ### Precision Rule
 
@@ -294,7 +320,7 @@ Dinner:
 ● Roasted bell peppers & asparagus 2 cups
 Snack:
 ● 1 medium apple
-● Plain Greek yogurt 1 cup (8 fl oz)
+● Plain yogurt 1 cup (8 fl oz)
 ```
 
 ### Locale Adaptation
@@ -365,6 +391,8 @@ These principles should guide every decision in the plan. They're not rules to s
 **Prep realism.** Don't design a plan that requires elaborate cooking every day. Match the prep level to the user's actual cooking conditions and willingness. For users who eat out frequently, build the plan around smart restaurant choices rather than forcing them to cook.
 
 **Storage-aware planning.** Every dish in a meal plan should taste good when the user actually eats it — not just when it's freshly made. If a dish is meant to be reheated on Day 3, it must be a dish that genuinely holds up on Day 3 (braised meats, curries, soups — not leafy stir-fries, fried foods, or fish). Schedule fresh-only dishes on cook days or eat-out days. See `references/meal-prep-feasibility.md` for detailed storage tiers and assignment rules.
+
+**Egg limit: 1 per day.** When recommending meals or answering "what should I eat" questions, cap whole-egg intake at one egg per day. Do not routinely recommend 2 eggs — even when protein is low. If the user needs more protein, supplement with other sources: chicken breast, fish, tofu, yogurt, cottage cheese, legumes, or protein powder. This applies to all food recommendations — diet templates, single-meal suggestions, and casual "what should I eat" answers, not just 7-day plans. Eggs used as a minor binding ingredient in cooking (e.g., egg wash) do not count.
 
 **Budget awareness.** Default to affordable staples. If recommending salmon, also offer a canned tuna alternative. If a recipe calls for pine nuts, suggest sunflower seeds as a swap.
 
