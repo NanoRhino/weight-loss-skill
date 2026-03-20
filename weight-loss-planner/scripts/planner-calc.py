@@ -186,8 +186,15 @@ def calc_calorie_target(tdee: int, rate_kg_per_week: float) -> dict:
 
 
 def calc_macro_targets(weight_kg: float, daily_cal: int,
-                       mode: str = "balanced", meals: int = 3) -> dict:
-    """Compute protein / fat / carb ranges for a given diet mode."""
+                       mode: str = "balanced", meals: int = 3,
+                       meal_blocks: dict = None) -> dict:
+    """Compute protein / fat / carb ranges for a given diet mode.
+
+    Args:
+        meal_blocks: Optional dict mapping meal label to percentage,
+                     e.g. {"breakfast": 25, "lunch": 45, "dinner": 30}.
+                     Overrides default per-meal allocation when provided.
+    """
     fat_lo_pct, fat_hi_pct = DIET_MODE_FAT.get(mode, (25, 35))
     fat_mid_pct = (fat_lo_pct + fat_hi_pct) / 2
 
@@ -210,8 +217,20 @@ def calc_macro_targets(weight_kg: float, daily_cal: int,
     cal_lo = daily_cal - 100
     cal_hi = daily_cal + 100
 
-    # Per-meal allocation
-    if meals == 3:
+    # Per-meal allocation (use custom blocks if provided)
+    if meal_blocks:
+        if meals == 3:
+            base_labels = ["breakfast", "lunch", "dinner"]
+            default_pcts = {"breakfast": 30, "lunch": 40, "dinner": 30}
+        else:
+            base_labels = ["meal_1", "meal_2"]
+            default_pcts = {"meal_1": 50, "meal_2": 50}
+        alloc = []
+        for label in base_labels:
+            pct = meal_blocks.get(label, default_pcts[label])
+            alloc.append({"meal": label, "pct": pct,
+                          "cal": round(daily_cal * pct / 100)})
+    elif meals == 3:
         alloc = [
             {"meal": "breakfast", "pct": 30, "cal": round(daily_cal * 0.30)},
             {"meal": "lunch",     "pct": 40, "cal": round(daily_cal * 0.40)},
@@ -454,6 +473,9 @@ def main():
     p.add_argument("--mode", default="balanced",
                    choices=list(DIET_MODE_FAT.keys()))
     p.add_argument("--meals", type=int, default=3, choices=[2, 3])
+    p.add_argument("--meal-blocks", type=str, default=None,
+                   help='Optional JSON object with custom meal block percentages, '
+                        'e.g. \'{"breakfast":25,"lunch":45,"dinner":30}\'')
 
     # --- safety-floor ---
     p = sub.add_parser("safety-floor", help="Compute calorie floor")
@@ -548,7 +570,14 @@ def main():
         result = calc_calorie_target(args.tdee, args.rate_kg)
 
     elif args.cmd == "macro-targets":
-        result = calc_macro_targets(args.weight, args.cal, args.mode, args.meals)
+        mb = None
+        if args.meal_blocks:
+            try:
+                mb = json.loads(args.meal_blocks)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --meal-blocks JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = calc_macro_targets(args.weight, args.cal, args.mode, args.meals, mb)
 
     elif args.cmd == "safety-floor":
         floor = calc_safety_floor(args.bmr)
