@@ -344,11 +344,16 @@ routing system re-evaluates on every message. The new intent takes
 priority per the tier rules. Partially collected data is preserved.
 
 **Ambiguous intent:**
-When it's genuinely unclear which skill should handle a message, prefer
-the skill that requires less user effort to correct. Logging a meal
-when the user meant to just mention food casually is less disruptive
-than ignoring a food log. When truly ambiguous, ask: "Want me to log
-that, or were you just sharing?"
+When it's genuinely unclear which skill should handle a message, ask
+rather than assume: "Want me to log that, or were you just sharing?"
+Do not default to logging — an unwanted log is more disruptive than a
+brief clarification question.
+
+**Deferred food intent:**
+When the user announces a future meal and explicitly says they will
+report back later (e.g. "一会吃寿司，吃完了告诉你", "I'll have pizza
+tonight, will tell you after"), do NOT route to `diet-tracking-analysis`
+for logging. Acknowledge the plan and wait for the user's follow-up.
 
 **Three or more skills triggered:**
 Rare but possible (e.g., Sunday + exercise log + food log + positive
