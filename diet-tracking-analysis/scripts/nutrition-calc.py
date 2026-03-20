@@ -794,44 +794,47 @@ def _compute_day_pattern(day_meals: list, meals: int) -> dict | None:
     }
 
 
-def _patterns_consistent(p1: dict, p2: dict) -> dict:
-    """Check whether two day-patterns are similar enough to constitute a
+def _patterns_consistent(patterns: list) -> dict:
+    """Check whether N day-patterns are similar enough to constitute a
     consistent eating habit.
 
-    Returns a dict with ``is_consistent`` bool and detail breakdown.
+    Uses max spread (max - min across days) rather than pairwise comparison.
     """
     # Macro consistency
     macro_ok = True
     macro_detail = {}
     for key in ("protein_pct", "carbs_pct", "fat_pct"):
-        diff = abs(p1["macro_split"][key] - p2["macro_split"][key])
-        ok = diff <= _MACRO_CONSISTENCY
-        macro_detail[key] = {"diff": round(diff, 1), "ok": ok}
+        vals = [p["macro_split"][key] for p in patterns]
+        spread = max(vals) - min(vals)
+        ok = spread <= _MACRO_CONSISTENCY
+        macro_detail[key] = {"spread": round(spread, 1), "ok": ok}
         if not ok:
             macro_ok = False
 
     # Meal distribution consistency
     dist_ok = True
     dist_detail = {}
-    common_labels = set(p1["meal_distribution"]) & set(p2["meal_distribution"])
-    for label in common_labels:
-        diff = abs(p1["meal_distribution"][label] - p2["meal_distribution"][label])
-        ok = diff <= _MEAL_DIST_CONSISTENCY
-        dist_detail[label] = {"diff": round(diff, 1), "ok": ok}
+    all_labels: set[str] = set()
+    for p in patterns:
+        all_labels.update(p["meal_distribution"].keys())
+    for label in all_labels:
+        vals = [p["meal_distribution"].get(label, 0) for p in patterns]
+        spread = max(vals) - min(vals)
+        ok = spread <= _MEAL_DIST_CONSISTENCY
+        dist_detail[label] = {"spread": round(spread, 1), "ok": ok}
         if not ok:
             dist_ok = False
 
     # Meal count consistency
-    count_ok = p1["main_meals_logged"] == p2["main_meals_logged"]
+    counts = [p["main_meals_logged"] for p in patterns]
+    count_ok = len(set(counts)) == 1
 
     is_consistent = macro_ok and dist_ok
     return {
         "is_consistent": is_consistent,
         "macro": {"ok": macro_ok, "detail": macro_detail},
         "meal_distribution": {"ok": dist_ok, "detail": dist_detail},
-        "meal_count": {"ok": count_ok,
-                       "day1": p1["main_meals_logged"],
-                       "day2": p2["main_meals_logged"]},
+        "meal_count": {"ok": count_ok, "counts": counts},
     }
 
 
@@ -970,63 +973,62 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
                                  custom_meal_blocks: dict = None,
                                  ref_date: str = None,
                                  tz_offset: int = None) -> dict:
-    """Analyze 2 consecutive days of meal data to detect consistent deviation
-    from current nutrition standards.
+    """Analyze the 3 most recent days of meal data to detect consistent
+    deviation from current nutrition standards.
 
-    If a consistent pattern is found that deviates significantly, proposes
-    adjusted standards that are closer to the user's natural eating habit while
-    still meeting nutritional guidelines.
+    Designed to run once on the user's 4th day of logging, after 3 complete
+    days of data exist.  Always returns ``avg_pattern`` when enough data is
+    available so that the caller can compose a 3-day review message.
 
-    Checks three dimensions:
-    - Macro split (protein / carbs / fat percentages)
-    - Per-meal energy distribution (breakfast / lunch / dinner share)
-    - Meal count (2 vs 3 main meals)
-
-    Returns a proposal only when *all* of these hold:
-    1. Both days have sufficient data (≥ 500 kcal, ≥ 2 main meals each)
-    2. The 2 days show a consistent pattern (similar to each other)
+    A concrete proposal is generated only when *all* of these hold:
+    1. All 3 days have sufficient data (≥ 500 kcal, ≥ 2 main meals each)
+    2. The 3 days show a consistent pattern (similar to each other)
     3. The common pattern deviates significantly from current standards
     4. A nutritionally valid adjusted standard exists
     """
     end = date.fromisoformat(ref_date) if ref_date else \
         date.fromisoformat(_local_date(tz_offset))
-    yesterday = (end - timedelta(days=1)).isoformat()
-    today = end.isoformat()
 
     current_blocks = get_meal_blocks(meals, custom_meal_blocks)
 
-    # Load 2 consecutive days
+    # Load up to 3 most recent days within 7-day lookback
     days_data = []
-    for day_str in [yesterday, today]:
+    for offset in range(7):
+        day_str = (end - timedelta(days=offset)).isoformat()
         path = get_log_path(data_dir, day_str)
         if not os.path.exists(path):
-            break
+            continue
         with open(path, "r", encoding="utf-8") as f:
             day_meals = _migrate_meals(json.load(f))
         pattern = _compute_day_pattern(day_meals, meals)
         if pattern is None:
-            break
+            continue
         if pattern["main_meals_logged"] < 2:
-            break
+            continue
         days_data.append({"date": day_str, "pattern": pattern})
+        if len(days_data) >= 3:
+            break
 
-    if len(days_data) < 2:
-        return {"has_proposal": False, "reason": "insufficient_data"}
+    if len(days_data) < 3:
+        return {"has_proposal": False, "reason": "insufficient_data",
+                "days_found": len(days_data)}
 
-    p1, p2 = days_data[0]["pattern"], days_data[1]["pattern"]
+    all_patterns = [d["pattern"] for d in days_data]
+
+    # Average pattern (always returned for the 3-day review)
+    avg = _avg_pattern(all_patterns)
 
     # Consistency check
-    consistency = _patterns_consistent(p1, p2)
+    consistency = _patterns_consistent(all_patterns)
     if not consistency["is_consistent"]:
-        return {"has_proposal": False, "reason": "inconsistent_pattern"}
-
-    # Average pattern
-    avg = _avg_pattern([p1, p2])
+        return {"has_proposal": False, "reason": "inconsistent_pattern",
+                "avg_pattern": avg}
 
     # Deviation significance
     deviations = _check_deviation_significance(avg, meals, mode, current_blocks)
     if not deviations["significant"]:
-        return {"has_proposal": False, "reason": "no_significant_deviation"}
+        return {"has_proposal": False, "reason": "no_significant_deviation",
+                "avg_pattern": avg}
 
     # --- Build proposal ---
     effective_mode = mode if mode not in ("if_16_8", "if_5_2") else "balanced"
@@ -1065,12 +1067,12 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
             })
             proposed_blocks = new_blocks
 
-    # 3. Meal count proposal (only if both days show same count ≠ configured)
+    # 3. Meal count proposal (only if all days show same count ≠ configured)
     proposed_meals = meals
     if (consistency["meal_count"]["ok"]
-            and p1["main_meals_logged"] != meals
-            and p1["main_meals_logged"] in (2, 3)):
-        proposed_meals = p1["main_meals_logged"]
+            and all_patterns[0]["main_meals_logged"] != meals
+            and all_patterns[0]["main_meals_logged"] in (2, 3)):
+        proposed_meals = all_patterns[0]["main_meals_logged"]
         changes.append({
             "type": "meal_count",
             "from": meals,
@@ -1079,7 +1081,8 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
         })
 
     if not changes:
-        return {"has_proposal": False, "reason": "no_better_standard_found"}
+        return {"has_proposal": False, "reason": "no_better_standard_found",
+                "avg_pattern": avg}
 
     # --- Validate nutritional soundness ---
     # Validate based on the user's actual intake pattern (not the mode's

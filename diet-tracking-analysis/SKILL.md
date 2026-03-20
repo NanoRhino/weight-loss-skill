@@ -309,19 +309,20 @@ The below-BMR safety check runs **weekly** (not per-meal). This avoids noisy dai
 
 **When `below_floor` is false:** No action needed. The weekly check passes silently.
 
-### Nutrition Standard Negotiation
+### Nutrition Standard Negotiation (3-Day Review)
 
-When the user's **actual eating pattern** (what they ultimately recorded after receiving adjustment suggestions) deviates from current standards consistently over **2 consecutive days** with the **same pattern**, propose adjusted standards closer to their natural rhythm while still meeting nutritional guidelines. **Fewer adjustment suggestions → less friction → better adherence.**
+On the user's **4th day of logging**, run a 3-day review: celebrate the milestone, show the user their actual eating patterns over the past 3 days, and **ask** what they'd like to adjust. If the data shows a consistent deviation from current standards, present a concrete proposal; otherwise just present the summary and invite feedback.
 
-> **Supersedes** `detect-diet-pattern`. Covers more dimensions (macro split + meal distribution + meal count) and triggers earlier (2 days vs. 3). Do not run `detect-diet-pattern` separately.
+> **Supersedes** `detect-diet-pattern`. Do not run `detect-diet-pattern` separately.
 
 #### When to Trigger
 
 Run `propose-standard-adjustment` after the user logs their **last meal of the day**, when **all** hold:
 
-1. Both today and yesterday have complete meal data (≥ 2 main meals each)
-2. Both days had `needs_adjustment: true` on at least one checkpoint
-3. No negotiation in the past **14 days** (`data/standard-adjustments.json` → `last_negotiation_date`)
+1. At least **3 complete days** of meal data exist (≥ 2 main meals each, within 7-day lookback)
+2. The 3-day review has **not been done before** (`data/standard-adjustments.json` → `review_completed` is absent or false)
+
+This is a **one-time** trigger. After the review is done (regardless of outcome), set `review_completed: true` so it does not fire again.
 
 #### Script Command
 
@@ -335,50 +336,59 @@ python3 {baseDir}/scripts/nutrition-calc.py propose-standard-adjustment \
 
 `--meal-blocks`: pass if `health-profile.md > Diet Config > Custom Meal Blocks` exists; omit for defaults.
 
-**Returns when `has_proposal: true`:** `avg_pattern`, `changes` (list of proposed adjustments), `current_standard`, `proposed_standard`, `validation_issues`, `improvement` (distance comparison current→proposed).
+**Returns:** always includes `avg_pattern` (when ≥ 3 days exist). If a consistent deviation is found, also includes `has_proposal: true`, `changes`, `current_standard`, `proposed_standard`, `validation_issues`, `improvement`.
 
-**Returns when `has_proposal: false`:** only `reason` — one of `insufficient_data`, `inconsistent_pattern`, `no_significant_deviation`, `no_better_standard_found`. No action needed; pass silently.
+#### Presenting the 3-Day Review
 
-#### What It Checks (three dimensions)
+Always present **after** the normal meal log reply. Two cases:
 
-1. **Macro split** — protein/carbs/fat % consistently outside current mode's ranges
-2. **Per-meal energy distribution** — e.g., actual 20/50/30 vs. standard 30/40/30
-3. **Meal count** — consistently 2 meals when configured for 3, or vice versa
-
-Proposal requires: both days consistent + significant deviation + nutritionally valid alternative (protein ≥ 1.0 g/kg, fat ≥ 15%, each meal block ≥ 15%).
-
-#### When `has_proposal` is `true` — Negotiate
-
-Present **after** the normal meal log reply. Tone: neutral, supportive — "adapting the plan to you," never guilt.
+**Case A — Consistent deviation detected (`has_proposal: true`):**
 
 ```
-🔄 这两天你的实际饮食模式很稳定，但和当前计划有差距。与其每餐调整，不如把计划调整成更贴合你的节奏：
+🎉 我们已经一起走过 3 天了！来看看这 3 天你的实际饮食习惯：
 
+📊 三日平均：蛋白质 [X]% · 碳水 [X]% · 脂肪 [X]%
+📊 每餐分配：早 [X]% · 午 [X]% · 晚 [X]%
+
+我发现你的实际节奏和当前计划有些不同：
 • [每项 change 用自然语言描述]
 
-当前 → 建议：
-[current_standard vs proposed_standard 对比]
+有一套更贴合你实际习惯的方案：
+当前 → 建议：[current_standard vs proposed_standard 对比]
 
-新方案仍符合营养指南。按过去两天估算，调整建议会减少约 [X]%。
-要切换到新方案吗？还是保持现有的？都可以——目标是你能坚持下去的方案。
+这套新方案仍然符合营养指南。你觉得呢？想怎么调？
+也可以告诉我你自己想改的地方——计划是为你服务的。
 ```
+
+**Case B — No significant deviation or pattern still forming (`has_proposal: false`):**
+
+```
+🎉 我们已经一起走过 3 天了！来看看这 3 天你的实际饮食习惯：
+
+📊 三日平均：蛋白质 [X]% · 碳水 [X]% · 脂肪 [X]%
+📊 每餐分配：早 [X]% · 午 [X]% · 晚 [X]%
+
+整体和计划比较吻合，节奏不错。
+有什么地方觉得不舒服、想调整的吗？比如某餐吃不下、某类食物不想吃、时间不方便等，都可以告诉我。
+```
+
+**Tone:** 庆祝 + 协商。强调"计划是为你服务的"，鼓励用户主动提需求。
 
 #### Recording & Applying
 
-Save to `data/standard-adjustments.json`:
+After the user responds, save to `data/standard-adjustments.json`:
 
 ```json
-{"last_negotiation_date": "2026-03-20", "negotiations": [
-  {"date": "2026-03-20", "proposed_changes": [...], "user_decision": "accepted|declined|partial",
-   "applied_standard": {"mode": "balanced", "meals": 3, "meal_blocks": {"breakfast":25,"lunch":45,"dinner":30}}}
-]}
+{"review_completed": true, "review_date": "2026-03-20",
+ "user_feedback": "summary of what user said",
+ "applied_changes": [{"type": "meal_distribution", "to": {"breakfast":25,"lunch":45,"dinner":30}}]}
 ```
 
-**Accepted:** Update `health-profile.md > Diet Config` (Diet Mode / Custom Meal Blocks / Meals per Day). From this point, pass `--meal-blocks` to all `target`, `evaluate`, `analyze`, `check-missing` calls.
+**User requests changes:** Update `health-profile.md > Diet Config` accordingly (Diet Mode / Custom Meal Blocks / Meals per Day). From this point, pass `--meal-blocks` to all `target`, `evaluate`, `analyze`, `check-missing` calls.
 
-**Declined:** Save with `"declined"`. Keep current standards. No re-proposal for 14 days.
+**User says all good:** Save with `review_completed: true` and empty `applied_changes`. Continue with current standards.
 
-**Partial:** Apply accepted changes only. Save with `"partial"`.
+**User mentions specific preferences** (e.g., "午餐吃不了那么多"): Apply what's actionable, note preferences in `health-preferences.md`.
 
 ---
 
@@ -494,9 +504,9 @@ Every food log reply must contain up to three sections:
 4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
 5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
 
-### End-of-day pattern check
+### End-of-day: 3-Day Review
 
-If this is the last meal of the day, and trigger conditions are met (see Nutrition Standard Negotiation above) → run `propose-standard-adjustment`. Append proposal after the daily summary if `has_proposal` is true.
+If this is the last meal of the day, check whether the 3-day review should trigger (see Nutrition Standard Negotiation above). If ≥ 3 complete days exist and `review_completed` is not yet true → run `propose-standard-adjustment` and append the review after the daily summary.
 
 ---
 
