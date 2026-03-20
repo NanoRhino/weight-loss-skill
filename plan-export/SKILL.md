@@ -72,7 +72,7 @@ Parameters:
 - `--agent` (required): Your agent ID (e.g., `007-zhuoran`)
 - `--input` (required): Path to the Markdown file
 - `--bucket` (required for HTML mode): Storage bucket name. For JD OSS, falls back to `JD_OSS_BUCKET` env var if omitted. For AWS, defaults to `nanorhino-im-plans`.
-- `--username` (required for HTML mode): User identifier for the S3 key path. Auto-detect from workspace path: if it matches `workspace-wechat-dm-{id}`, use `{id}`; otherwise use the agent ID (e.g., `007-zhuoran`)
+- `--username` (required for HTML mode): User short ID for the S3 key path. Read from `agent-registry.json` field `shortId` for the current user. The `shortId` is a 6-character identifier derived from the account ID. If shortId is not available, fall back to the full account ID.
 - `--workspace` (optional): Agent workspace path — if provided, writes `plan-url.json` there
 - `--template` (optional): `meal-plan` for meal plan HTML. Omit for default (weight loss plan).
 - `--key` (required for HTML mode): Document key, used in both S3 path and `plan-url.json` (e.g., `weight-loss-plan`, `meal-plan`)
@@ -167,6 +167,6 @@ bash {baseDir}/scripts/send-to-slack.sh --agent <id> --file <path> [--message <t
 - PDF mode uses WeasyPrint (Python) — no Chrome/browser dependency
 - All formats support Chinese, English, and mixed-language content
 - Cloud storage objects: set lifecycle rule on bucket for auto-cleanup (optional)
-- Public URLs are permanent (`{base-url}/{username}/{key}.html`), served via Cloudflare Worker
+- Public URLs are permanent (`{base-url}/user/{shortId}/{key}.html`), served via Cloudflare Worker
 - Same S3 key is overwritten on each upload — URL stays stable
 - Agent-to-Slack-user mapping (PDF fallback) is auto-resolved from `openclaw.json` bindings

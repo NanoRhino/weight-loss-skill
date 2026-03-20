@@ -56,8 +56,8 @@ if [[ ! -f "$FILE" ]]; then echo "ERROR: File not found: $FILE" >&2; exit 1; fi
 if [[ -z "$USERNAME" ]]; then echo "ERROR: --username is required" >&2; exit 1; fi
 if [[ -z "$KEY" ]]; then echo "ERROR: --key is required" >&2; exit 1; fi
 
-S3_KEY="${USERNAME}/${KEY}.html"
-PUBLIC_URL="${BASE_URL}/${USERNAME}/${KEY}.html"
+S3_KEY="user/${USERNAME}/${KEY}.html"
+PUBLIC_URL="${BASE_URL}/user/${USERNAME}/${KEY}.html"
 
 # === Detect storage backend ===
 detect_backend() {
