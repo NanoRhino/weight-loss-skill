@@ -35,7 +35,7 @@ This step has two paths. Check which one applies before doing anything else.
 
 Another skill may have already collected the user's body data during onboarding and stored it across two files:
 - `USER.md` — identity info: height, age, biological sex
-- `health-profile.md` — health data: activity level, exercise habits, target weight, unit preference
+- `health-profile.md` — health data: daily activity level (NEAT-based, excludes exercise), target weight, unit preference
 - `data/weight.json` — current weight (read via `weight-tracker.py load --last 1` from the `weight-tracking` skill)
 
 Check whether these files exist in the workspace. If they do, read them for required fields. Field names and formats may vary — look for semantic matches.
@@ -53,7 +53,7 @@ If no `USER.md` or `health-profile.md` is found, this skill works independently.
 - Current weight
 - Age (years)
 - Biological sex (male / female — needed for metabolic formulas)
-- Daily activity description (not just a dropdown — ask them to describe their typical day and exercise habits so you can estimate more accurately)
+- Daily activity description (not just a dropdown — ask them to describe their typical day: what kind of work they do, how they commute, how much they're on their feet. Focus on **lifestyle and job activity**, not exercise — exercise is tracked separately and must not be double-counted in TDEE)
 
 #### After resolving data (both paths): Calculate TDEE via script
 
@@ -173,6 +173,8 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 
 **[Rate explanation]** — 1–2 sentences explaining why this rate was chosen. Frame from the user's perspective — what they'll experience, not nutrition theory. If activity level is low/sedentary, mention that adding exercise would help speed up progress. Do NOT mention TDEE or BMR by name. Use *italics* for emphasis where appropriate.
 
+**[Exercise note]** — One sentence telling the user that the calorie target above is based on their daily routine only, and that exercise burns are tracked separately: whenever they work out, they can report it and the system will calculate the extra calorie burn for them. Keep it brief and encouraging — e.g., "The target above is based on your daily routine; exercise burns extra on top of that. Whenever you work out, just let me know and I'll track the calories for you."
+
 **[Follow-up question]** — Ask whether the user accepts this plan:
 "Does this pace feel right, or would you like to adjust?"
 If activity data was assumed or missing, also invite the user to share their exercise habits for a more accurate recalculation.
@@ -240,7 +242,7 @@ This skill focuses on weight loss. If the user's BMI is below 18.5 or they want 
 Focus on the first major phase (e.g., first 20–25 kg / 50 lbs), with a note to reassess and create a new plan at that point. Losing 45+ kg is a multi-year journey — framing it as one continuous plan can feel overwhelming.
 
 **User is vague about activity:**
-Probe with specific questions: "What does a typical weekday look like for you — do you walk or drive to work? Sit most of the day? How many times a week do you exercise, and what do you do?" This yields a better activity estimate than asking them to self-classify. If still unclear after probing, default to Lightly Active (×1.375). See `references/formulas.md > Activity Level Selection Policy` for the full selection rules.
+Probe with specific questions about their **daily lifestyle**, not exercise: "What does a typical weekday look like for you — do you walk or drive to work? Sit most of the day? Are you on your feet a lot at work?" Classify based on job type and daily movement patterns only — exercise habits are tracked separately by the exercise skill and must not influence the activity level. If still unclear after probing, default to Lightly Active (×1.375). See `references/formulas.md > Activity Level Selection Policy` for the full selection rules.
 
 **User changes goal mid-plan:**
 No problem — recalculate from the current state. Acknowledge the change positively ("Goals evolve — that's totally fine!") and regenerate the plan.

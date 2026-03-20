@@ -82,10 +82,13 @@ python3 {baseDir}/scripts/nutrition-calc.py detect-meal \
 ### 1. Set Target — `target`
 
 ```bash
-python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3] [--mode balanced]
+python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3] [--mode balanced] \
+  [--meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}']
 ```
 
 Supported `--mode` values: `usda`, `balanced` (default), `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2`. The mode determines the fat percentage range used for macro calculations — see `weight-loss-planner/references/diet-modes.md` for details.
+
+`--meal-blocks`: optional, pass when `health-profile.md > Diet Config > Custom Meal Blocks` exists (from a previous standard negotiation). Overrides default per-meal allocation percentages.
 
 ### 2. Save Entry — `save` (must call on every food log)
 
@@ -124,7 +127,8 @@ python3 {baseDir}/scripts/nutrition-calc.py analyze --weight <kg> --cal <kcal> -
 python3 {baseDir}/scripts/nutrition-calc.py evaluate --weight <kg> --cal <kcal> --meals <2|3> \
   --current-meal "lunch" \
   --log '[...]' \
-  [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]']
+  [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]'] \
+  [--meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}']
 ```
 
 Evaluates cumulative intake at the current checkpoint against range-based targets. Uses min/max ranges for each macro.
@@ -137,7 +141,68 @@ All JSON fields use full names: `calories`, `protein`, `carbs`, `fat`. Old short
 
 `--assumed` optional: for forgotten meals, pass standard values based on that meal's ratio of daily targets (e.g. forgotten lunch in 30:40:30 mode = 40% of daily targets, NOT the cumulative checkpoint).
 
-### 6. Missing Meal Check — `check-missing`
+### 6. Save Food Correction — `save-correction` (call when user corrects a food identification)
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py save-correction \
+  --data-dir {workspaceDir}/data/meals \
+  --original '[{"name":"white rice ~150g","calories":200,"protein":4,"carbs":44,"fat":0.5}]' \
+  --corrected '[{"name":"brown rice ~150g","calories":170,"protein":4,"carbs":36,"fat":1.5}]' \
+  --type food_identity \
+  [--meal-type lunch] \
+  [--note "User always eats brown rice, not white rice"] \
+  [--date 2026-03-19]
+```
+
+**When to call:** Every time the user corrects your food identification, portion estimate, or nutrition values — after saving the corrected meal via `save`. This builds a personal correction database that improves future identifications.
+
+**Parameters:**
+- `--original`: JSON array of food item dicts as you originally identified them (before correction)
+- `--corrected`: JSON array of food item dicts after user correction
+- `--type`: Correction type — one of:
+  - `food_identity` — wrong food name/type (e.g. "that's brown rice, not white rice")
+  - `portion` — wrong portion size (e.g. "that's a small bowl, not a regular bowl")
+  - `nutrition` — wrong calorie/macro values (e.g. "this brand has 120 cal, not 80")
+  - `add_item` — user added food items you missed (e.g. "I also had soup")
+  - `remove_item` — user removed wrongly identified items (e.g. "there's no sauce on this")
+  - `general` — other corrections
+- `--meal-type`: optional, the meal type (breakfast/lunch/dinner/snack)
+- `--note`: optional, brief note about what was corrected (for future reference)
+
+**Returns:** `saved`, `replaced_existing`, `total_corrections`, `record`
+
+If the same original food names already exist in the corrections database, the record is updated (not duplicated).
+
+### 7. Look Up Food Corrections — `lookup-corrections` (call before estimating nutrition)
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py lookup-corrections \
+  --data-dir {workspaceDir}/data/meals \
+  --foods '["rice", "eggs", "vegetables"]' \
+  [--meal-type lunch]
+```
+
+**When to call:** After identifying foods from the user's description or photo, before estimating nutrition values. Call this to check if the user has previously corrected similar food identifications.
+
+**Parameters:**
+- `--foods`: JSON array of food name strings to match against saved corrections
+- `--meal-type`: optional, for relevance boosting
+
+**Returns:** `has_matches`, `matches[]` (each with `score`, `matched_on`, `correction`), `total_corrections_in_db`
+
+If matches are found, use the corrected food names/nutrition values from the highest-scoring match instead of your default estimates. After applying, call `apply-correction` to track usage.
+
+### 8. Apply Correction — `apply-correction` (call after using a saved correction)
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py apply-correction \
+  --data-dir {workspaceDir}/data/meals \
+  --original-names '["white rice ~150g"]'
+```
+
+**When to call:** After you use a saved correction to adjust a food log entry. This increments the usage counter to track which corrections are actively being used.
+
+### 9. Missing Meal Check — `check-missing`
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py check-missing --meals <2|3> \
@@ -162,6 +227,7 @@ Each meal in `--log` may include optional fields `vegetables_g` (grams of vegeta
 Returns: `is_final_meal`, `vegetables_actual_g`, `vegetables_target_g`, `has_vegetable_target`, `vegetable_status` (`"on_track"` / `"low"` / `null`), `fruits_actual_g`, `fruits_daily_min_g`, `fruits_daily_max_g`, `fruit_status` (`"on_track"` / `"low"` / `"high"` / `null`)
 
 ### 8. Weekly Low-Calorie Check — `weekly-low-cal-check`
+
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
@@ -270,6 +336,33 @@ The server runs in UTC. To ensure meals are saved under the correct local date:
 
 **Example:** User is in `Asia/Shanghai` (UTC+8). Message arrives at UTC 16:30 (local 00:30 next day). `detect-meal` returns `local_date: "2026-03-18"` (the next day), which you pass as `--date` to all subsequent commands.
 
+## Batch Message Recognition
+
+Users often split a single meal log across multiple consecutive messages — for example, a photo in one message followed by clarifications in the next ("这些肥肉没吃", "没吃米饭", "加了一包辣椒酱"). These messages form **one logical input** and must be processed together.
+
+### Rule: Collect before responding
+
+When the conversation context contains multiple user messages that arrived in quick succession (i.e., no bot reply between them), **treat them all as a single input**. Read every pending user message before generating a response. Typical multi-message patterns:
+
+| Message 1 | Message 2+ | How to handle |
+|-----------|-----------|---------------|
+| Food photo | Text clarifying what was/wasn't eaten | Combine: use the photo for identification, apply the text as corrections (removals, additions, portion adjustments) |
+| Food photo | "这是午饭" / "breakfast" | Combine: use the photo for food items, use the text for meal type — skip `detect-meal` |
+| Text food log ("吃了炒饭") | Correction ("没放油" / "only half a bowl") | Combine: log the food with the corrected details |
+| Food photo | Photo of another dish | Combine: both are part of the same meal |
+
+### What NOT to do
+
+- **Do NOT respond to the photo alone** and then ask questions that the subsequent messages already answer. This forces the user to repeat themselves.
+- **Do NOT treat each message as a separate meal.** Consecutive messages without a bot reply in between are almost always about the same meal.
+- **Do NOT ask clarifying questions** about items that the user's own follow-up messages already address (e.g., don't ask "did you eat rice?" when a subsequent message says "没吃米饭").
+
+### Edge case: delayed follow-up
+
+If a user sends a follow-up correction **after** the bot has already replied (e.g., bot logged the meal, then user says "哦对了那个肥肉我没吃"), treat it as a **correction** — re-run `save` with the updated items and re-run `evaluate`, then reply with the updated summary.
+
+---
+
 ## Workflow
 
 ### Setting a Target
@@ -283,16 +376,18 @@ When user says "set my target" or provides weight/calorie goal:
 
 When user describes what they're about to eat (or what they already ate):
 
+0. **Collect all pending messages** — if there are multiple consecutive user messages with no bot reply in between, read them all first and merge into a single input before proceeding (see Batch Message Recognition above)
 1. **Determine meal type** — if user explicitly states the meal type, use it directly. Otherwise, **call `detect-meal`** (see §0) passing `--tz-offset`, `--meals`, `--schedule` (from health-profile.md), `--timestamp` (from message metadata), and `--log` (from step 3). Use the returned `detected_meal` as the meal type and `local_date` as the date for all subsequent commands.
 2. **Detect meal timing** — determine if the user is logging before eating (default) or reporting a meal already eaten (see Meal Timing Detection above)
 3. **Call load** — get today's existing records (use `local_date` from `detect-meal` as `--date`)
 4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
 5. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
-6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g. **China region:** also estimate `vegetables_g` and `fruits_g` for this meal.
-7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). **China region:** include `vegetables_g` and `fruits_g` in the meal JSON.
-8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
-9. **China region:** Call `produce-check` — pass all meals from save output, evaluate cumulative produce intake
-10. **Reply in format** — meal details + nutrition summary + produce status (China only) + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
+6. **Look up corrections** — call `lookup-corrections` with the identified food names. If matches are found, use the corrected food names and nutrition values instead of your default estimates (see Food Correction Handling below)
+7. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g; apply any corrections found in step 6. **China region:** also estimate `vegetables_g` and `fruits_g` for this meal.
+8. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). **China region:** include `vegetables_g` and `fruits_g` in the meal JSON.
+9. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
+10. **China region:** Call `produce-check` — pass all meals from save output, evaluate cumulative produce intake
+11. **Reply in format** — meal details + nutrition summary + produce status (China only) + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
 
 > **⚠️ Important:** When calling `detect-meal`, always pass `--timestamp` from the inbound message metadata (the UTC timestamp of the user's message). Never rely on `session_status` or cached time — the session may have been idle for hours.
 
@@ -307,6 +402,45 @@ When `check-missing` returns missing meals:
 If the user later provides details about the missed meal → record it, re-run `evaluate` without `--assumed` for that meal, and update suggestions accordingly.
 
 **Backfilled meals** (meals reported after the fact): these are always "already eaten" — apply the meal timing detection outcome accordingly (no `right_now`, use `next_meal` or `next_time` instead — see Response Format).
+
+### Food Correction Handling
+
+Users often eat similar meals repeatedly. When a user corrects your food identification, save the correction so it can be referenced in future logs.
+
+#### When to Save a Correction
+
+Save a correction (call `save-correction`) whenever the user corrects **any** of the following:
+
+- **Food identity**: "That's not white rice, it's brown rice" / "这不是炒饭，是蛋炒饭"
+- **Portion size**: "That's a small bowl, not a regular one" / "那是小碗的"
+- **Nutrition values**: "This brand's yogurt is 120 cal, not 80" / "这个酸奶是120大卡不是80"
+- **Missing items**: "I also had a glass of milk" (that you didn't identify from the photo)
+- **Extra items**: "There's no dressing on the salad" (that you wrongly assumed)
+
+**Workflow when user corrects:**
+1. Re-run `save` with the corrected meal data (overwrites the original entry)
+2. Call `save-correction` with both the original and corrected food dicts — this stores the mapping for future reference
+3. Re-run `evaluate` with the updated data
+4. Reply with the updated meal details and nutrition summary
+
+#### When to Look Up Corrections
+
+Call `lookup-corrections` **after identifying foods** (step 6 of Logging Food) and **before estimating nutrition** (step 7). Pass the food names you identified as `--foods`.
+
+- If `has_matches` is `true`, review the top match(es):
+  - If the original food in the correction matches what you just identified → use the corrected food name and/or nutrition values instead
+  - Call `apply-correction` after using a correction to track its usage
+- If `has_matches` is `false`, proceed with normal estimation
+
+**Do NOT mention corrections to the user.** Apply them silently — the result should simply be more accurate food identification. The user should notice that the AI "remembers" their preferences without being told about the mechanism.
+
+#### Example Scenarios
+
+1. **User previously corrected "white rice" → "brown rice"**: Next time user logs a meal with rice, `lookup-corrections` returns this match → use "brown rice" nutrition values and name directly.
+
+2. **User corrected portion "rice ~150g" → "rice ~100g (small bowl)"**: Next time user logs rice with a similar description, use the smaller portion estimate.
+
+3. **User added "soy milk" to a breakfast that AI missed**: Next time user logs a similar breakfast, check if soy milk might be present and include it (or at minimum, be more attentive to drinks in that meal context).
 
 ### Weekly Low-Calorie Check
 
@@ -415,6 +549,104 @@ Produce targets have **lower priority** than calories and macros:
 - **Fruit target not met at final meal:** Suggest a suitable fruit as a snack or dessert, only if calories allow
 - **Fruit over target:** Briefly mention it; no strong push to eliminate
 - When produce targets are met, give a brief positive note
+### Nutrition Standard Negotiation
+### Nutrition Standard Negotiation (3-Day Review)
+
+On the user's **3rd day of logging**, the normal daily review is **replaced** by a 3-day review: celebrate the milestone, show the user their actual eating patterns over the past 3 days, and **ask** what they'd like to adjust. If the data shows a consistent deviation from current standards, present a concrete proposal; otherwise just present the summary and invite feedback.
+
+> **Supersedes** `detect-diet-pattern`. Do not run `detect-diet-pattern` separately.
+
+#### When to Trigger
+
+Triggered by the `daily-review` skill's auto-trigger (**1 hour after last meal**), when **all** hold:
+
+1. Today is the **3rd day** with complete meal data (≥ 2 main meals each, within 7-day lookback)
+2. The 3-day review has **not been done before** (`data/standard-adjustments.json` → `review_completed` is absent or false)
+
+When these conditions are met, the daily-review skill generates the 3-day review **instead of** the normal daily review. See `daily-review/SKILL.md` for the trigger mechanism.
+
+This is a **one-time** trigger. After the review is done (regardless of outcome), set `review_completed: true` so it does not fire again.
+
+#### Script Command
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py propose-standard-adjustment \
+  --data-dir {workspaceDir}/data/meals \
+  --cal <daily-cal> --weight <kg> --meals <2|3> --mode <current-mode> \
+  [--meal-blocks '{"breakfast":30,"lunch":40,"dinner":30}'] \
+  [--date 2026-03-20]
+```
+
+`--meal-blocks`: pass if `health-profile.md > Diet Config > Custom Meal Blocks` exists; omit for defaults.
+
+**Returns:** always includes `avg_pattern` (when ≥ 3 days exist). When deviations are found, returns `proposals` with **three independent dimensions**, each with its own `has_change` / `valid` / `issues`:
+
+```json
+{"avg_pattern": {...}, "proposals": {
+  "diet_mode":         {"has_change": true|false, "valid": bool, "from": "...", "to": "...", "issues": [...]},
+  "meal_distribution": {"has_change": true|false, "valid": bool, "from": {...}, "to": {...}, "issues": [...]},
+  "meal_count":        {"has_change": true|false, "valid": bool, "from": 3, "to": 2, "issues": [...]}
+}}
+```
+
+Each dimension is **independently evaluated and independently actionable** — a macro issue does not block a meal distribution proposal, and vice versa.
+
+#### Presenting the 3-Day Review
+
+This review is sent as a **standalone message** via the daily-review auto-trigger (1h after last meal on day 3). It **replaces** the normal daily review for that day — do not also send a separate daily review.
+
+The message has two parts: **today's daily summary** (same data line as normal daily review) + **3-day pattern analysis**.
+
+```
+📋 今日总结
+📊 全天总计: [today's totals with status indicators, same as daily-review format]
+[1-sentence commentary on today]
+
+🎉 我们已经一起走过 3 天了！来看看这 3 天的整体节奏：
+
+📊 三日平均：蛋白质 [X]% · 碳水 [X]% · 脂肪 [X]%
+📊 每餐分配：早 [X]% · 午 [X]% · 晚 [X]%
+```
+
+Then **per dimension**, only show the ones with `has_change: true`:
+
+**餐次分配** (`meal_distribution.has_change && valid`):
+> 你的实际节奏是早 [X]% 午 [X]% 晚 [X]%，和计划的 30/40/30 有些不同。要不要把计划调成 [to] 来贴合你的节奏？
+
+**三大营养素** (`diet_mode.has_change && valid`):
+> 你的营养素比例更接近 [to_name] 模式。要不要切过去？
+
+**三大营养素有问题** (`diet_mode.has_change && !valid`):
+> 不过蛋白质连续三天偏低（[issues 用自然语言]），这个需要先补上来。有什么方便加蛋白质的方式吗？
+
+**餐次** (`meal_count.has_change && valid`):
+> 这三天你都是吃 [to] 餐，要不要计划也改成 [to] 餐制？
+
+**全部无偏差** (所有维度 `has_change: false`):
+> 整体和计划比较吻合，节奏不错。
+
+最后都以开放式收尾：
+> 有什么地方觉得不舒服、想调整的吗？计划是为你服务的。
+
+**Tone:** 庆祝 + 协商。每个维度单独问，用户可以分别接受/拒绝。
+
+#### Recording & Applying
+
+After the user responds, save to `data/standard-adjustments.json`:
+
+```json
+{"review_completed": true, "review_date": "2026-03-20",
+ "user_feedback": "summary of what user said",
+ "applied_changes": [{"type": "meal_distribution", "to": {"breakfast":25,"lunch":45,"dinner":30}}]}
+```
+
+`applied_changes` 只记用户同意的维度。每个维度独立记录、独立生效：
+- **meal_distribution 同意**: 更新 `health-profile.md > Diet Config > Custom Meal Blocks`，后续传 `--meal-blocks`
+- **diet_mode 同意**: 更新 `health-profile.md > Diet Config > Diet Mode`
+- **meal_count 同意**: 更新 `health-profile.md > Diet Config > Meals per Day`
+- **用户主动提的偏好** (如"午餐吃不了那么多"): 应用可执行的部分，记录到 `health-preferences.md`
+
+---
 
 ### Querying Progress
 
@@ -534,16 +766,12 @@ Every food log reply must contain up to three sections:
 4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
 5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
 
-### If the user also runs `detect-diet-pattern` criteria
-
-If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pattern` (see Diet Pattern Detection above). Append pattern feedback after the daily summary if `has_pattern` is true.
-
 ---
 
 ## Special Scenarios
 
 - **Forgotten meals**: progress shows actual values only; suggestions use assumed standard values (avoids compensatory overeating)
-- **Correcting a record**: user fixes portion → re-run `save` (overwrites) → re-run `evaluate`
+- **Correcting a record**: user fixes portion or food identity → call `save-correction` (stores mapping for future reference) → re-run `save` (overwrites) → re-run `evaluate`
 - **New day**: starts from zero
 - **Default portions**: rice bowl ≈ 150g, egg ≈ 50g, milk cup ≈ 250ml, vegetable plate ≈ 200g, bread slice ≈ 35g, chicken breast ≈ 120g
 - **Data source**: USDA FoodData Central primary; for regional foods not well-covered by USDA, use local food composition databases (e.g. China CDC for Chinese foods)

@@ -134,6 +134,8 @@ After resolving the calorie target and user context, collect the user's dietary 
 
 **Skip any round whose answer is already available** in `health-preferences.md` or `health-profile.md` or from earlier conversation context. Only ask what's missing.
 
+**Out-of-order information:** Users often volunteer answers to later rounds early (e.g., providing meal times and food restrictions before being asked). When this happens, acknowledge all provided info immediately in the current reply, then skip the already-answered rounds and continue with the next unanswered one.
+
 **Single-ask rule:** Each round's question is asked at most once. If the user ignores a question or skips it, accept the silence — use a sensible default (e.g., Balanced for diet mode, 3 meals for schedule) and move on. Do not repeat or rephrase the question. See `SKILL-ROUTING.md > Single-Ask Rule`.
 
 ### Round 1: Diet Mode
@@ -177,26 +179,23 @@ If the user wants to see all options, provide the full list. If `health-preferen
 
 ### Round 2: Meal Schedule
 
-After the user confirms their diet mode, ask about their meal schedule. **Only ask about meals and times — do NOT mention reminders yet.**
+After the user confirms their diet mode, ask about their meal schedule.
 
 > 你一天通常吃几餐，大概什么时间？
 
-
 **Wait for the user to answer.**
 
-After the user provides their meal schedule, **in the same reply**, confirm the reminder and ask Round 3's question together:
+After acknowledging the meal schedule, ask Round 3's question in the same reply:
 
-> 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
+> 收到，[确认餐数和时间]。
 >
 > 这几餐里，哪些通常是自己做，哪些是点外卖或在外面吃？（比如"早餐自己做，午餐外卖，晚餐自己做"）
 
-This combines the reminder confirmation with Round 3 in one message to keep the conversation flowing naturally.
+**Do NOT mention reminders (餐前提醒) here.** Reminder setup is introduced later in the "Introduce Daily Tracking Workflow" section together with the full daily rhythm, to avoid repetition.
 
 English equivalent:
 
-> Got it, I'll remind you 15 minutes before each meal to help you plan ahead.
->
-> Of these meals, which ones do you usually cook at home, and which are takeout or eating out? (e.g., "breakfast at home, lunch is takeout, dinner at home")
+(Already asked above in the meal schedule acknowledgment reply.)
 
 **Wait for the user to answer (or skip) before proceeding.**
 
@@ -378,6 +377,22 @@ For non-US locales, follow the same **template (portion guide) + one-day example
 - **Reflect local meal structures** — e.g., Chinese breakfast (soy milk + eggs + buns) differs significantly from American breakfast (oatmeal + eggs + milk)
 - **Match foods the user can actually buy and typically eats** at their local grocery stores or markets
 
+### Snacks Are Always Included by Default
+
+Every diet template **must include a Snack slot** as part of the standard meal structure. Snacks help stabilize blood sugar, prevent overeating at main meals, and make the overall plan more sustainable.
+
+**User override:** If the user explicitly states they do not want snacks (e.g., "不要加餐", "no snacks"), respect their preference — omit the Snack slot from the template and redistribute snack calories into the main meals. Do not push back or try to convince them otherwise. Record this preference in `health-preferences.md`.
+
+**After presenting the template, always add a flexibility note** to let the user know they can adjust snack timing and content freely. Use language appropriate to the user's locale:
+
+Chinese:
+> 💡 加餐已经默认包含在模板里了。时间和内容可以灵活安排——上午、下午、晚上都行，选自己方便的时候吃就好。
+
+English:
+> 💡 Snacks are included in the template by default. Feel free to arrange them flexibly — morning, afternoon, or evening, whenever works best for you.
+
+This note should appear **immediately after the template and example**, before introducing the daily tracking workflow.
+
 ### After Presenting the Diet Template
 
 After presenting the diet template, **immediately introduce the daily tracking workflow** (same content as Step 5's "Introduce Daily Tracking Workflow" section). Do NOT ask the user whether they want a 7-day meal plan — the template is sufficient to start, and the 7-day plan is only generated if the user proactively requests it later.
@@ -386,7 +401,7 @@ After presenting the diet template, **immediately introduce the daily tracking w
 
 After presenting the diet template, **activate `notification-manager`** so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create the corresponding cron jobs (meal reminders + weight reminders). `notification-manager` owns all reminder lifecycle management.
 
-Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
+Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user learns about reminders through the "Introduce Daily Tracking Workflow" section that follows the diet template.
 
 ---
 
