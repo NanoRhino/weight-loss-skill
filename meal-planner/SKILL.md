@@ -378,6 +378,22 @@ For non-US locales, follow the same **template (portion guide) + one-day example
 - **Reflect local meal structures** — e.g., Chinese breakfast (soy milk + eggs + buns) differs significantly from American breakfast (oatmeal + eggs + milk)
 - **Match foods the user can actually buy and typically eats** at their local grocery stores or markets
 
+### Snacks Are Always Included by Default
+
+Every diet template **must include a Snack slot** as part of the standard meal structure. Snacks help stabilize blood sugar, prevent overeating at main meals, and make the overall plan more sustainable.
+
+**User override:** If the user explicitly states they do not want snacks (e.g., "不要加餐", "no snacks"), respect their preference — omit the Snack slot from the template and redistribute snack calories into the main meals. Do not push back or try to convince them otherwise. Record this preference in `health-preferences.md`.
+
+**After presenting the template, always add a flexibility note** to let the user know they can adjust snack timing and content freely. Use language appropriate to the user's locale:
+
+Chinese:
+> 💡 加餐已经默认包含在模板里了。时间和内容可以灵活安排——上午、下午、晚上都行，选自己方便的时候吃就好。
+
+English:
+> 💡 Snacks are included in the template by default. Feel free to arrange them flexibly — morning, afternoon, or evening, whenever works best for you.
+
+This note should appear **immediately after the template and example**, before introducing the daily tracking workflow.
+
 ### After Presenting the Diet Template
 
 After presenting the diet template, **immediately introduce the daily tracking workflow** (same content as Step 5's "Introduce Daily Tracking Workflow" section). Do NOT ask the user whether they want a 7-day meal plan — the template is sufficient to start, and the 7-day plan is only generated if the user proactively requests it later.
