@@ -19,6 +19,8 @@ Commands:
   save-correction — Save a food correction when user corrects AI identification.
   lookup-corrections — Look up saved corrections matching food names.
   apply-correction — Increment usage counter for a correction record.
+  propose-standard-adjustment — Analyze 2 consecutive days for consistent
+      deviation from current standards and propose adjusted nutrition targets.
 
 Usage:
   python3 nutrition-calc.py detect-meal --tz-offset 28800 --meals 3 \
@@ -153,8 +155,27 @@ DIET_MODE_MACROS = {
 # Helpers
 # ---------------------------------------------------------------------------
 
-def get_meal_blocks(meals: int) -> list:
-    return MEAL_BLOCKS_3 if meals == 3 else MEAL_BLOCKS_2
+def get_meal_blocks(meals: int, custom_pcts: dict = None) -> list:
+    """Get meal blocks, optionally with custom percentages.
+
+    Args:
+        meals: 2 or 3.
+        custom_pcts: Optional dict mapping meal label to percentage,
+                     e.g. {"breakfast": 25, "lunch": 45, "dinner": 30}.
+                     Labels not present keep their default value.
+    """
+    base = MEAL_BLOCKS_3 if meals == 3 else MEAL_BLOCKS_2
+    if not custom_pcts:
+        return base
+    result = []
+    for block in base:
+        pct = custom_pcts.get(block["label"], block["pct"])
+        result.append({
+            "label": block["label"],
+            "pct": pct,
+            "meals": list(block["meals"]),
+        })
+    return result
 
 
 def resolve_meal_name(meal_name: str, meals: int) -> str:
@@ -205,7 +226,8 @@ def get_log_path(data_dir: str, day: str = None, tz_offset: int = None) -> str:
 # ---------------------------------------------------------------------------
 
 def calc_targets(weight: float, daily_cal: int, meals: int = 3,
-                 mode: str = "balanced") -> dict:
+                 mode: str = "balanced",
+                 meal_blocks: dict = None) -> dict:
     protein = round(weight * 1.4, 1)
     protein_lo = round(weight * 1.2, 1)
     protein_hi = round(weight * 1.6, 1)
@@ -224,7 +246,7 @@ def calc_targets(weight: float, daily_cal: int, meals: int = 3,
     cal_lo = daily_cal - 100
     cal_hi = daily_cal + 100
 
-    blocks = get_meal_blocks(meals)
+    blocks = get_meal_blocks(meals, meal_blocks)
     alloc = []
     for b in blocks:
         alloc.append({"meal": b["label"], "pct": b["pct"],
@@ -243,9 +265,10 @@ def calc_targets(weight: float, daily_cal: int, meals: int = 3,
 
 
 def analyze(weight: float, daily_cal: int, meals: int, log: list,
-            mode: str = "balanced") -> dict:
+            mode: str = "balanced",
+            meal_blocks: dict = None) -> dict:
     log = _migrate_meals(log)
-    targets = calc_targets(weight, daily_cal, meals, mode)
+    targets = calc_targets(weight, daily_cal, meals, mode, meal_blocks)
 
     cum = {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
     meal_details = []
@@ -332,7 +355,8 @@ def load_meals(data_dir: str, day: str = None, tz_offset: int = None) -> dict:
 def evaluate(weight: float, daily_cal: int, meals: int,
              current_meal: str, log: list,
              assumed_meals: list = None,
-             mode: str = "balanced") -> dict:
+             mode: str = "balanced",
+             meal_blocks: dict = None) -> dict:
     """Evaluate cumulative intake at the checkpoint for *current_meal*.
 
     Uses range-based evaluation:
@@ -344,8 +368,8 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     if assumed_meals:
         assumed_meals = _migrate_meals(assumed_meals)
 
-    targets = calc_targets(weight, daily_cal, meals, mode)
-    blocks = get_meal_blocks(meals)
+    targets = calc_targets(weight, daily_cal, meals, mode, meal_blocks)
+    blocks = get_meal_blocks(meals, meal_blocks)
 
     block_idx = find_block_index(current_meal, meals)
     if block_idx is None:
@@ -433,9 +457,10 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     }
 
 
-def check_missing(meals: int, current_meal: str, log: list) -> dict:
+def check_missing(meals: int, current_meal: str, log: list,
+                  meal_blocks: dict = None) -> dict:
     log = _migrate_meals(log)
-    blocks = get_meal_blocks(meals)
+    blocks = get_meal_blocks(meals, meal_blocks)
     block_idx = find_block_index(current_meal, meals)
     if block_idx is None:
         return {"error": f"Unknown meal name: {current_meal}"}
@@ -906,6 +931,381 @@ def apply_correction(data_dir: str, original_names: list) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Nutrition standard adjustment proposal
+# ---------------------------------------------------------------------------
+
+# Thresholds for deviation detection and consistency checks
+_MACRO_DEVIATION_SINGLE = 10   # 1 macro outside range by ≥10 pp → significant
+_MACRO_DEVIATION_MULTI = 6     # 2+ macros outside range by ≥6 pp → significant
+_MEAL_DIST_DEVIATION = 10      # meal block differs by ≥10 pp → significant
+_MACRO_CONSISTENCY = 7         # 2 days within 7 pp → consistent
+_MEAL_DIST_CONSISTENCY = 10    # 2 days within 10 pp → consistent
+
+# Nutritional guardrails for proposed standards
+_MIN_PROTEIN_G_PER_KG = 1.0
+_MIN_FAT_PCT = 15
+_MIN_MEAL_BLOCK_PCT = 15
+
+
+def _compute_day_pattern(day_meals: list, meals: int) -> dict | None:
+    """Compute macro split and meal distribution for one day.
+
+    Returns None if the day has < 500 kcal total (insufficient data).
+    """
+    day_meals = _migrate_meals(day_meals)
+    total_cal = sum(m.get("calories", 0) for m in day_meals)
+    if total_cal < 500:
+        return None
+
+    total_p = sum(m.get("protein", 0) for m in day_meals)
+    total_c = sum(m.get("carbs", 0) for m in day_meals)
+    total_f = sum(m.get("fat", 0) for m in day_meals)
+
+    macro_split = {
+        "protein_pct": round(total_p * 4 / total_cal * 100, 1),
+        "carbs_pct": round(total_c * 4 / total_cal * 100, 1),
+        "fat_pct": round(total_f * 9 / total_cal * 100, 1),
+    }
+
+    # Per-block calorie distribution
+    blocks = get_meal_blocks(meals)
+    block_dist = {}
+    for block in blocks:
+        block_cal = sum(
+            m.get("calories", 0) for m in day_meals
+            if resolve_meal_name(m.get("name", ""), meals) in block["meals"]
+        )
+        block_dist[block["label"]] = round(block_cal / total_cal * 100, 1)
+
+    # Count main meals (non-snack) actually logged
+    main_meal_names = set()
+    for block in blocks:
+        main_meal_names.add(block["meals"][0])
+    logged_main = sum(
+        1 for m in day_meals
+        if resolve_meal_name(m.get("name", ""), meals) in main_meal_names
+    )
+
+    return {
+        "total_calories": round(total_cal, 1),
+        "macro_split": macro_split,
+        "meal_distribution": block_dist,
+        "main_meals_logged": logged_main,
+    }
+
+
+def _patterns_consistent(patterns: list) -> dict:
+    """Check whether N day-patterns are similar enough to constitute a
+    consistent eating habit.
+
+    Uses max spread (max - min across days) rather than pairwise comparison.
+    """
+    # Macro consistency
+    macro_ok = True
+    macro_detail = {}
+    for key in ("protein_pct", "carbs_pct", "fat_pct"):
+        vals = [p["macro_split"][key] for p in patterns]
+        spread = max(vals) - min(vals)
+        ok = spread <= _MACRO_CONSISTENCY
+        macro_detail[key] = {"spread": round(spread, 1), "ok": ok}
+        if not ok:
+            macro_ok = False
+
+    # Meal distribution consistency
+    dist_ok = True
+    dist_detail = {}
+    all_labels: set[str] = set()
+    for p in patterns:
+        all_labels.update(p["meal_distribution"].keys())
+    for label in all_labels:
+        vals = [p["meal_distribution"].get(label, 0) for p in patterns]
+        spread = max(vals) - min(vals)
+        ok = spread <= _MEAL_DIST_CONSISTENCY
+        dist_detail[label] = {"spread": round(spread, 1), "ok": ok}
+        if not ok:
+            dist_ok = False
+
+    # Meal count consistency
+    counts = [p["main_meals_logged"] for p in patterns]
+    count_ok = len(set(counts)) == 1
+
+    is_consistent = macro_ok and dist_ok
+    return {
+        "is_consistent": is_consistent,
+        "macro": {"ok": macro_ok, "detail": macro_detail},
+        "meal_distribution": {"ok": dist_ok, "detail": dist_detail},
+        "meal_count": {"ok": count_ok, "counts": counts},
+    }
+
+
+def _avg_pattern(patterns: list) -> dict:
+    """Average macro split and meal distribution across patterns."""
+    n = len(patterns)
+    avg_macro = {}
+    for key in ("protein_pct", "carbs_pct", "fat_pct"):
+        avg_macro[key] = round(sum(p["macro_split"][key] for p in patterns) / n, 1)
+
+    all_labels = set()
+    for p in patterns:
+        all_labels.update(p["meal_distribution"].keys())
+
+    avg_dist = {}
+    for label in all_labels:
+        vals = [p["meal_distribution"].get(label, 0) for p in patterns]
+        avg_dist[label] = round(sum(vals) / n, 1)
+
+    avg_main = round(sum(p["main_meals_logged"] for p in patterns) / n, 1)
+
+    return {
+        "macro_split": avg_macro,
+        "meal_distribution": avg_dist,
+        "avg_main_meals": avg_main,
+    }
+
+
+def _check_deviation_significance(avg: dict, meals: int, mode: str,
+                                   current_blocks: list) -> dict:
+    """Determine whether the average pattern deviates significantly from
+    current standards."""
+    effective_mode = mode if mode not in ("if_16_8", "if_5_2") else "balanced"
+    ranges = DIET_MODE_MACROS.get(effective_mode, DIET_MODE_MACROS["balanced"])
+
+    # Macro deviations
+    macro_devs = {}
+    outside_count = 0
+    large_outside = 0
+    for short, key in [("protein_pct", "protein"),
+                       ("carbs_pct", "carbs"),
+                       ("fat_pct", "fat")]:
+        actual = avg["macro_split"][short]
+        lo, hi = ranges[key]
+        if actual < lo:
+            dev = round(lo - actual, 1)
+            direction = "low"
+        elif actual > hi:
+            dev = round(actual - hi, 1)
+            direction = "high"
+        else:
+            dev = 0
+            direction = "on_track"
+        macro_devs[key] = {"actual_pct": actual, "range": [lo, hi],
+                           "deviation": dev, "direction": direction}
+        if dev >= _MACRO_DEVIATION_MULTI:
+            outside_count += 1
+        if dev >= _MACRO_DEVIATION_SINGLE:
+            large_outside += 1
+
+    macro_significant = large_outside >= 1 or outside_count >= 2
+
+    # Meal distribution deviations
+    dist_devs = {}
+    dist_significant = False
+    for block in current_blocks:
+        label = block["label"]
+        standard_pct = block["pct"]
+        actual_pct = avg["meal_distribution"].get(label, 0)
+        diff = round(actual_pct - standard_pct, 1)
+        is_sig = abs(diff) >= _MEAL_DIST_DEVIATION
+        dist_devs[label] = {"actual_pct": actual_pct, "standard_pct": standard_pct,
+                            "diff": diff, "significant": is_sig}
+        if is_sig:
+            dist_significant = True
+
+    significant = macro_significant or dist_significant
+
+    return {
+        "significant": significant,
+        "macro": {"significant": macro_significant, "detail": macro_devs},
+        "meal_distribution": {"significant": dist_significant, "detail": dist_devs},
+    }
+
+
+def _round_to_5(x: float) -> int:
+    """Round to nearest 5."""
+    return int(round(x / 5) * 5)
+
+
+def _propose_meal_blocks(avg_dist: dict, current_blocks: list) -> dict:
+    """Propose new meal block percentages based on actual distribution.
+
+    Constraints: each block ≥ _MIN_MEAL_BLOCK_PCT, total = 100%, rounded to 5.
+    """
+    labels = [b["label"] for b in current_blocks]
+    raw = {label: avg_dist.get(label, 0) for label in labels}
+
+    # Round to 5 with minimum enforcement
+    proposed = {}
+    for label in labels:
+        val = max(_round_to_5(raw[label]), _MIN_MEAL_BLOCK_PCT)
+        proposed[label] = val
+
+    # Adjust to sum to 100
+    total = sum(proposed.values())
+    if total != 100:
+        diff = 100 - total
+        # Distribute difference to the largest block
+        largest = max(labels, key=lambda l: proposed[l])
+        proposed[largest] += diff
+        # Ensure minimum still holds after adjustment
+        if proposed[largest] < _MIN_MEAL_BLOCK_PCT:
+            proposed[largest] = _MIN_MEAL_BLOCK_PCT
+
+    return proposed
+
+
+def _find_closest_mode(avg_macro: dict) -> tuple[str, float]:
+    """Find the diet mode whose ranges best fit the average macro split."""
+    p = avg_macro["protein_pct"]
+    c = avg_macro["carbs_pct"]
+    f = avg_macro["fat_pct"]
+    best_mode = "balanced"
+    best_dist = float("inf")
+    for m in DIET_MODE_MACROS:
+        d = _mode_distance(p, c, f, m)
+        if d < best_dist:
+            best_dist = d
+            best_mode = m
+    return best_mode, round(best_dist, 1)
+
+
+def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
+                                 meals: int, mode: str,
+                                 custom_meal_blocks: dict = None,
+                                 ref_date: str = None,
+                                 tz_offset: int = None) -> dict:
+    """Analyze the 3 most recent days of meal data to detect consistent
+    deviation from current nutrition standards.
+
+    Designed to run once on the user's 4th day of logging, after 3 complete
+    days of data exist.  Always returns ``avg_pattern`` when enough data is
+    available so that the caller can compose a 3-day review message.
+
+    A concrete proposal is generated only when *all* of these hold:
+    1. All 3 days have sufficient data (≥ 500 kcal, ≥ 2 main meals each)
+    2. The 3 days show a consistent pattern (similar to each other)
+    3. The common pattern deviates significantly from current standards
+    4. A nutritionally valid adjusted standard exists
+    """
+    end = date.fromisoformat(ref_date) if ref_date else \
+        date.fromisoformat(_local_date(tz_offset))
+
+    current_blocks = get_meal_blocks(meals, custom_meal_blocks)
+
+    # Load up to 3 most recent days within 7-day lookback
+    days_data = []
+    for offset in range(7):
+        day_str = (end - timedelta(days=offset)).isoformat()
+        path = get_log_path(data_dir, day_str)
+        if not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            day_meals = _migrate_meals(json.load(f))
+        pattern = _compute_day_pattern(day_meals, meals)
+        if pattern is None:
+            continue
+        if pattern["main_meals_logged"] < 2:
+            continue
+        days_data.append({"date": day_str, "pattern": pattern})
+        if len(days_data) >= 3:
+            break
+
+    if len(days_data) < 3:
+        return {"has_proposal": False, "reason": "insufficient_data",
+                "days_found": len(days_data)}
+
+    all_patterns = [d["pattern"] for d in days_data]
+
+    # Average pattern (always returned for the 3-day review)
+    avg = _avg_pattern(all_patterns)
+
+    # Consistency check
+    consistency = _patterns_consistent(all_patterns)
+    if not consistency["is_consistent"]:
+        return {"has_proposal": False, "reason": "inconsistent_pattern",
+                "avg_pattern": avg}
+
+    # Deviation significance
+    deviations = _check_deviation_significance(avg, meals, mode, current_blocks)
+    if not deviations["significant"]:
+        return {"has_proposal": False, "reason": "no_significant_deviation",
+                "avg_pattern": avg}
+
+    # --- Build per-dimension proposals (independent) ---
+    effective_mode = mode if mode not in ("if_16_8", "if_5_2") else "balanced"
+    proposals = {}
+
+    # 1. Macro split → diet mode proposal (independent)
+    if deviations["macro"]["significant"]:
+        closest_mode, closest_dist = _find_closest_mode(avg["macro_split"])
+        current_dist = _mode_distance(
+            avg["macro_split"]["protein_pct"],
+            avg["macro_split"]["carbs_pct"],
+            avg["macro_split"]["fat_pct"],
+            effective_mode,
+        )
+        if closest_mode != effective_mode and closest_dist < current_dist:
+            # Validate: protein & fat floors (only apply to macro dimension)
+            issues = []
+            actual_protein_g = daily_cal * avg["macro_split"]["protein_pct"] / 100 / 4
+            if actual_protein_g < weight * _MIN_PROTEIN_G_PER_KG:
+                issues.append(
+                    f"protein {round(actual_protein_g, 1)}g < "
+                    f"{round(weight * _MIN_PROTEIN_G_PER_KG, 1)}g needed")
+            if avg["macro_split"]["fat_pct"] < _MIN_FAT_PCT:
+                issues.append(
+                    f"fat {avg['macro_split']['fat_pct']}% < {_MIN_FAT_PCT}%")
+            proposals["diet_mode"] = {
+                "has_change": True, "valid": len(issues) == 0,
+                "from": effective_mode, "to": closest_mode,
+                "issues": issues,
+            }
+    if "diet_mode" not in proposals:
+        proposals["diet_mode"] = {"has_change": False}
+
+    # 2. Meal distribution proposal (independent)
+    current_block_pcts = {b["label"]: b["pct"] for b in current_blocks}
+    if deviations["meal_distribution"]["significant"]:
+        new_blocks = _propose_meal_blocks(avg["meal_distribution"],
+                                          current_blocks)
+        if new_blocks != current_block_pcts:
+            # Validate: each block ≥ minimum (only apply to distribution)
+            issues = []
+            for label, pct in new_blocks.items():
+                if pct < _MIN_MEAL_BLOCK_PCT:
+                    issues.append(f"{label} {pct}% < {_MIN_MEAL_BLOCK_PCT}%")
+            proposals["meal_distribution"] = {
+                "has_change": True, "valid": len(issues) == 0,
+                "from": current_block_pcts, "to": new_blocks,
+                "issues": issues,
+            }
+    if "meal_distribution" not in proposals:
+        proposals["meal_distribution"] = {"has_change": False}
+
+    # 3. Meal count proposal (independent)
+    if (consistency["meal_count"]["ok"]
+            and all_patterns[0]["main_meals_logged"] != meals
+            and all_patterns[0]["main_meals_logged"] in (2, 3)):
+        proposals["meal_count"] = {
+            "has_change": True, "valid": True,
+            "from": meals, "to": all_patterns[0]["main_meals_logged"],
+            "issues": [],
+        }
+    else:
+        proposals["meal_count"] = {"has_change": False}
+
+    # Any actionable proposal?
+    any_change = any(p["has_change"] for p in proposals.values())
+    if not any_change:
+        return {"has_proposal": False, "reason": "no_better_standard_found",
+                "avg_pattern": avg}
+
+    return {
+        "avg_pattern": avg,
+        "proposals": proposals,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Meal history & recommendations
 # ---------------------------------------------------------------------------
 
@@ -1319,6 +1719,9 @@ def main():
     t.add_argument("--mode", type=str, default="balanced",
                    choices=list(DIET_MODE_FAT.keys()),
                    help="Diet mode (determines fat %% range)")
+    t.add_argument("--meal-blocks", type=str, default=None,
+                   help='Optional JSON object with custom meal block percentages, '
+                        'e.g. \'{"breakfast":25,"lunch":45,"dinner":30}\'')
 
     a = sub.add_parser("analyze", help="Analyze cumulative intake")
     a.add_argument("--weight", type=float, required=True)
@@ -1328,6 +1731,8 @@ def main():
                    choices=list(DIET_MODE_FAT.keys()))
     a.add_argument("--log", type=str, required=True,
                    help='JSON array of meals')
+    a.add_argument("--meal-blocks", type=str, default=None,
+                   help='Optional JSON object with custom meal block percentages')
 
     s = sub.add_parser("save", help="Save a meal record to today's log")
     s.add_argument("--data-dir", type=str, required=True, help="Directory to store daily JSON logs")
@@ -1356,12 +1761,16 @@ def main():
                    help="JSON array of all logged meals today")
     e.add_argument("--assumed", type=str, default=None,
                    help="JSON array of assumed meals (for forgotten meals)")
+    e.add_argument("--meal-blocks", type=str, default=None,
+                   help='Optional JSON object with custom meal block percentages')
 
     cm = sub.add_parser("check-missing", help="Check for missing meals before current meal")
     cm.add_argument("--meals", type=int, default=3, choices=[2, 3])
     cm.add_argument("--current-meal", type=str, required=True)
     cm.add_argument("--log", type=str, required=True,
                    help="JSON array of all logged meals today")
+    cm.add_argument("--meal-blocks", type=str, default=None,
+                   help='Optional JSON object with custom meal block percentages')
 
     mh = sub.add_parser("meal-history",
                          help="Analyze meal history for a meal type over N days")
@@ -1410,6 +1819,26 @@ def main():
     ddp.add_argument("--date", type=str, default=None,
                      help="End date for the 3-day window (YYYY-MM-DD), default today")
     ddp.add_argument("--tz-offset", type=int, default=None,
+                     help="Timezone offset from UTC in seconds")
+
+    psa = sub.add_parser("propose-standard-adjustment",
+                          help="Analyze 2 consecutive days and propose adjusted nutrition standards")
+    psa.add_argument("--data-dir", type=str, required=True,
+                     help="Directory with daily JSON logs")
+    psa.add_argument("--cal", type=int, required=True,
+                     help="Current daily calorie target (kcal)")
+    psa.add_argument("--weight", type=float, required=True,
+                     help="User's weight in kg")
+    psa.add_argument("--meals", type=int, default=3, choices=[2, 3],
+                     help="Current meals per day setting")
+    psa.add_argument("--mode", type=str, default="balanced",
+                     choices=list(DIET_MODE_FAT.keys()),
+                     help="Current diet mode")
+    psa.add_argument("--meal-blocks", type=str, default=None,
+                     help='Current custom meal block percentages (JSON), if any')
+    psa.add_argument("--date", type=str, default=None,
+                     help="End date (YYYY-MM-DD), default today — checks this date and the day before")
+    psa.add_argument("--tz-offset", type=int, default=None,
                      help="Timezone offset from UTC in seconds")
 
     ld = sub.add_parser("local-date",
@@ -1473,14 +1902,28 @@ def main():
                 sys.exit(1)
         result = detect_meal(args.tz_offset, args.meals, sched, log, args.timestamp)
     elif args.cmd == "target":
-        result = calc_targets(args.weight, args.cal, args.meals, args.mode)
+        mb = None
+        if args.meal_blocks:
+            try:
+                mb = json.loads(args.meal_blocks)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --meal-blocks JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = calc_targets(args.weight, args.cal, args.meals, args.mode, mb)
     elif args.cmd == "analyze":
         try:
             log = json.loads(args.log)
         except json.JSONDecodeError as e:
             print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
             sys.exit(1)
-        result = analyze(args.weight, args.cal, args.meals, log, args.mode)
+        mb = None
+        if args.meal_blocks:
+            try:
+                mb = json.loads(args.meal_blocks)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --meal-blocks JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = analyze(args.weight, args.cal, args.meals, log, args.mode, mb)
     elif args.cmd == "save":
         try:
             meal = json.loads(args.meal)
@@ -1503,15 +1946,29 @@ def main():
             except json.JSONDecodeError as e:
                 print(f"Error: invalid --assumed JSON: {e}", file=sys.stderr)
                 sys.exit(1)
+        mb = None
+        if args.meal_blocks:
+            try:
+                mb = json.loads(args.meal_blocks)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --meal-blocks JSON: {e}", file=sys.stderr)
+                sys.exit(1)
         result = evaluate(args.weight, args.cal, args.meals,
-                          args.current_meal, log, assumed, args.mode)
+                          args.current_meal, log, assumed, args.mode, mb)
     elif args.cmd == "check-missing":
         try:
             log = json.loads(args.log)
         except json.JSONDecodeError as e:
             print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
             sys.exit(1)
-        result = check_missing(args.meals, args.current_meal, log)
+        mb = None
+        if args.meal_blocks:
+            try:
+                mb = json.loads(args.meal_blocks)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --meal-blocks JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = check_missing(args.meals, args.current_meal, log, mb)
     elif args.cmd == "meal-history":
         result = meal_history(args.data_dir, args.meal_type, args.days,
                               args.date, getattr(args, 'tz_offset', None))
@@ -1529,6 +1986,17 @@ def main():
     elif args.cmd == "detect-diet-pattern":
         result = detect_diet_pattern(args.data_dir, args.current_mode, args.date,
                                      getattr(args, 'tz_offset', None))
+    elif args.cmd == "propose-standard-adjustment":
+        mb = None
+        if args.meal_blocks:
+            try:
+                mb = json.loads(args.meal_blocks)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --meal-blocks JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = propose_standard_adjustment(
+            args.data_dir, args.cal, args.weight, args.meals,
+            args.mode, mb, args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "local-date":
         result = local_date_info(args.tz_offset)
     elif args.cmd == "save-correction":
