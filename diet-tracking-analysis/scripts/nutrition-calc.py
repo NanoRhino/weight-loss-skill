@@ -735,8 +735,8 @@ def _get_pros_cons(current_mode: str, detected_mode: str) -> dict:
 # ---------------------------------------------------------------------------
 
 # Thresholds for deviation detection and consistency checks
-_MACRO_DEVIATION_SINGLE = 5    # 1 macro outside range by ≥5 pp → significant
-_MACRO_DEVIATION_MULTI = 3     # 2+ macros outside range by ≥3 pp → significant
+_MACRO_DEVIATION_SINGLE = 10   # 1 macro outside range by ≥10 pp → significant
+_MACRO_DEVIATION_MULTI = 6     # 2+ macros outside range by ≥6 pp → significant
 _MEAL_DIST_DEVIATION = 10      # meal block differs by ≥10 pp → significant
 _MACRO_CONSISTENCY = 7         # 2 days within 7 pp → consistent
 _MEAL_DIST_CONSISTENCY = 10    # 2 days within 10 pp → consistent
@@ -1011,23 +1011,14 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
         days_data.append({"date": day_str, "pattern": pattern})
 
     if len(days_data) < 2:
-        return {
-            "has_proposal": False,
-            "reason": "insufficient_data",
-            "days_found": len(days_data),
-        }
+        return {"has_proposal": False, "reason": "insufficient_data"}
 
     p1, p2 = days_data[0]["pattern"], days_data[1]["pattern"]
 
     # Consistency check
     consistency = _patterns_consistent(p1, p2)
     if not consistency["is_consistent"]:
-        return {
-            "has_proposal": False,
-            "reason": "inconsistent_pattern",
-            "patterns": [{"date": d["date"], **d["pattern"]} for d in days_data],
-            "consistency": consistency,
-        }
+        return {"has_proposal": False, "reason": "inconsistent_pattern"}
 
     # Average pattern
     avg = _avg_pattern([p1, p2])
@@ -1035,13 +1026,7 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
     # Deviation significance
     deviations = _check_deviation_significance(avg, meals, mode, current_blocks)
     if not deviations["significant"]:
-        return {
-            "has_proposal": False,
-            "reason": "no_significant_deviation",
-            "patterns": [{"date": d["date"], **d["pattern"]} for d in days_data],
-            "avg_pattern": avg,
-            "deviations": deviations,
-        }
+        return {"has_proposal": False, "reason": "no_significant_deviation"}
 
     # --- Build proposal ---
     effective_mode = mode if mode not in ("if_16_8", "if_5_2") else "balanced"
@@ -1094,13 +1079,7 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
         })
 
     if not changes:
-        return {
-            "has_proposal": False,
-            "reason": "no_better_standard_found",
-            "patterns": [{"date": d["date"], **d["pattern"]} for d in days_data],
-            "avg_pattern": avg,
-            "deviations": deviations,
-        }
+        return {"has_proposal": False, "reason": "no_better_standard_found"}
 
     # --- Validate nutritional soundness ---
     # Validate based on the user's actual intake pattern (not the mode's
@@ -1157,32 +1136,22 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
 
     return {
         "has_proposal": is_valid,
-        "patterns": [{"date": d["date"], **d["pattern"]} for d in days_data],
         "avg_pattern": avg,
-        "deviations": deviations,
-        "consistency": consistency,
         "changes": changes,
         "current_standard": {
             "mode": effective_mode,
             "meals": meals,
             "meal_blocks": {b["label"]: b["pct"] for b in current_blocks},
-            "macro_ranges": DIET_MODE_MACROS.get(effective_mode),
         },
         "proposed_standard": {
             "mode": proposed_mode,
             "meals": proposed_meals,
             "meal_blocks": proposed_blocks,
-            "macro_ranges": DIET_MODE_MACROS.get(proposed_mode),
         },
-        "validation": {
-            "is_valid": is_valid,
-            "issues": validation_issues,
-        },
+        "validation_issues": validation_issues,
         "improvement": {
-            "macro_distance_current": round(current_mode_dist, 1),
-            "macro_distance_proposed": round(proposed_mode_dist, 1),
-            "block_distance_current": round(current_block_dist, 1),
-            "block_distance_proposed": round(proposed_block_dist, 1),
+            "macro_distance": [round(current_mode_dist, 1), round(proposed_mode_dist, 1)],
+            "block_distance": [round(current_block_dist, 1), round(proposed_block_dist, 1)],
         },
     }
 
