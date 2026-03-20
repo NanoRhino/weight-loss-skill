@@ -1,7 +1,7 @@
 ---
 name: diet-tracking-analysis
 version: 1.1.0
-description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user logs food, describes a meal, mentions what they're about to eat or drink, sets a calorie target, asks about their intake or daily progress. Trigger phrases include 'I'm having...', 'I'm about to eat...', 'for breakfast/lunch/dinner...', 'log this', 'track this', 'how many calories in...', 'set my target to...'. Also trigger for past-tense reports like 'I had...', 'I ate...'. Also trigger for equivalents in any language. Even casual mentions of food ('grabbing a coffee', 'about to have some toast', 'just had some toast') should trigger this skill. When in doubt, trigger anyway."
+description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user logs food, describes a meal, mentions what they're eating or about to eat right now, sets a calorie target, asks about their intake or daily progress. Trigger phrases include 'I'm having...', 'I'm about to eat...', 'for breakfast/lunch/dinner...', 'log this', 'track this', 'how many calories in...', 'set my target to...'. Also trigger for past-tense reports like 'I had...', 'I ate...'. Also trigger for equivalents in any language. Even casual mentions of food ('grabbing a coffee', 'about to have some toast', 'just had some toast') should trigger this skill. Do NOT trigger-and-log when the user merely announces a future meal and explicitly defers reporting (e.g. '一会吃寿司，吃完了告诉你', 'I'll have sushi later, will let you know when I'm done', '等下吃火锅，吃完再说'). In these deferred cases, acknowledge the plan and wait — do not record anything until the user confirms they have eaten. When in doubt, ask the user whether they want to log now or later."
 metadata:
   openclaw:
     emoji: "fork_and_knife"
@@ -234,14 +234,17 @@ The `detect-meal` command handles all time-based logic internally:
 
 ## Meal Timing Detection
 
-The default workflow is **before-eating**: users tell you what they're about to eat BEFORE eating, so you can give real-time suggestions to adjust the current meal. However, some users will report meals after the fact. Detect which case applies to choose the right suggestion type.
+The default workflow is **before-eating**: users tell you what they're about to eat BEFORE eating, so you can give real-time suggestions to adjust the current meal. However, some users will report meals after the fact, and some will announce a future meal but explicitly defer the log. Detect which case applies to choose the right action.
 
 - **Before eating (default)**: User describes what they're about to eat → eligible for `right_now` suggestions (adjust current meal) or `next_time` (if on track).
 - **Already eaten (exception)**: User reports a meal they already finished → `next_meal` / `next_time` suggestions only — never `right_now`.
+- **Deferred (announced)**: User mentions a future meal AND explicitly signals they will report back later (e.g. "一会吃寿司，吃完了告诉你", "I'll have pizza tonight, will tell you after", "等下吃火锅，吃完再说"). → **Do NOT log anything.** Acknowledge the plan (e.g. "好的，吃完了告诉我！" / "Sounds good, let me know when you're done!") and wait for the user to confirm they have eaten before starting the logging workflow.
 
 ### Detection Priority
 
 Evaluate in order — stop at the first conclusive signal:
+
+**0. Deferred intent** — user announces a future meal AND explicitly says they will report back later or asks you to wait. Signals include: "吃完了告诉你/再说", "will let you know", "tell you after/later", "等下/一会/待会 + 再记/再说". When detected → acknowledge and wait, do NOT proceed to log.
 
 **1. Explicit statement** — user says they're about to eat, are currently eating, or have finished (e.g., "I'm about to have…" / "I'm having…" vs. past tense "I had…" / "I already ate…"). Use directly, skip time checks.
 
@@ -249,7 +252,7 @@ Evaluate in order — stop at the first conclusive signal:
 
 **3. Scheduling habits** — `health-preferences.md > Scheduling & Lifestyle` patterns can shift windows (e.g., "works late on Wednesdays" extends dinner window) or mark meals as always retroactive (e.g., "always skips breakfast on workdays").
 
-**Default assumption:** When timing is ambiguous and no explicit signal exists, assume the user is logging **before eating** — this enables the most useful feedback (real-time meal adjustments).
+**Default assumption:** When timing is ambiguous and no explicit signal exists, ask the user whether they want to log now or are just sharing — do not assume and record silently.
 
 Backfilled meals from missing-meal handling are always "already eaten."
 
