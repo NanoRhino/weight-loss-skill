@@ -82,10 +82,13 @@ python3 {baseDir}/scripts/nutrition-calc.py detect-meal \
 ### 1. Set Target — `target`
 
 ```bash
-python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3] [--mode balanced]
+python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3] [--mode balanced] \
+  [--meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}']
 ```
 
 Supported `--mode` values: `usda`, `balanced` (default), `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2`. The mode determines the fat percentage range used for macro calculations — see `weight-loss-planner/references/diet-modes.md` for details.
+
+`--meal-blocks`: optional, pass when `health-profile.md > Diet Config > Custom Meal Blocks` exists (from a previous standard negotiation). Overrides default per-meal allocation percentages.
 
 ### 2. Save Entry — `save` (must call on every food log)
 
@@ -124,7 +127,8 @@ python3 {baseDir}/scripts/nutrition-calc.py analyze --weight <kg> --cal <kcal> -
 python3 {baseDir}/scripts/nutrition-calc.py evaluate --weight <kg> --cal <kcal> --meals <2|3> \
   --current-meal "lunch" \
   --log '[...]' \
-  [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]']
+  [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]'] \
+  [--meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}']
 ```
 
 Evaluates cumulative intake at the current checkpoint against range-based targets. Uses min/max ranges for each macro.
@@ -542,6 +546,154 @@ Produce targets have **lower priority** than calories and macros:
 - **Fruit target not met at final meal:** Suggest a suitable fruit as a snack or dessert, only if calories allow
 - **Fruit over target:** Briefly mention it; no strong push to eliminate
 - When produce targets are met, give a brief positive note
+### Nutrition Standard Negotiation
+
+When the user's **actual eating pattern** (what they ultimately recorded after receiving adjustment suggestions) deviates from current standards consistently over **2 consecutive days** with the **same pattern**, the system should consider whether adjusting the standards — rather than repeatedly adjusting the user's meals — would be more practical while still meeting nutritional guidelines.
+
+The goal: **fewer adjustment suggestions per meal → less friction → better adherence.**
+
+#### When to Trigger
+
+Run `propose-standard-adjustment` after the user logs their **last meal of the day**, when **all** of these hold:
+
+1. Both today and yesterday have complete meal data (≥ 2 main meals each)
+2. Both days received adjustment suggestions (`needs_adjustment: true` on at least one checkpoint) — meaning the user's actual intake deviated from current standards
+3. No `propose-standard-adjustment` was run in the past **14 days** (check `data/standard-adjustments.json` → `last_negotiation_date`)
+
+**Do NOT trigger** if `detect-diet-pattern` already triggered today (avoid overlapping proposals). If both qualify, `propose-standard-adjustment` takes priority because it covers more dimensions (meal distribution + macros vs. macros only), but only run one per day.
+
+#### Script Command
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py propose-standard-adjustment \
+  --data-dir {workspaceDir}/data/meals \
+  --cal <daily-cal> --weight <kg> --meals <2|3> --mode <current-mode> \
+  [--meal-blocks '{"breakfast":30,"lunch":40,"dinner":30}'] \
+  [--date 2026-03-20]
+```
+
+**Parameters:**
+- `--cal`: daily calorie target from PLAN.md
+- `--weight`: current weight from health-profile.md
+- `--meals`: current meal count from health-profile.md
+- `--mode`: current diet mode from health-profile.md
+- `--meal-blocks`: current custom meal block percentages, if previously negotiated (from `health-profile.md > Diet Config > Custom Meal Blocks`). Omit if using defaults.
+- `--date`: today's local date (from `detect-meal` output)
+
+**Returns:** `has_proposal`, `patterns` (per-day breakdown), `avg_pattern`, `deviations` (what differs and by how much), `changes` (list of proposed adjustments), `current_standard`, `proposed_standard`, `validation` (nutritional soundness check), `improvement` (distance comparison)
+
+#### What It Checks
+
+Three dimensions are analyzed across both days:
+
+1. **Macro split** — Are actual protein/carbs/fat percentages consistently outside the current diet mode's ranges?
+2. **Per-meal energy distribution** — Does the user consistently eat more/less at certain meals than the standard allocation (e.g., 20/50/30 instead of 30/40/30)?
+3. **Meal count** — Does the user consistently eat 2 main meals when configured for 3, or vice versa?
+
+A proposal is generated only when:
+- Both days show a **consistent pattern** (similar to each other)
+- The pattern **deviates significantly** from current standards
+- A **nutritionally valid** alternative exists (protein ≥ 1.0 g/kg, fat ≥ 15%, each meal block ≥ 15%)
+
+#### When `has_proposal` is `true`
+
+Present the proposal to the user **after the normal meal log reply** (after nutrition summary and suggestion), using this format:
+
+```
+🔄 I noticed something — the past 2 days, your actual eating pattern has been quite consistent but different from your current plan. Instead of adjusting every meal, we could tweak the plan to fit your natural rhythm:
+
+[For each change in `changes`:]
+• [Change description in plain language]
+
+Current plan → Proposed plan:
+[Side-by-side comparison from `current_standard` vs `proposed_standard`]
+
+The proposed plan still meets nutritional guidelines: [brief validation summary].
+Based on the past 2 days, this would mean [X]% fewer adjustment suggestions.
+
+Would you like to switch to this adjusted plan? Or keep the current one? Either is fine — the goal is a plan you can stick with comfortably.
+```
+
+**Tone:** Neutral and supportive. Frame as "adapting the plan to you" not "you're not following the plan." Never guilt.
+
+**Change descriptions** (use from `changes` list):
+- Diet mode: "Switch from [current_name] to [proposed_name] — your macro balance naturally fits this better."
+- Meal distribution: "Adjust meal split from [30/40/30] to [25/45/30] — you naturally eat a lighter breakfast and bigger lunch."
+- Meal count: "Switch from 3 meals to 2 meals — you've been eating 2 main meals both days."
+
+#### Recording the Negotiation Result
+
+Regardless of the user's answer, save the result to `data/standard-adjustments.json`:
+
+```json
+{
+  "last_negotiation_date": "2026-03-20",
+  "negotiations": [
+    {
+      "date": "2026-03-20",
+      "proposed_changes": [
+        {"type": "meal_distribution", "from": {"breakfast":30,"lunch":40,"dinner":30}, "to": {"breakfast":25,"lunch":45,"dinner":30}}
+      ],
+      "user_decision": "accepted",
+      "applied_standard": {
+        "mode": "balanced",
+        "meals": 3,
+        "meal_blocks": {"breakfast": 25, "lunch": 45, "dinner": 30}
+      }
+    }
+  ]
+}
+```
+
+`user_decision`: `"accepted"`, `"declined"`, or `"partial"` (user accepted some changes but not others).
+
+#### Applying the Negotiated Standard
+
+**If user accepts:**
+1. Update `health-profile.md > Diet Config` with the new settings:
+   - If diet mode changed → update `Diet Mode`
+   - If meal blocks changed → add/update `Custom Meal Blocks: {"breakfast":25,"lunch":45,"dinner":30}`
+   - If meal count changed → update `Meals per Day`
+2. Save to `data/standard-adjustments.json`
+3. **From this point forward**, pass `--meal-blocks` to all `target`, `evaluate`, `analyze`, and `check-missing` calls (read from `health-profile.md > Diet Config > Custom Meal Blocks`)
+
+**If user declines:**
+1. Save to `data/standard-adjustments.json` with `user_decision: "declined"`
+2. Continue with current standards
+3. Do not propose again for 14 days
+
+**If user partially accepts** (e.g., accepts meal distribution change but not diet mode):
+1. Apply only the accepted changes
+2. Save with `user_decision: "partial"` and note which changes were accepted
+
+#### Custom Meal Blocks in Ongoing Operations
+
+When `health-profile.md > Diet Config > Custom Meal Blocks` exists, **always** pass it to script commands:
+
+```bash
+# target
+python3 {baseDir}/scripts/nutrition-calc.py target --weight 65 --cal 1500 --meals 3 --mode balanced \
+  --meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}'
+
+# evaluate
+python3 {baseDir}/scripts/nutrition-calc.py evaluate --weight 65 --cal 1500 --meals 3 \
+  --current-meal lunch --log '[...]' \
+  --meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}'
+```
+
+If no `Custom Meal Blocks` entry exists in health-profile.md, omit `--meal-blocks` — the script uses defaults (30/40/30 for 3-meal, 50/50 for 2-meal).
+
+#### When `has_proposal` is `false`
+
+No action needed. Possible reasons:
+- `insufficient_data`: fewer than 2 complete consecutive days
+- `inconsistent_pattern`: the 2 days don't show a similar pattern
+- `no_significant_deviation`: the pattern is close enough to current standards
+- `no_better_standard_found`: deviations exist but no valid alternative is closer
+
+All pass silently — do not mention the check to the user.
+
+---
 
 ### Querying Progress
 
@@ -660,9 +812,12 @@ Every food log reply must contain up to three sections:
 4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
 5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
 
-### If the user also runs `detect-diet-pattern` criteria
+### End-of-day pattern checks
 
-If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pattern` (see Diet Pattern Detection above). Append pattern feedback after the daily summary if `has_pattern` is true.
+If this is the last meal of the day, run whichever applies (**at most one per day** — if both qualify, `propose-standard-adjustment` takes priority):
+
+1. **Nutrition Standard Negotiation** — If both today and yesterday have complete data, and both days had adjustment suggestions, and no negotiation in the past 14 days → run `propose-standard-adjustment` (see Nutrition Standard Negotiation above). Append proposal after the daily summary if `has_proposal` is true.
+2. **Diet Pattern Detection** — If ≥ 3 days of data exist and `propose-standard-adjustment` did NOT trigger today → run `detect-diet-pattern` (see Diet Pattern Detection above). Append pattern feedback after the daily summary if `has_pattern` is true.
 
 ---
 

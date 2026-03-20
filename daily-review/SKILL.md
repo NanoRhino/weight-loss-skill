@@ -83,8 +83,10 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py load \
   --data-dir {workspaceDir}/data/meals --date YYYY-MM-DD
 
 # Full-day analysis against targets
+# If health-profile.md has Custom Meal Blocks, pass --meal-blocks
 python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py analyze \
-  --weight <kg> --cal <kcal> --meals <2|3> --log '[...]'
+  --weight <kg> --cal <kcal> --meals <2|3> --log '[...]' \
+  [--meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}']
 ```
 
 ---
