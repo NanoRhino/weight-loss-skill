@@ -247,9 +247,9 @@ The server runs in UTC. To ensure meals are saved under the correct local date:
 2. **Use `local_date`** as the `--date` parameter for `save`, `load`, `check-missing`, and `evaluate` commands.
 3. This replaces manual date calculation — `detect-meal` handles all timezone math.
 
-**No fallback:** Always call `detect-meal` with `--timestamp` before any `save` or `load` call. Do NOT use `--tz-offset` alone on `save`/`load` as a date substitute — those commands compute the date from `datetime.now()`, not from the message timestamp, and will produce the wrong date if the session was idle or if the user is near midnight.
+**Fallback:** If you don't have `local_date` from `detect-meal`, pass `--tz-offset <seconds>` (from `timezone.json`) to `save` and `load` commands. The script will compute the local date automatically. **Never calculate the date yourself — always let the script do it.**
 
-**Example:** User is in `Asia/Shanghai` (UTC+8). Message arrives at `2026-03-17T16:30Z` (local `2026-03-18 00:30`). `detect-meal` returns `local_date: "2026-03-18"`, which you pass as `--date` to all subsequent commands. Without this, `save` and `load` would use the server's UTC date (`2026-03-17`) and record the meal on the wrong day.
+**Example:** User is in `Asia/Shanghai` (UTC+8). Message arrives at UTC 16:30 (local 00:30 next day). `detect-meal` returns `local_date: "2026-03-18"` (the next day), which you pass as `--date` to all subsequent commands.
 
 ## Workflow
 
@@ -264,18 +264,17 @@ When user says "set my target" or provides weight/calorie goal:
 
 When user describes what they're about to eat (or what they already ate):
 
-1. **Call `detect-meal`** (see §0) — always, even when the user explicitly states the meal type. Pass `--tz-offset`, `--meals`, `--schedule` (from health-profile.md), and `--timestamp` (from message metadata). Use `local_date` from the response as the `--date` for all subsequent commands. If the user explicitly stated a meal type, use that instead of `detected_meal`, but always use `local_date` from this call.
+1. **Determine meal type** — if user explicitly states the meal type, use it directly. Otherwise, **call `detect-meal`** (see §0) passing `--tz-offset`, `--meals`, `--schedule` (from health-profile.md), `--timestamp` (from message metadata), and `--log` (from step 3). Use the returned `detected_meal` as the meal type and `local_date` as the date for all subsequent commands.
 2. **Detect meal timing** — determine if the user is logging before eating (default) or reporting a meal already eaten (see Meal Timing Detection above)
-3. **Call load** — get today's existing records using `--date {local_date}` from step 1
-4. **Snack detection (if meal type not stated by user)** — re-call `detect-meal` with `--log` (from step 3) to enable snack detection. Use the returned `detected_meal` as the final meal type.
-5. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
-6. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
-7. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g
-8. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`); always pass `--date {local_date}`
-9. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
-10. **Reply in format** — meal details + nutrition summary + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
+3. **Call load** — get today's existing records (use `local_date` from `detect-meal` as `--date`)
+4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
+5. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
+6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g
+7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`)
+8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
+9. **Reply in format** — meal details + nutrition summary + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
 
-> **⚠️ Important:** Always call `detect-meal` with `--timestamp` from the inbound message metadata (the UTC timestamp of the user's message). Never rely on `session_status` or cached time — the session may have been idle for hours. Always pass `--date {local_date}` (from `detect-meal`) explicitly to `save` and `load` — never omit it and never calculate the date yourself.
+> **⚠️ Important:** When calling `detect-meal`, always pass `--timestamp` from the inbound message metadata (the UTC timestamp of the user's message). Never rely on `session_status` or cached time — the session may have been idle for hours.
 
 ### Missing Meal Handling
 
