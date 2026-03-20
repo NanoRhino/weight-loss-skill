@@ -82,10 +82,13 @@ python3 {baseDir}/scripts/nutrition-calc.py detect-meal \
 ### 1. Set Target — `target`
 
 ```bash
-python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3] [--mode balanced]
+python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3] [--mode balanced] \
+  [--meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}']
 ```
 
 Supported `--mode` values: `usda`, `balanced` (default), `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2`. The mode determines the fat percentage range used for macro calculations — see `weight-loss-planner/references/diet-modes.md` for details.
+
+`--meal-blocks`: optional, pass when `health-profile.md > Diet Config > Custom Meal Blocks` exists (from a previous standard negotiation). Overrides default per-meal allocation percentages.
 
 ### 2. Save Entry — `save` (must call on every food log)
 
@@ -122,7 +125,8 @@ python3 {baseDir}/scripts/nutrition-calc.py analyze --weight <kg> --cal <kcal> -
 python3 {baseDir}/scripts/nutrition-calc.py evaluate --weight <kg> --cal <kcal> --meals <2|3> \
   --current-meal "lunch" \
   --log '[...]' \
-  [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]']
+  [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]'] \
+  [--meal-blocks '{"breakfast":25,"lunch":45,"dinner":30}']
 ```
 
 Evaluates cumulative intake at the current checkpoint against range-based targets. Uses min/max ranges for each macro.
@@ -305,57 +309,101 @@ The below-BMR safety check runs **weekly** (not per-meal). This avoids noisy dai
 
 **When `below_floor` is false:** No action needed. The weekly check passes silently.
 
-### Diet Pattern Detection
+### Nutrition Standard Negotiation (3-Day Review)
 
-When logging food, the system can detect whether the user's actual eating pattern over the past 3 consecutive days differs from their currently selected diet mode. This helps users discover that their natural eating habits may align better with a different mode.
+On the user's **3rd day of logging**, the normal daily review is **replaced** by a 3-day review: celebrate the milestone, show the user their actual eating patterns over the past 3 days, and **ask** what they'd like to adjust. If the data shows a consistent deviation from current standards, present a concrete proposal; otherwise just present the summary and invite feedback.
 
-#### When to Run
+> **Supersedes** `detect-diet-pattern`. Do not run `detect-diet-pattern` separately.
 
-Run `detect-diet-pattern` **once per day**, after the user logs their last meal (dinner) and only when at least 3 days of data exist. Do not run it on every meal — only at the end-of-day checkpoint.
+#### When to Trigger
+
+Triggered by the `daily-review` skill's auto-trigger (**1 hour after last meal**), when **all** hold:
+
+1. Today is the **3rd day** with complete meal data (≥ 2 main meals each, within 7-day lookback)
+2. The 3-day review has **not been done before** (`data/standard-adjustments.json` → `review_completed` is absent or false)
+
+When these conditions are met, the daily-review skill generates the 3-day review **instead of** the normal daily review. See `daily-review/SKILL.md` for the trigger mechanism.
+
+This is a **one-time** trigger. After the review is done (regardless of outcome), set `review_completed: true` so it does not fire again.
+
+#### Script Command
 
 ```bash
-python3 {baseDir}/scripts/nutrition-calc.py detect-diet-pattern \
+python3 {baseDir}/scripts/nutrition-calc.py propose-standard-adjustment \
   --data-dir {workspaceDir}/data/meals \
-  --current-mode <mode from health-profile.md> \
-  [--date 2026-03-06]
+  --cal <daily-cal> --weight <kg> --meals <2|3> --mode <current-mode> \
+  [--meal-blocks '{"breakfast":30,"lunch":40,"dinner":30}'] \
+  [--date 2026-03-20]
 ```
 
-Returns: `has_pattern`, `detected_mode`, `current_mode`, `avg_split` (average macro percentages), `daily_splits` (per-day breakdown), `current_mode_distance`, `detected_mode_distance`, `pros_cons`
+`--meal-blocks`: pass if `health-profile.md > Diet Config > Custom Meal Blocks` exists; omit for defaults.
 
-#### When `has_pattern` is `true`
+**Returns:** always includes `avg_pattern` (when ≥ 3 days exist). When deviations are found, returns `proposals` with **three independent dimensions**, each with its own `has_change` / `valid` / `issues`:
 
-The user's actual macro split over 3 consecutive days is closer to a different diet mode than their current one. Notify the user **after the normal meal log reply** (after the nutrition summary and suggestion sections), using this format:
-
-```
-📋 I noticed something over the past few days — your actual eating pattern looks more like [detected_mode_name] than [current_mode_name]. Here's a quick comparison:
-
-Your average macro split: Protein [X]% / Carbs [X]% / Fat [X]%
-[current_mode_name] range: Protein [X-X]% / Carbs [X-X]% / Fat [X-X]%
-[detected_mode_name] range: Protein [X-X]% / Carbs [X-X]% / Fat [X-X]%
-
-Switching to [detected_mode_name] could work well for you:
-✅ [pro 1]
-✅ [pro 2]
-
-Things to keep in mind:
-⚠️ [con 1]
-⚠️ [con 2]
-
-Would you like to switch to [detected_mode_name], or keep your current plan? Either way is totally fine — the best diet mode is the one you can stick with.
+```json
+{"avg_pattern": {...}, "proposals": {
+  "diet_mode":         {"has_change": true|false, "valid": bool, "from": "...", "to": "...", "issues": [...]},
+  "meal_distribution": {"has_change": true|false, "valid": bool, "from": {...}, "to": {...}, "issues": [...]},
+  "meal_count":        {"has_change": true|false, "valid": bool, "from": 3, "to": 2, "issues": [...]}
+}}
 ```
 
-- Keep the tone neutral and supportive — this is a suggestion, not a correction
-- Only show the top 2-3 pros and 1-2 cons from the `pros_cons` output
-- Do not mention this again for at least 7 days after the user declines
-- If the user agrees to switch, update `health-profile.md > Diet Config > Diet Mode` and recalculate macro targets using the new mode
+Each dimension is **independently evaluated and independently actionable** — a macro issue does not block a meal distribution proposal, and vice versa.
 
-#### When `has_pattern` is `false`
+#### Presenting the 3-Day Review
 
-No action needed. The detection passes silently — either the user's pattern matches their current mode, or there isn't enough data yet.
+This review is sent as a **standalone message** via the daily-review auto-trigger (1h after last meal on day 3). It **replaces** the normal daily review for that day — do not also send a separate daily review.
 
-#### When `reason` is `insufficient_data`
+The message has two parts: **today's daily summary** (same data line as normal daily review) + **3-day pattern analysis**.
 
-Not enough days with logged meals (less than 3 within the 7-day lookback window). No action needed — wait for more data.
+```
+📋 今日总结
+📊 全天总计: [today's totals with status indicators, same as daily-review format]
+[1-sentence commentary on today]
+
+🎉 我们已经一起走过 3 天了！来看看这 3 天的整体节奏：
+
+📊 三日平均：蛋白质 [X]% · 碳水 [X]% · 脂肪 [X]%
+📊 每餐分配：早 [X]% · 午 [X]% · 晚 [X]%
+```
+
+Then **per dimension**, only show the ones with `has_change: true`:
+
+**餐次分配** (`meal_distribution.has_change && valid`):
+> 你的实际节奏是早 [X]% 午 [X]% 晚 [X]%，和计划的 30/40/30 有些不同。要不要把计划调成 [to] 来贴合你的节奏？
+
+**三大营养素** (`diet_mode.has_change && valid`):
+> 你的营养素比例更接近 [to_name] 模式。要不要切过去？
+
+**三大营养素有问题** (`diet_mode.has_change && !valid`):
+> 不过蛋白质连续三天偏低（[issues 用自然语言]），这个需要先补上来。有什么方便加蛋白质的方式吗？
+
+**餐次** (`meal_count.has_change && valid`):
+> 这三天你都是吃 [to] 餐，要不要计划也改成 [to] 餐制？
+
+**全部无偏差** (所有维度 `has_change: false`):
+> 整体和计划比较吻合，节奏不错。
+
+最后都以开放式收尾：
+> 有什么地方觉得不舒服、想调整的吗？计划是为你服务的。
+
+**Tone:** 庆祝 + 协商。每个维度单独问，用户可以分别接受/拒绝。
+
+#### Recording & Applying
+
+After the user responds, save to `data/standard-adjustments.json`:
+
+```json
+{"review_completed": true, "review_date": "2026-03-20",
+ "user_feedback": "summary of what user said",
+ "applied_changes": [{"type": "meal_distribution", "to": {"breakfast":25,"lunch":45,"dinner":30}}]}
+```
+
+`applied_changes` 只记用户同意的维度。每个维度独立记录、独立生效：
+- **meal_distribution 同意**: 更新 `health-profile.md > Diet Config > Custom Meal Blocks`，后续传 `--meal-blocks`
+- **diet_mode 同意**: 更新 `health-profile.md > Diet Config > Diet Mode`
+- **meal_count 同意**: 更新 `health-profile.md > Diet Config > Meals per Day`
+- **用户主动提的偏好** (如"午餐吃不了那么多"): 应用可执行的部分，记录到 `health-preferences.md`
 
 ---
 
@@ -470,10 +518,6 @@ Every food log reply must contain up to three sections:
 3. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
 4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
 5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
-
-### If the user also runs `detect-diet-pattern` criteria
-
-If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pattern` (see Diet Pattern Detection above). Append pattern feedback after the daily summary if `has_pattern` is true.
 
 ---
 
