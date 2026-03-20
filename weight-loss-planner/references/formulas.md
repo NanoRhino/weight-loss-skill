@@ -78,27 +78,33 @@ BMR = (10 × weight_kg) + (6.25 × height_cm) - (5 × age_years) - 161
 TDEE = BMR × Activity Multiplier
 ```
 
-### Activity Multipliers
+### Activity Multipliers (NEAT-Only — Excludes Intentional Exercise)
 
-| Level | Multiplier | Description | Typical Daily Steps |
+These multipliers estimate **non-exercise activity thermogenesis (NEAT)** — energy spent on daily living, commuting, job-related movement, errands, and general fidgeting. They deliberately **exclude** intentional exercise (gym, running, swimming, sports, etc.), which is tracked separately by the `exercise-tracking-planning` skill via MET-based calorie estimation.
+
+**Why NEAT-only?** The classic Harris-Benedict activity multipliers bundle exercise into the lifestyle factor, which causes double-counting when users also log workouts. By separating NEAT from exercise, we get a stable baseline TDEE that doesn't overlap with per-session exercise calorie estimates.
+
+| Level | Multiplier | Description (lifestyle only, no exercise) | Typical Daily Steps |
 |---|---|---|---|
-| Sedentary | 1.2 | Desk job, commute by car, little or no planned exercise | < 5,000 |
-| Lightly Active | 1.375 | Mostly sedentary, but light exercise 1–3 days/week (walking, yoga, light weights) | 5,000–7,500 |
-| Moderately Active | 1.55 | Moderate exercise 3–5 days/week (running, swimming, gym), or active job (teacher, retail) | 7,500–10,000 |
-| Very Active | 1.725 | Hard exercise 6–7 days/week, or moderate physical job + regular exercise | 10,000–15,000 |
-| Extremely Active | 1.9 | Heavy physical labor (construction, farming) + daily intense training, or professional/semi-pro athlete | > 15,000 |
+| Sedentary | 1.2 | Works from home or desk job, drives everywhere, minimal daily movement beyond basic self-care | < 4,000 |
+| Lightly Active | 1.375 | Office/desk worker who commutes (walk/transit), runs errands, does light housework — typical modern adult | 4,000–7,500 |
+| Moderately Active | 1.55 | On-feet job (teacher, nurse, retail, waiter) or very active daily routine (frequent walking, manual household tasks) | 7,500–10,000 |
+| Very Active | 1.725 | Physically demanding job (warehouse, postal carrier, agriculture) with sustained movement throughout the day | 10,000–15,000 |
+| Extremely Active | 1.9 | Heavy manual labor all day (construction, mining, commercial fishing) | > 15,000 |
 
-**Important:** These multipliers are population averages. Individual variation of ±10–15% is common. Factors like NEAT (non-exercise activity thermogenesis), genetics, thyroid function, and body composition all play a role. The TDEE range (one level above and below) helps account for this uncertainty.
+**Important:** These multipliers are population averages. Individual variation of ±10–15% is common. Factors like NEAT (fidgeting, posture maintenance, spontaneous movement), genetics, thyroid function, and body composition all play a role. The TDEE range (±100 kcal) helps account for this uncertainty.
 
 ### Activity Level Selection Policy
 
-**Default to Lightly Active (×1.375)** for most users. The majority of people overestimate their activity level, and lightly active is the most representative multiplier for a typical adult.
+**Default to Lightly Active (×1.375)** for most users. This represents a typical adult with a desk-based job and normal daily movement (commuting, errands, housework).
+
+**Critical rule: Classify by daily lifestyle and job type ONLY.** Gym sessions, running, sports, and other intentional exercise must NOT influence the activity level selection. Exercise is tracked and reported separately — including it here would double-count those calories.
 
 **Selection rules:**
-1. **Lightly Active (×1.375)** — use by default for most users. This covers the vast majority of scenarios: office workers who occasionally walk or do light exercise, people with mixed sedentary/active days, and anyone whose activity description is ambiguous
-2. **Sedentary (×1.2)** — use only when the user explicitly and unambiguously describes a near-immobile lifestyle: works from home **and** has no exercise habit **and** rarely goes out. Simply having a desk job is NOT enough to classify as sedentary — most desk workers still commute, run errands, and move around enough to qualify as lightly active
-3. **Moderately Active (×1.55)** — use only when the user describes **both** a consistent exercise routine (at least 4 days/week of intentional moderate-to-high intensity exercise such as gym, running, swimming, team sports) **and** an generally active daily life. Having a physically active job alone (e.g., retail, teaching) without additional exercise qualifies as lightly active, not moderately active. Occasional gym visits (1–3 days/week) also remain at lightly active
-4. **Very Active (×1.725) and Extremely Active (×1.9)** — do not use under normal circumstances. Reserve only for users who are clearly professional athletes, manual laborers with daily intense training, or similar exceptional cases
+1. **Lightly Active (×1.375)** — use by default for most users. This covers: office workers, students, remote workers who leave the house for errands, and anyone whose daily routine is primarily seated with normal daily movement. A user who has a desk job but goes to the gym 5 days/week is still **Lightly Active** — their gym sessions are tracked separately
+2. **Sedentary (×1.2)** — use only when the user explicitly describes a near-immobile daily life: works from home **and** rarely leaves the house **and** minimal daily movement. Simply having a desk job is NOT enough — most desk workers still commute, shop, and move around enough to qualify as lightly active
+3. **Moderately Active (×1.55)** — use when the user's **job or daily routine** (not exercise) involves significant on-feet time. Examples: nurses, teachers, retail workers, parents with young children who are constantly moving, or anyone who walks/cycles as their primary mode of transport. A desk worker who also exercises intensely does NOT qualify — their lifestyle NEAT is still lightly active
+4. **Very Active (×1.725) and Extremely Active (×1.9)** — reserve for users whose **jobs** are physically demanding: warehouse workers, postal carriers, farm hands, construction workers, etc. Do not use these levels based on exercise frequency alone
 
 **Do not expose multiplier values to the user.** Activity level classification is an internal calculation detail. Present TDEE results without mentioning the specific multiplier used.
 
