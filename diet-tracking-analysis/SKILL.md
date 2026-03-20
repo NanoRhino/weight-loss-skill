@@ -336,43 +336,50 @@ python3 {baseDir}/scripts/nutrition-calc.py propose-standard-adjustment \
 
 `--meal-blocks`: pass if `health-profile.md > Diet Config > Custom Meal Blocks` exists; omit for defaults.
 
-**Returns:** always includes `avg_pattern` (when ≥ 3 days exist). If a consistent deviation is found, also includes `has_proposal: true`, `changes`, `current_standard`, `proposed_standard`, `validation_issues`, `improvement`.
+**Returns:** always includes `avg_pattern` (when ≥ 3 days exist). When deviations are found, returns `proposals` with **three independent dimensions**, each with its own `has_change` / `valid` / `issues`:
+
+```json
+{"avg_pattern": {...}, "proposals": {
+  "diet_mode":         {"has_change": true|false, "valid": bool, "from": "...", "to": "...", "issues": [...]},
+  "meal_distribution": {"has_change": true|false, "valid": bool, "from": {...}, "to": {...}, "issues": [...]},
+  "meal_count":        {"has_change": true|false, "valid": bool, "from": 3, "to": 2, "issues": [...]}
+}}
+```
+
+Each dimension is **independently evaluated and independently actionable** — a macro issue does not block a meal distribution proposal, and vice versa.
 
 #### Presenting the 3-Day Review
 
-Always present **after** the normal meal log reply. Two cases:
-
-**Case A — Consistent deviation detected (`has_proposal: true`):**
+Always present **after** the normal meal log reply. The review always starts with the 3-day summary, then per dimension:
 
 ```
 🎉 我们已经一起走过 3 天了！来看看这 3 天你的实际饮食习惯：
 
 📊 三日平均：蛋白质 [X]% · 碳水 [X]% · 脂肪 [X]%
 📊 每餐分配：早 [X]% · 午 [X]% · 晚 [X]%
-
-我发现你的实际节奏和当前计划有些不同：
-• [每项 change 用自然语言描述]
-
-有一套更贴合你实际习惯的方案：
-当前 → 建议：[current_standard vs proposed_standard 对比]
-
-这套新方案仍然符合营养指南。你觉得呢？想怎么调？
-也可以告诉我你自己想改的地方——计划是为你服务的。
 ```
 
-**Case B — No significant deviation or pattern still forming (`has_proposal: false`):**
+Then **per dimension**, only show the ones with `has_change: true`:
 
-```
-🎉 我们已经一起走过 3 天了！来看看这 3 天你的实际饮食习惯：
+**餐次分配** (`meal_distribution.has_change && valid`):
+> 你的实际节奏是早 [X]% 午 [X]% 晚 [X]%，和计划的 30/40/30 有些不同。要不要把计划调成 [to] 来贴合你的节奏？
 
-📊 三日平均：蛋白质 [X]% · 碳水 [X]% · 脂肪 [X]%
-📊 每餐分配：早 [X]% · 午 [X]% · 晚 [X]%
+**三大营养素** (`diet_mode.has_change && valid`):
+> 你的营养素比例更接近 [to_name] 模式。要不要切过去？
 
-整体和计划比较吻合，节奏不错。
-有什么地方觉得不舒服、想调整的吗？比如某餐吃不下、某类食物不想吃、时间不方便等，都可以告诉我。
-```
+**三大营养素有问题** (`diet_mode.has_change && !valid`):
+> 不过蛋白质连续三天偏低（[issues 用自然语言]），这个需要先补上来。有什么方便加蛋白质的方式吗？
 
-**Tone:** 庆祝 + 协商。强调"计划是为你服务的"，鼓励用户主动提需求。
+**餐次** (`meal_count.has_change && valid`):
+> 这三天你都是吃 [to] 餐，要不要计划也改成 [to] 餐制？
+
+**全部无偏差** (所有维度 `has_change: false`):
+> 整体和计划比较吻合，节奏不错。
+
+最后都以开放式收尾：
+> 有什么地方觉得不舒服、想调整的吗？计划是为你服务的。
+
+**Tone:** 庆祝 + 协商。每个维度单独问，用户可以分别接受/拒绝。
 
 #### Recording & Applying
 
@@ -384,11 +391,11 @@ After the user responds, save to `data/standard-adjustments.json`:
  "applied_changes": [{"type": "meal_distribution", "to": {"breakfast":25,"lunch":45,"dinner":30}}]}
 ```
 
-**User requests changes:** Update `health-profile.md > Diet Config` accordingly (Diet Mode / Custom Meal Blocks / Meals per Day). From this point, pass `--meal-blocks` to all `target`, `evaluate`, `analyze`, `check-missing` calls.
-
-**User says all good:** Save with `review_completed: true` and empty `applied_changes`. Continue with current standards.
-
-**User mentions specific preferences** (e.g., "午餐吃不了那么多"): Apply what's actionable, note preferences in `health-preferences.md`.
+`applied_changes` 只记用户同意的维度。每个维度独立记录、独立生效：
+- **meal_distribution 同意**: 更新 `health-profile.md > Diet Config > Custom Meal Blocks`，后续传 `--meal-blocks`
+- **diet_mode 同意**: 更新 `health-profile.md > Diet Config > Diet Mode`
+- **meal_count 同意**: 更新 `health-profile.md > Diet Config > Meals per Day`
+- **用户主动提的偏好** (如"午餐吃不了那么多"): 应用可执行的部分，记录到 `health-preferences.md`
 
 ---
 

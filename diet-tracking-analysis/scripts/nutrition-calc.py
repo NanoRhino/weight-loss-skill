@@ -1030,12 +1030,11 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
         return {"has_proposal": False, "reason": "no_significant_deviation",
                 "avg_pattern": avg}
 
-    # --- Build proposal ---
+    # --- Build per-dimension proposals (independent) ---
     effective_mode = mode if mode not in ("if_16_8", "if_5_2") else "balanced"
-    changes = []
+    proposals = {}
 
-    # 1. Diet mode proposal
-    proposed_mode = effective_mode
+    # 1. Macro split → diet mode proposal (independent)
     if deviations["macro"]["significant"]:
         closest_mode, closest_dist = _find_closest_mode(avg["macro_split"])
         current_dist = _mode_distance(
@@ -1045,117 +1044,64 @@ def propose_standard_adjustment(data_dir: str, daily_cal: int, weight: float,
             effective_mode,
         )
         if closest_mode != effective_mode and closest_dist < current_dist:
-            proposed_mode = closest_mode
-            changes.append({
-                "type": "diet_mode",
-                "from": effective_mode,
-                "to": closest_mode,
-                "reason": "actual macro split is closer to this mode",
-            })
+            # Validate: protein & fat floors (only apply to macro dimension)
+            issues = []
+            actual_protein_g = daily_cal * avg["macro_split"]["protein_pct"] / 100 / 4
+            if actual_protein_g < weight * _MIN_PROTEIN_G_PER_KG:
+                issues.append(
+                    f"protein {round(actual_protein_g, 1)}g < "
+                    f"{round(weight * _MIN_PROTEIN_G_PER_KG, 1)}g needed")
+            if avg["macro_split"]["fat_pct"] < _MIN_FAT_PCT:
+                issues.append(
+                    f"fat {avg['macro_split']['fat_pct']}% < {_MIN_FAT_PCT}%")
+            proposals["diet_mode"] = {
+                "has_change": True, "valid": len(issues) == 0,
+                "from": effective_mode, "to": closest_mode,
+                "issues": issues,
+            }
+    if "diet_mode" not in proposals:
+        proposals["diet_mode"] = {"has_change": False}
 
-    # 2. Meal block proposal
-    proposed_blocks = {b["label"]: b["pct"] for b in current_blocks}
+    # 2. Meal distribution proposal (independent)
+    current_block_pcts = {b["label"]: b["pct"] for b in current_blocks}
     if deviations["meal_distribution"]["significant"]:
         new_blocks = _propose_meal_blocks(avg["meal_distribution"],
                                           current_blocks)
-        if new_blocks != proposed_blocks:
-            changes.append({
-                "type": "meal_distribution",
-                "from": dict(proposed_blocks),
-                "to": new_blocks,
-                "reason": "actual per-meal energy split differs from standard",
-            })
-            proposed_blocks = new_blocks
+        if new_blocks != current_block_pcts:
+            # Validate: each block ≥ minimum (only apply to distribution)
+            issues = []
+            for label, pct in new_blocks.items():
+                if pct < _MIN_MEAL_BLOCK_PCT:
+                    issues.append(f"{label} {pct}% < {_MIN_MEAL_BLOCK_PCT}%")
+            proposals["meal_distribution"] = {
+                "has_change": True, "valid": len(issues) == 0,
+                "from": current_block_pcts, "to": new_blocks,
+                "issues": issues,
+            }
+    if "meal_distribution" not in proposals:
+        proposals["meal_distribution"] = {"has_change": False}
 
-    # 3. Meal count proposal (only if all days show same count ≠ configured)
-    proposed_meals = meals
+    # 3. Meal count proposal (independent)
     if (consistency["meal_count"]["ok"]
             and all_patterns[0]["main_meals_logged"] != meals
             and all_patterns[0]["main_meals_logged"] in (2, 3)):
-        proposed_meals = all_patterns[0]["main_meals_logged"]
-        changes.append({
-            "type": "meal_count",
-            "from": meals,
-            "to": proposed_meals,
-            "reason": f"user consistently logged {proposed_meals} main meals",
-        })
+        proposals["meal_count"] = {
+            "has_change": True, "valid": True,
+            "from": meals, "to": all_patterns[0]["main_meals_logged"],
+            "issues": [],
+        }
+    else:
+        proposals["meal_count"] = {"has_change": False}
 
-    if not changes:
+    # Any actionable proposal?
+    any_change = any(p["has_change"] for p in proposals.values())
+    if not any_change:
         return {"has_proposal": False, "reason": "no_better_standard_found",
                 "avg_pattern": avg}
 
-    # --- Validate nutritional soundness ---
-    # Validate based on the user's actual intake pattern (not the mode's
-    # theoretical minimum), since the proposal aims to fit the user's
-    # natural habits.  Flag only when the user's own pattern is unsafe.
-    validation_issues = []
-
-    # Check protein floor — user's actual protein intake vs weight-based need
-    actual_protein_g = daily_cal * avg["macro_split"]["protein_pct"] / 100 / 4
-    if actual_protein_g < weight * _MIN_PROTEIN_G_PER_KG:
-        validation_issues.append(
-            f"actual protein intake ({round(actual_protein_g, 1)}g) is below "
-            f"{_MIN_PROTEIN_G_PER_KG}g/kg ({round(weight * _MIN_PROTEIN_G_PER_KG, 1)}g needed)"
-        )
-
-    # Check fat floor — user's actual fat percentage
-    actual_fat_pct = avg["macro_split"]["fat_pct"]
-    if actual_fat_pct < _MIN_FAT_PCT:
-        validation_issues.append(
-            f"actual fat intake ({actual_fat_pct}%) is below {_MIN_FAT_PCT}% guideline"
-        )
-
-    # Check meal block minimums
-    for label, pct in proposed_blocks.items():
-        if pct < _MIN_MEAL_BLOCK_PCT:
-            validation_issues.append(
-                f"{label} block at {pct}% is below {_MIN_MEAL_BLOCK_PCT}% minimum"
-            )
-
-    is_valid = len(validation_issues) == 0
-
-    # Build comparison: how much closer is the proposed standard?
-    proposed_mode_dist = _mode_distance(
-        avg["macro_split"]["protein_pct"],
-        avg["macro_split"]["carbs_pct"],
-        avg["macro_split"]["fat_pct"],
-        proposed_mode,
-    )
-    current_mode_dist = _mode_distance(
-        avg["macro_split"]["protein_pct"],
-        avg["macro_split"]["carbs_pct"],
-        avg["macro_split"]["fat_pct"],
-        effective_mode,
-    )
-
-    current_block_dist = sum(
-        abs(avg["meal_distribution"].get(b["label"], 0) - b["pct"])
-        for b in current_blocks
-    )
-    proposed_block_dist = sum(
-        abs(avg["meal_distribution"].get(label, 0) - pct)
-        for label, pct in proposed_blocks.items()
-    )
-
     return {
-        "has_proposal": is_valid,
         "avg_pattern": avg,
-        "changes": changes,
-        "current_standard": {
-            "mode": effective_mode,
-            "meals": meals,
-            "meal_blocks": {b["label"]: b["pct"] for b in current_blocks},
-        },
-        "proposed_standard": {
-            "mode": proposed_mode,
-            "meals": proposed_meals,
-            "meal_blocks": proposed_blocks,
-        },
-        "validation_issues": validation_issues,
-        "improvement": {
-            "macro_distance": [round(current_mode_dist, 1), round(proposed_mode_dist, 1)],
-            "block_distance": [round(current_block_dist, 1), round(proposed_block_dist, 1)],
-        },
+        "proposals": proposals,
     }
 
 
