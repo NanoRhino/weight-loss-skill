@@ -126,7 +126,7 @@ If target weight is `null`, only show current BMI.
 
 **Round 4 — Work type & exercise habits (required):**
 
-Ask about their work type and exercise habits together. These are essential for calculating TDEE and building an appropriate plan.
+Ask about their work type and exercise habits together. Work type determines the **activity level** (NEAT-based — used for TDEE calculation), while exercise habits are stored separately for the exercise-tracking skill. **Important:** Activity level must reflect only daily lifestyle/job activity, NOT exercise frequency — exercise is tracked separately and including it in the activity multiplier would double-count calories. See `weight-loss-planner/references/formulas.md > Activity Level Selection Policy`.
 
 > Example: "工作主要是坐着还是要动？平时有运动吗？"
 
@@ -206,7 +206,7 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 
 ## Activity & Lifestyle
 - **Work Type:** [sedentary | active | —]
-- **Activity Level:** —
+- **Activity Level:** — *(NEAT-only: based on job/daily routine, excludes intentional exercise)*
 - **Exercise Habits:** [string | —]
 
 ## Fitness
