@@ -32,16 +32,14 @@ things to focus on next week.
 
 ### Schedule
 
-Auto-generate every **Monday at 9:00 AM** (user's local time), covering the
-previous Monday–Sunday. To get the correct date range, run:
+Auto-generate every **Sunday at 9:00 PM** (user's local time), covering the
+current Monday–Sunday. To get the correct date range, run:
 
 ```bash
 python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py local-date --tz-offset {tz_offset}
 ```
 
-This returns `today`, `current_week` (monday–sunday), and `previous_week` (monday–sunday). Use `previous_week` as the report range. **Never calculate dates yourself** — always use the script output.
-
-If the user's quiet hours extend past 9 AM, delay to end of quiet hours.
+This returns `today`, `current_week` (monday–sunday), and `previous_week` (monday–sunday). Use `current_week` as the report range. **Never calculate dates yourself** — always use the script output.
 
 ### Manual Trigger
 
@@ -163,10 +161,12 @@ and `.calorie-bar` in the HTML template.
 ### Section 3: Weight Progress
 
 Show weight readings and net change. See `.weight-table` and `.weight-change`
-in the HTML template.
+in the HTML template. Include **all** entries for the week — both scheduled
+weigh-in days and casual mentions (the user may report weight at any time).
 
 **Data logic:**
 - Call `weight-tracker.py load --from <start> --to <end> --display-unit <unit>` to collect all entries within the period
+- All entries are treated equally — no distinction between reminder-triggered and user-initiated recordings
 - If 2+ readings: calculate weekly change = last reading − first reading
 - If 1 reading: show it, compare to previous week's last reading if available
 - If 0 readings: skip this section entirely (remove the card), add a gentle note
@@ -378,7 +378,7 @@ per-day meal completion trends.
 is **Priority Tier P4 (Reporting)**. Key scenarios:
 
 - **Weekly report + exercise weekly summary** (Pattern 3): This skill is the primary owner of weekly summaries. Exercise weekly data (sessions, duration, calories burned, WHO comparison) is incorporated as a section within this report. `exercise-tracking-planning` does NOT produce a separate weekly summary when this skill is generating.
-- **Monday auto-report**: Include exercise data from the week. No separate exercise summary needed.
+- **Sunday evening auto-report**: Include exercise data from the week. No separate exercise summary needed.
 - **User requests "weekly summary"**: Route here, not to exercise-tracking's weekly summary.
 
 ---

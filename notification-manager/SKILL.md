@@ -106,6 +106,7 @@ Use the cron tool directly for listing and removing:
    - **Legacy jobs** (cron exists and time matches, but `--message` references `daily-notification` or `daily-notification-skill` instead of `notification-composer`) → remove then recreate with the correct `notification-composer` message. This ensures old cron jobs from before the skill split are automatically migrated.
    - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
 4. Also verify the weight reminder cron job exists (Mon & Thu, 30 min before breakfast — see § "Weight reminders" below). Create if missing.
+5. Also verify the weekly report cron job exists (Sunday 21:00 — see § "Weekly report" below). Create if missing.
 5. Do all of this **silently** — do not mention it to the user.
 
 ---
@@ -144,6 +145,17 @@ bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Weight check-in reminder" \
   --message "Run notification-composer for weight." \
   --cron "30 6 * * 1,4"
+```
+
+### Weekly report (Sunday 9 PM)
+
+One fixed cron job — every Sunday at 21:00 user local time.
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Weekly report" \
+  --message "Run weekly-report to generate this week's progress report." \
+  --cron "0 21 * * 0"
 ```
 
 ---
