@@ -3,3 +3,4 @@ dist/
 lingxi-security/
 searxng/
 wechat-history-import/
+__pycache__/
