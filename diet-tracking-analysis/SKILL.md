@@ -549,16 +549,18 @@ Produce targets have **lower priority** than calories and macros:
 ### Nutrition Standard Negotiation
 ### Nutrition Standard Negotiation (3-Day Review)
 
-On the user's **4th day of logging**, run a 3-day review: celebrate the milestone, show the user their actual eating patterns over the past 3 days, and **ask** what they'd like to adjust. If the data shows a consistent deviation from current standards, present a concrete proposal; otherwise just present the summary and invite feedback.
+On the user's **3rd day of logging**, the normal daily review is **replaced** by a 3-day review: celebrate the milestone, show the user their actual eating patterns over the past 3 days, and **ask** what they'd like to adjust. If the data shows a consistent deviation from current standards, present a concrete proposal; otherwise just present the summary and invite feedback.
 
 > **Supersedes** `detect-diet-pattern`. Do not run `detect-diet-pattern` separately.
 
 #### When to Trigger
 
-Run `propose-standard-adjustment` after the user logs their **last meal of the day**, when **all** hold:
+Triggered by the `daily-review` skill's auto-trigger (**1 hour after last meal**), when **all** hold:
 
-1. At least **3 complete days** of meal data exist (≥ 2 main meals each, within 7-day lookback)
+1. Today is the **3rd day** with complete meal data (≥ 2 main meals each, within 7-day lookback)
 2. The 3-day review has **not been done before** (`data/standard-adjustments.json` → `review_completed` is absent or false)
+
+When these conditions are met, the daily-review skill generates the 3-day review **instead of** the normal daily review. See `daily-review/SKILL.md` for the trigger mechanism.
 
 This is a **one-time** trigger. After the review is done (regardless of outcome), set `review_completed: true` so it does not fire again.
 
@@ -588,10 +590,16 @@ Each dimension is **independently evaluated and independently actionable** — a
 
 #### Presenting the 3-Day Review
 
-Always present **after** the normal meal log reply. The review always starts with the 3-day summary, then per dimension:
+This review is sent as a **standalone message** via the daily-review auto-trigger (1h after last meal on day 3). It **replaces** the normal daily review for that day — do not also send a separate daily review.
+
+The message has two parts: **today's daily summary** (same data line as normal daily review) + **3-day pattern analysis**.
 
 ```
-🎉 我们已经一起走过 3 天了！来看看这 3 天你的实际饮食习惯：
+📋 今日总结
+📊 全天总计: [today's totals with status indicators, same as daily-review format]
+[1-sentence commentary on today]
+
+🎉 我们已经一起走过 3 天了！来看看这 3 天的整体节奏：
 
 📊 三日平均：蛋白质 [X]% · 碳水 [X]% · 脂肪 [X]%
 📊 每餐分配：早 [X]% · 午 [X]% · 晚 [X]%
@@ -753,10 +761,6 @@ Every food log reply must contain up to three sections:
 3. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
 4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
 5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
-
-### End-of-day: 3-Day Review
-
-If this is the last meal of the day, check whether the 3-day review should trigger (see Nutrition Standard Negotiation above). If ≥ 3 complete days exist and `review_completed` is not yet true → run `propose-standard-adjustment` and append the review after the daily summary.
 
 ---
 

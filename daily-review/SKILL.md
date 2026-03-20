@@ -44,6 +44,21 @@ User explicitly asks for a daily review at any time:
 - `"review my day"` / `"how did I eat today"` / `"daily review"`
 - `"日复盘"` / `"今天吃得怎么样"` / `"复盘一下"` / `"今日总结"`
 
+### 3-Day Review Override
+
+Before generating the normal daily review, check whether this should be a **3-day review** instead:
+
+1. Check `data/standard-adjustments.json` → `review_completed`. If `true`, skip — 3-day review already done.
+2. Count complete days of meal data (≥ 2 main meals each, within 7-day lookback). If **today is the 3rd day** → generate the 3-day review **instead of** the normal daily review.
+
+When the 3-day review triggers:
+1. Run `propose-standard-adjustment` (see `diet-tracking-analysis/SKILL.md > Nutrition Standard Negotiation` for the script command and full format)
+2. Replace the normal daily review with the 3-day review format (today's daily summary + 3-day pattern analysis + negotiation)
+3. **Do NOT** also send a separate daily review — the 3-day review includes today's data.
+4. Still save today's data to `data/daily-reviews/YYYY-MM-DD.json` as usual.
+
+On all other days (day 1, day 2, day 4+), generate the normal daily review as specified below.
+
 ### Pre-send Checks
 
 1. At least 1 meal logged today? If not → `"No meals logged today — nothing to review yet. Log something and I'll review it for you!"`
@@ -64,12 +79,14 @@ User explicitly asks for a daily review at any time:
 | `MEAL-PLAN.md` | direct read (if exists) | Planned meals for comparison |
 | `data/meals/{yesterday}.json` | `nutrition-calc.py load --date {yesterday}` | Yesterday's data for trend comparison (optional) |
 | `timezone.json` | direct read | Calculate correct local date |
+| `data/standard-adjustments.json` | direct read | Check `review_completed` for 3-day review trigger |
 
 ### Writes
 
 | Path | When |
 |------|------|
 | `data/daily-reviews/YYYY-MM-DD.json` | After generating the review — store structured summary |
+| `data/standard-adjustments.json` | After the 3-day review — store `review_completed` and user decisions |
 
 ---
 
