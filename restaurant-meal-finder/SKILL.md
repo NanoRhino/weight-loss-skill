@@ -119,7 +119,8 @@ This skill **owns** this file. It is the single source of truth for the user's n
           "carbs": 55,
           "fat": 15,
           "price": "约 18 元",
-          "tips": "蒸饺比煎饺少约 100 kcal"
+          "tips": "蒸饺比煎饺少约 100 kcal",
+          "tags": ["清淡", "鲜", "管饱"]
         },
         {
           "name": "馄饨（小碗）+ 卤蛋 1 个",
@@ -128,7 +129,8 @@ This skill **owns** this file. It is the single source of truth for the user's n
           "carbs": 45,
           "fat": 14,
           "price": "约 15 元",
-          "tips": "不喝汤底可以再省 50 kcal"
+          "tips": "不喝汤底可以再省 50 kcal",
+          "tags": ["清淡", "鲜", "赶时间"]
         },
         {
           "name": "拌面 + 蒸蛋",
@@ -137,7 +139,27 @@ This skill **owns** this file. It is the single source of truth for the user's n
           "carbs": 60,
           "fat": 16,
           "price": "约 16 元",
-          "tips": "少放酱料减 50 kcal"
+          "tips": "少放酱料减 50 kcal",
+          "tags": ["重口", "管饱"]
+        },
+        {
+          "name": "鸡腿饭（少饭）+ 蛋花汤",
+          "calories": 520,
+          "protein": 28,
+          "carbs": 50,
+          "fat": 18,
+          "price": "约 20 元",
+          "tips": "少饭省 80 kcal，鸡腿蛋白质高",
+          "tags": ["high-protein", "管饱", "解馋"]
+        },
+        {
+          "name": "青菜瘦肉粥（大碗）",
+          "calories": 300,
+          "protein": 14,
+          "carbs": 42,
+          "fat": 6,
+          "price": "约 12 元",
+          "tags": ["清淡", "low-carb", "适合加班夜宵"]
         }
       ],
       "visits": [
@@ -159,8 +181,17 @@ This skill **owns** this file. It is the single source of truth for the user's n
       "date": "2026-03-15",
       "meal_slot": "lunch",
       "restaurant": "沙县小吃（中关村店）",
-      "meal": "蒸饺 8 个 + 紫菜蛋花汤",
+      "meal": "鸡腿饭（少饭）+ 蛋花汤",
+      "meal_tags": ["high-protein", "管饱", "解馋"],
       "accepted": true
+    },
+    {
+      "date": "2026-03-15",
+      "meal_slot": "lunch",
+      "restaurant": "便利蜂",
+      "meal": "鸡胸肉+饭团+沙拉",
+      "meal_tags": ["high-protein", "清淡", "赶时间"],
+      "accepted": false
     }
   ]
 }
@@ -174,7 +205,7 @@ This skill **owns** this file. It is the single source of truth for the user's n
   - `updated_at` — date of last web search for this location (ISO date)
   - `source` — how restaurants were found ("web_search", "user_provided")
 - `restaurants[]` — flat array of all restaurants across all locations, each with a `location` field linking to its location label
-- `recent_recommendations[]` — rolling log of last 14 days of recommendations (auto-prune older entries). Used to avoid repetition.
+- `recent_recommendations[]` — rolling log of last 30 days of recommendations (auto-prune older entries). Tracks every option shown per batch with `accepted` status and `meal_tags`. Used for dedup AND feedback learning (see "Feedback Learning").
 
 ### Restaurant fields
 
@@ -185,11 +216,15 @@ This skill **owns** this file. It is the single source of truth for the user's n
 - `distance` — approximate distance or travel time from the associated location
 - `platforms` — how to order (到店, 美团外卖, 饿了么, Uber Eats, DoorDash, etc.)
 - `price_range` — approximate per-person cost
-- `meals[]` — pre-screened meal combos suitable for the user (typically 3–6 per restaurant, covering different calorie budgets and variety). Each with:
+- `meals[]` — pre-screened meal combos suitable for the user (target **5–10 per restaurant** to enable variety and dedup). Each with:
   - `name` — combo description (e.g., "蒸饺 8 个 + 紫菜蛋花汤")
   - `calories`, `protein`, `carbs`, `fat` — nutritional estimates for the combo
   - `price` — approximate total price
   - `tips` — (optional) calorie-saving tip
+  - `tags[]` — (optional) flavor/scenario labels to enable preference matching. Examples:
+    - Flavor: "清淡", "重口", "辣", "酸", "鲜", "savory", "spicy", "light"
+    - Scenario: "赶时间", "管饱", "解馋", "high-protein", "low-carb", "comfort"
+    - Meal type: "适合午餐", "适合加班夜宵", "post-workout"
 - `visits[]` — (optional) visit records, each with `date` (ISO), `meal` (what was ordered), `rating` (1–5, optional), `note` (optional)
 - `visit_count` — (derived) total visits, auto-updated
 - `last_visited` — (derived) date of most recent visit
@@ -198,13 +233,20 @@ This skill **owns** this file. It is the single source of truth for the user's n
 
 ### `meals[]` — building and growing over time
 
-Store 3–6 pre-screened meal combos per restaurant, covering a range of calorie budgets (300–700 kcal). Unlike the old schema which only had 1–2 static combos, having more options enables the skill to rotate recommendations and avoid repetition.
+Target **5–10 meal combos per restaurant**, covering different calorie budgets (300–700 kcal), flavors (清淡 vs 重口), and scenarios (赶时间 vs 管饱 vs 解馋). The more combos, the better the skill can match the user's current mood and avoid repeats.
 
 **How `meals[]` grows:**
-- **Initial discovery** (Step 1): build 2–3 combos from web search results and nutritional knowledge
-- **User feedback**: "他家还有拌面挺好的" → estimate calories and add to `meals[]`
-- **Delivery app screenshots**: user shares a menu → add suitable dishes
-- **Post-visit**: user orders something new at a cached restaurant → add it
+- **Initial setup** (Step 1): build 3–5 combos from known chain knowledge or user input
+- **User feedback**: "他家还有拌面挺好的" → estimate calories, add tags, append to `meals[]`
+- **Delivery app screenshots**: user shares a menu → add suitable dishes with tags
+- **Post-visit**: user orders something new → add it; if they comment on flavor ("这个偏辣但好吃"), tag accordingly
+- **Proactive expansion**: when a restaurant only has 3 meals cached and user asks for recommendations there, suggest: "你在沙县还点过别的吗？多存几个我推荐的时候花样更多"
+
+**Tagging:** When adding a meal, assign 1–3 tags based on the dish characteristics. Tags help the preference scoring engine match meals to the user's current mood/context. Common tags:
+- Flavor: 清淡, 重口, 辣, 酸, 鲜, savory, spicy, light
+- Scenario: 赶时间, 管饱, 解馋, comfort, post-workout
+- Nutrition: high-protein, low-carb, low-fat
+- Time: 适合午餐, 适合夜宵, 适合早餐
 
 Never fabricate dish names. Only add dishes from verified sources.
 
@@ -336,17 +378,35 @@ If the restaurant is NOT in the cache, use nutritional knowledge to recommend, a
 
 #### If the user asks generally ("吃什么好？")
 
-Pick 3–4 options from the cached restaurant list for the active location, applying these filters **in order**:
+Pick **4–6 options** (more choices = better match) from the cached restaurant list for the active location. Rank every candidate meal using a **preference score**, then present the top picks.
 
-1. **Dedup** — check `recent_recommendations[]`. Deprioritize restaurants recommended in the last 2 days, and never suggest the exact same meal combo as last time at the same restaurant.
-2. **Budget fit** — filter to restaurants with menu combos within the remaining calorie budget.
-3. **Life context** — adjust based on recent state:
-   - Last 3 days mostly 快餐/高碳水 → lean toward 轻食 or 高蛋白 options
-   - Just worked out → can suggest slightly higher calorie options, emphasize protein
-   - User mentioned being tired/stressed → suggest simple comfort food within budget, don't push ultra-healthy options
-   - Weekend → can suggest further restaurants or new places to try
-4. **Variety** — across cuisine types (don't recommend 3 noodle places), price ranges, and restaurant types.
-5. **Visit history** — weave in visit context per the History-Based Recommendation Logic below.
+#### Preference Scoring
+
+For each candidate meal (restaurant × meal combo), calculate a composite score from these signals:
+
+| Signal | Weight | How it works |
+|--------|--------|-------------|
+| **Budget fit** | Hard filter | Exclude meals that exceed remaining calorie budget |
+| **Dedup** | Hard filter | Never show the exact same restaurant+meal combo as the last recommendation. Deprioritize restaurants shown in last 2 days. |
+| **Taste match** | High | Match meal `tags[]` against the user's known preferences from `health-preferences.md` and acceptance history. If user tends to pick "辣" and "重口" meals → boost those. If user always skips "清淡" suggestions → lower those. |
+| **Acceptance rate** | High | From `recent_recommendations[]`: meals/restaurants the user consistently picks get a boost; those consistently skipped get penalized. See "Feedback Learning" below. |
+| **Life context** | Medium | Last 3 days mostly 快餐/高碳水 → boost 轻食/高蛋白. Just worked out → boost high-protein. Tired/stressed → boost comfort tags. Weekend → boost "try new" options. |
+| **Visit history** | Medium | Favorites (rating >= 4) get a boost. Low-rated (<=2) get penalized. Visited >3x this week → suggest alternatives. |
+| **Variety** | Low | Penalize if too many candidates share the same cuisine/type. Reward diversity across the final selection. |
+
+**Present the top 4–6** ranked by score. Group into tiers if helpful:
+
+> **今天午餐建议** — 剩余预算约 **650 kcal**
+>
+> 🔥 **最合你口味：**
+> 🥟 沙县小吃：鸡腿饭（少饭）+ 蛋花汤 — 520 kcal，20 元 `你一般喜欢管饱+有肉的`
+> 🍜 兰州拉面：牛肉面小碗 — 550 kcal，25 元 `重口·鲜，上次选了这类`
+>
+> 🔄 **换换口味：**
+> 🏪 便利蜂：鸡胸肉+饭团+沙拉 — 480 kcal，22 元 `这几天碳水偏多，来点高蛋白`
+> 🥗 轻食店：牛肉沙拉 — 380 kcal，35 元 `还没试过`
+>
+> 👀 **想看更多？** 告诉我你现在想吃什么口味的，我再帮你挑。
 
 > **今天午餐建议** — 剩余预算约 **650 kcal**
 >
@@ -356,17 +416,51 @@ Pick 3–4 options from the cached restaurant list for the active location, appl
 >
 > 想吃哪个？或者告诉我你在别的地方，我来帮你搭配。
 
-**After recommending**, append an entry to `recent_recommendations[]`:
+**After recommending**, append entries for ALL shown options to `recent_recommendations[]`:
 ```json
 {
   "date": "2026-03-16",
   "meal_slot": "lunch",
   "restaurant": "沙县小吃（中关村店）",
-  "meal": "馄饨 + 卤蛋",
-  "accepted": false
+  "meal": "鸡腿饭（少饭）+ 蛋花汤",
+  "meal_tags": ["high-protein", "管饱", "解馋"],
+  "accepted": null
 }
 ```
-Update `accepted` to `true` if the user picks that option. Auto-prune entries older than 14 days.
+
+- `accepted`: `null` = shown but no response yet; `true` = user picked this one; `false` = user saw it and picked something else (i.e., explicitly skipped)
+- `meal_tags`: copy from the meal's `tags[]` — enables pattern analysis without re-reading restaurant data
+- Update all entries from the same recommendation batch when the user makes a choice: the chosen one → `true`, all others → `false`
+- Auto-prune entries older than 30 days
+
+#### Feedback Learning
+
+Analyze `recent_recommendations[]` to learn the user's implicit preferences:
+
+1. **Tag acceptance rate** — across all recommendations, which `meal_tags` correlate with `accepted: true` vs `false`? Example: if "辣" and "重口" meals are accepted 80% of the time but "清淡" only 30% → the user prefers bold flavors.
+
+2. **Restaurant acceptance rate** — which restaurants get picked vs skipped? If user always skips 轻食店 recommendations → stop pushing it so high.
+
+3. **Time-based patterns** — does the user prefer different styles at different meal slots? Maybe "清淡" is fine for breakfast but they want "管饱" for lunch.
+
+4. **Apply these learned signals** in the Preference Scoring table above (Taste match + Acceptance rate rows). This creates a natural feedback loop: recommend → user picks/skips → learn → next recommendation is better.
+
+> ⚠️ **Don't over-optimize.** Still include 1–2 "stretch" options (new restaurants, different flavors) in each batch. The goal is 70% "matches your taste" + 30% "might surprise you". If the user only ever eats 重口, occasionally slipping in a 清淡 option is fine — just don't make it the top recommendation.
+
+#### If the user isn't satisfied ("都不想吃", "还有别的吗？", "换几个")
+
+Don't just re-shuffle — **ask one clarifying question** to narrow down, then show a fresh batch:
+
+> 这几个都不合胃口？告诉我你现在更想吃什么类型的：
+> - 口味？（清淡/重口/辣/酸…）
+> - 场景？（赶时间/想好好吃一顿/解馋/补蛋白…）
+> - 或者直接说个菜系也行（面食/米饭/沙拉/日料…）
+
+Then filter the remaining cached meals by the user's stated preference and present a new batch. If no cached meals match, offer to help them find a new restaurant:
+
+> 你现在列表里没有日料店，要告诉我附近哪家？我帮你加进去以后直接推荐。
+
+**Mark all previously shown options as `accepted: false`** in `recent_recommendations[]` — the user's rejection is a strong signal for future scoring.
 
 #### If the user sends a menu (photo or text)
 
