@@ -16,6 +16,9 @@ Commands:
   meal-history  — Analyze meal history for a meal type over N days.
   save-recommendation — Save meal recommendations for today.
   weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
+  save-correction — Save a food correction when user corrects AI identification.
+  lookup-corrections — Look up saved corrections matching food names.
+  apply-correction — Increment usage counter for a correction record.
 
 Usage:
   python3 nutrition-calc.py detect-meal --tz-offset 28800 --meals 3 \
@@ -34,6 +37,14 @@ Usage:
   python3 nutrition-calc.py save-recommendation --data-dir /path/to/data \
       --meal-type lunch --items '["鸡胸肉+糙米+西兰花", "牛肉面+茶叶蛋", "沙拉+全麦面包+酸奶"]'
   python3 nutrition-calc.py weekly-low-cal-check --data-dir /path/to/data --bmr 1400
+  python3 nutrition-calc.py save-correction --data-dir /path/to/data \
+      --original '[{"name":"white rice","calories":200}]' \
+      --corrected '[{"name":"brown rice","calories":170}]' \
+      --type food_identity --note "User always eats brown rice"
+  python3 nutrition-calc.py lookup-corrections --data-dir /path/to/data \
+      --foods '["rice","eggs"]'
+  python3 nutrition-calc.py apply-correction --data-dir /path/to/data \
+      --original-names '["white rice"]'
 """
 
 import argparse
@@ -706,6 +717,195 @@ def _get_pros_cons(current_mode: str, detected_mode: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Food corrections
+# ---------------------------------------------------------------------------
+
+def _get_corrections_path(data_dir: str) -> str:
+    """Return path to food-corrections.json, sibling to the meals data dir."""
+    return os.path.join(os.path.dirname(data_dir), "food-corrections.json")
+
+
+def save_correction(data_dir: str, original_foods: list, corrected_foods: list,
+                    correction_type: str = "general", meal_type: str = None,
+                    note: str = None, day: str = None,
+                    tz_offset: int = None) -> dict:
+    """Save a food correction record.
+
+    Called when the user corrects the AI's food identification, portion estimate,
+    or nutrition values. Stores the mapping so future similar meals can reference
+    the corrected result.
+
+    Args:
+        data_dir: Path to the meals data directory.
+        original_foods: List of food dicts as originally identified by the AI.
+            Each dict: {"name": str, "calories": num, "protein": num, "carbs": num, "fat": num}
+        corrected_foods: List of food dicts after user correction (same structure).
+        correction_type: One of "food_identity" (wrong food name/type),
+            "portion" (wrong portion size), "nutrition" (wrong calorie/macro values),
+            "add_item" (user added missing food items), "remove_item" (user removed
+            wrongly identified items), "general" (other corrections).
+        meal_type: Optional meal type context (e.g. "breakfast", "lunch").
+        note: Optional brief note about what was corrected.
+        day: Optional date override (YYYY-MM-DD).
+        tz_offset: Optional timezone offset in seconds.
+
+    Returns: dict with saved status and the correction record.
+    """
+    path = _get_corrections_path(data_dir)
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+    existing: list = []
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            existing = json.load(f)
+
+    resolved_day = day or _local_date(tz_offset)
+
+    # Extract normalized keywords from both original and corrected food names
+    # for future matching
+    original_names = [f.get("name", "").strip().lower() for f in original_foods if f.get("name")]
+    corrected_names = [f.get("name", "").strip().lower() for f in corrected_foods if f.get("name")]
+
+    record = {
+        "date": resolved_day,
+        "correction_type": correction_type,
+        "original_foods": original_foods,
+        "corrected_foods": corrected_foods,
+        "original_names": original_names,
+        "corrected_names": corrected_names,
+        "meal_type": meal_type,
+        "note": note,
+        "times_applied": 0,
+    }
+
+    # Check for duplicate: if an existing correction has the same original_names,
+    # update it instead of appending
+    replaced = False
+    for i, rec in enumerate(existing):
+        if set(rec.get("original_names", [])) == set(original_names):
+            record["times_applied"] = rec.get("times_applied", 0)
+            existing[i] = record
+            replaced = True
+            break
+    if not replaced:
+        existing.append(record)
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
+
+    return {
+        "saved": True,
+        "file": path,
+        "replaced_existing": replaced,
+        "total_corrections": len(existing),
+        "record": record,
+    }
+
+
+def lookup_corrections(data_dir: str, food_names: list,
+                       meal_type: str = None) -> dict:
+    """Look up saved corrections that match the given food names.
+
+    Called before estimating nutrition for a new food log to check if the user
+    has previously corrected similar food identifications.
+
+    Args:
+        data_dir: Path to the meals data directory.
+        food_names: List of food name strings to match against saved corrections.
+        meal_type: Optional meal type to filter by (e.g. "breakfast").
+
+    Returns: dict with matched corrections (if any).
+    """
+    path = _get_corrections_path(data_dir)
+    if not os.path.exists(path):
+        return {"has_matches": False, "matches": [], "food_names_queried": food_names}
+
+    with open(path, "r", encoding="utf-8") as f:
+        corrections = json.load(f)
+
+    query_names = [n.strip().lower() for n in food_names if n]
+
+    matches = []
+    for rec in corrections:
+        orig_names = rec.get("original_names", [])
+        corr_names = rec.get("corrected_names", [])
+
+        # Match if any queried food name overlaps with original or corrected names
+        # Uses substring matching for flexibility (e.g. "rice" matches "brown rice")
+        score = 0
+        matched_on = []
+        for qn in query_names:
+            for on in orig_names:
+                if qn in on or on in qn:
+                    score += 2  # Higher weight for matching original (the "mistake")
+                    matched_on.append({"query": qn, "matched": on, "field": "original"})
+            for cn in corr_names:
+                if qn in cn or cn in qn:
+                    score += 1
+                    matched_on.append({"query": qn, "matched": cn, "field": "corrected"})
+
+        # Optional meal_type boost
+        if meal_type and rec.get("meal_type") == meal_type:
+            score += 1
+
+        if score > 0:
+            matches.append({
+                "score": score,
+                "matched_on": matched_on,
+                "correction": rec,
+            })
+
+    # Sort by score descending
+    matches.sort(key=lambda m: m["score"], reverse=True)
+
+    # Return top 5 matches
+    top = matches[:5]
+
+    return {
+        "has_matches": len(top) > 0,
+        "matches": top,
+        "total_corrections_in_db": len(corrections),
+        "food_names_queried": food_names,
+    }
+
+
+def apply_correction(data_dir: str, original_names: list) -> dict:
+    """Increment the times_applied counter for a correction.
+
+    Called when a previously saved correction is actually used to adjust
+    a food log entry.
+
+    Args:
+        data_dir: Path to the meals data directory.
+        original_names: The original_names list that identifies the correction.
+
+    Returns: dict with update status.
+    """
+    path = _get_corrections_path(data_dir)
+    if not os.path.exists(path):
+        return {"updated": False, "reason": "no_corrections_file"}
+
+    with open(path, "r", encoding="utf-8") as f:
+        corrections = json.load(f)
+
+    target_set = set(n.strip().lower() for n in original_names)
+    updated = False
+    for rec in corrections:
+        if set(rec.get("original_names", [])) == target_set:
+            rec["times_applied"] = rec.get("times_applied", 0) + 1
+            updated = True
+            break
+
+    if updated:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(corrections, f, ensure_ascii=False, indent=2)
+
+    return {"updated": updated, "original_names": original_names}
+
+
+# ---------------------------------------------------------------------------
 # Meal history & recommendations
 # ---------------------------------------------------------------------------
 
@@ -1217,6 +1417,43 @@ def main():
     ld.add_argument("--tz-offset", type=int, required=True,
                     help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8)")
 
+    sc = sub.add_parser("save-correction",
+                         help="Save a food correction (when user corrects AI identification)")
+    sc.add_argument("--data-dir", type=str, required=True,
+                    help="Directory with daily JSON logs")
+    sc.add_argument("--original", type=str, required=True,
+                    help="JSON array of original food dicts as identified by AI")
+    sc.add_argument("--corrected", type=str, required=True,
+                    help="JSON array of corrected food dicts after user correction")
+    sc.add_argument("--type", type=str, default="general",
+                    choices=["food_identity", "portion", "nutrition",
+                             "add_item", "remove_item", "general"],
+                    help="Type of correction")
+    sc.add_argument("--meal-type", type=str, default=None,
+                    help="Meal type context (e.g. breakfast, lunch)")
+    sc.add_argument("--note", type=str, default=None,
+                    help="Brief note about the correction")
+    sc.add_argument("--date", type=str, default=None,
+                    help="Date override (YYYY-MM-DD)")
+    sc.add_argument("--tz-offset", type=int, default=None,
+                    help="Timezone offset from UTC in seconds")
+
+    lc = sub.add_parser("lookup-corrections",
+                         help="Look up saved corrections matching food names")
+    lc.add_argument("--data-dir", type=str, required=True,
+                    help="Directory with daily JSON logs")
+    lc.add_argument("--foods", type=str, required=True,
+                    help="JSON array of food name strings to match")
+    lc.add_argument("--meal-type", type=str, default=None,
+                    help="Optional meal type filter")
+
+    ac = sub.add_parser("apply-correction",
+                         help="Increment usage counter for a correction")
+    ac.add_argument("--data-dir", type=str, required=True,
+                    help="Directory with daily JSON logs")
+    ac.add_argument("--original-names", type=str, required=True,
+                    help="JSON array of original food name strings identifying the correction")
+
     args = parser.parse_args()
 
     if args.cmd == "detect-meal":
@@ -1294,6 +1531,34 @@ def main():
                                      getattr(args, 'tz_offset', None))
     elif args.cmd == "local-date":
         result = local_date_info(args.tz_offset)
+    elif args.cmd == "save-correction":
+        try:
+            original = json.loads(args.original)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --original JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        try:
+            corrected = json.loads(args.corrected)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --corrected JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = save_correction(args.data_dir, original, corrected,
+                                 args.type, args.meal_type, args.note,
+                                 args.date, getattr(args, 'tz_offset', None))
+    elif args.cmd == "lookup-corrections":
+        try:
+            foods = json.loads(args.foods)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --foods JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = lookup_corrections(args.data_dir, foods, args.meal_type)
+    elif args.cmd == "apply-correction":
+        try:
+            orig_names = json.loads(args.original_names)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --original-names JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = apply_correction(args.data_dir, orig_names)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
