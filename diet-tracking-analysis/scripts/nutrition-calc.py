@@ -1075,11 +1075,14 @@ def detect_meal(tz_offset: int, meals: int,
                 logged_names.add(mt)
 
         if detected in logged_names:
-            # Main meal already logged → this is a snack
+            # Main meal already logged → this is a snack.
+            # If a custom schedule provides the meal time, also require >1.5h
+            # past that meal time (to allow corrections/additions shortly after
+            # the main meal). Without a schedule, always upgrade to snack.
             meal_time_hour = None
             if schedule and detected in schedule:
                 meal_time_hour = _parse_hhmm(schedule[detected])
-            if meal_time_hour is not None and local_hour > meal_time_hour + _SNACK_OFFSET_HOURS:
+            if meal_time_hour is None or local_hour > meal_time_hour + _SNACK_OFFSET_HOURS:
                 detected = snack_map[detected]
 
     return {
