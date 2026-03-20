@@ -115,23 +115,28 @@ Use the cron tool directly for listing and removing:
 
 Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
 
-Every meal cron `--message` MUST tell the agent to run `notification-composer` for that meal. Keep it minimal — notification-composer owns pre-send checks, message composition, and reply handling. Do not duplicate its rules in the cron message.
+Every meal cron `--message` MUST tell the agent to run `notification-composer` for that meal, AND include the NO_REPLY enforcement clause. This is critical because `delivery.mode = announce` will deliver any text the agent outputs — if the agent adds reasoning alongside `NO_REPLY`, the reasoning text gets sent to the user.
+
+**Meal reminder message template:**
+```
+Run notification-composer for <meal>. CRITICAL: If pre-send checks fail, output ONLY the exact string NO_REPLY — nothing before it, nothing after it. No explanations, no reasoning. NO_REPLY must be your complete and only output.
+```
 
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Breakfast reminder" \
-  --message "Run notification-composer for breakfast." \
+  --message "Run notification-composer for breakfast. CRITICAL: If pre-send checks fail, output ONLY the exact string NO_REPLY — nothing before it, nothing after it. No explanations, no reasoning. NO_REPLY must be your complete and only output." \
   --cron "45 6 * * *"
 
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Lunch reminder" \
-  --message "Run notification-composer for lunch." \
+  --message "Run notification-composer for lunch. CRITICAL: If pre-send checks fail, output ONLY the exact string NO_REPLY — nothing before it, nothing after it. No explanations, no reasoning. NO_REPLY must be your complete and only output." \
   --cron "45 11 * * *"
 
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Dinner reminder" \
-  --message "Run notification-composer for dinner." \
+  --message "Run notification-composer for dinner. CRITICAL: If pre-send checks fail, output ONLY the exact string NO_REPLY — nothing before it, nothing after it. No explanations, no reasoning. NO_REPLY must be your complete and only output." \
   --cron "45 17 * * *"
 ```
 
