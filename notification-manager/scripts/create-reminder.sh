@@ -9,15 +9,26 @@ set -euo pipefail
 #   bash create-reminder.sh --agent <id> --name <name> --message <text> --at <ISO|relative> [--channel <ch>] [--to <dest>]
 #   bash create-reminder.sh --agent <id> --name <name> --message <text> --cron <expr> [--tz <tz>] [--channel <ch>] [--to <dest>]
 #
+# Anti-burst options (for recurring --cron jobs only):
+#   --type <meal|weight|other>  Job type for slot window (default: other)
+#                               meal/weight: search [-10, +5] minutes around target
+#                               other: search [-10, 0] minutes around target
+#   --exact                     Skip anti-burst logic, use exact cron time
+#
 # Examples:
 #   # Slack (default, backward-compatible — no --channel needed)
 #   bash create-reminder.sh --agent 007-zhuoran --name "午餐提醒" --message "午饭时间到了" --cron "0 12 * * *"
 #
-#   # WeChat
-#   bash create-reminder.sh --agent wechat-dm-accjoh25tsvoasahx0psjfg --channel wechat --name "午餐提醒" --message "午饭时间到了" --cron "0 12 * * *"
+#   # WeChat with anti-burst
+#   bash create-reminder.sh --agent wechat-dm-accjoh25tsvoasahx0psjfg --channel wechat --type meal --name "午餐提醒" --message "午饭时间到了" --cron "0 12 * * *"
+#
+#   # Exact time (no adjustment)
+#   bash create-reminder.sh --agent some-agent --exact --name "Standup" --message "Standup time" --cron "0 9 * * 1-5"
 #
 #   # Explicit --to (any channel)
 #   bash create-reminder.sh --agent some-agent --channel telegram --to "123456789" --name "提醒" --message "test" --at "2m"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 AGENT=""
 NAME=""
@@ -29,6 +40,8 @@ TZ_EXPLICIT=false
 DELETE_AFTER_RUN=""
 CHANNEL=""
 TO=""
+JOB_TYPE="other"
+EXACT=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -41,6 +54,8 @@ while [[ $# -gt 0 ]]; do
     --keep)    DELETE_AFTER_RUN="--no-delete-after-run"; shift ;;
     --channel) CHANNEL="$2"; shift 2 ;;
     --to)      TO="$2"; shift 2 ;;
+    --type)    JOB_TYPE="$2"; shift 2 ;;
+    --exact)   EXACT=true; shift ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -82,6 +97,26 @@ with open('$TZ_FILE') as f:
   if [[ -z "$TZ" ]]; then
     TZ="Asia/Shanghai"
     echo "WARNING: No timezone.json found, falling back to $TZ"
+  fi
+fi
+
+# --- Anti-burst: adjust cron expression for recurring jobs ---
+if [[ -n "$CRON_EXPR" && "$EXACT" == "false" ]]; then
+  echo "Running anti-burst slot finder (type=$JOB_TYPE)..."
+  SLOT_OUTPUT=$(python3 "$SCRIPT_DIR/find-slot.py" \
+    --cron "$CRON_EXPR" --tz "$TZ" --type "$JOB_TYPE" 2>&1)
+  SLOT_EXIT=$?
+  # Print full output for logging, then extract last line as the adjusted cron
+  echo "$SLOT_OUTPUT" >&2
+  ADJUSTED_CRON=$(echo "$SLOT_OUTPUT" | tail -1)
+
+  if [[ $SLOT_EXIT -eq 0 || $SLOT_EXIT -eq 2 ]]; then
+    if [[ -n "$ADJUSTED_CRON" && "$ADJUSTED_CRON" != "$CRON_EXPR" ]]; then
+      echo "Anti-burst: adjusted cron from '$CRON_EXPR' to '$ADJUSTED_CRON'"
+    fi
+    CRON_EXPR="$ADJUSTED_CRON"
+  else
+    echo "WARNING: find-slot.py failed (exit $SLOT_EXIT), using original cron" >&2
   fi
 fi
 

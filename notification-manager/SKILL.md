@@ -68,6 +68,8 @@ bash {baseDir}/scripts/create-reminder.sh \
 | `--tz` | ❌ | Timezone for cron (auto-detects from `timezone.json`, fallback: `Asia/Shanghai`) |
 | `--keep` | ❌ | Don't auto-delete one-shot jobs after running |
 | `--to` | ❌ | Explicit delivery target. Overrides auto-detection. Required for channels other than `slack`/`wechat`/`wecom` |
+| `--type` | ❌ | Job type for anti-burst scheduling: `meal`, `weight`, or `other` (default: `other`). See **Anti-burst scheduling** below |
+| `--exact` | ❌ | Skip anti-burst logic, use exact cron time. Use for time-sensitive reminders that must fire at the precise minute |
 
 ### How it works
 
@@ -84,6 +86,39 @@ Timezone auto-detection searches these paths in order:
 2. `~/.openclaw/workspace-nutritionist/$AGENT/timezone.json`
 
 Then calls `openclaw cron add` with `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically.
+
+### Anti-burst scheduling
+
+When creating **recurring** cron jobs (`--cron`), the script automatically avoids
+scheduling too many jobs at the same minute to prevent bulk message sends that
+could trigger platform rate limits or account bans.
+
+**How it works:**
+1. Fetches all existing recurring cron jobs from the gateway
+2. Converts all cron times to UTC for cross-timezone comparison
+3. Checks if the target minute already has ≥2 jobs
+4. If full, scans nearby minutes for an available slot (< 2 jobs per minute)
+5. Adjusts the cron expression to the chosen slot
+
+**Search windows by `--type`:**
+
+| Type | Window | Use case |
+|------|--------|----------|
+| `meal` | target −10 to +5 min | Meal reminders (breakfast/lunch/dinner/snack) |
+| `weight` | target −10 to +5 min | Weight check-in reminders |
+| `other` (default) | target −10 to target | Other recurring reminders |
+
+**Slot priority:** scans outward from target time (target, target−1, target+1,
+target−2, ...) to stay as close to the intended time as possible.
+
+**Edge cases:**
+- One-shot jobs (`--at`) skip anti-burst entirely
+- `--exact` flag skips anti-burst for time-critical reminders
+- If the entire window is full (very unlikely — would need 30+ jobs in a
+  15-minute window), falls back to the original time with a warning
+
+**Important:** Always pass `--type meal` for meal reminders and `--type weight`
+for weight reminders. This ensures correct window sizing.
 
 ### Managing existing jobs
 
@@ -119,18 +154,19 @@ Every meal cron `--message` MUST tell the agent to run `notification-composer` f
 
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
+# Note: --type meal ensures anti-burst scheduling with [-10, +5] min window
 bash {baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --channel <channel> --name "Breakfast reminder" \
+  --agent <your-agent-id> --channel <channel> --type meal --name "Breakfast reminder" \
   --message "Run notification-composer for breakfast." \
   --cron "45 6 * * *"
 
 bash {baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --channel <channel> --name "Lunch reminder" \
+  --agent <your-agent-id> --channel <channel> --type meal --name "Lunch reminder" \
   --message "Run notification-composer for lunch." \
   --cron "45 11 * * *"
 
 bash {baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --channel <channel> --name "Dinner reminder" \
+  --agent <your-agent-id> --channel <channel> --type meal --name "Dinner reminder" \
   --message "Run notification-composer for dinner." \
   --cron "45 17 * * *"
 ```
@@ -142,7 +178,7 @@ Cron time = breakfast time minus **30 min** (not 15 min like meals). Derive from
 ```bash
 # Example assumes breakfast at 07:00 → weight cron at 06:30
 bash {baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --channel <channel> --name "Weight check-in reminder" \
+  --agent <your-agent-id> --channel <channel> --type weight --name "Weight check-in reminder" \
   --message "Run notification-composer for weight." \
   --cron "30 6 * * 1,4"
 ```
