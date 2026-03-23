@@ -84,7 +84,7 @@ When user logs exercise, follow these steps:
 2. **Check for multiple activities** → if user describes more than one exercise (e.g., "ran for 30 minutes, then stretched for 20"), parse each activity separately and log them as an array
 3. **Classify the exercise(s)** → assign category for each (see Exercise Categories)
 4. **Fill missing fields** → use device data or MET estimation for calories; ask only if critical info is truly ambiguous
-5. **Log the exercise(s)** → produce a JSON response with `is_exercise_log: true`; use `exercises` array for multi-activity, single-item array for single activity
+5. **Log the exercise(s)** → save via `exercise-calc.py save --data-dir {workspaceDir}/data --tz-offset {tz_offset} --log '[...]'`; the JSON array uses the same schema as the exercise log response (`exercises` array fields). Also produce a JSON response with `is_exercise_log: true` for the user.
 6. **Give brief feedback** → aligned with user's fitness goal; for multi-activity, give one combined comment
 
 ---
@@ -516,7 +516,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 | `health-preferences.md > Exercise` | Preferred/disliked activities — tailor feedback, skip redundant questions in planning |
 | `health-preferences.md > Scheduling & Lifestyle` | Schedule constraints for weekly summary suggestions and program scheduling |
 | `locale.json` | Unit preference (metric/imperial) |
-| `logs.exercise.{date}` | Previous exercise logs — weekly summary, trend comparison, risk alerts |
+| `data/exercise.json` | Previous exercise logs via `exercise-calc.py load` — weekly summary, trend comparison, risk alerts |
 | `logs.exercise_weekly_summary.{week}` | Previous weekly summaries — week-over-week trend comparison |
 | `training_plan.active` | Current active training plan — context for tracking feedback, plan adjustments |
 
@@ -527,16 +527,16 @@ Include this disclaimer when presenting a new program (first time only, don't re
 | `EXERCISE-PLAN.md` | New training plan generated or adjusted — write the Markdown file, then run export script to convert to HTML and upload to S3 |
 | `health-profile.md > Fitness` | User provides missing fitness level or fitness goal — silently update |
 | `health-preferences.md > Exercise` | User reveals new exercise preferences during conversation — silently append |
-| `logs.exercise.{date}` | Each exercise log response (`is_exercise_log: true`) — store the full exercise JSON |
+| `data/exercise.json` | Each exercise log response (`is_exercise_log: true`) — save via `exercise-calc.py save` |
 | `logs.exercise_weekly_summary.{week}` | Weekly summary generated — store summary data for trend tracking |
 | `training_plan.active` | New training plan accepted by user — store plan details (goal, split, schedule, exercises, progression phase, created date) |
 | `training_plan.history` | Active plan replaced or completed — archive previous plan |
 
 ### Read by other skills
 
-- `weekly-report` reads `logs.exercise.{date}` and `logs.exercise_weekly_summary.{week}` for weekly progress reports.
+- `weekly-report` reads `data/exercise.json` (via `exercise-calc.py load --from --to`) and `logs.exercise_weekly_summary.{week}` for weekly progress reports.
 - `notification-composer` reads `training_plan.active` to reference today's scheduled workout in reminders.
-- `habit-builder` reads `logs.exercise.{date}` to detect movement patterns and recommend exercise-related habits.
+- `habit-builder` reads `data/exercise.json` (via `exercise-calc.py load --date`) to detect movement patterns and recommend exercise-related habits.
 
 ---
 

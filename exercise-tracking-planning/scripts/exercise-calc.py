@@ -1,13 +1,13 @@
 # /// script
-# requires-python = ">=3.10"
+# requires-python = ">=3.6"
 # dependencies = []
 # ///
 """
-Exercise calorie calculator for exercise-tracking-planning skill.
+Exercise calorie calculator + CRUD for exercise-tracking-planning skill.
 
-Codifies the MET-based calorie estimation and continuous mapping
-(linear interpolation for running, cycling, swimming) from
-references/met-table.md into executable commands.
+Data file: {data_dir}/exercise.json
+Format: JSON object keyed by date (YYYY-MM-DD), each value contains
+an exercises array and total_calories.
 
 Commands:
   calc             — Estimate calories burned from activity, duration, weight, and intensity.
@@ -15,27 +15,35 @@ Commands:
   interpolate-cycle — Cycling speed → MET via linear interpolation.
   classify-swim    — Swimming pace → MET classification.
   batch            — Process multiple exercises in one call (JSON array).
+  save             — Persist exercise log(s) to data/exercise.json.
+  load             — Read exercise entries with optional date filters.
+  delete           — Remove exercise entry by date + index.
+  update           — Modify an exercise entry by date + index.
 
 Usage:
   python3 exercise-calc.py calc --activity running --weight 75 --duration 30 --speed 10
-  python3 exercise-calc.py calc --activity cycling --weight 75 --duration 45 --speed 20
-  python3 exercise-calc.py calc --activity swimming --weight 75 --duration 30 --pace-100m 2.5
-  python3 exercise-calc.py calc --activity basketball --weight 75 --duration 60 --intensity high
-  python3 exercise-calc.py interpolate-run --speed 10
-  python3 exercise-calc.py interpolate-cycle --speed 20
-  python3 exercise-calc.py classify-swim --pace-100m 2.5
-  python3 exercise-calc.py batch --weight 75 --exercises '[{"activity":"running","duration":30,"speed":10},{"activity":"yoga","duration":20,"intensity":"moderate"}]'
+  python3 exercise-calc.py batch --weight 75 --exercises '[{"activity":"running","duration":30,"speed":10}]'
+  python3 exercise-calc.py save --data-dir /path/to/data --tz-offset 28800 \\
+      --log '[{"activity":"running","category":"cardio","duration_min":30,"calories":350}]'
+  python3 exercise-calc.py load --data-dir /path/to/data --date 2026-03-21
+  python3 exercise-calc.py load --data-dir /path/to/data --from 2026-03-17 --to 2026-03-23
+  python3 exercise-calc.py load --data-dir /path/to/data --last 7
+  python3 exercise-calc.py delete --data-dir /path/to/data --date 2026-03-21 --index 0
+  python3 exercise-calc.py update --data-dir /path/to/data --date 2026-03-21 --index 0 \\
+      --log '{"activity":"hiking","category":"cardio","duration_min":120,"calories":900}'
 """
 
 import argparse
 import json
+import os
 import sys
+from datetime import datetime, timezone, timedelta
+from typing import List, Tuple, Dict, Any, Optional
 
 # ---------------------------------------------------------------------------
 # MET tables (from references/met-table.md)
 # ---------------------------------------------------------------------------
 
-# Running: speed (km/h) → MET anchor points for linear interpolation
 RUNNING_ANCHORS = [
     (6.4,  6.0),
     (8.0,  8.3),
@@ -45,7 +53,6 @@ RUNNING_ANCHORS = [
     (16.0, 14.5),
 ]
 
-# Cycling: speed (km/h) → MET
 CYCLING_ANCHORS = [
     (16.0, 6.8),
     (19.0, 8.0),
@@ -53,17 +60,13 @@ CYCLING_ANCHORS = [
     (26.0, 12.0),
 ]
 
-# Swimming: pace per 100m (minutes) → MET
 SWIMMING_CLASSIFICATION = [
-    (3.0, float("inf"), 4.8,  "low"),       # > 3:00 per 100m
-    (2.0, 3.0,          7.0,  "moderate"),   # 2:00–3:00
-    (0.0, 2.0,          9.8,  "high"),       # < 2:00
+    (3.0, float("inf"), 4.8,  "low"),
+    (2.0, 3.0,          7.0,  "moderate"),
+    (0.0, 2.0,          9.8,  "high"),
 ]
 
-# Discrete MET lookup: (category, intensity) → MET
-# From references/met-table.md
 MET_TABLE = {
-    # Cardio
     ("walking", "low"):           2.8,
     ("walking", "moderate"):      3.8,
     ("walking", "high"):          5.0,
@@ -87,14 +90,12 @@ MET_TABLE = {
     ("stair_climbing", "moderate"): 7.5,
     ("hiking", "moderate"):       6.0,
     ("hiking", "high"):           8.0,
-    # Strength
     ("weight_training", "low"):      3.5,
     ("weight_training", "moderate"): 5.0,
     ("weight_training", "high"):     6.0,
     ("bodyweight", "moderate"):      3.8,
     ("bodyweight", "high"):          5.0,
     ("resistance_bands", "moderate"): 3.5,
-    # Flexibility
     ("stretching", "low"):        2.3,
     ("yoga_hatha", "low"):        2.5,
     ("yoga_vinyasa", "moderate"): 4.0,
@@ -103,14 +104,12 @@ MET_TABLE = {
     ("pilates", "moderate"):      4.0,
     ("foam_rolling", "low"):      2.0,
     ("tai_chi", "low"):           3.0,
-    # HIIT
     ("hiit", "high"):             8.0,
     ("hiit", "very_high"):        10.0,
     ("tabata", "very_high"):      10.0,
     ("crossfit", "high"):         10.0,
     ("circuit_training", "moderate"): 7.0,
     ("circuit_training", "high"):    9.0,
-    # Sports
     ("basketball", "high"):       8.0,
     ("basketball", "moderate"):   4.5,
     ("soccer", "high"):           10.0,
@@ -128,7 +127,6 @@ MET_TABLE = {
     ("boxing", "very_high"):      12.0,
     ("dancing", "moderate"):      5.0,
     ("dancing", "high"):          7.5,
-    # Daily activities
     ("walking_commute", "low"):   3.5,
     ("cycling_commute", "moderate"): 5.5,
     ("stair_climbing_daily", "moderate"): 4.0,
@@ -138,7 +136,6 @@ MET_TABLE = {
     ("moving_heavy", "high"):     6.5,
 }
 
-# Default intensity when not specified
 DEFAULT_INTENSITY = {
     "running": "moderate",
     "walking": "moderate",
@@ -168,7 +165,8 @@ DEFAULT_INTENSITY = {
 # Interpolation
 # ---------------------------------------------------------------------------
 
-def interpolate(speed: float, anchors: list[tuple[float, float]]) -> float:
+def interpolate(speed, anchors):
+    # type: (float, List[Tuple[float, float]]) -> float
     """Linear interpolation between anchor points."""
     if speed <= anchors[0][0]:
         return anchors[0][1]
@@ -185,29 +183,24 @@ def interpolate(speed: float, anchors: list[tuple[float, float]]) -> float:
     return anchors[-1][1]
 
 
-def interpolate_running(speed_kmh: float) -> dict:
+def interpolate_running(speed_kmh):
+    # type: (float) -> dict
     met = interpolate(speed_kmh, RUNNING_ANCHORS)
     pace_min_per_km = round(60 / speed_kmh, 2) if speed_kmh > 0 else 0
-    return {
-        "speed_kmh": speed_kmh,
-        "pace_min_per_km": pace_min_per_km,
-        "met": met,
-    }
+    return {"speed_kmh": speed_kmh, "pace_min_per_km": pace_min_per_km, "met": met}
 
 
-def interpolate_cycling(speed_kmh: float) -> dict:
+def interpolate_cycling(speed_kmh):
+    # type: (float) -> dict
     met = interpolate(speed_kmh, CYCLING_ANCHORS)
     return {"speed_kmh": speed_kmh, "met": met}
 
 
-def classify_swimming(pace_100m_min: float) -> dict:
+def classify_swimming(pace_100m_min):
+    # type: (float) -> dict
     for lo, hi, met, intensity in SWIMMING_CLASSIFICATION:
         if lo <= pace_100m_min < hi:
-            return {
-                "pace_100m_min": pace_100m_min,
-                "intensity": intensity,
-                "met": met,
-            }
+            return {"pace_100m_min": pace_100m_min, "intensity": intensity, "met": met}
     return {"pace_100m_min": pace_100m_min, "intensity": "moderate", "met": 7.0}
 
 
@@ -215,51 +208,44 @@ def classify_swimming(pace_100m_min: float) -> dict:
 # Calorie calculation
 # ---------------------------------------------------------------------------
 
-def calc_calories(met: float, weight_kg: float, duration_min: float) -> float:
-    """Calories (kcal) = MET × weight_kg × duration_hours."""
+def calc_calories(met, weight_kg, duration_min):
+    # type: (float, float, float) -> float
+    """Calories (kcal) = MET * weight_kg * duration_hours."""
     return round(met * weight_kg * (duration_min / 60), 1)
 
 
-def resolve_met(activity: str, intensity: str = None,
-                speed: float = None, pace_100m: float = None) -> tuple[float, str]:
-    """Resolve MET value from activity + optional speed/intensity.
-
-    Returns (met_value, source_description).
-    """
-    # Speed-based interpolation for specific activities
+def resolve_met(activity, intensity=None, speed=None, pace_100m=None):
+    # type: (str, Optional[str], Optional[float], Optional[float]) -> Tuple[float, str]
+    """Resolve MET value. Returns (met_value, source_description)."""
     if activity == "running" and speed is not None:
         info = interpolate_running(speed)
-        return info["met"], f"interpolated from {speed} km/h"
+        return info["met"], "interpolated from {} km/h".format(speed)
 
     if activity == "cycling" and speed is not None:
         info = interpolate_cycling(speed)
-        return info["met"], f"interpolated from {speed} km/h"
+        return info["met"], "interpolated from {} km/h".format(speed)
 
     if activity == "swimming" and pace_100m is not None:
         info = classify_swimming(pace_100m)
-        return info["met"], f"classified from {pace_100m} min/100m"
+        return info["met"], "classified from {} min/100m".format(pace_100m)
 
-    # Discrete MET lookup
     if intensity is None:
         intensity = DEFAULT_INTENSITY.get(activity, "moderate")
 
     key = (activity, intensity)
     if key in MET_TABLE:
-        return MET_TABLE[key], f"table lookup ({activity}, {intensity})"
+        return MET_TABLE[key], "table lookup ({}, {})".format(activity, intensity)
 
-    # Fallback: try just activity with moderate
     for int_level in ["moderate", "high", "low"]:
         fallback = (activity, int_level)
         if fallback in MET_TABLE:
-            return MET_TABLE[fallback], f"fallback ({activity}, {int_level})"
+            return MET_TABLE[fallback], "fallback ({}, {})".format(activity, int_level)
 
     return 4.0, "default fallback (unknown activity)"
 
 
-def calc_exercise(activity: str, weight_kg: float, duration_min: float,
-                  intensity: str = None, speed: float = None,
-                  pace_100m: float = None) -> dict:
-    """Full exercise calorie calculation."""
+def calc_exercise(activity, weight_kg, duration_min, intensity=None, speed=None, pace_100m=None):
+    # type: (str, float, float, Optional[str], Optional[float], Optional[float]) -> dict
     met, source = resolve_met(activity, intensity, speed, pace_100m)
     calories = calc_calories(met, weight_kg, duration_min)
     return {
@@ -275,8 +261,8 @@ def calc_exercise(activity: str, weight_kg: float, duration_min: float,
     }
 
 
-def batch_calc(weight_kg: float, exercises: list[dict]) -> dict:
-    """Process multiple exercises."""
+def batch_calc(weight_kg, exercises):
+    # type: (float, List[dict]) -> dict
     results = []
     total_cal = 0
     total_min = 0
@@ -292,7 +278,6 @@ def batch_calc(weight_kg: float, exercises: list[dict]) -> dict:
         results.append(r)
         total_cal += r["calories_kcal"]
         total_min += r["duration_min"]
-
     return {
         "exercises": results,
         "total_calories_kcal": round(total_cal, 1),
@@ -302,11 +287,221 @@ def batch_calc(weight_kg: float, exercises: list[dict]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Data persistence (CRUD for data/exercise.json)
+# ---------------------------------------------------------------------------
+
+def data_path(data_dir):
+    # type: (str) -> str
+    return os.path.join(data_dir, "exercise.json")
+
+
+def load_data(data_dir):
+    # type: (str) -> dict
+    p = data_path(data_dir)
+    if not os.path.exists(p):
+        return {}
+    with open(p, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_data(data_dir, data):
+    # type: (str, dict) -> None
+    p = data_path(data_dir)
+    d = os.path.dirname(p)
+    if d and not os.path.exists(d):
+        os.makedirs(d, exist_ok=True)
+    sorted_data = dict(sorted(data.items()))
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(sorted_data, f, indent=2, ensure_ascii=False)
+
+
+def now_date_str(tz_offset_seconds):
+    # type: (int) -> str
+    tz = timezone(timedelta(seconds=tz_offset_seconds))
+    return datetime.now(tz).strftime("%Y-%m-%d")
+
+
+def cmd_save(args):
+    data = load_data(args.data_dir)
+    tz_offset = args.tz_offset or 0
+
+    try:
+        exercises = json.loads(args.log)
+    except (json.JSONDecodeError, ValueError) as e:
+        print(json.dumps({"error": "invalid --log JSON: {}".format(e)}), file=sys.stderr)
+        sys.exit(1)
+
+    # Normalize: accept single object or array
+    if isinstance(exercises, dict):
+        exercises = [exercises]
+
+    if not isinstance(exercises, list) or len(exercises) == 0:
+        print(json.dumps({"error": "--log must be a non-empty JSON array or object"}), file=sys.stderr)
+        sys.exit(1)
+
+    # Determine date: use --date if provided, else from first exercise, else today
+    if args.date:
+        date_key = args.date
+    elif exercises[0].get("date"):
+        date_key = exercises[0]["date"]
+    else:
+        date_key = now_date_str(tz_offset)
+
+    # Get or create the day entry
+    day = data.get(date_key, {"exercises": [], "total_calories": 0})
+
+    # Append exercises
+    for ex in exercises:
+        # Remove 'date' from individual exercise (stored at day level)
+        ex.pop("date", None)
+        day["exercises"].append(ex)
+
+    # Recalculate total calories
+    total = 0
+    for ex in day["exercises"]:
+        cal = ex.get("calories") or ex.get("calories_burned") or ex.get("total_calories") or 0
+        total += cal
+    day["total_calories"] = total
+
+    data[date_key] = day
+    save_data(args.data_dir, data)
+
+    result = {
+        "action": "saved",
+        "date": date_key,
+        "added": len(exercises),
+        "day_total_exercises": len(day["exercises"]),
+        "day_total_calories": total,
+    }
+    print(json.dumps(result, ensure_ascii=False))
+
+
+def cmd_load(args):
+    data = load_data(args.data_dir)
+    if not data:
+        print(json.dumps([], ensure_ascii=False))
+        return
+
+    # Filter by date range
+    entries = sorted(data.items())
+
+    if args.date:
+        entries = [(k, v) for k, v in entries if k == args.date]
+    else:
+        if args.from_date:
+            entries = [(k, v) for k, v in entries if k >= args.from_date]
+        if args.to_date:
+            entries = [(k, v) for k, v in entries if k <= args.to_date]
+
+    # Limit to last N days
+    if args.last:
+        entries = entries[-args.last:]
+
+    result = []
+    for date_key, day in entries:
+        result.append({
+            "date": date_key,
+            "exercises": day.get("exercises", []),
+            "total_calories": day.get("total_calories", 0),
+        })
+
+    print(json.dumps(result, ensure_ascii=False))
+
+
+def cmd_delete(args):
+    data = load_data(args.data_dir)
+
+    if args.date not in data:
+        print(json.dumps({"error": "No exercises found for date: {}".format(args.date)}))
+        sys.exit(1)
+
+    day = data[args.date]
+
+    if args.index is not None:
+        # Delete specific exercise by index
+        exercises = day.get("exercises", [])
+        if args.index < 0 or args.index >= len(exercises):
+            print(json.dumps({"error": "Index {} out of range (0-{})".format(args.index, len(exercises) - 1)}))
+            sys.exit(1)
+
+        removed = exercises.pop(args.index)
+
+        if len(exercises) == 0:
+            # No exercises left, remove the whole day
+            del data[args.date]
+            save_data(args.data_dir, data)
+            print(json.dumps({"action": "deleted_day", "date": args.date, "removed": removed}, ensure_ascii=False))
+        else:
+            # Recalculate total
+            total = sum(ex.get("calories") or ex.get("calories_burned") or ex.get("total_calories") or 0 for ex in exercises)
+            day["total_calories"] = total
+            save_data(args.data_dir, data)
+            print(json.dumps({
+                "action": "deleted_exercise",
+                "date": args.date,
+                "index": args.index,
+                "removed": removed,
+                "remaining": len(exercises),
+                "day_total_calories": total,
+            }, ensure_ascii=False))
+    else:
+        # Delete entire day
+        removed = data.pop(args.date)
+        save_data(args.data_dir, data)
+        print(json.dumps({
+            "action": "deleted_day",
+            "date": args.date,
+            "exercises_removed": len(removed.get("exercises", [])),
+        }, ensure_ascii=False))
+
+
+def cmd_update(args):
+    data = load_data(args.data_dir)
+
+    if args.date not in data:
+        print(json.dumps({"error": "No exercises found for date: {}".format(args.date)}))
+        sys.exit(1)
+
+    day = data[args.date]
+    exercises = day.get("exercises", [])
+
+    if args.index < 0 or args.index >= len(exercises):
+        print(json.dumps({"error": "Index {} out of range (0-{})".format(args.index, len(exercises) - 1)}))
+        sys.exit(1)
+
+    try:
+        updated = json.loads(args.log)
+    except (json.JSONDecodeError, ValueError) as e:
+        print(json.dumps({"error": "invalid --log JSON: {}".format(e)}), file=sys.stderr)
+        sys.exit(1)
+
+    # Remove date from updated entry (stored at day level)
+    updated.pop("date", None)
+
+    old = exercises[args.index]
+    exercises[args.index] = updated
+
+    # Recalculate total
+    total = sum(ex.get("calories") or ex.get("calories_burned") or ex.get("total_calories") or 0 for ex in exercises)
+    day["total_calories"] = total
+
+    save_data(args.data_dir, data)
+    print(json.dumps({
+        "action": "updated",
+        "date": args.date,
+        "index": args.index,
+        "old": old,
+        "new": updated,
+        "day_total_calories": total,
+    }, ensure_ascii=False))
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Exercise calorie calculator")
+    parser = argparse.ArgumentParser(description="Exercise calorie calculator + CRUD")
     sub = parser.add_subparsers(dest="cmd")
 
     # --- calc ---
@@ -314,63 +509,84 @@ def main():
     p.add_argument("--activity", required=True, help="Exercise type")
     p.add_argument("--weight", type=float, required=True, help="Body weight in kg")
     p.add_argument("--duration", type=float, required=True, help="Duration in minutes")
-    p.add_argument("--intensity", choices=["low", "moderate", "high", "very_high"],
-                   default=None)
-    p.add_argument("--speed", type=float, default=None,
-                   help="Speed in km/h (for running, cycling)")
-    p.add_argument("--pace-100m", type=float, default=None,
-                   help="Pace per 100m in minutes (for swimming)")
+    p.add_argument("--intensity", choices=["low", "moderate", "high", "very_high"], default=None)
+    p.add_argument("--speed", type=float, default=None, help="Speed in km/h (for running, cycling)")
+    p.add_argument("--pace-100m", type=float, default=None, help="Pace per 100m in minutes (for swimming)")
 
     # --- interpolate-run ---
-    p = sub.add_parser("interpolate-run", help="Running speed → MET")
+    p = sub.add_parser("interpolate-run", help="Running speed -> MET")
     p.add_argument("--speed", type=float, required=True, help="km/h")
 
     # --- interpolate-cycle ---
-    p = sub.add_parser("interpolate-cycle", help="Cycling speed → MET")
+    p = sub.add_parser("interpolate-cycle", help="Cycling speed -> MET")
     p.add_argument("--speed", type=float, required=True, help="km/h")
 
     # --- classify-swim ---
-    p = sub.add_parser("classify-swim", help="Swimming pace → MET")
-    p.add_argument("--pace-100m", type=float, required=True,
-                   help="Minutes per 100m")
+    p = sub.add_parser("classify-swim", help="Swimming pace -> MET")
+    p.add_argument("--pace-100m", type=float, required=True, help="Minutes per 100m")
 
     # --- batch ---
     p = sub.add_parser("batch", help="Process multiple exercises")
     p.add_argument("--weight", type=float, required=True, help="kg")
-    p.add_argument("--exercises", type=str, required=True,
-                   help='JSON array of exercises')
+    p.add_argument("--exercises", type=str, required=True, help="JSON array of exercises")
+
+    # --- save ---
+    p = sub.add_parser("save", help="Save exercise log to data/exercise.json")
+    p.add_argument("--data-dir", required=True, help="Path to data directory")
+    p.add_argument("--log", required=True, help="JSON array or object of exercise(s)")
+    p.add_argument("--date", default=None, help="Date YYYY-MM-DD (default: today)")
+    p.add_argument("--tz-offset", type=int, default=0, help="Timezone offset in seconds")
+
+    # --- load ---
+    p = sub.add_parser("load", help="Load exercise entries")
+    p.add_argument("--data-dir", required=True, help="Path to data directory")
+    p.add_argument("--date", default=None, help="Specific date YYYY-MM-DD")
+    p.add_argument("--from", dest="from_date", default=None, help="Start date YYYY-MM-DD")
+    p.add_argument("--to", dest="to_date", default=None, help="End date YYYY-MM-DD")
+    p.add_argument("--last", type=int, default=None, help="Last N days with data")
+
+    # --- delete ---
+    p = sub.add_parser("delete", help="Delete exercise entry")
+    p.add_argument("--data-dir", required=True, help="Path to data directory")
+    p.add_argument("--date", required=True, help="Date YYYY-MM-DD")
+    p.add_argument("--index", type=int, default=None, help="Exercise index (0-based); omit to delete entire day")
+
+    # --- update ---
+    p = sub.add_parser("update", help="Update exercise entry")
+    p.add_argument("--data-dir", required=True, help="Path to data directory")
+    p.add_argument("--date", required=True, help="Date YYYY-MM-DD")
+    p.add_argument("--index", type=int, required=True, help="Exercise index (0-based)")
+    p.add_argument("--log", required=True, help="Updated exercise JSON object")
 
     args = parser.parse_args()
     if not args.cmd:
         parser.print_help()
         sys.exit(1)
 
-    result = None
-
     if args.cmd == "calc":
-        result = calc_exercise(
-            args.activity, args.weight, args.duration,
-            args.intensity, args.speed, args.pace_100m,
-        )
-
+        result = calc_exercise(args.activity, args.weight, args.duration, args.intensity, args.speed, getattr(args, 'pace_100m', None))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
     elif args.cmd == "interpolate-run":
-        result = interpolate_running(args.speed)
-
+        print(json.dumps(interpolate_running(args.speed), ensure_ascii=False, indent=2))
     elif args.cmd == "interpolate-cycle":
-        result = interpolate_cycling(args.speed)
-
+        print(json.dumps(interpolate_cycling(args.speed), ensure_ascii=False, indent=2))
     elif args.cmd == "classify-swim":
-        result = classify_swimming(args.pace_100m)
-
+        print(json.dumps(classify_swimming(getattr(args, 'pace_100m', None)), ensure_ascii=False, indent=2))
     elif args.cmd == "batch":
         try:
             exercises = json.loads(args.exercises)
-        except json.JSONDecodeError as e:
-            print(f"Error: invalid --exercises JSON: {e}", file=sys.stderr)
+        except (json.JSONDecodeError, ValueError) as e:
+            print("Error: invalid --exercises JSON: {}".format(e), file=sys.stderr)
             sys.exit(1)
-        result = batch_calc(args.weight, exercises)
-
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(json.dumps(batch_calc(args.weight, exercises), ensure_ascii=False, indent=2))
+    elif args.cmd == "save":
+        cmd_save(args)
+    elif args.cmd == "load":
+        cmd_load(args)
+    elif args.cmd == "delete":
+        cmd_delete(args)
+    elif args.cmd == "update":
+        cmd_update(args)
 
 
 if __name__ == "__main__":

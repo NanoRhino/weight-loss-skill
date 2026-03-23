@@ -79,7 +79,7 @@ health-profile.md (body data) + health-preferences.md (food prefs)
 | `health-profile.md` | Read | user-onboarding-profile | Diet mode, body stats, meal schedule, location |
 | `locale.json` | Read | system | Language and region for locale adaptation |
 | `data/meals/YYYY-MM-DD.json` | Read | diet-tracking-analysis | Recent meal logs — today's remaining budget + last 3–5 days' patterns for context-aware recommendations |
-| `data/exercise/YYYY-MM-DD.json` | Read | exercise-tracking-planning | Today's exercise (adjust calorie budget, emphasize protein post-workout) |
+| `data/exercise.json` | Read | exercise-tracking-planning | Today's exercise via `exercise-calc.py load --date YYYY-MM-DD` (adjust calorie budget, emphasize protein post-workout) |
 
 ---
 

@@ -93,11 +93,12 @@ User can request a report at any time:
 |------|-----|---------|
 | `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` for each day in range | Logging status, food descriptions, estimated calories per meal |
 | `data/weight.json` | `weight-tracker.py load --from YYYY-MM-DD --to YYYY-MM-DD --display-unit <unit>` | Weight readings for the week |
+| `data/exercise.json` | `exercise-calc.py load --data-dir {workspaceDir}/data --from YYYY-MM-DD --to YYYY-MM-DD` | Exercise sessions, duration, calories burned for the week |
 | `habits.active` | direct read | Current active habits for habit progress section |
 | `habits.daily_log.{date}` | direct read | Daily habit completion/miss/no_response records |
 | `habits.graduated` | direct read | Recently graduated habits for achievements section |
 
-**Note:** Weight data is read via the `weight-tracking` skill's `weight-tracker.py` script at `{weight-tracking:baseDir}/scripts/weight-tracker.py`. Read `health-profile.md > Body > Unit Preference` for the display unit. Meal data is read via `nutrition-calc.py load` from the `diet-tracking-analysis` skill.
+**Note:** Weight data is read via the `weight-tracking` skill's `weight-tracker.py` script at `{weight-tracking:baseDir}/scripts/weight-tracker.py`. Read `health-profile.md > Body > Unit Preference` for the display unit. Meal data is read via `nutrition-calc.py load` from the `diet-tracking-analysis` skill. Exercise data is read via `exercise-calc.py load` from the `exercise-tracking-planning` skill at `{exercise-tracking-planning:baseDir}/scripts/exercise-calc.py`.
 
 ---
 
