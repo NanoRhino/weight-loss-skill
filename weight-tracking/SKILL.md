@@ -143,7 +143,7 @@ The server runs in UTC. To record the correct local datetime:
    ```
    - If `triggered: false` → do nothing, respond with just the log confirmation
    - If `triggered: true, severity: "mild"` → append a gentle one-liner after the log confirmation, e.g., "最近体重有点波动，要不要一起看看数据？" / "Weight's been fluctuating a bit lately — want to take a look?" Do NOT push — if the user ignores it, drop it (single-ask rule).
-   - If `triggered: true, severity: "significant"` → after the log confirmation, proactively transition to `weight-gain-strategy` interactive flow (Step 1: Analyze & Present Findings). Frame it naturally: "体重这两周和计划有点偏差，我帮你分析了一下——" / "I noticed the trend's drifted from your plan — here's what I see:"
+   - If `triggered: true, severity: "significant"` → after the log confirmation, run `weight-gain-strategy`'s `analyze` command, then **present the cause analysis to the user first** (trend + diagnosis only — do NOT jump to strategy options). Frame it naturally: "体重这两周和计划有点偏差，我帮你看了一下数据——" / "I noticed the trend's drifted from your plan — here's what the data shows:". After presenting the cause, ask whether the user wants to discuss adjustments. Only proceed to strategy discussion (Step 2) if the user agrees.
    - **Skip this step** if `PLAN.md` does not exist (no plan to deviate from), or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
 
 ### User Asks for Trend / History

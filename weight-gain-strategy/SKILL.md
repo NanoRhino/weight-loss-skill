@@ -40,7 +40,7 @@ the **primary trigger path**.
 |----------|----------|
 | `none` | No action. Weight is on track or within normal fluctuation. |
 | `mild` | Append a gentle one-liner to the log confirmation. Single-ask rule applies — if the user ignores it, drop it. |
-| `significant` | Proactively transition to the full interactive flow (Step 1). Frame naturally, not alarmingly. |
+| `significant` | Run `analyze`, present cause analysis to the user (Step 1 only). Ask if they want to discuss adjustments before proceeding to Step 2. |
 
 **Skip conditions:**
 - No `PLAN.md` (no plan to deviate from)
@@ -244,11 +244,13 @@ Returns the current active strategy and progress against it (for use by
 
 ---
 
-## Interactive Flow (Manual Trigger)
+## Interactive Flow
 
-When the user asks about weight gain, follow this three-step flow.
+Applies to both auto-triggered (post-weigh-in significant deviation) and
+manual-triggered (user asks about weight gain) paths. **The key principle:
+always show the cause analysis first — never jump straight to strategies.**
 
-### Step 1: Analyze & Present Findings
+### Step 1: Analyze & Present Causes (always runs first)
 
 1. Read `timezone.json` for tz_offset
 2. Run the `analyze` command
@@ -269,9 +271,16 @@ When the user asks about weight gain, follow this three-step flow.
 - **Water retention:** "The jump looks sudden — could be water retention from {possible_cause}. This usually resolves in a few days."
 - **Normal fluctuation:** "This is within normal daily fluctuation range — nothing to worry about."
 
-**[Transition to Step 2]** — "Want to talk about what we can adjust?"
+**[Pause here — do NOT continue to Step 2 automatically]**
+
+**[Transition to Step 2]** — "Want to talk about what we can adjust?" / "要不要聊聊怎么调整？"
 
 If the diagnosis is `normal_fluctuation`, skip to a reassuring close — do NOT propose changes for normal fluctuation.
+
+**Only proceed to Step 2 when the user explicitly agrees.** If the user
+ignores the question, acknowledges without interest, or changes topic, drop it.
+This ensures the user never feels pressured into a strategy discussion they
+didn't ask for.
 
 ### Step 2: Discuss & Choose Strategy
 
