@@ -39,8 +39,8 @@ Return this whenever the user logs a workout or exercise session. Supports singl
 - `activity`: specific name in user's language (e.g., "running", "swimming", "jogging")
 - `duration_min`: integer, in minutes
 - `intensity`: `low` / `moderate` / `high`. If user provides RPE or HR, map to these three levels
-- `calories`: integer per exercise. If from device, use device value. If estimated via MET, prefix display text with `≈` (but store as integer in JSON)
-- `total_calories`: sum of all exercises' calories in this log
+- `calories`: integer per exercise — **net calories** (MET−1 based, excluding resting metabolism). If from device, use device value as-is. If estimated via MET, use `net_calories_kcal` from exercise-calc.py and prefix display text with `≈` (but store as integer in JSON)
+- `total_calories`: sum of all exercises' net calories in this log
 - `distance`: float or null. Only for applicable activities (cardio, some sports)
 - `distance_unit`: follows user's `unit_preference` or contextual language
 - `avg_hr` / `max_hr`: integer or null. Only when device data is available

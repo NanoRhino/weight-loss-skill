@@ -133,6 +133,19 @@ The script handles:
 - Discrete MET table lookup for 60+ activities across all categories
 - Default intensity fallback when not specified (e.g., HIIT defaults to "high")
 
+### Gross vs Net Calories
+
+The script outputs both `calories_kcal` (gross) and `net_calories_kcal` (net) for each exercise:
+
+- **Gross** = MET × weight × hours — total energy during the activity (includes resting metabolism)
+- **Net** = (MET − 1) × weight × hours — additional energy **above** resting metabolism
+
+**Use net calories (`net_calories_kcal`) when communicating exercise calorie burn to users.** The TDEE base calculation already includes resting metabolism via the NEAT multiplier, so reporting gross calories would overstate the exercise benefit. When giving feedback like "你今天跑步额外消耗了约 250 大卡", use the net value.
+
+The `total_net_calories_kcal` field in batch results is the sum of net calories across all exercises in the session.
+
+**Exercise calorie eat-back policy:** If the user proactively eats more or says they're hungry after exercise, they may use the extra exercise calories — do not discourage this. However, if the user does not eat more or mention hunger, do NOT suggest that they should eat back the exercise calories. Let the extra deficit stand silently.
+
 ### MET Reference Table
 
 See `references/met-table.md` for the full MET value table and interpolation anchor points. Key principles:
