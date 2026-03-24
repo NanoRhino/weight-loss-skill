@@ -205,7 +205,7 @@ If user has already eaten → still log if they want, but note internally that r
 
 ### Weight Reminder Rules
 
-- **Mon & Thu only.** Max 2x/week. Always framed as optional.
+- **Wed & Sat only.** Max 2x/week. Always framed as optional.
 - Reminder time = breakfast time from `health-profile.md > Meal Schedule` minus 30 min. Always remind user to weigh **on an empty stomach** (before eating). If user has already eaten, still accept the reading but tag it internally as `fasting: false`.
 - If `Health Flags` contains `avoid_weight_focus` or `history_of_ed` → never send.
 - Never show the user's target weight or last weigh-in in the reminder message.
