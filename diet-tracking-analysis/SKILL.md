@@ -540,8 +540,10 @@ Every food log reply must contain up to three sections:
 ```
 ⚡ Right now: [specific food + amount adjustment for current meal]
 ```
-- Since the user hasn't eaten yet, suggest adding, removing, or swapping items before they start
-- Can adjust portions, swap ingredients, add sides, or reduce amounts
+- Since the user hasn't eaten yet, suggest removing, reducing portions, or swapping items before they start
+- **Additions go to the next eating occasion:** When suggesting the user eat MORE of something (add a side, increase protein, etc.), frame it as "next meal", "as an afternoon snack", "at dinner", or other upcoming eating occasion — NOT as adding to the current meal. The user likely already prepared this meal; asking them to add food now is impractical.
+- **Reductions can reference the current meal:** Removing or reducing items IS actionable before eating (e.g. "skip the bread", "eat half the rice").
+- **Deferred items:** When a food is reduced or removed from the current meal AND it would fit well in a later meal, explicitly tell the user they can have it then — e.g. "skip the bread now, save it for dinner" / "米饭减半，剩下的晚餐再吃". This avoids the feeling of deprivation.
 - Do NOT list per-item calories in the suggestion
 - Content must be user-facing — no internal reasoning exposed
 - Single option → one clear suggestion. End with: "After adjustment, this meal would total ~X kcal, protein Xg, carbs Xg, fat Xg."
@@ -552,18 +554,49 @@ Every food log reply must contain up to three sections:
 💡 Next meal: [forward-looking compensatory advice for the next upcoming meal]
 ```
 - Give a concrete suggestion for the **next meal** to compensate — do NOT suggest modifying the current meal
+- Follow the Food Suggestion Format below: state the category first, then give examples from the user's food history
 - Frame as planning ahead, not fixing a mistake
-- Last meal of the day (dinner): keep it brief — "A bit over today, totally normal — aim for your usual pattern tomorrow."
+- Last meal of the day (dinner) with calories OVER target: keep it brief — "A bit over today, totally normal — aim for your usual pattern tomorrow."
 
 **Case C: On track** (`needs_adjustment: false`, regardless of eaten status):
 ```
 💡 Next time: [habit tip or next-meal pairing suggestion — specific food + amount, no calorie listing]
 ```
 
+**Case D: Last meal of the day + calories under target** (current meal is the final meal — dinner in 3-meal mode or meal_2 in 2-meal mode — and daily total calories are below the calorie target):
+
+Determine severity by comparing daily total against BMR (from PLAN.md, USER.md, or health-profile.md):
+
+- **Daily total < BMR:** Proactively recommend adding a snack — eating below BMR consistently is unhealthy. Use a gentle but clear tone:
+  ```
+  🍽 今天总热量偏低（~X kcal），低于基础代谢（~Y kcal），建议加个餐补一下——比如【category】，像【example from user history】。
+  ```
+  English: "Today's total (~X kcal) is below your resting metabolism (~Y kcal) — I'd recommend adding a snack, something like [category], e.g. [example from user history]."
+
+- **Daily total ≥ BMR but below calorie target:** The deficit is mild and safe. Do NOT push the user to eat more. Instead, note that they CAN snack if hungry, but it's fine to skip:
+  ```
+  💡 今天热量比目标少了一些，不过还在安全范围。如果晚点饿了，可以加个小零食；不饿的话不吃也没关系。
+  ```
+  English: "Today's calories are a bit under target but still in a safe range. If you get hungry later, feel free to grab a small snack — if not, no need to eat more."
+
 **✨ Nice work** (optional, between nutrition summary and suggestion):
 ```
 ✨ [1–2 genuine lines tied to their actual food choices, or omit if nothing noteworthy]
 ```
+
+### Food Suggestion Format
+
+When suggesting food to add — whether in right_now, next_meal, next_time, or Case D — follow this format:
+
+1. **State the category first** (what kind of food is needed) — e.g. "high-protein food", "complex carbs", "healthy fat"
+2. **Then give concrete examples**, prioritizing foods the user has previously logged. Check today's and recent meal records (`load` with past dates) for familiar foods the user actually eats. This makes suggestions more actionable because the user already knows where to get these foods and how to prepare them.
+3. If no relevant history exists, fall back to common, easy-to-obtain foods.
+
+Example format:
+- ✅ "加点**优质蛋白**，比如你常吃的鸡胸肉或水煮蛋" (category → user's own foods)
+- ✅ "Add some **complex carbs** — like the oatmeal you had yesterday, or a small sweet potato"
+- ❌ "Add 100g chicken breast" (no category, no personalization)
+- ❌ "Try quinoa with salmon" (user may never eat these)
 
 ---
 
@@ -578,8 +611,12 @@ Every food log reply must contain up to three sections:
 1. **Call `load`** — get all meals for today
 2. **Call `evaluate`** — evaluate final daily totals (use `dinner` or the last logged meal as `--current-meal`)
 3. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
-4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
-5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
+4. **Calorie deficit check** — if daily total is below target, apply the Case D logic from the Suggestion section:
+   - Compare daily total against BMR (from PLAN.md / USER.md / health-profile.md)
+   - Below BMR → recommend adding a snack (category + user-history examples)
+   - ≥ BMR but below target → "if hungry later, grab a snack; if not, no need to eat more"
+5. **If calories are on track or over**, add one forward-looking suggestion for tomorrow if intake was notably high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
+6. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
 
 ### If the user also runs `detect-diet-pattern` criteria
 
