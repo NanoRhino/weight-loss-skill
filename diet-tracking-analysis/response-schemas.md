@@ -44,7 +44,7 @@ Protein and fat are on track, carbs slightly low — adding a bit of grain at di
 📊 So far today: 1279 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
 Calories and carbs are running high while protein is low — the rice + bubble tea combo pushed carbs up.
 
-⚡ Right now: Swap the bubble tea for unsweetened tea and add a side of grilled chicken (~100g) to boost protein. That would bring this meal to ~640 kcal with much better protein. For dinner, go lighter — steamed fish + veggies, skip the rice.
+⚡ Right now: Swap the bubble tea for unsweetened tea, and rice reduced to half a bowl — the other half can go with dinner. Protein is low, so dinner add some high-protein food, like your usual grilled chicken breast or eggs. After adjustment, this meal would total ~340 kcal, protein 8g, carbs 58g, fat 10g.
 ```
 
 ## Food Log with Adjustment Needed — Already Eaten
@@ -59,10 +59,10 @@ Calories and carbs are running high while protein is low — the rice + bubble t
 📊 So far today: 1279 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
 Calories and carbs are running high while protein is low — the fried rice and bubble tea are tasty but carb-heavy.
 
-💡 Next meal: Dinner idea — go heavier on protein and lighter on carbs to balance out. Try grilled chicken breast + steamed veggies, keep rice to half a bowl.
+💡 Next meal: Dinner go heavier on high-protein food — like your usual grilled chicken breast or steamed fish — and lighter on carbs, keep rice to half a bowl or skip it.
 ```
 
-## Daily Summary
+## Daily Summary — Calories On Track or Over
 
 When the user closes the day ("今天都吃完了", "done eating for today", etc.), reply with the daily summary only. **Do NOT add any sign-off** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". "Done eating" ≠ going to sleep. End with the suggestion or summary line — nothing after it.
 
@@ -74,4 +74,28 @@ Carbs 133g ⚠️ Low
 Fat 34g ⚠️ Low
 
 Nice job overall! Carbs and fat are a bit low — try adding half a bowl of rice and a handful of nuts tomorrow 💪
+```
+
+## Daily Summary — Calories Under Target (Below BMR)
+
+```
+📊 Today's summary:
+Calories 980 kcal ⚠️ Low
+Protein 72g ✅
+Carbs 98g ⚠️ Low
+Fat 28g ⚠️ Low
+
+🍽 Today's total (~980 kcal) is below your resting metabolism (~1280 kcal) — I'd recommend adding a snack. Some healthy fat or protein, like the nuts you had last week or a cup of yogurt.
+```
+
+## Daily Summary — Calories Under Target (Above BMR)
+
+```
+📊 Today's summary:
+Calories 1180 kcal ⚠️ Low
+Protein 88g ✅
+Carbs 110g ⚠️ Low
+Fat 32g ⚠️ Low
+
+💡 Today's calories are a bit under target but still above your resting metabolism, so no worries. If you get hungry later, feel free to grab a small snack — if not, no need to eat more.
 ```
