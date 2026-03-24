@@ -58,16 +58,6 @@ the **primary trigger path**.
 - `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
 - User is in first 2 weeks of plan (body is still adjusting)
 
-### Automatic Trigger: Weekly Report
-
-The `weekly-report` skill calls `analyze` when it detects:
-- Net weight gain ≥ 0.3 kg (0.7 lbs) over the reporting week
-- 2+ consecutive weigh-ins trending upward with no downward correction
-
-When auto-triggered from weekly-report, this skill provides analysis data
-back for inclusion in the Section 6 suggestions. It does NOT produce a
-standalone message.
-
 ### Manual Trigger (user-initiated)
 
 When the user explicitly asks about weight gain ("why am I gaining weight",
@@ -423,7 +413,7 @@ Option {N}: {strategy_name}
 
 | Skill | Integration |
 |-------|-------------|
-| `weekly-report` | Calls `analyze` to include weight trend diagnosis in Section 6 suggestions. Calls `check-strategy` to report on active strategy progress. |
+| `weekly-report` | Reads `check-strategy` output to report on active strategy progress. |
 | `notification-composer` | Reads `check-strategy` output to optionally include mid-week strategy check-in reminders. |
 | `weight-tracking` | Source of weight data. This skill reads only — never writes to `data/weight.json`. |
 | `diet-tracking-analysis` | Source of meal data. This skill reads only — never writes to `data/meals/`. |
