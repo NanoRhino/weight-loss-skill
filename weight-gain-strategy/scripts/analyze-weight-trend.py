@@ -58,15 +58,22 @@ def parse_plan_target(plan_path):
         content = f.read()
     # Look for calorie target patterns
     import re
-    # Match patterns like "1,600 kcal", "1600 kcal", "1,600 Cal"
+    # Match English: "Daily calorie target: ~1,600 kcal"
     match = re.search(
         r"[Dd]aily\s+calorie\s+target[:\s]*~?\s*([\d,]+)\s*(?:kcal|Cal)",
         content
     )
     if match:
         return int(match.group(1).replace(",", ""))
-    # Fallback: look for any calorie number near "target"
-    match = re.search(r"([\d,]+)\s*(?:kcal|Cal)", content)
+    # Match Chinese: "每日热量目标：1,700 kcal" or "每日热量目标：1700 kcal"
+    match = re.search(
+        r"每日热量目标[：:]\s*~?约?\s*([\d,]+)\s*(?:kcal|Cal)",
+        content
+    )
+    if match:
+        return int(match.group(1).replace(",", ""))
+    # Fallback: look for any calorie number near "target" / "目标"
+    match = re.search(r"(?:target|目标)[^0-9]*([\d,]+)\s*(?:kcal|Cal)", content)
     if match:
         return int(match.group(1).replace(",", ""))
     return None
@@ -418,16 +425,131 @@ def parse_plan_rate(plan_path):
     return None
 
 
+def parse_user_sex(user_file):
+    """Extract biological sex from USER.md."""
+    if not user_file or not os.path.exists(user_file):
+        return None
+    with open(user_file, "r", encoding="utf-8") as f:
+        content = f.read().lower()
+    import re
+    match = re.search(r"sex[:\s]*(male|female|男|女)", content)
+    if match:
+        val = match.group(1)
+        if val in ("female", "女"):
+            return "female"
+        return "male"
+    return None
+
+
+def detect_temporary_causes(args, local_now, readings, calorie_target):
+    """Detect temporary/explainable causes for weight increase.
+
+    Returns a list of detected temporary cause dicts, each with:
+      - cause: string identifier
+      - message: human-readable explanation
+    """
+    causes = []
+
+    # --- Check 1: Yesterday's calorie spike ---
+    yesterday = (local_now - timedelta(days=1)).strftime("%Y-%m-%d")
+    meal_path = os.path.join(args.data_dir, "meals", f"{yesterday}.json")
+    if os.path.exists(meal_path) and calorie_target:
+        day_data = load_json(meal_path)
+        meals = day_data if isinstance(day_data, list) else day_data.get("meals", [])
+        day_cal = 0
+        for meal in meals:
+            if isinstance(meal, dict):
+                day_cal += meal.get("cal", meal.get("calories", 0)) or 0
+        if day_cal > 0:
+            overshoot = day_cal - calorie_target
+            overshoot_pct = overshoot / calorie_target * 100
+            if overshoot_pct >= 30:  # 30%+ over target
+                causes.append({
+                    "cause": "yesterday_overeating",
+                    "message": "Yesterday's intake was {0} kcal ({1:+.0f}% over target) — "
+                               "a single high day often shows up on the scale the next morning "
+                               "as water retention from extra carbs/sodium.".format(
+                                   day_cal, overshoot_pct),
+                    "yesterday_cal": day_cal,
+                    "target_cal": calorie_target,
+                    "overshoot_kcal": overshoot,
+                })
+
+    # --- Check 2: Possible menstrual cycle ---
+    sex = parse_user_sex(args.user_file)
+    if sex == "female":
+        # Check if the weight increase pattern is consistent with cycle-related
+        # water retention: sudden spike 0.5–2 kg in last 3 days, with no
+        # calorie surplus detected over the broader window
+        if len(readings) >= 2:
+            recent_change = readings[-1]["value"] - readings[-2]["value"]
+            recent_days = (
+                datetime.strptime(readings[-1]["date"], "%Y-%m-%d")
+                - datetime.strptime(readings[-2]["date"], "%Y-%m-%d")
+            ).days
+            if recent_change >= 0.5 and recent_days <= 5:
+                # Check if average calorie intake over last 7 days is within target
+                cal_within_target = True
+                if calorie_target:
+                    recent_cals = []
+                    for day_offset in range(7):
+                        d = (local_now - timedelta(days=day_offset)).strftime("%Y-%m-%d")
+                        mp = os.path.join(args.data_dir, "meals", f"{d}.json")
+                        if os.path.exists(mp):
+                            dd = load_json(mp)
+                            ms = dd if isinstance(dd, list) else dd.get("meals", [])
+                            dc = sum(
+                                (m.get("cal", m.get("calories", 0)) or 0)
+                                for m in ms if isinstance(m, dict)
+                            )
+                            if dc > 0:
+                                recent_cals.append(dc)
+                    if recent_cals:
+                        avg_cal = sum(recent_cals) / len(recent_cals)
+                        if avg_cal > calorie_target * 1.1:
+                            cal_within_target = False
+
+                if cal_within_target:
+                    causes.append({
+                        "cause": "possible_menstrual_cycle",
+                        "message": "Weight jumped {0:+.1f} kg in {1} day(s) while calorie intake "
+                                   "looks normal — this pattern is consistent with cycle-related "
+                                   "water retention, which typically resolves in a few days.".format(
+                                       recent_change, recent_days),
+                        "recent_change_kg": round(recent_change, 2),
+                        "recent_days": recent_days,
+                    })
+
+    # --- Check 3: Sudden spike (possible water/sodium retention) ---
+    if len(readings) >= 2 and not any(c["cause"] == "possible_menstrual_cycle" for c in causes):
+        recent_change = readings[-1]["value"] - readings[-2]["value"]
+        recent_days = (
+            datetime.strptime(readings[-1]["date"], "%Y-%m-%d")
+            - datetime.strptime(readings[-2]["date"], "%Y-%m-%d")
+        ).days
+        if recent_change >= 0.8 and recent_days <= 2:
+            causes.append({
+                "cause": "sudden_spike",
+                "message": "Weight jumped {0:+.1f} kg overnight — this is almost certainly "
+                           "water/sodium retention rather than fat gain.".format(recent_change),
+                "spike_kg": round(recent_change, 2),
+            })
+
+    return causes
+
+
 def deviation_check(args):
     """Quick post-weigh-in check: is the user deviating from plan?
 
     Compares the latest weight readings against the expected trajectory
-    based on PLAN.md weekly loss rate.
+    based on PLAN.md weekly loss rate. Also detects temporary causes
+    (yesterday overeating, menstrual cycle, water retention) that warrant
+    reassurance + deferral rather than immediate analysis.
 
     Returns:
-      - triggered: true if deviation warrants strategy discussion
-      - severity: "none" | "mild" | "significant"
-      - details about the deviation
+      - triggered: true if deviation warrants action
+      - severity: "none" | "deferred" | "mild" | "significant"
+      - temporary_causes: list of detected temporary explanations (if any)
     """
     tz_offset = args.tz_offset
     local_now = get_local_now(tz_offset)
@@ -490,30 +612,46 @@ def deviation_check(args):
 
     deviation = actual_change - expected_change  # positive = worse than plan
 
-    # Determine severity
+    # Determine raw severity before temporary-cause adjustment
     # mild: deviation 0.3–0.8 kg above expected (falling behind)
     # significant: deviation > 0.8 kg above expected OR actual gain > 0.5 kg
-    severity = "none"
+    raw_severity = "none"
     triggered = False
 
     if actual_change > 0.3:
         # Actually gaining weight
         if actual_change > 0.8:
-            severity = "significant"
+            raw_severity = "significant"
         else:
-            severity = "mild"
+            raw_severity = "mild"
         triggered = True
     elif deviation > 0.8:
         # Not gaining, but far behind plan
-        severity = "significant"
+        raw_severity = "significant"
         triggered = True
     elif deviation > 0.3:
-        severity = "mild"
+        raw_severity = "mild"
         triggered = True
+
+    # --- Detect temporary causes ---
+    calorie_target = parse_plan_target(args.plan_file) if args.plan_file else None
+    temporary_causes = []
+    if triggered:
+        temporary_causes = detect_temporary_causes(
+            args, local_now, readings, calorie_target
+        )
+
+    # Downgrade to "deferred" when temporary causes fully explain the spike
+    severity = raw_severity
+    if temporary_causes and severity in ("mild", "significant"):
+        # If the only signal is a temporary cause, defer — reassure now,
+        # re-evaluate at the next weigh-in
+        severity = "deferred"
 
     result = {
         "triggered": triggered,
         "severity": severity,
+        "raw_severity": raw_severity,
         "window": {
             "start_date": first["date"],
             "end_date": last["date"],
@@ -526,9 +664,15 @@ def deviation_check(args):
         "latest_weight": last["value"],
         "latest_unit": last["unit"],
         "readings_count": len(readings),
+        "temporary_causes": temporary_causes,
     }
 
-    if triggered:
+    if severity == "deferred":
+        result["recommendation"] = (
+            "Reassure the user (temporary cause detected). "
+            "Defer analysis to next weigh-in cycle."
+        )
+    elif triggered:
         if severity == "significant":
             result["recommendation"] = "Run full analyze to diagnose causes and offer adjustment strategies."
         else:
@@ -606,6 +750,7 @@ def main():
     p_devcheck.add_argument("--data-dir", required=True)
     p_devcheck.add_argument("--plan-file", default=None)
     p_devcheck.add_argument("--health-profile", default=None)
+    p_devcheck.add_argument("--user-file", default=None)
     p_devcheck.add_argument("--tz-offset", type=int, default=0)
 
     # check-strategy

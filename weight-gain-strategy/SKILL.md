@@ -39,8 +39,17 @@ the **primary trigger path**.
 | Severity | Behavior |
 |----------|----------|
 | `none` | No action. Weight is on track or within normal fluctuation. |
+| `deferred` | **Reassure first, observe later.** A temporary cause was detected (yesterday overeating, possible menstrual cycle, overnight water retention). Respond with a warm, normalizing message based on the `temporary_causes[].message` — then wait until the next weigh-in to re-evaluate. Do NOT run `analyze` or suggest adjustments. |
 | `mild` | Append a gentle one-liner to the log confirmation. Single-ask rule applies — if the user ignores it, drop it. |
 | `significant` | Run `analyze`, present cause analysis to the user (Step 1 only). Ask if they want to discuss adjustments before proceeding to Step 2. |
+
+**`deferred` response examples:**
+
+- **Yesterday overeating:** "昨天吃得比较多，今天秤上看到变化很正常——多出来的大部分是水分，不是脂肪。过两天再称一次看看～" / "You ate more yesterday, so a bump today is expected — most of it is water, not fat. Let's see where you are in a couple of days."
+- **Possible menstrual cycle:** "生理期前后体重波动 1–2 kg 是完全正常的，跟脂肪没关系。等经期结束后再看趋势会更准确～" / "Weight fluctuates 1–2 kg around your period — that's totally normal and not fat. The trend will be clearer once your cycle passes."
+- **Sudden overnight spike:** "一夜之间涨了这么多肯定不是脂肪——多半是盐分/水分的原因，过几天会回落的。" / "That kind of overnight jump is almost certainly water/sodium, not fat — it'll come back down."
+
+**Key rule:** When severity is `deferred`, the response tone is **reassurance, not concern**. Never frame the temporary cause as a problem. The goal is to prevent unnecessary anxiety and let the next data point confirm whether a real trend exists.
 
 **Skip conditions:**
 - No `PLAN.md` (no plan to deviate from)
@@ -184,6 +193,7 @@ python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
   --data-dir {workspaceDir}/data \
   --plan-file {workspaceDir}/PLAN.md \
   --health-profile {workspaceDir}/health-profile.md \
+  --user-file {workspaceDir}/USER.md \
   --tz-offset {tz_offset}
 ```
 
@@ -192,7 +202,8 @@ python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
 ```json
 {
   "triggered": true,
-  "severity": "mild",
+  "severity": "deferred",
+  "raw_severity": "mild",
   "window": {
     "start_date": "2026-03-10",
     "end_date": "2026-03-24",
@@ -205,19 +216,35 @@ python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
   "latest_weight": 75.0,
   "latest_unit": "kg",
   "readings_count": 4,
-  "recommendation": "Mention the trend gently. Offer to investigate if the user wants."
+  "temporary_causes": [
+    {
+      "cause": "yesterday_overeating",
+      "message": "Yesterday's intake was 2400 kcal (+41% over target)...",
+      "yesterday_cal": 2400,
+      "target_cal": 1700,
+      "overshoot_kcal": 700
+    }
+  ],
+  "recommendation": "Reassure the user (temporary cause detected). Defer analysis to next weigh-in cycle."
 }
 ```
 
-**Severity thresholds:**
+**Severity levels:**
 - `none` — actual change tracks plan within 0.3 kg tolerance
-- `mild` — actual weight gain 0.3–0.8 kg, OR deviation from plan 0.3–0.8 kg
-- `significant` — actual weight gain > 0.8 kg, OR deviation from plan > 0.8 kg
+- `deferred` — deviation detected but a temporary cause explains it (yesterday overeating, menstrual cycle water retention, sudden overnight spike). Reassure user and re-evaluate at next weigh-in.
+- `mild` — deviation 0.3–0.8 kg with no temporary explanation
+- `significant` — deviation > 0.8 kg with no temporary explanation
+
+**Temporary cause detection:**
+- `yesterday_overeating` — previous day's calorie intake ≥ 30% over target
+- `possible_menstrual_cycle` — female user, sudden ≥ 0.5 kg spike in ≤ 5 days while average weekly intake is within target
+- `sudden_spike` — ≥ 0.8 kg jump in ≤ 2 days (water/sodium retention)
 
 **Design notes:**
 - Requires ≥ 2 readings spanning ≥ 3 days (avoids false alarms from daily fluctuation)
-- Reads `data/weight.json` directly (no subprocess call to weight-tracker.py) for speed
-- Does NOT trigger full analysis — just a yes/no signal for `weight-tracking` to act on
+- Reads `data/weight.json` and `data/meals/` directly for speed
+- When temporary causes are detected, severity downgrades to `deferred` — no full analysis runs
+- `raw_severity` preserves the pre-deferral severity for logging/debugging
 
 ### Command: `save-strategy`
 

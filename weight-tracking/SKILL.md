@@ -139,11 +139,16 @@ The server runs in UTC. To record the correct local datetime:
      --data-dir {workspaceDir}/data \
      --plan-file {workspaceDir}/PLAN.md \
      --health-profile {workspaceDir}/health-profile.md \
+     --user-file {workspaceDir}/USER.md \
      --tz-offset {tz_offset}
    ```
    - If `triggered: false` → do nothing, respond with just the log confirmation
-   - If `triggered: true, severity: "mild"` → append a gentle one-liner after the log confirmation, e.g., "最近体重有点波动，要不要一起看看数据？" / "Weight's been fluctuating a bit lately — want to take a look?" Do NOT push — if the user ignores it, drop it (single-ask rule).
-   - If `triggered: true, severity: "significant"` → after the log confirmation, run `weight-gain-strategy`'s `analyze` command, then **present the cause analysis to the user first** (trend + diagnosis only — do NOT jump to strategy options). Frame it naturally: "体重这两周和计划有点偏差，我帮你看了一下数据——" / "I noticed the trend's drifted from your plan — here's what the data shows:". After presenting the cause, ask whether the user wants to discuss adjustments. Only proceed to strategy discussion (Step 2) if the user agrees.
+   - If `severity: "deferred"` → **reassure and wait.** A temporary cause was detected (e.g., yesterday ate too much, menstrual cycle water retention, overnight sodium spike). Append a warm, normalizing message after the log confirmation using the `temporary_causes[].message` as guidance. Do NOT run `analyze`, do NOT suggest adjustments. Let the next weigh-in determine if there's a real trend. Examples:
+     - Yesterday overeating: "昨天吃得比较多，今天体重涨一点很正常，大部分是水分～过两天再看看"
+     - Menstrual cycle: "生理期前后波动 1–2 kg 是很正常的，不用担心，等过了这几天再看趋势～"
+     - Sudden spike: "一夜之间涨这么多肯定不是脂肪，多半是水分，过几天会回来的"
+   - If `severity: "mild"` → append a gentle one-liner after the log confirmation, e.g., "最近体重有点波动，要不要一起看看数据？" / "Weight's been fluctuating a bit lately — want to take a look?" Do NOT push — if the user ignores it, drop it (single-ask rule).
+   - If `severity: "significant"` → after the log confirmation, run `weight-gain-strategy`'s `analyze` command, then **present the cause analysis to the user first** (trend + diagnosis only — do NOT jump to strategy options). Frame it naturally: "体重这两周和计划有点偏差，我帮你看了一下数据——" / "I noticed the trend's drifted from your plan — here's what the data shows:". After presenting the cause, ask whether the user wants to discuss adjustments. Only proceed to strategy discussion (Step 2) if the user agrees.
    - **Skip this step** if `PLAN.md` does not exist (no plan to deviate from), or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
 
 ### User Asks for Trend / History
