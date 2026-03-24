@@ -28,15 +28,34 @@ concrete, time-bound adjustment strategy for the coming 1–2 weeks.
 
 ## Trigger Conditions
 
-### Automatic Trigger (from weekly-report)
+### Automatic Trigger: Post-Weigh-In Deviation Check
 
-The `weekly-report` skill calls this skill's analysis script when it detects:
+After every weight log, `weight-tracking` calls the `deviation-check` command
+to compare the user's recent trend against their PLAN.md target rate. This is
+the **primary trigger path**.
+
+**Severity → Response:**
+
+| Severity | Behavior |
+|----------|----------|
+| `none` | No action. Weight is on track or within normal fluctuation. |
+| `mild` | Append a gentle one-liner to the log confirmation. Single-ask rule applies — if the user ignores it, drop it. |
+| `significant` | Proactively transition to the full interactive flow (Step 1). Frame naturally, not alarmingly. |
+
+**Skip conditions:**
+- No `PLAN.md` (no plan to deviate from)
+- `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
+- User is in first 2 weeks of plan (body is still adjusting)
+
+### Automatic Trigger: Weekly Report
+
+The `weekly-report` skill calls `analyze` when it detects:
 - Net weight gain ≥ 0.3 kg (0.7 lbs) over the reporting week
 - 2+ consecutive weigh-ins trending upward with no downward correction
 
-When auto-triggered, this skill provides analysis data back to `weekly-report`
-for inclusion in the Section 6 suggestions. It does NOT produce a standalone
-message.
+When auto-triggered from weekly-report, this skill provides analysis data
+back for inclusion in the Section 6 suggestions. It does NOT produce a
+standalone message.
 
 ### Manual Trigger (user-initiated)
 
@@ -154,6 +173,51 @@ python3 {baseDir}/scripts/analyze-weight-trend.py analyze \
   ]
 }
 ```
+
+### Command: `deviation-check`
+
+Lightweight post-weigh-in check. Called by `weight-tracking` after every weight
+log to determine if the user's trend deviates from PLAN.md.
+
+```bash
+python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
+  --data-dir {workspaceDir}/data \
+  --plan-file {workspaceDir}/PLAN.md \
+  --health-profile {workspaceDir}/health-profile.md \
+  --tz-offset {tz_offset}
+```
+
+**Returns:**
+
+```json
+{
+  "triggered": true,
+  "severity": "mild",
+  "window": {
+    "start_date": "2026-03-10",
+    "end_date": "2026-03-24",
+    "days": 14
+  },
+  "plan_rate_kg_per_week": 0.6,
+  "expected_change_kg": -1.2,
+  "actual_change_kg": 0.4,
+  "deviation_kg": 1.6,
+  "latest_weight": 75.0,
+  "latest_unit": "kg",
+  "readings_count": 4,
+  "recommendation": "Mention the trend gently. Offer to investigate if the user wants."
+}
+```
+
+**Severity thresholds:**
+- `none` — actual change tracks plan within 0.3 kg tolerance
+- `mild` — actual weight gain 0.3–0.8 kg, OR deviation from plan 0.3–0.8 kg
+- `significant` — actual weight gain > 0.8 kg, OR deviation from plan > 0.8 kg
+
+**Design notes:**
+- Requires ≥ 2 readings spanning ≥ 3 days (avoids false alarms from daily fluctuation)
+- Reads `data/weight.json` directly (no subprocess call to weight-tracker.py) for speed
+- Does NOT trigger full analysis — just a yes/no signal for `weight-tracking` to act on
 
 ### Command: `save-strategy`
 

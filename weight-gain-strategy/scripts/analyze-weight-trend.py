@@ -2,9 +2,10 @@
 """Analyze weight trends and generate adjustment strategies.
 
 Commands:
-  analyze         Analyze weight trend and diagnose probable causes
-  save-strategy   Save an active adjustment strategy
-  check-strategy  Check progress on the active strategy
+  analyze          Analyze weight trend and diagnose probable causes
+  deviation-check  Quick check if current weight deviates from plan (post-weigh-in)
+  save-strategy    Save an active adjustment strategy
+  check-strategy   Check progress on the active strategy
 """
 
 import argparse
@@ -393,6 +394,151 @@ def save_strategy(args):
     print(json.dumps(data["active_strategy"], indent=2, ensure_ascii=False))
 
 
+def parse_plan_rate(plan_path):
+    """Extract weekly loss rate (kg/week) from PLAN.md."""
+    if not plan_path or not os.path.exists(plan_path):
+        return None
+    with open(plan_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    import re
+    # Match patterns like "0.6 kg/周", "0.6 kg/week", "~0.6 kg/week"
+    match = re.search(
+        r"(?:约|~)?\s*([\d.]+)\s*kg\s*/\s*(?:周|week)",
+        content, re.IGNORECASE
+    )
+    if match:
+        return float(match.group(1))
+    # Match lbs pattern and convert
+    match = re.search(
+        r"(?:约|~)?\s*([\d.]+)\s*(?:lbs?)\s*/\s*(?:周|week)",
+        content, re.IGNORECASE
+    )
+    if match:
+        return float(match.group(1)) * 0.4536
+    return None
+
+
+def deviation_check(args):
+    """Quick post-weigh-in check: is the user deviating from plan?
+
+    Compares the latest weight readings against the expected trajectory
+    based on PLAN.md weekly loss rate.
+
+    Returns:
+      - triggered: true if deviation warrants strategy discussion
+      - severity: "none" | "mild" | "significant"
+      - details about the deviation
+    """
+    tz_offset = args.tz_offset
+    local_now = get_local_now(tz_offset)
+    display_unit = parse_display_unit(args.health_profile)
+
+    # Load recent weight readings (last 14 days)
+    end_date = local_now.strftime("%Y-%m-%d")
+    start_date = (local_now - timedelta(days=14)).strftime("%Y-%m-%d")
+
+    raw = load_json(os.path.join(args.data_dir, "weight.json"))
+    readings = []
+    for k, v in sorted(raw.items()):
+        d = k[:10]
+        if start_date <= d <= end_date:
+            val = v.get("value", v) if isinstance(v, dict) else v
+            unit = v.get("unit", display_unit) if isinstance(v, dict) else display_unit
+            readings.append({"date": d, "datetime": k, "value": float(val), "unit": unit})
+
+    if len(readings) < 2:
+        print(json.dumps({
+            "triggered": False,
+            "severity": "none",
+            "reason": "insufficient_data",
+            "message": "Not enough weight readings to assess deviation (need >= 2).",
+        }, indent=2, ensure_ascii=False))
+        return
+
+    # Get plan rate
+    plan_rate = parse_plan_rate(args.plan_file)
+    if not plan_rate:
+        print(json.dumps({
+            "triggered": False,
+            "severity": "none",
+            "reason": "no_plan",
+            "message": "No PLAN.md or no weekly loss rate found.",
+        }, indent=2, ensure_ascii=False))
+        return
+
+    # Calculate expected vs actual weight change over the window
+    first = readings[0]
+    last = readings[-1]
+    days_between = (
+        datetime.strptime(last["date"], "%Y-%m-%d")
+        - datetime.strptime(first["date"], "%Y-%m-%d")
+    ).days
+
+    if days_between < 3:
+        # Too short a window, daily fluctuation dominates
+        print(json.dumps({
+            "triggered": False,
+            "severity": "none",
+            "reason": "window_too_short",
+            "message": "Only {0} days between readings — too short to assess trend.".format(days_between),
+        }, indent=2, ensure_ascii=False))
+        return
+
+    actual_change = last["value"] - first["value"]  # negative = lost weight
+    weeks = days_between / 7.0
+    expected_change = -(plan_rate * weeks)  # expected is negative (losing)
+
+    deviation = actual_change - expected_change  # positive = worse than plan
+
+    # Determine severity
+    # mild: deviation 0.3–0.8 kg above expected (falling behind)
+    # significant: deviation > 0.8 kg above expected OR actual gain > 0.5 kg
+    severity = "none"
+    triggered = False
+
+    if actual_change > 0.3:
+        # Actually gaining weight
+        if actual_change > 0.8:
+            severity = "significant"
+        else:
+            severity = "mild"
+        triggered = True
+    elif deviation > 0.8:
+        # Not gaining, but far behind plan
+        severity = "significant"
+        triggered = True
+    elif deviation > 0.3:
+        severity = "mild"
+        triggered = True
+
+    result = {
+        "triggered": triggered,
+        "severity": severity,
+        "window": {
+            "start_date": first["date"],
+            "end_date": last["date"],
+            "days": days_between,
+        },
+        "plan_rate_kg_per_week": plan_rate,
+        "expected_change_kg": round(expected_change, 2),
+        "actual_change_kg": round(actual_change, 2),
+        "deviation_kg": round(deviation, 2),
+        "latest_weight": last["value"],
+        "latest_unit": last["unit"],
+        "readings_count": len(readings),
+    }
+
+    if triggered:
+        if severity == "significant":
+            result["recommendation"] = "Run full analyze to diagnose causes and offer adjustment strategies."
+        else:
+            result["recommendation"] = "Mention the trend gently. Offer to investigate if the user wants."
+    else:
+        result["recommendation"] = "On track or within normal fluctuation. No action needed."
+
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
 def check_strategy(args):
     """Check progress on the active strategy."""
     local_now = get_local_now(args.tz_offset)
@@ -455,6 +601,13 @@ def main():
     p_save.add_argument("--params", default="{}")
     p_save.add_argument("--tz-offset", type=int, default=0)
 
+    # deviation-check
+    p_devcheck = subparsers.add_parser("deviation-check")
+    p_devcheck.add_argument("--data-dir", required=True)
+    p_devcheck.add_argument("--plan-file", default=None)
+    p_devcheck.add_argument("--health-profile", default=None)
+    p_devcheck.add_argument("--tz-offset", type=int, default=0)
+
     # check-strategy
     p_check = subparsers.add_parser("check-strategy")
     p_check.add_argument("--data-dir", required=True)
@@ -464,6 +617,8 @@ def main():
 
     if args.command == "analyze":
         analyze(args)
+    elif args.command == "deviation-check":
+        deviation_check(args)
     elif args.command == "save-strategy":
         save_strategy(args)
     elif args.command == "check-strategy":

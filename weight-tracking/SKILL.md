@@ -133,6 +133,18 @@ The server runs in UTC. To record the correct local datetime:
    - `"created"` → confirm: "Logged ✓"
    - `"updated"` → confirm: "Updated ✓"
 4. Display the saved value in the user's preferred unit
+5. **Deviation check** — After confirming the log, silently run `weight-gain-strategy`'s deviation-check to see if the user is off track:
+   ```bash
+   python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
+     --data-dir {workspaceDir}/data \
+     --plan-file {workspaceDir}/PLAN.md \
+     --health-profile {workspaceDir}/health-profile.md \
+     --tz-offset {tz_offset}
+   ```
+   - If `triggered: false` → do nothing, respond with just the log confirmation
+   - If `triggered: true, severity: "mild"` → append a gentle one-liner after the log confirmation, e.g., "最近体重有点波动，要不要一起看看数据？" / "Weight's been fluctuating a bit lately — want to take a look?" Do NOT push — if the user ignores it, drop it (single-ask rule).
+   - If `triggered: true, severity: "significant"` → after the log confirmation, proactively transition to `weight-gain-strategy` interactive flow (Step 1: Analyze & Present Findings). Frame it naturally: "体重这两周和计划有点偏差，我帮你分析了一下——" / "I noticed the trend's drifted from your plan — here's what I see:"
+   - **Skip this step** if `PLAN.md` does not exist (no plan to deviate from), or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
 
 ### User Asks for Trend / History
 
@@ -170,3 +182,4 @@ This skill's script is called by other skills for weight data access:
 | `habit-builder` | `load` for weight trend analysis |
 | `user-onboarding-profile` | `save` to record initial weight during onboarding |
 | `weight-loss-planner` | `load --last 1` to get current weight for calculations |
+| `weight-gain-strategy` | `deviation-check` called after each weigh-in to detect plan deviation |
