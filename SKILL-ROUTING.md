@@ -28,7 +28,7 @@ when conflicts arise.
 | **P0 — Safety** | `emotional-support` (Category 5: escalation signals) | Crisis intervention. Overrides everything. |
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
-| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder` | Designing programs and plans. |
+| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder`, `weight-gain-strategy` | Designing programs and plans. |
 | **P4 — Reporting** | `weekly-report`, `daily-review`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
@@ -61,6 +61,10 @@ can contain multiple intents.
 | "I'm at Chipotle, what should I order?" | restaurant-recommendation | restaurant-meal-finder |
 | "附近有什么能吃的，帮我推荐一下" | restaurant-recommendation | restaurant-meal-finder |
 | "想点外卖，有什么推荐的？" | restaurant-recommendation | restaurant-meal-finder |
+| "why am I gaining weight?" | weight-gain-inquiry | weight-gain-strategy |
+| "体重怎么涨了" | weight-gain-inquiry | weight-gain-strategy |
+| "体重反弹了，好沮丧" | weight-gain-inquiry + emotional-distress | weight-gain-strategy + emotional-support |
+| "weight keeps going up, should I change my plan?" | weight-gain-inquiry + plan-adjustment | weight-gain-strategy (or weight-loss-planner if full replan) |
 
 ---
 
@@ -267,6 +271,43 @@ build a habit or get exercise programming.
 2. Handle the foundational one first
 3. Transition naturally to the next
 4. Each planning skill's output can inform the next
+
+---
+
+### Pattern 11: Weight Gain Strategy + Emotional Distress (P3 vs P1)
+
+**Trigger:** User expresses concern about weight gain with emotional distress
+signals (e.g., "I'm gaining weight and I hate myself", "越来越胖了好焦虑").
+
+**Resolution: Emotional support leads. Strategy deferred.**
+
+1. `emotional-support` handles the emotional signal first (P1)
+2. `weight-gain-strategy` does NOT run automatically
+3. Only if the user later asks for analysis or adjustments, activate
+   `weight-gain-strategy`
+4. When transitioning, use soft entry: "Want to look at the data together
+   and figure out a plan?" — not "Here's what went wrong."
+
+### Pattern 12: Weight Gain Strategy + Diet Logging (P3 vs P2)
+
+**Trigger:** User logs food AND asks about weight gain in the same message.
+
+**Resolution: Log first, analyze second.**
+
+1. `diet-tracking-analysis` logs the meal (P2)
+2. `weight-gain-strategy` provides analysis after logging is confirmed
+3. Single response — diet log confirmation first, then trend analysis
+
+### Pattern 13: Weight Gain Strategy + Weight-Loss Planner (Same Tier — P3)
+
+**Trigger:** User asks to redo their weight-loss plan because of weight gain.
+
+**Resolution: Route to weight-loss-planner.**
+
+1. If the user wants a full plan recalculation, `weight-loss-planner` leads
+2. `weight-gain-strategy` handles short-term tactical adjustments only
+3. If unclear, ask: "Want a quick adjustment for the next week or two, or
+   should we redo the full plan?"
 
 ---
 
