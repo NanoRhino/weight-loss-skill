@@ -74,48 +74,65 @@ BMR = (10 × weight_kg) + (6.25 × height_cm) - (5 × age_years) - 161
 
 ## TDEE — Total Daily Energy Expenditure
 
+### Base TDEE (NEAT-only, excluding exercise)
+
 ```
-TDEE = BMR × Activity Multiplier
+TDEE_base = BMR × NEAT Multiplier
 ```
 
-### Activity Multipliers
+The NEAT multiplier reflects **only non-exercise daily activity**: commuting, errands, job type, housework, and general daily movement. It does **not** include structured exercise (running, gym, swimming, sports, etc.). Exercise calories are tracked separately when actually reported — see "Exercise Calorie Add-Back" below.
+
+**Why separate exercise from the multiplier?** Traditional activity multipliers (Harris-Benedict style) bake in an assumed exercise level. When users then log actual exercise, calories get double-counted — the multiplier already assumed some exercise, and the MET-based calculation adds it again. By using NEAT-only multipliers, the base TDEE is accurate for rest days, and exercise calories are added only when exercise actually happens.
+
+### NEAT Multipliers
 
 | Level | Multiplier | Description | Typical Daily Steps |
 |---|---|---|---|
-| Sedentary | 1.2 | Desk job, commute by car, little or no planned exercise | < 5,000 |
-| Lightly Active | 1.375 | Mostly sedentary, but light exercise 1–3 days/week (walking, yoga, light weights) | 5,000–7,500 |
-| Moderately Active | 1.55 | Moderate exercise 3–5 days/week (running, swimming, gym), or active job (teacher, retail) | 7,500–10,000 |
-| Very Active | 1.725 | Hard exercise 6–7 days/week, or moderate physical job + regular exercise | 10,000–15,000 |
-| Extremely Active | 1.9 | Heavy physical labor (construction, farming) + daily intense training, or professional/semi-pro athlete | > 15,000 |
+| Sedentary | 1.2 | WFH or homebound, drives everywhere, minimal daily walking | < 4,000 |
+| Lightly Active | 1.3 | Office job with commute, light errands, some daily walking | 4,000–7,000 |
+| Moderately Active | 1.45 | On-feet job (teacher, retail, healthcare) or very active daily life (lots of walking/errands) | 7,000–10,000 |
+| Very Active | 1.6 | Physical labor job (construction, delivery, farming, warehouse) | > 10,000 |
 
-**Important:** These multipliers are population averages. Individual variation of ±10–15% is common. Factors like NEAT (non-exercise activity thermogenesis), genetics, thyroid function, and body composition all play a role. The TDEE range (one level above and below) helps account for this uncertainty.
+**Important:** These multipliers are population averages for non-exercise daily activity. Individual variation of ±10–15% is common. Factors like NEAT (fidgeting, posture, spontaneous movement), genetics, thyroid function, and body composition all play a role. The TDEE range (±100 kcal) helps account for this uncertainty.
 
 ### Activity Level Selection Policy
 
-**Default to Lightly Active (×1.375)** for most users. The majority of people overestimate their activity level, and lightly active is the most representative multiplier for a typical adult.
+**Default to Lightly Active (×1.3)** for most users. The majority of people have desk jobs with some daily movement from commuting and errands.
 
-**Selection rules:**
-1. **Lightly Active (×1.375)** — use by default for most users. This covers the vast majority of scenarios: office workers who occasionally walk or do light exercise, people with mixed sedentary/active days, and anyone whose activity description is ambiguous
-2. **Sedentary (×1.2)** — use only when the user explicitly and unambiguously describes a near-immobile lifestyle: works from home **and** has no exercise habit **and** rarely goes out. Simply having a desk job is NOT enough to classify as sedentary — most desk workers still commute, run errands, and move around enough to qualify as lightly active
-3. **Moderately Active (×1.55)** — use only when the user describes **both** a consistent exercise routine (at least 4 days/week of intentional moderate-to-high intensity exercise such as gym, running, swimming, team sports) **and** an generally active daily life. Having a physically active job alone (e.g., retail, teaching) without additional exercise qualifies as lightly active, not moderately active. Occasional gym visits (1–3 days/week) also remain at lightly active
-4. **Very Active (×1.725) and Extremely Active (×1.9)** — do not use under normal circumstances. Reserve only for users who are clearly professional athletes, manual laborers with daily intense training, or similar exceptional cases
+**Selection rules (based on daily movement and job type ONLY — ignore exercise habits):**
+1. **Lightly Active (×1.3)** — use by default for most users. Covers the vast majority: office workers, students, anyone who commutes and runs normal errands. This is the right level even if the user also exercises regularly — exercise is tracked separately
+2. **Sedentary (×1.2)** — use only when the user describes a near-immobile daily life: works from home **and** rarely goes out **and** drives everywhere. Simply having a desk job is NOT enough — most desk workers still commute, walk to lunch, and move around enough for lightly active
+3. **Moderately Active (×1.45)** — use when the user's **job or daily routine** requires being on their feet most of the day: teachers, retail workers, healthcare workers, parents chasing toddlers all day, or anyone who walks/cycles extensively as part of daily life (not as exercise). Do NOT use this level just because someone exercises frequently
+4. **Very Active (×1.6)** — use only for physically demanding jobs: construction, farming, warehouse work, delivery drivers on foot. Reserve for users whose **work itself** is physical labor
 
 **Do not expose multiplier values to the user.** Activity level classification is an internal calculation detail. Present TDEE results without mentioning the specific multiplier used.
+
+### Exercise Calorie Add-Back
+
+When a user logs exercise, the `exercise-calc.py` script computes both **gross** and **net** exercise calories:
+
+- **Gross calories** = MET × weight_kg × duration_hours (total energy during exercise, includes resting metabolism)
+- **Net calories** = (MET − 1) × weight_kg × duration_hours (additional energy above what BMR already accounts for)
+
+**Net calories** is the correct value to use when considering exercise's contribution to the daily energy budget, because BMR is already included in the TDEE base calculation. Using gross calories would double-count the resting component.
+
+Exercise calories are **informational by default** — the daily calorie target is set from TDEE_base minus deficit, and does not automatically increase when the user exercises. This conservative approach prevents overeating after workouts. However, the net exercise calories can be referenced in coaching (e.g., "You burned an extra ~250 kcal running today") to help users understand their total energy picture.
 
 ### TDEE Range Calculation
 
 TDEE estimation is inherently imprecise. To give the user a practical range, present TDEE as a **point estimate ± 100 kcal**.
 
 **Procedure:**
-1. Based on the user's activity description, select the best-fit multiplier per the selection policy above (default: lightly active)
-2. Calculate: `TDEE_low = TDEE - 100`, `TDEE_high = TDEE + 100`
+1. Based on the user's **daily movement and job type** (not exercise habits), select the best-fit NEAT multiplier per the selection policy above (default: lightly active)
+2. Calculate: `TDEE_low = TDEE_base - 100`, `TDEE_high = TDEE_base + 100`
 
 **Example:**
-- User describes: "I work in an office and sometimes go for walks on weekends"
-- Best fit: Lightly Active (×1.375) — default
-- BMR = 1,800 → TDEE = **2,475** (range: 2,375 – 2,575)
+- User describes: "I work in an office and commute by subway"
+- Best fit: Lightly Active (×1.3) — default (exercise habits are irrelevant for this selection)
+- BMR = 1,800 → TDEE_base = **2,340** (range: 2,240 – 2,440)
+- If the user also runs 3x/week, those calories are tracked separately when logged
 
-This ±100 kcal range accounts for day-to-day variation in activity and measurement imprecision. If the user feels the estimate is too high or too low, they can adjust within the range or request a recalculation with a different activity level.
+This ±100 kcal range accounts for day-to-day variation in NEAT and measurement imprecision. If the user feels the estimate is too high or too low, they can adjust within the range or request a recalculation with a different activity level.
 
 ---
 

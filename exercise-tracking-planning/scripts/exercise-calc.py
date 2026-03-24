@@ -210,8 +210,19 @@ def classify_swimming(pace_100m_min):
 
 def calc_calories(met, weight_kg, duration_min):
     # type: (float, float, float) -> float
-    """Calories (kcal) = MET * weight_kg * duration_hours."""
+    """Gross calories (kcal) = MET * weight_kg * duration_hours."""
     return round(met * weight_kg * (duration_min / 60), 1)
+
+
+def calc_net_calories(met, weight_kg, duration_min):
+    # type: (float, float, float) -> float
+    """Net calories (kcal) = (MET - 1) * weight_kg * duration_hours.
+
+    Net calories represent the additional energy expenditure above resting
+    metabolism (BMR). Use this when TDEE is calculated with NEAT-only
+    multipliers to avoid double-counting the resting component."""
+    net_met = max(met - 1, 0)
+    return round(net_met * weight_kg * (duration_min / 60), 1)
 
 
 def resolve_met(activity, intensity=None, speed=None, pace_100m=None):
@@ -248,6 +259,7 @@ def calc_exercise(activity, weight_kg, duration_min, intensity=None, speed=None,
     # type: (str, float, float, Optional[str], Optional[float], Optional[float]) -> dict
     met, source = resolve_met(activity, intensity, speed, pace_100m)
     calories = calc_calories(met, weight_kg, duration_min)
+    net_calories = calc_net_calories(met, weight_kg, duration_min)
     return {
         "activity": activity,
         "duration_min": duration_min,
@@ -257,6 +269,7 @@ def calc_exercise(activity, weight_kg, duration_min, intensity=None, speed=None,
         "met": met,
         "met_source": source,
         "calories_kcal": calories,
+        "net_calories_kcal": net_calories,
         "estimated": True,
     }
 
@@ -265,6 +278,7 @@ def batch_calc(weight_kg, exercises):
     # type: (float, List[dict]) -> dict
     results = []
     total_cal = 0
+    total_net_cal = 0
     total_min = 0
     for ex in exercises:
         r = calc_exercise(
@@ -277,10 +291,12 @@ def batch_calc(weight_kg, exercises):
         )
         results.append(r)
         total_cal += r["calories_kcal"]
+        total_net_cal += r["net_calories_kcal"]
         total_min += r["duration_min"]
     return {
         "exercises": results,
         "total_calories_kcal": round(total_cal, 1),
+        "total_net_calories_kcal": round(total_net_cal, 1),
         "total_duration_min": total_min,
         "exercise_count": len(results),
     }

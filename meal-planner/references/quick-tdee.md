@@ -11,7 +11,7 @@ When this skill is used without a prior weight-loss-planner session, and the use
 # Get TDEE:
 python3 {weightLossPlannerDir}/scripts/planner-calc.py tdee \
   --weight <kg> --height <cm> --age <years> --sex male|female \
-  --activity sedentary|lightly_active|moderately_active|very_active|extremely_active
+  --activity sedentary|lightly_active|moderately_active|very_active
 
 # Get calorie target with a deficit:
 python3 {weightLossPlannerDir}/scripts/planner-calc.py calorie-target \

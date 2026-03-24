@@ -72,7 +72,7 @@ python3 {baseDir}/scripts/planner-calc.py tdee --weight <kg> --height <cm> --age
 # Full plan calculation (recommended — produces all values at once):
 python3 {baseDir}/scripts/planner-calc.py forward-calc \
   --weight <kg> --height <cm> --age <years> --sex male|female \
-  --activity sedentary|lightly_active|moderately_active|very_active|extremely_active \
+  --activity sedentary|lightly_active|moderately_active|very_active \
   --target-weight <kg> --mode balanced [--bmi-standard who|asian] \
   --tz-offset {tz_offset}
 ```
