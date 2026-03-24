@@ -140,10 +140,10 @@ Activity level mapping (internal — based on daily movement/job type ONLY, not 
 | Option | activity_level | ×     |
 |--------|---------------|-------|
 | A      | sedentary          | 1.2   |
-| B      | lightly_active     | 1.3   |
-| C      | moderately_active  | 1.45  |
+| B      | lightly_active     | 1.375 |
+| C      | moderately_active  | 1.55  |
 
-**Important:** Exercise habits do NOT affect the activity level selection. A desk worker who runs 5x/week is still `lightly_active` (×1.3) — their running calories are tracked separately when logged. This prevents double-counting exercise in TDEE.
+**Important:** Exercise habits do NOT affect the activity level selection. A desk worker who runs 5x/week is still `lightly_active` (×1.375) — their running calories are tracked separately when logged. This prevents double-counting exercise in TDEE.
 
 ### Step 2 — Confirm Activity Level & TDEE
 

@@ -88,22 +88,23 @@ The NEAT multiplier reflects **only non-exercise daily activity**: commuting, er
 
 | Level | Multiplier | Description | Typical Daily Steps |
 |---|---|---|---|
-| Sedentary | 1.2 | WFH or homebound, drives everywhere, minimal daily walking | < 4,000 |
-| Lightly Active | 1.3 | Office job with commute, light errands, some daily walking | 4,000–7,000 |
-| Moderately Active | 1.45 | On-feet job (teacher, retail, healthcare) or very active daily life (lots of walking/errands) | 7,000–10,000 |
-| Very Active | 1.6 | Physical labor job (construction, delivery, farming, warehouse) | > 10,000 |
+| Sedentary | 1.2 | WFH or homebound, drives everywhere, minimal daily walking | < 5,000 |
+| Lightly Active | 1.375 | Office job with commute, light errands, some daily walking | 5,000–7,500 |
+| Moderately Active | 1.55 | On-feet job (teacher, retail, healthcare) or very active daily life (lots of walking/errands) | 7,500–10,000 |
+| Very Active | 1.725 | Physical labor job (construction, delivery, farming, warehouse) | 10,000–15,000 |
+| Extremely Active | 1.9 | Heavy physical labor (construction, farming) + highly active daily routine | > 15,000 |
 
 **Important:** These multipliers are population averages for non-exercise daily activity. Individual variation of ±10–15% is common. Factors like NEAT (fidgeting, posture, spontaneous movement), genetics, thyroid function, and body composition all play a role. The TDEE range (±100 kcal) helps account for this uncertainty.
 
 ### Activity Level Selection Policy
 
-**Default to Lightly Active (×1.3)** for most users. The majority of people have desk jobs with some daily movement from commuting and errands.
+**Default to Lightly Active (×1.375)** for most users. The majority of people have desk jobs with some daily movement from commuting and errands.
 
 **Selection rules (based on daily movement and job type ONLY — ignore exercise habits):**
-1. **Lightly Active (×1.3)** — use by default for most users. Covers the vast majority: office workers, students, anyone who commutes and runs normal errands. This is the right level even if the user also exercises regularly — exercise is tracked separately
+1. **Lightly Active (×1.375)** — use by default for most users. Covers the vast majority: office workers, students, anyone who commutes and runs normal errands. This is the right level even if the user also exercises regularly — exercise is tracked separately
 2. **Sedentary (×1.2)** — use only when the user describes a near-immobile daily life: works from home **and** rarely goes out **and** drives everywhere. Simply having a desk job is NOT enough — most desk workers still commute, walk to lunch, and move around enough for lightly active
-3. **Moderately Active (×1.45)** — use when the user's **job or daily routine** requires being on their feet most of the day: teachers, retail workers, healthcare workers, parents chasing toddlers all day, or anyone who walks/cycles extensively as part of daily life (not as exercise). Do NOT use this level just because someone exercises frequently
-4. **Very Active (×1.6)** — use only for physically demanding jobs: construction, farming, warehouse work, delivery drivers on foot. Reserve for users whose **work itself** is physical labor
+3. **Moderately Active (×1.55)** — use when the user's **job or daily routine** requires being on their feet most of the day: teachers, retail workers, healthcare workers, parents chasing toddlers all day, or anyone who walks/cycles extensively as part of daily life (not as exercise). Do NOT use this level just because someone exercises frequently
+4. **Very Active (×1.725) and Extremely Active (×1.9)** — use only for physically demanding jobs: construction, farming, warehouse work, delivery drivers on foot. Reserve for users whose **work itself** is physical labor
 
 **Do not expose multiplier values to the user.** Activity level classification is an internal calculation detail. Present TDEE results without mentioning the specific multiplier used.
 
@@ -128,8 +129,8 @@ TDEE estimation is inherently imprecise. To give the user a practical range, pre
 
 **Example:**
 - User describes: "I work in an office and commute by subway"
-- Best fit: Lightly Active (×1.3) — default (exercise habits are irrelevant for this selection)
-- BMR = 1,800 → TDEE_base = **2,340** (range: 2,240 – 2,440)
+- Best fit: Lightly Active (×1.375) — default (exercise habits are irrelevant for this selection)
+- BMR = 1,800 → TDEE_base = **2,475** (range: 2,375 – 2,575)
 - If the user also runs 3x/week, those calories are tracked separately when logged
 
 This ±100 kcal range accounts for day-to-day variation in NEAT and measurement imprecision. If the user feels the estimate is too high or too low, they can adjust within the range or request a recalculation with a different activity level.

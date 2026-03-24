@@ -56,9 +56,10 @@ def _local_today(tz_offset: int = None) -> date:
 
 ACTIVITY_MULTIPLIERS = {
     "sedentary":        1.2,
-    "lightly_active":   1.3,
-    "moderately_active": 1.45,
-    "very_active":      1.6,
+    "lightly_active":   1.375,
+    "moderately_active": 1.55,
+    "very_active":      1.725,
+    "extremely_active": 1.9,
 }
 
 # Diet mode → fat percentage range (low%, high%)
