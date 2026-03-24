@@ -475,6 +475,7 @@ Every food log reply must contain up to three sections:
 - Status indicators: ✅ on track, ⬆️ high, ⬇️ low (mapped from `status` field)
 - The 1-sentence comment summarizes the overall picture concisely — e.g. "Protein is solid, carbs running a bit low — easy to make up at dinner." or "Everything looks balanced so far, keep it up!"
 - When adjustment is needed, the comment can naturally lead into the suggestion below — keep the two sections complementary, not repetitive
+- **Never list specific foods as evidence of a problem** (e.g. "你看这些食物——X、Y——全是碳水"). Name the gap and point forward: what to add or adjust next, not what went wrong.
 - Language consistency: do not mix languages (e.g. no "蛋白质on track" or "Protein达标"). Use localized nutrient names when replying in non-English (e.g. 蛋白质, 碳水, 脂肪 for Chinese)
 - For forgotten/assumed meals: only show real recorded values (consistent with existing rule)
 - **China region:** After the macro status line, add a produce status line (from `produce-check` output) when `has_vegetable_target` is true or `is_final_meal` is true:

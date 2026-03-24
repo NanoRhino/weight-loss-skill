@@ -57,9 +57,9 @@ Calories and carbs are running high while protein is low — the rice + bubble t
 · Bubble tea — 1 cup — 380 kcal
 
 📊 So far today: 1279 kcal ⬆️ | Protein 39g ⬇️ | Carbs 173g ⬆️ | Fat 49g ✅
-Calories and carbs are running high while protein is low — the fried rice and bubble tea are tasty but carb-heavy.
+Calories and carbs are running high while protein is low — dinner is a good chance to balance it out.
 
-💡 Next meal: Dinner idea — go heavier on protein and lighter on carbs to balance out. Try grilled chicken breast + steamed veggies, keep rice to half a bowl.
+💡 Next meal: Dinner idea — go heavier on protein and lighter on carbs. Try grilled chicken breast + steamed veggies, keep rice to half a bowl.
 ```
 
 ## Daily Summary
