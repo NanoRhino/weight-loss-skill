@@ -117,7 +117,9 @@ When a user logs exercise, the `exercise-calc.py` script computes both **gross**
 
 **Net calories** is the correct value to use when considering exercise's contribution to the daily energy budget, because BMR is already included in the TDEE base calculation. Using gross calories would double-count the resting component.
 
-Exercise calories are **informational by default** — the daily calorie target is set from TDEE_base minus deficit, and does not automatically increase when the user exercises. This conservative approach prevents overeating after workouts. However, the net exercise calories can be referenced in coaching (e.g., "You burned an extra ~250 kcal running today") to help users understand their total energy picture.
+Exercise calories are **informational by default** — the daily calorie target is set from TDEE_base minus deficit, and does not automatically increase when the user exercises. The net exercise calories should be communicated to the user (e.g., "You burned an extra ~250 kcal running today") so they understand their total energy picture.
+
+**Exercise calorie eat-back policy:** If the user proactively eats more or says they're hungry after exercise, they may use the extra exercise calories — this is fine and should not be discouraged. However, if the user does not eat more or mention hunger, do NOT suggest that they should eat back the exercise calories. Let the extra deficit stand silently.
 
 ### TDEE Range Calculation
 

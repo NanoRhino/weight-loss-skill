@@ -144,6 +144,8 @@ The script outputs both `calories_kcal` (gross) and `net_calories_kcal` (net) fo
 
 The `total_net_calories_kcal` field in batch results is the sum of net calories across all exercises in the session.
 
+**Exercise calorie eat-back policy:** If the user proactively eats more or says they're hungry after exercise, they may use the extra exercise calories — do not discourage this. However, if the user does not eat more or mention hunger, do NOT suggest that they should eat back the exercise calories. Let the extra deficit stand silently.
+
 ### MET Reference Table
 
 See `references/met-table.md` for the full MET value table and interpolation anchor points. Key principles:
