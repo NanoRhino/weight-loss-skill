@@ -130,7 +130,7 @@ Don't ask all of these as a checklist. Weave them into a natural conversation: "
 
 ## Step 1.5: Collect Diet Preferences (3 Rounds)
 
-After resolving the calorie target and user context, collect the user's dietary preferences through **4 separate rounds** — one question per round, keeping each round focused and conversational. These preferences enable diet mode selection, macro calculation, and personalized meal planning.
+After resolving the calorie target and user context, collect the user's dietary preferences through **3 separate rounds** — one question per round, keeping each round focused and conversational. These preferences enable diet mode selection, macro calculation, and personalized meal planning.
 
 **Skip any round whose answer is already available** in `health-preferences.md` or `health-profile.md` or from earlier conversation context. Only ask what's missing.
 
@@ -184,51 +184,30 @@ After the user confirms their diet mode, ask about their meal schedule. **Only a
 
 **Wait for the user to answer.**
 
-After the user provides their meal schedule, **in the same reply**, confirm the reminder and ask Round 3's question together:
+After the user provides their meal schedule, confirm the reminder and ask Round 3's question in the same reply:
 
 > 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
 >
-> 这几餐里，哪些通常是自己做，哪些是点外卖或在外面吃？（比如"早餐自己做，午餐外卖，晚餐自己做"）
-
-This combines the reminder confirmation with Round 3 in one message to keep the conversation flowing naturally.
+> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
 
 English equivalent:
 
 > Got it, I'll remind you 15 minutes before each meal to help you plan ahead.
 >
-> Of these meals, which ones do you usually cook at home, and which are takeout or eating out? (e.g., "breakfast at home, lunch is takeout, dinner at home")
+> Any foods you can't eat? Taste preferences? (Totally optional — just helps me make a template that suits you better.)
 
 **Wait for the user to answer (or skip) before proceeding.**
 
-### Round 3: Meal Preparation Preference (Home-cooked vs. Takeout)
+### Round 3: Taste Preferences & Food Restrictions
 
 (Already asked above together with the reminder confirmation.)
-
-**Why this matters:** Knowing which meals are home-cooked and which are takeout/eating-out fundamentally changes the plan:
-- **Home-cooked meals** → provide recipes, ingredients, portions, and prep instructions
-- **Takeout/eating-out meals** → provide restaurant ordering guidance, calorie-smart menu choices, and portion tips
-
-A plan that assigns home-cooking to a lunch the user always orders via delivery is useless. Getting this right means the diet template and 7-day plan match the user's actual daily routine.
-
-After the user answers (or skips), ask Round 4 in the next reply (adapt to the user's language):
-
-> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
-
-English equivalent:
-
-> Any foods you can't eat? Taste preferences? (Totally optional — just helps me make a template that suits you better.)
-
-### Round 4: Taste Preferences & Food Restrictions
-
-(Already asked above after Round 3.)
 
 (Adapt language to match the user.)
 **Wait for the user to answer (or skip) before proceeding.**
 
-**After collecting all four rounds:** Update the appropriate files silently:
+**After collecting all three rounds:** Update the appropriate files silently:
 - **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
 - **Meal Schedule** → `health-profile.md > Meal Schedule`
-- **Meal Preparation Preference** → `health-profile.md > Meal Schedule` — for each meal slot (Breakfast, Lunch, Dinner), record whether it's home-cooked or takeout/eating-out. Format: append ` (home-cooked)` or ` (takeout)` or ` (eating out)` after the time, e.g., `- **Lunch:** 12:00 (takeout)`. If the user skips this question, omit the annotation (default: treat as home-cooked).
 - **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
 - **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
 
@@ -279,13 +258,13 @@ After confirming macros, **always present a Diet Template first** — before gen
 
 Most users don't need a detailed 7-day plan to start eating better. A clear template ("this is roughly what each meal looks like") plus one concrete example is enough to act on immediately. The 7-day plan is a nice-to-have — offer it, but only generate it if the user explicitly asks.
 
-### Selecting the Diet Template by Locale and Meal Prep Preference
+### Selecting the Diet Template by Locale
 
-Match the diet template to the user's language/locale (resolved in Step 1) **and their meal preparation preference** (collected in Step 1.5 Round 3). The template should reflect:
+Match the diet template to the user's language/locale (resolved in Step 1). The template should reflect:
 - **Local foods** the user actually eats daily
 - **Local portion conventions** (hand portions, bowls, cups, etc.)
 - **Local meal structure** (e.g., Chinese breakfast is very different from American breakfast)
-- **Home-cooked vs. takeout per meal slot** — For meals the user marked as takeout/eating-out, the template should show ordering guidance (restaurant type + what to order + calorie estimate) instead of cooking-based portions. For home-cooked meals, show the standard portion-based template with ingredients.
+- **Default meal prep assumption** — Unless the user has stated otherwise, assume **breakfast and lunch are takeout/eating-out, dinner is home-cooked**. For takeout meals, show ordering guidance (restaurant type + what to order + calorie estimate) instead of cooking-based portions. For home-cooked meals, show the standard portion-based template with ingredients. If the user later provides different info (e.g., "I cook all meals" or "lunch is home-cooked too"), adjust accordingly.
 
 Use the templates below as defaults. If the user's diet mode is non-standard (e.g., keto, IF 16:8), adapt the template accordingly — change the food types and portion ratios to match, but keep the same "template + example" format.
 

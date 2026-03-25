@@ -98,14 +98,13 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 - **Japan-based users:** chicken breast, fish, tofu, natto, brown rice, miso soup, vegetables. Think supermarkets, convenience stores (konbini are a legitimate meal source in Japan).
 - **Other regions:** Adapt accordingly based on local staple foods, common proteins, and typical grocery availability. When unsure, ask the user what's easy for them to get.
 
-**Build around cooking conditions and per-meal preparation preference:**
+**Build around cooking conditions:**
 
-Check `health-profile.md > Meal Schedule` for the user's per-meal preparation preference (home-cooked vs. takeout/eating-out, collected in Step 1.5 Round 3). This tells you **which specific meals** the user cooks at home and which they order as takeout — use it to assign meal types in the 7-day plan:
+**Default meal prep assumption:** Unless the user has stated otherwise, assume **breakfast and lunch are takeout/eating-out, dinner is home-cooked**. This means:
+- **Breakfast & Lunch** → provide restaurant/takeout ordering guidance with specific dishes, calorie estimates, and ordering tips (use `[外卖]`/`[Takeout]` tag in H3)
+- **Dinner** → provide home-cooked recipes with ingredients, portions, and prep/batch-prep instructions
 
-- **Meals marked as home-cooked** → provide recipes with ingredients, portions, and prep/batch-prep instructions
-- **Meals marked as takeout/eating-out** → provide restaurant ordering guidance with specific dishes, calorie estimates, and ordering tips (use `[外卖]`/`[Takeout]` tag in H3)
-
-If no per-meal preference is recorded, fall back to the general cooking conditions below.
+If `health-preferences.md` or conversation context contains different info about the user's cooking situation (e.g., "I cook all meals", "I eat out for dinner too"), override this default accordingly. Use the table below for general guidance:
 
 | Cooking Situation | Plan Strategy |
 |---|---|
