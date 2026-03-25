@@ -95,9 +95,9 @@ Examples:
 | English | `By the way, do you usually {option1_verb} or {option2_verb} for {meal_label}?` |
 
 Examples (no inference):
-- `对了顺便问下，早餐一般是在家吃呢，还是点外卖呢？`
+- `对了顺便问下，早餐一般是在家吃呢，还是吃食堂呢？`
 - `对了顺便问下，午餐一般是吃食堂呢，还是点外卖呢？`
-- `By the way, do you usually eat at home or order takeout for breakfast?`
+- `By the way, do you usually eat at home or at the cafeteria for breakfast?`
 
 Examples (low-confidence inference of cafeteria for dinner):
 - `对了顺便问下，晚餐一般是吃食堂呢，还是在家吃呢？` (inferred "cafeteria" becomes option 1)
@@ -112,7 +112,7 @@ Examples (low-confidence inference of cafeteria for dinner):
 
 | Meal | Option 1 | Option 2 |
 |------|----------|----------|
-| breakfast | 在家吃 / eat at home | 点外卖 / order takeout |
+| breakfast | 在家吃 / eat at home | 吃食堂 / eat at cafeteria |
 | lunch | 吃食堂 / eat at cafeteria | 点外卖 / order takeout |
 | dinner | 在家吃 / eat at home | 点外卖 / order takeout |
 

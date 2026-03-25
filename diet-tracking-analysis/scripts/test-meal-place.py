@@ -182,12 +182,12 @@ def test_check_invalid_inference_falls_back():
 
 
 def test_check_breakfast_options():
-    """Breakfast default top-2 is home + takeout."""
+    """Breakfast default top-2 is home + cafeteria."""
     tmpdir = tempfile.mkdtemp()
     try:
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "breakfast", "--weekday", "0"])
-        check(r["options"] == ["home", "takeout"],
-              "breakfast default options = home, takeout")
+        check(r["options"] == ["home", "cafeteria"],
+              "breakfast default options = home, cafeteria")
     finally:
         shutil.rmtree(tmpdir)
 

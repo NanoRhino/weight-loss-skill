@@ -39,7 +39,7 @@ DRIFT_THRESHOLD = 3
 
 # Default top-2 options per meal for the pick-two prompt
 DEFAULT_TOP2 = {
-    "breakfast": ["home", "takeout"],
+    "breakfast": ["home", "cafeteria"],
     "lunch": ["cafeteria", "takeout"],
     "dinner": ["home", "takeout"],
 }
