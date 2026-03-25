@@ -166,6 +166,7 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 
 **[Plan details block]** — "So here's your plan:" followed by bullet list:
 • Daily calorie target: [X,XXX] kcal (rounded, single value — not a range)
+• Daily calorie deficit: ~[XXX] kcal (TDEE minus daily target, rounded to nearest 50)
 • Weekly loss rate: ~[X.X] kg/week ([X.X] lbs/week)
 • Estimated completion: [Specific month + year, e.g., "June 2027"]
 
