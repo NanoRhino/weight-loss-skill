@@ -40,8 +40,8 @@ DRIFT_THRESHOLD = 3
 # Default top-2 options per meal for the pick-two prompt
 DEFAULT_TOP2 = {
     "breakfast": ["home", "cafeteria"],
-    "lunch": ["cafeteria", "takeout"],
-    "dinner": ["home", "takeout"],
+    "lunch": ["cafeteria", "restaurant"],
+    "dinner": ["home", "restaurant"],
 }
 
 FILE_NAME = "meal-place-profile.json"

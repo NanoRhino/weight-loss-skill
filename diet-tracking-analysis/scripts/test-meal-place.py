@@ -108,8 +108,8 @@ def test_check_workday_empty_asks_pick_two():
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "2"])
         check(r["action"] == "ask", "empty profile → ask")
         check(r["mode"] == "pick_two", "no inference → pick_two mode")
-        check(r["options"] == ["cafeteria", "takeout"],
-              "lunch default options = cafeteria, takeout")
+        check(r["options"] == ["cafeteria", "restaurant"],
+              "lunch default options = cafeteria, restaurant")
         check(r["ask_count"] == 1, "first ask → ask_count=1")
     finally:
         shutil.rmtree(tmpdir)
@@ -147,10 +147,10 @@ def test_check_low_confidence_inferred_already_in_defaults():
     """When inferred is already in defaults, it moves to first position."""
     tmpdir = tempfile.mkdtemp()
     try:
-        # takeout is in lunch defaults (cafeteria, takeout) → reorder
+        # restaurant is in lunch defaults (cafeteria, restaurant) → reorder
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "2",
-                      "--inferred", "takeout", "--confidence", "low"])
-        check(r["options"] == ["takeout", "cafeteria"],
+                      "--inferred", "restaurant", "--confidence", "low"])
+        check(r["options"] == ["restaurant", "cafeteria"],
               "low confidence → inferred moved to first, other kept")
     finally:
         shutil.rmtree(tmpdir)
@@ -176,7 +176,7 @@ def test_check_invalid_inference_falls_back():
                       "--inferred", "moon_base"])
         check(r["action"] == "ask", "invalid inferred → still ask")
         check(r["mode"] == "pick_two", "invalid inferred → pick_two fallback")
-        check(r["options"] == ["cafeteria", "takeout"], "invalid inferred → default options")
+        check(r["options"] == ["cafeteria", "restaurant"], "invalid inferred → default options")
     finally:
         shutil.rmtree(tmpdir)
 
@@ -197,8 +197,8 @@ def test_check_dinner_options():
     tmpdir = tempfile.mkdtemp()
     try:
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "3"])
-        check(r["options"] == ["home", "takeout"],
-              "dinner default options = home, takeout")
+        check(r["options"] == ["home", "restaurant"],
+              "dinner default options = home, restaurant")
     finally:
         shutil.rmtree(tmpdir)
 

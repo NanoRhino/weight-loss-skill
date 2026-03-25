@@ -124,14 +124,14 @@ By the way, do you usually eat out for lunch?
 
 Chinese:
 ```
-对了顺便问下，早餐一般是在家吃呢，还是点外卖呢？
-对了顺便问下，午餐一般是吃食堂呢，还是点外卖呢？
+对了顺便问下，早餐一般是在家吃呢，还是吃食堂呢？
+对了顺便问下，午餐一般是吃食堂呢，还是在外面吃呢？
 ```
 
 English:
 ```
-By the way, do you usually eat at home or order takeout for breakfast?
-By the way, do you usually eat at the cafeteria or order takeout for lunch?
+By the way, do you usually eat at home or at the cafeteria for breakfast?
+By the way, do you usually eat at the cafeteria or eat out for lunch?
 ```
 
 ### Drift detection confirmation (consecutive_mismatches >= 3)
