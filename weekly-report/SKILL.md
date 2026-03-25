@@ -474,13 +474,11 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 ---
 
-#### Part 2: HTML Report (file attachment)
+#### Part 2: HTML Report (cloud-hosted link)
 
 Generate a self-contained HTML file using the template at
 `templates/weekly-report.html`. Write the file to
-`data/reports/weekly-report-{start_date}.html` and attach it in the response.
-The HTML report contains all 6 original sections with full detail, charts,
-and styling — unchanged from the template.
+`data/reports/weekly-report-{start_date}.html`.
 
 **HTML generation rules:**
 - Replace all `{{PLACEHOLDER}}` values with actual data
@@ -489,6 +487,26 @@ and styling — unchanged from the template.
 - Adapt language to user's locale (read from `locale.json`)
 - Skip sections with no data (remove the entire card, do not show empty cards)
 - For the calorie bar chart: calculate bar widths as percentage of the max value in the week
+
+**Upload to cloud storage** using `plan-export`'s upload script (respects
+`PLAN_STORAGE_BACKEND` env var for AWS S3 / JD Cloud OSS auto-detection):
+
+```bash
+bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
+  --file {workspaceDir}/data/reports/weekly-report-{start_date}.html \
+  --bucket nanorhino-im-plans \
+  --username {shortId} \
+  --key weekly-report \
+  --workspace {workspaceDir}
+```
+
+- `{shortId}`: read from `agent-registry.json` for the current user (6-char identifier). If unavailable, fall back to the full account ID.
+- The script outputs the public URL to stdout. **Send this URL to the user** alongside the Part 1 message.
+- The URL is stable (`{username}/weekly-report.html`) — each upload overwrites the previous week's report.
+- `plan-url.json` is auto-updated with the `weekly-report` key.
+
+⚠️ **Do NOT use the `jdcloud-oss-upload` skill** for weekly reports. Always use
+`plan-export`'s `upload-to-s3.sh` to ensure consistent storage backend selection.
 
 ### Report JSON (stored to workspace)
 
