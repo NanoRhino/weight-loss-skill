@@ -168,7 +168,7 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 • Daily calorie target: [X,XXX] kcal (rounded, single value — not a range)
 • Daily calorie deficit: ~[XXX] kcal (TDEE minus daily target, rounded to nearest 50)
 • Weekly loss rate: ~[X.X] kg/week ([X.X] lbs/week)
-• Estimated completion: [Specific month + year, e.g., "June 2027"]
+• Estimated completion: [Specific month + year, e.g., "June 2027"] — single date only. If the user gave a target weight range, use the upper bound (easier target) as the completion date. Mention the lower bound as a follow-on milestone in the rate explanation if relevant.
 
 > **Note:** Do NOT include per-meal split or macro targets (protein/fat/carb) at this stage. Those will be calculated after the user accepts the plan and chooses a diet mode.
 
