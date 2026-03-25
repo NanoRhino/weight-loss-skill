@@ -159,11 +159,16 @@ After receiving the user's answer in Round 4, do the following:
      --activity <activity_level>
    ```
 
-3. **Confirm work type + TDEE** — Explain what TDEE means and what activity level you assigned them based on their daily movement (not exercise). Mention that exercise calories will be tracked separately when they log workouts. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
+3. **Confirm work type + TDEE, then ask exercise habits** — State the activity level and TDEE, then ask about exercise habits in the same message. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
 
-   > Example: "正常通勤属于轻度活跃，你每天基础消耗约 1850 大卡。有额外运动记得告诉我，我帮你记到当天的热量消耗里。好，来给你出计划——"
+   > Example: "正常通勤属于轻度活跃，你每天基础消耗约 1850 大卡。平时有额外的运动吗？比如健身、跑步、球类……"
 
-4. **Generate the Profile** — After the user confirms, silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
+4. **Receive exercise habits, then transition to plan** — After the user answers, save their exercise habits to `health-profile.md > Activity & Lifestyle > Exercise Habits`. Mention that exercise calories will be tracked separately, then flow directly into the plan.
+
+   > Example (user says "每周跳舞一次，骑车上下班"): "不错，跳舞加骑车——有在动！运动消耗单独算，做完告诉我就行。好，计划来了——"
+   > Example (user says "没有"): "好，那运动这块白纸一张，之后想加随时说 😄 计划来了——"
+
+5. **Generate the Profile** — After the exercise habits are collected, silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
 
 5. **Timezone** — Do NOT handle timezone here. It is auto-initialized by the agent's boot sequence (see AGENTS.md). By the time onboarding runs, `timezone.json` should already exist.
 
