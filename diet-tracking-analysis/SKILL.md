@@ -61,12 +61,6 @@ tone for overage feedback.
   are in the upper range of the checkpoint window.
 - **`moderate`** (default): Standard `evaluate` behavior. Follow existing
   `needs_adjustment` logic as-is. Neutral tone on overages.
-- **`relaxed`**: Higher bar for flagging. Only surface a suggestion when
-  the meal is significantly over (single meal > ~130% of checkpoint calorie
-  range, or daily total > ~120% of target). For minor overages, skip the
-  suggestion section entirely. When commenting, frame around weekly trends:
-  `"这周整体看还行，今天多吃了一点不影响大局。"` End-of-day over-target
-  gets no corrective note unless the weekly average is also trending high.
 
 If the file doesn't exist, use `moderate`.
 
