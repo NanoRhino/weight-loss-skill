@@ -71,27 +71,51 @@ Decision flow per meal log:
    - `ask_count >= 3` → **do not ask** (gave up after 3 unanswered attempts)
    - `ask_count < 3` → **ask** → increment `ask_count` and save
 
-### How to Ask (Pick-Two)
+### How to Ask
 
-Present 2 most likely options based on meal type, plus an "other" escape hatch. Append one line after the food log reply:
+Two modes depending on whether the venue can be inferred from the current meal's photo/text context:
 
-**Default Top-2 per meal (workday):**
+**Mode A: Inferred (high confidence)** — directly confirm the inferred venue:
+
+| Language | Template |
+|----------|----------|
+| Chinese | `🍽 {meal_label}一般都是{inferred_label}呀？` |
+| English | `🍽 Do you usually {inferred_verb} for {meal_label}?` |
+
+Examples:
+- `🍽 早餐一般都是吃外卖呀？`
+- `🍽 Do you usually order takeout for breakfast?`
+
+**Mode B: No inference / low confidence** — present two options:
+
+| Language | Template |
+|----------|----------|
+| Chinese | `🍽 {meal_label}一般是{option1_label}呢，还是{option2_label}呢？` |
+| English | `🍽 Do you usually {option1_verb} or {option2_verb} for {meal_label}?` |
+
+Examples:
+- `🍽 早餐一般是在家吃呢，还是点外卖呢？`
+- `🍽 午餐一般是吃食堂呢，还是点外卖呢？`
+- `🍽 Do you usually eat at home or order takeout for breakfast?`
+
+**Default Top-2 per meal (workday, used for Mode B):**
 
 | Meal | Option 1 | Option 2 |
 |------|----------|----------|
-| breakfast | 🏠 在家 | 📦 外卖 |
-| lunch | 🏢 食堂 | 📦 外卖 |
-| dinner | 🏠 在家 | 📦 外卖 |
+| breakfast | 在家吃 / eat at home | 点外卖 / order takeout |
+| lunch | 吃食堂 / eat at cafeteria | 点外卖 / order takeout |
+| dinner | 在家吃 / eat at home | 点外卖 / order takeout |
 
-**Prompt format (Chinese):**
-```
-🍽 这顿工作日一般在哪吃？ {option1} ｜ {option2} ｜ 其他
-```
+**Place label map (for Mode A):**
 
-**Prompt format (English):**
-```
-🍽 Where do you usually have this meal on workdays? {option1} | {option2} | Other
-```
+| Value | Chinese label | English verb |
+|-------|--------------|-------------|
+| `home` | 在家吃 | eat at home |
+| `cafeteria` | 吃食堂 | eat at the cafeteria |
+| `takeout` | 吃外卖 | order takeout |
+| `restaurant` | 在外面吃 | eat out |
+| `bring_meal` | 自己带饭 | bring your own meal |
+| `other` | — | — |
 
 ### Handling the Response
 

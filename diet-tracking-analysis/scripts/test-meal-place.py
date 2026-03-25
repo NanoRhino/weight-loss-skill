@@ -101,15 +101,41 @@ def test_check_weekend_skips():
         shutil.rmtree(tmpdir)
 
 
-def test_check_workday_empty_asks():
-    """Check on workday with empty profile returns ask + top-2 options."""
+def test_check_workday_empty_asks_pick_two():
+    """Check on workday with empty profile and no inference returns pick_two mode."""
     tmpdir = tempfile.mkdtemp()
     try:
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "2"])
         check(r["action"] == "ask", "empty profile → ask")
+        check(r["mode"] == "pick_two", "no inference → pick_two mode")
         check(r["options"] == ["cafeteria", "takeout"],
               "lunch default options = cafeteria, takeout")
         check(r["ask_count"] == 1, "first ask → ask_count=1")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_check_workday_with_inference_confirms():
+    """Check with --inferred returns confirm mode."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "breakfast", "--weekday", "1",
+                      "--inferred", "takeout"])
+        check(r["action"] == "ask", "inferred → ask")
+        check(r["mode"] == "confirm", "inferred → confirm mode")
+        check(r["inferred"] == "takeout", "inferred value passed through")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_check_invalid_inference_falls_back():
+    """Check with invalid --inferred falls back to pick_two."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "3",
+                      "--inferred", "moon_base"])
+        check(r["action"] == "ask", "invalid inferred → still ask")
+        check(r["mode"] == "pick_two", "invalid inferred → pick_two fallback")
     finally:
         shutil.rmtree(tmpdir)
 

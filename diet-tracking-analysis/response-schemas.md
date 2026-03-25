@@ -106,23 +106,31 @@ Appended after the food log reply when the current meal's venue is not yet recor
 
 ### First-time collection (place is null, ask_count < 3)
 
+**Mode A — venue inferred from photo/text (high confidence):**
+
 Chinese:
 ```
-🍽 这顿工作日一般在哪吃？ 🏠 在家 ｜ 📦 外卖 ｜ 其他
+🍽 早餐一般都是吃外卖呀？
 ```
 
 English:
 ```
-🍽 Where do you usually have this meal on workdays? 🏠 Home | 📦 Takeout | Other
+🍽 Do you usually order takeout for breakfast?
 ```
 
-Default top-2 options per meal:
+**Mode B — no inference or low confidence (pick-two):**
 
-| Meal | Option 1 | Option 2 |
-|------|----------|----------|
-| breakfast | 🏠 在家 / Home | 📦 外卖 / Takeout |
-| lunch | 🏢 食堂 / Cafeteria | 📦 外卖 / Takeout |
-| dinner | 🏠 在家 / Home | 📦 外卖 / Takeout |
+Chinese:
+```
+🍽 早餐一般是在家吃呢，还是点外卖呢？
+🍽 午餐一般是吃食堂呢，还是点外卖呢？
+```
+
+English:
+```
+🍽 Do you usually eat at home or order takeout for breakfast?
+🍽 Do you usually eat at the cafeteria or order takeout for lunch?
+```
 
 ### Drift detection confirmation (consecutive_mismatches >= 3)
 

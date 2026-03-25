@@ -111,7 +111,10 @@ def cmd_check(args):
       - {"action": "skip", "reason": "weekend"}
       - {"action": "skip", "reason": "already_collected"}
       - {"action": "skip", "reason": "gave_up"}
-      - {"action": "ask", "options": ["home", "takeout"], "ask_count": 1}
+      - {"action": "ask", "mode": "confirm", "inferred": "takeout",
+         "options": ["home", "takeout"], "ask_count": 1}
+      - {"action": "ask", "mode": "pick_two",
+         "options": ["home", "takeout"], "ask_count": 1}
       - {"action": "drift_confirm", "current_place": "cafeteria",
          "inferred_place": "takeout", "consecutive_mismatches": 3}
       - {"action": "none", "reason": "no_drift"}
@@ -135,13 +138,20 @@ def cmd_check(args):
         if state["ask_count"] >= MAX_ASK_COUNT:
             print(json.dumps({"action": "skip", "reason": "gave_up"}))
             return
-        # Should ask
+        # Should ask — mode depends on whether venue was inferred
         options = DEFAULT_TOP2.get(meal, ["home", "takeout"])
-        print(json.dumps({
+        inferred = getattr(args, "inferred", None)
+        result = {
             "action": "ask",
             "options": options,
             "ask_count": state["ask_count"] + 1,
-        }))
+        }
+        if inferred and inferred in VALID_PLACES:
+            result["mode"] = "confirm"
+            result["inferred"] = inferred
+        else:
+            result["mode"] = "pick_two"
+        print(json.dumps(result))
         return
 
     # Case 2: place is set → check drift
@@ -248,6 +258,7 @@ def main():
     p_check.add_argument("--data-dir", required=True)
     p_check.add_argument("--meal", required=True, choices=VALID_MEALS)
     p_check.add_argument("--weekday", required=True, type=int, help="0=Mon, 6=Sun")
+    p_check.add_argument("--inferred", default=None, help="Venue inferred from photo/text context (optional)")
 
     # save-place
     p_save = sub.add_parser("save-place")
