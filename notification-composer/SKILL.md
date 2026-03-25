@@ -63,13 +63,13 @@ behavior:
 
 ### Supervision Level (`defaults.supervision_level`)
 
-| Level | Meal Reminder Style | Check-in Response Style | Photo Prompt | Unlogged Nudge |
-|-------|--------------------|-----------------------|-------------|----------------|
-| `strict` | Full recommendations with tips + remaining calorie budget | Detailed macros + nutritional analysis + suggestions | Yes | Yes — mention if previous meal wasn't logged |
-| `moderate` (default) | Standard recommendations with tips | Calories + brief nutritional notes | Yes | No |
-| `relaxed` | Options only, no tips, shorter text | Brief confirmation (`"已记录 ✓ 约 450 kcal"`) | No | No |
+Supervision level controls **how strictly `diet-tracking-analysis` treats
+calorie overages** — it does NOT change reminder style or format in this skill.
+Meal reminders look the same regardless of supervision level.
 
-If `data/preference-tuning.json` doesn't exist, use `moderate` (current default behavior).
+This skill only needs to know the supervision level for the **Day 3 nudge**
+(to know whether it has been sent). The actual behavioral changes live in
+`diet-tracking-analysis`.
 
 ### Week 1 Nudges (Preference Discovery)
 
@@ -147,11 +147,6 @@ This is both a recommendation and the entry point for diet logging — every rem
 **Style: text like a friend who knows their life, not a system notification.**
 Warm, concise, conversational. Each recommendation feels like a friend's suggestion, not a nutrition label.
 
-**Style adapts to `supervision_level`** (read from `data/preference-tuning.json`):
-- `strict`: Include remaining calorie budget in opening line. Tips are more directive. Add a note if the previous meal wasn't logged (e.g., `"午餐好像没记，要补一下吗？"`).
-- `moderate` (default): Current behavior as described below.
-- `relaxed`: Skip opening line and tips. List food options only. No photo prompt. Shorter overall.
-
 #### Generation Flow
 
 1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get the user's eating habits, recent meals, and recent recommendations.
@@ -186,7 +181,7 @@ Tip sources:
 - Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
 - If the user picked the same recommendation 3+ days in a row, don't force a change — respect their preference.
 
-**Closing line:** End with an invitation to photograph the meal (skip if `supervision_level` is `relaxed`). Examples:
+**Closing line:** Always end with an invitation to photograph the meal. Examples:
 - `"吃之前拍给我，现场帮你看~"`
 - `"Snap a photo before you eat — I'll check it out for you~"`
 
@@ -365,7 +360,6 @@ stop the current workflow and hand off immediately.
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
 | `data/engagement.json` | `last_interaction` — direct read | Stage detection |
-| `data/preference-tuning.json` | `defaults.supervision_level` — direct read | Adjust reminder style and check-in response detail |
 | `data/preference-tuning.json` | `phase`, `nudges` — direct read | Week 1 nudge delivery |
 
 ### Writes

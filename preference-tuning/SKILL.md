@@ -159,10 +159,10 @@ Appended to the first check-in response (when user logs a meal):
 
 ```
 ---
-💡 顺便问一下，你觉得我现在的「管理力度」合适吗？
-- **严格一点** — 每餐详细分析营养素，主动提醒还没打卡的餐次，多给建议
-- **现在这样就好** — 每餐提醒，正常反馈，不追问
-- **轻松一点** — 提醒照发，但反馈简短，不主动追问，你想记就记
+💡 顺便问一下，你觉得我对热量的管控力度合适吗？
+- **严格一点** — 吃超了会提醒你调整，帮你把每餐都控在目标内
+- **现在这样就好** — 正常反馈，超了会说但不会太紧张
+- **轻松一点** — 偶尔吃多不用在意，看周维度的趋势就好
 
 跟我说一声就行，不说就保持现在这样～
 ```
@@ -170,10 +170,10 @@ Appended to the first check-in response (when user logs a meal):
 English variant:
 ```
 ---
-💡 Quick question — is the current level of coaching right for you?
-- **Stricter** — detailed macro analysis each meal, nudge if you haven't logged, more suggestions
-- **Keep as is** — regular reminders and feedback, no follow-up
-- **More relaxed** — reminders still come, but shorter feedback, no nudging, log when you feel like it
+💡 Quick question — how strict should I be about calories?
+- **Stricter** — flag overages and suggest adjustments to keep each meal on target
+- **Keep as is** — note when you're over but no big deal
+- **More relaxed** — occasional overages are fine, focus on weekly trends
 
 Just let me know. No reply = keep current~
 ```
@@ -220,26 +220,35 @@ When this value changes:
 
 ### `supervision_level`
 
-| Value | Reminders | Meal Feedback | Photo Prompt | Unlogged Nudge |
-|-------|-----------|---------------|-------------|----------------|
-| `strict` | Every meal | Full macros + analysis + suggestions | Yes | Yes — mention missing meals in next reminder |
-| `moderate` (default) | Every meal | Calories + brief nutritional notes | Yes | No |
-| `relaxed` | Every meal | Simple confirmation (`"已记录 ✓"`) | No | No |
+Controls how strictly the system treats calorie overages — not the amount of
+detail in feedback.
 
-**Downstream effect:** `notification-composer` reads this value when composing
-meal reminders and when generating check-in responses via `diet-tracking-analysis`.
+| Value | Overage Attitude | `needs_adjustment` Behavior | End-of-day Over Target |
+|-------|------------------|-----------------------------|------------------------|
+| `strict` | Every overage matters | Always suggest adjustment when over checkpoint range. Proactive per-meal correction. | Concrete next-day compensation plan |
+| `moderate` (default) | Note it, don't stress | Standard `evaluate` logic — suggest when outside range, neutral tone | Brief note, "aim for your usual pattern tomorrow" |
+| `relaxed` | Weekly trend is what counts | Only suggest if significantly over (e.g., > 130% of checkpoint target). Skip minor overages. | No comment on single-day overages; only flag if weekly average trends high |
 
-- `strict`: Include per-meal macro breakdown, proactive suggestions, and a
-  note if the previous meal wasn't logged. Photo prompt on.
-- `moderate`: Current default behavior. Standard recommendations, normal
-  nutritional feedback. Photo prompt on.
-- `relaxed`: Shorter reminders (options only, no tips). Check-in response is
-  brief (`"已记录 ✓ 约 450 kcal"`). No photo prompt. No unlogged-meal mentions.
+**Downstream effect:** `diet-tracking-analysis` reads this value when deciding
+whether and how to respond to calorie overages:
+
+- **`strict`**: Lower threshold for triggering `needs_adjustment` suggestions.
+  When over, give a concrete adjustment suggestion. Tone is still friendly
+  but clearly directional: `"午餐热量偏高，晚餐建议清淡一些——比如蔬菜沙拉+鸡胸肉。"`
+- **`moderate`** (default): Current behavior. Standard checkpoint evaluation.
+  Over-target gets a neutral note and forward-looking suggestion.
+- **`relaxed`**: Higher threshold — only flag when significantly over (e.g.,
+  single meal > 130% of checkpoint range, or daily total > 120% of target).
+  Minor overages get no comment. When flagging, frame it around the weekly
+  picture: `"这周整体看还行，今天多吃了一点不影响大局。"`
+
+`notification-composer` is NOT affected by supervision level — reminder style
+and format stay the same regardless.
 
 When this value changes:
 1. Update `data/preference-tuning.json > defaults.supervision_level`
 2. Record the change in `user_changes`
-3. Confirm to user: e.g., `"好的，以后反馈会简洁一些 ✅"`
+3. Confirm to user: e.g., `"好的，以后偶尔吃多不会太紧张 ✅"`
 
 ---
 
@@ -262,11 +271,11 @@ intent from natural language:
 
 | User says | Action |
 |-----------|--------|
-| "管严一点" / "be stricter" | Set `supervision_level` to `strict` |
-| "别管那么严" / "太啰嗦了" / "less detail" | Set `supervision_level` to `relaxed` |
+| "管严一点" / "be stricter" / "帮我严格控制" | Set `supervision_level` to `strict` |
+| "别管那么严" / "偶尔吃多没关系" / "don't stress about overages" | Set `supervision_level` to `relaxed` |
 | "正常就好" / "keep it normal" | Set `supervision_level` to `moderate` |
-| "反馈简短一点" / "shorter feedback" | Set `supervision_level` to `relaxed` |
-| "我想看详细的营养分析" / "more detail" | Set `supervision_level` to `strict` |
+| "吃超了不用说" / "不想每次都被提醒超标" | Set `supervision_level` to `relaxed` |
+| "每餐都帮我盯着" / "超了就提醒我" | Set `supervision_level` to `strict` |
 
 ### General Feedback
 

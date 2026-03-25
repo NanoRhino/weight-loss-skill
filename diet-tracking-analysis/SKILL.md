@@ -49,16 +49,24 @@ When detected, **silently** update `health-preferences.md`:
 ### Supervision Level Awareness
 
 Read `data/preference-tuning.json > defaults.supervision_level` (if the file
-exists) to adjust response verbosity:
+exists) to adjust **how strictly calorie overages are treated**. The response
+format (sections ①②③) stays the same — what changes is the threshold and
+tone for overage feedback.
 
-- **`strict`**: Full response format as defined in § Response Format. Add
-  proactive suggestions even when `needs_adjustment` is false (e.g., tip for
-  the next meal). If the previous meal wasn't logged, mention it briefly.
-- **`moderate`** (default): Standard response format as defined below.
-- **`relaxed`**: Abbreviated response — show meal details (section ①) and a
-  one-line summary (e.g., `"已记录 ✓ 约 450 kcal · 蛋白质 24g"`). Skip the
-  full nutrition summary (section ②) and suggestion (section ③) unless
-  `needs_adjustment` is true AND status is `high` on calories.
+- **`strict`**: Lower bar for triggering suggestions. When `evaluate` returns
+  `status: "high"` on calories (even mildly), always give a concrete
+  adjustment suggestion (Case A or B). Tone is friendly but directional:
+  `"午餐热量偏高，晚餐建议清淡一些——比如蔬菜沙拉+鸡胸肉。"` Also suggest
+  adjustments proactively even when `needs_adjustment` is false but calories
+  are in the upper range of the checkpoint window.
+- **`moderate`** (default): Standard `evaluate` behavior. Follow existing
+  `needs_adjustment` logic as-is. Neutral tone on overages.
+- **`relaxed`**: Higher bar for flagging. Only surface a suggestion when
+  the meal is significantly over (single meal > ~130% of checkpoint calorie
+  range, or daily total > ~120% of target). For minor overages, skip the
+  suggestion section entirely. When commenting, frame around weekly trends:
+  `"这周整体看还行，今天多吃了一点不影响大局。"` End-of-day over-target
+  gets no corrective note unless the weekly average is also trending high.
 
 If the file doesn't exist, use `moderate`.
 
