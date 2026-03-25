@@ -79,24 +79,25 @@ Two modes depending on whether the venue can be inferred from the current meal's
 
 | Language | Template |
 |----------|----------|
-| Chinese | `🍽 {meal_label}一般都是{inferred_label}呀？` |
-| English | `🍽 Do you usually {inferred_verb} for {meal_label}?` |
+| Chinese | `对了顺便问下，{meal_label}一般都是{inferred_label}呀？` |
+| English | `By the way, do you usually {inferred_verb} for {meal_label}?` |
 
 Examples:
-- `🍽 早餐一般都是吃外卖呀？`
-- `🍽 Do you usually order takeout for breakfast?`
+- `对了顺便问下，早餐一般都是吃外卖呀？`
+- `对了顺便问下，午餐一般都是在外面吃呀？`
+- `By the way, do you usually order takeout for breakfast?`
 
 **Mode B: No inference / low confidence** — present two options:
 
 | Language | Template |
 |----------|----------|
-| Chinese | `🍽 {meal_label}一般是{option1_label}呢，还是{option2_label}呢？` |
-| English | `🍽 Do you usually {option1_verb} or {option2_verb} for {meal_label}?` |
+| Chinese | `对了顺便问下，{meal_label}一般是{option1_label}呢，还是{option2_label}呢？` |
+| English | `By the way, do you usually {option1_verb} or {option2_verb} for {meal_label}?` |
 
 Examples:
-- `🍽 早餐一般是在家吃呢，还是点外卖呢？`
-- `🍽 午餐一般是吃食堂呢，还是点外卖呢？`
-- `🍽 Do you usually eat at home or order takeout for breakfast?`
+- `对了顺便问下，早餐一般是在家吃呢，还是点外卖呢？`
+- `对了顺便问下，午餐一般是吃食堂呢，还是点外卖呢？`
+- `By the way, do you usually eat at home or order takeout for breakfast?`
 
 **Default Top-2 per meal (workday, used for Mode B):**
 

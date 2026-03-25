@@ -110,26 +110,28 @@ Appended after the food log reply when the current meal's venue is not yet recor
 
 Chinese:
 ```
-🍽 早餐一般都是吃外卖呀？
+对了顺便问下，早餐一般都是吃外卖呀？
+对了顺便问下，午餐一般都是在外面吃呀？
 ```
 
 English:
 ```
-🍽 Do you usually order takeout for breakfast?
+By the way, do you usually order takeout for breakfast?
+By the way, do you usually eat out for lunch?
 ```
 
 **Mode B — no inference or low confidence (pick-two):**
 
 Chinese:
 ```
-🍽 早餐一般是在家吃呢，还是点外卖呢？
-🍽 午餐一般是吃食堂呢，还是点外卖呢？
+对了顺便问下，早餐一般是在家吃呢，还是点外卖呢？
+对了顺便问下，午餐一般是吃食堂呢，还是点外卖呢？
 ```
 
 English:
 ```
-🍽 Do you usually eat at home or order takeout for breakfast?
-🍽 Do you usually eat at the cafeteria or order takeout for lunch?
+By the way, do you usually eat at home or order takeout for breakfast?
+By the way, do you usually eat at the cafeteria or order takeout for lunch?
 ```
 
 ### Drift detection confirmation (consecutive_mismatches >= 3)
