@@ -163,7 +163,7 @@ After receiving the user's answer in Round 4, do the following:
 
 3. **Confirm work type + TDEE** — Explain what TDEE means and what activity level you assigned them based on their daily movement (not exercise). Mention that exercise calories will be tracked separately when they log workouts. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
 
-   > Example: "明白了！根据你的日常活动（上班通勤），我把你归为轻度活跃，你每天的基础消耗大约是 1750–1950 大卡。运动的部分不算在里面——你运动完跟我说一声，我会单独帮你算额外消耗。这个判断看起来合适吗？"
+   > Example: "正常通勤，你是轻度活跃，每天基础消耗约 1750–1950 大卡。运动不算在里面——做完告诉我，我单独帮你算。如果你觉得日常活动量跟这个描述差很多，现在可以说。"
 
 4. **Generate the Profile** — After the user confirms, silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
 
