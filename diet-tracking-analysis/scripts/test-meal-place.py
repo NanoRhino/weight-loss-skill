@@ -115,27 +115,68 @@ def test_check_workday_empty_asks_pick_two():
         shutil.rmtree(tmpdir)
 
 
-def test_check_workday_with_inference_confirms():
-    """Check with --inferred returns confirm mode."""
+def test_check_high_confidence_confirms():
+    """Check with --inferred + --confidence high returns confirm mode."""
     tmpdir = tempfile.mkdtemp()
     try:
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "breakfast", "--weekday", "1",
-                      "--inferred", "takeout"])
-        check(r["action"] == "ask", "inferred → ask")
-        check(r["mode"] == "confirm", "inferred → confirm mode")
+                      "--inferred", "takeout", "--confidence", "high"])
+        check(r["action"] == "ask", "high confidence → ask")
+        check(r["mode"] == "confirm", "high confidence → confirm mode")
         check(r["inferred"] == "takeout", "inferred value passed through")
     finally:
         shutil.rmtree(tmpdir)
 
 
+def test_check_low_confidence_pick_two_with_inferred():
+    """Check with --inferred + --confidence low returns pick_two with inferred first."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        # cafeteria is not in dinner defaults (home, takeout) → replaces second
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "1",
+                      "--inferred", "cafeteria", "--confidence", "low"])
+        check(r["action"] == "ask", "low confidence → ask")
+        check(r["mode"] == "pick_two", "low confidence → pick_two mode")
+        check(r["options"][0] == "cafeteria", "low confidence → inferred is first option")
+        check(len(r["options"]) == 2, "low confidence → still 2 options")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_check_low_confidence_inferred_already_in_defaults():
+    """When inferred is already in defaults, it moves to first position."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        # takeout is in lunch defaults (cafeteria, takeout) → reorder
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "2",
+                      "--inferred", "takeout", "--confidence", "low"])
+        check(r["options"] == ["takeout", "cafeteria"],
+              "low confidence → inferred moved to first, other kept")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_check_inferred_no_confidence_defaults_to_pick_two():
+    """--inferred without --confidence defaults to pick_two with inferred."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "3",
+                      "--inferred", "cafeteria"])
+        check(r["mode"] == "pick_two", "no confidence flag → pick_two")
+        check(r["options"][0] == "cafeteria", "no confidence → inferred still first")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 def test_check_invalid_inference_falls_back():
-    """Check with invalid --inferred falls back to pick_two."""
+    """Check with invalid --inferred falls back to pick_two with defaults."""
     tmpdir = tempfile.mkdtemp()
     try:
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "3",
                       "--inferred", "moon_base"])
         check(r["action"] == "ask", "invalid inferred → still ask")
         check(r["mode"] == "pick_two", "invalid inferred → pick_two fallback")
+        check(r["options"] == ["cafeteria", "takeout"], "invalid inferred → default options")
     finally:
         shutil.rmtree(tmpdir)
 

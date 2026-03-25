@@ -139,18 +139,33 @@ def cmd_check(args):
             print(json.dumps({"action": "skip", "reason": "gave_up"}))
             return
         # Should ask — mode depends on whether venue was inferred
-        options = DEFAULT_TOP2.get(meal, ["home", "takeout"])
+        # and confidence level
+        defaults = DEFAULT_TOP2.get(meal, ["home", "takeout"])
         inferred = getattr(args, "inferred", None)
+        confidence = getattr(args, "confidence", None)
         result = {
             "action": "ask",
-            "options": options,
             "ask_count": state["ask_count"] + 1,
         }
-        if inferred and inferred in VALID_PLACES:
+        if inferred and inferred in VALID_PLACES and confidence == "high":
+            # High confidence → confirm mode
             result["mode"] = "confirm"
             result["inferred"] = inferred
-        else:
+            result["options"] = defaults
+        elif inferred and inferred in VALID_PLACES:
+            # Low confidence → pick_two with inferred as first option
             result["mode"] = "pick_two"
+            if inferred in defaults:
+                # Inferred already in defaults, put it first
+                options = [inferred] + [o for o in defaults if o != inferred]
+            else:
+                # Replace second default with inferred-first ordering
+                options = [inferred, defaults[0]]
+            result["options"] = options
+        else:
+            # No inference → pick_two with defaults
+            result["mode"] = "pick_two"
+            result["options"] = defaults
         print(json.dumps(result))
         return
 
@@ -259,6 +274,7 @@ def main():
     p_check.add_argument("--meal", required=True, choices=VALID_MEALS)
     p_check.add_argument("--weekday", required=True, type=int, help="0=Mon, 6=Sun")
     p_check.add_argument("--inferred", default=None, help="Venue inferred from photo/text context (optional)")
+    p_check.add_argument("--confidence", default=None, choices=["high", "low"], help="Confidence of the inference (high → confirm, low → pick_two with inferred)")
 
     # save-place
     p_save = sub.add_parser("save-place")

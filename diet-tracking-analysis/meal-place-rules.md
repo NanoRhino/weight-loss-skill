@@ -73,9 +73,9 @@ Decision flow per meal log:
 
 ### How to Ask
 
-Two modes depending on whether the venue can be inferred from the current meal's photo/text context:
+Two modes depending on whether the venue can be inferred from the current meal's photo/text context, and the confidence level of that inference:
 
-**Mode A: Inferred (high confidence)** — directly confirm the inferred venue:
+**Mode A: High confidence inference** — directly confirm the inferred venue:
 
 | Language | Template |
 |----------|----------|
@@ -87,19 +87,28 @@ Examples:
 - `对了顺便问下，午餐一般都是在外面吃呀？`
 - `By the way, do you usually order takeout for breakfast?`
 
-**Mode B: No inference / low confidence** — present two options:
+**Mode B: Low confidence or no inference** — present two options, with inferred venue (if any) as the first option:
 
 | Language | Template |
 |----------|----------|
 | Chinese | `对了顺便问下，{meal_label}一般是{option1_label}呢，还是{option2_label}呢？` |
 | English | `By the way, do you usually {option1_verb} or {option2_verb} for {meal_label}?` |
 
-Examples:
+Examples (no inference):
 - `对了顺便问下，早餐一般是在家吃呢，还是点外卖呢？`
 - `对了顺便问下，午餐一般是吃食堂呢，还是点外卖呢？`
 - `By the way, do you usually eat at home or order takeout for breakfast?`
 
-**Default Top-2 per meal (workday, used for Mode B):**
+Examples (low-confidence inference of cafeteria for dinner):
+- `对了顺便问下，晚餐一般是吃食堂呢，还是在家吃呢？` (inferred "cafeteria" becomes option 1)
+- `By the way, do you usually eat at the cafeteria or at home for dinner?`
+
+**Option selection logic for Mode B:**
+1. If an inferred venue exists (low confidence): put it as option 1, pair with the first default that differs
+2. If the inferred venue is already in the defaults: reorder so inferred is first
+3. If no inference: use defaults as-is
+
+**Default Top-2 per meal (workday, fallback when no inference):**
 
 | Meal | Option 1 | Option 2 |
 |------|----------|----------|
