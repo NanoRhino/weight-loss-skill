@@ -41,9 +41,21 @@ the **primary trigger path**.
 | Severity | Behavior |
 |----------|----------|
 | `none` | No action. Weight is on track or within normal fluctuation. |
+| `adaptation` | **Adaptation period (first 2 weeks of plan).** Body is still adjusting — reassure the user this is expected. Lightly mention any detected causes (calorie surplus, exercise change, water retention) as informational context, not as problems. Do NOT run `analyze`, do NOT suggest adjustments. Tone: warm, normalizing, educational. |
 | `deferred` | **Reassure first, observe later.** A temporary cause was detected (yesterday overeating, possible menstrual cycle, overnight water retention). Respond with a warm, normalizing message based on the `temporary_causes[].message` — then wait until the next weigh-in to re-evaluate. Do NOT run `analyze` or suggest adjustments. |
 | `mild` | Append a gentle one-liner to the log confirmation. Single-ask rule applies — if the user ignores it, drop it. |
 | `significant` | Run `analyze`, present cause analysis to the user (Step 1 only). Ask if they want to discuss adjustments before proceeding to Step 2. |
+
+**`adaptation` response examples:**
+
+Lead with "body adjusting" reassurance. If the deviation-check also detected specific causes (calorie surplus, exercise decline, temporary causes), mention them lightly as context — informational, not accusatory. The key: specific causes are framed as "by the way, this might also be a factor" rather than "this is the problem."
+
+- **No specific cause detected:** "刚开始新计划，身体还在适应新的饮食节奏，头两周体重波动是很正常的——有时候甚至会先涨一点再往下走，不用担心～" / "Your body is still adjusting to the new routine — fluctuations in the first couple of weeks are totally expected, sometimes weight even goes up a bit before it comes down."
+- **With calorie surplus detected:** "头两周身体还在适应中，体重波动是正常的。顺便说一句，最近日均热量比目标稍高一些，等适应期过了可以留意一下～" / "Early fluctuation is normal while your body adjusts. By the way, your average intake has been slightly above target — something to keep an eye on once you've settled in."
+- **With temporary cause (e.g., yesterday overeating):** "刚开始计划体重波动很正常，加上昨天吃得多一些，今天涨一点完全可以预期——大部分是水分，别放在心上～" / "Fluctuation is normal this early, and yesterday's bigger meal adds to it — most of that bump is water, don't sweat it."
+- **With exercise decline:** "头两周体重波动是正常的，不用紧张。这周运动少了一些，等节奏稳定下来，身体会慢慢跟上的～" / "Totally normal early on. You've been a bit less active this week — once you find your rhythm, things will settle."
+
+**Key rule:** In adaptation period, the primary message is always **"this is expected, your body is adjusting"**. Any specific cause is secondary context, never the headline. Do NOT suggest adjustments — the plan hasn't had enough time to work yet.
 
 **`deferred` response examples:**
 
@@ -56,7 +68,6 @@ the **primary trigger path**.
 **Skip conditions:**
 - No `PLAN.md` (no plan to deviate from)
 - `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
-- User is in first 2 weeks of plan (body is still adjusting)
 
 ### Manual Trigger (user-initiated)
 
@@ -186,8 +197,13 @@ python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
   --plan-file {workspaceDir}/PLAN.md \
   --health-profile {workspaceDir}/health-profile.md \
   --user-file {workspaceDir}/USER.md \
+  --plan-start-date {plan_start_date} \
   --tz-offset {tz_offset}
 ```
+
+The `--plan-start-date` is read from the `开始日期` / `Start date` field in
+`PLAN.md`. If not passed, the script also attempts to parse it directly from
+`PLAN.md`. Used to detect the adaptation period (first 14 days).
 
 **Returns:**
 
@@ -208,6 +224,7 @@ python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
   "latest_weight": 75.0,
   "latest_unit": "kg",
   "readings_count": 4,
+  "adaptation_period": false,
   "temporary_causes": [
     {
       "cause": "yesterday_overeating",
@@ -223,6 +240,7 @@ python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
 
 **Severity levels:**
 - `none` — actual change tracks plan within 0.3 kg tolerance
+- `adaptation` — deviation detected but user is in the first 2 weeks of their plan. Reassure that early fluctuation is normal; lightly mention detected causes as context. No adjustments.
 - `deferred` — deviation detected but a temporary cause explains it (yesterday overeating, menstrual cycle water retention, sudden overnight spike). Reassure user and re-evaluate at next weigh-in.
 - `mild` — deviation 0.3–0.8 kg with no temporary explanation
 - `significant` — deviation > 0.8 kg with no temporary explanation
@@ -235,8 +253,10 @@ python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
 **Design notes:**
 - Requires ≥ 2 readings spanning ≥ 3 days (avoids false alarms from daily fluctuation)
 - Reads `data/weight.json` and `data/meals/` directly for speed
-- When temporary causes are detected, severity downgrades to `deferred` — no full analysis runs
-- `raw_severity` preserves the pre-deferral severity for logging/debugging
+- Adaptation period (first 14 days of plan) caps severity to `adaptation` — reassure with light cause context, no adjustments
+- When temporary causes are detected (outside adaptation period), severity downgrades to `deferred` — no full analysis runs
+- `adaptation_period` takes priority over `deferred` (if both apply, `adaptation` wins since it's the stronger reassurance signal)
+- `raw_severity` preserves the pre-adjustment severity for logging/debugging
 
 ### Command: `save-strategy`
 
@@ -456,10 +476,13 @@ better picture soon."
 Skip calorie surplus analysis. Note the gap: "Without meal logs, I can't
 check if calorie intake is a factor. Want to start logging meals?"
 
-**User is in first 2 weeks of plan:**
-Weight fluctuation is expected at the start. Reassure and suggest waiting
-before making adjustments: "Your body is still adjusting to the new routine —
-let's give it another week before changing anything."
+**User is in first 2 weeks of plan (adaptation period):**
+Weight fluctuation is expected at the start. The `deviation-check` will return
+`severity: "adaptation"` — respond with reassurance and lightly mention any
+detected causes as context (not problems). Do NOT suggest adjustments. If the
+user explicitly asks for changes, gently recommend waiting: "身体还在适应中，
+我们再观察一周，到时候数据会更清楚～" / "Your body is still adjusting — let's
+give it another week and the picture will be clearer."
 
 **Weight gain is muscle gain (exercise increased significantly):**
 If exercise volume increased significantly while weight went up, note the

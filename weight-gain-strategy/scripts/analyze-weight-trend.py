@@ -401,6 +401,23 @@ def save_strategy(args):
     print(json.dumps(data["active_strategy"], indent=2, ensure_ascii=False))
 
 
+def parse_plan_start_date(plan_path):
+    """Extract plan start date from PLAN.md."""
+    if not plan_path or not os.path.exists(plan_path):
+        return None
+    with open(plan_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    import re
+    # Match "开始日期：2026-03-18" or "Start date: 2026-03-18"
+    match = re.search(
+        r"(?:开始日期|[Ss]tart\s*[Dd]ate)[：:]\s*(\d{4}-\d{2}-\d{2})",
+        content
+    )
+    if match:
+        return match.group(1)
+    return None
+
+
 def parse_plan_rate(plan_path):
     """Extract weekly loss rate (kg/week) from PLAN.md."""
     if not plan_path or not os.path.exists(plan_path):
@@ -588,6 +605,21 @@ def deviation_check(args):
         }, indent=2, ensure_ascii=False))
         return
 
+    # Detect adaptation period (first 2 weeks of plan)
+    adaptation_period = False
+    plan_start = args.plan_start_date
+    if not plan_start:
+        plan_start = parse_plan_start_date(args.plan_file)
+    if plan_start:
+        try:
+            days_since_start = (local_now.date() - datetime.strptime(
+                plan_start, "%Y-%m-%d"
+            ).date()).days
+            if 0 <= days_since_start <= 14:
+                adaptation_period = True
+        except ValueError:
+            pass
+
     # Calculate expected vs actual weight change over the window
     first = readings[0]
     last = readings[-1]
@@ -641,17 +673,23 @@ def deviation_check(args):
             args, local_now, readings, calorie_target
         )
 
-    # Downgrade to "deferred" when temporary causes fully explain the spike
+    # Downgrade severity based on context
     severity = raw_severity
-    if temporary_causes and severity in ("mild", "significant"):
-        # If the only signal is a temporary cause, defer — reassure now,
-        # re-evaluate at the next weigh-in
+    if adaptation_period and severity in ("mild", "significant"):
+        # Adaptation period: still report the trend but cap to "adaptation"
+        # so the response is lighter — reassurance + brief cause note, no
+        # strategy suggestions
+        severity = "adaptation"
+    elif temporary_causes and severity in ("mild", "significant"):
+        # Temporary cause explains the spike — reassure now, re-evaluate
+        # at the next weigh-in
         severity = "deferred"
 
     result = {
         "triggered": triggered,
         "severity": severity,
         "raw_severity": raw_severity,
+        "adaptation_period": adaptation_period,
         "window": {
             "start_date": first["date"],
             "end_date": last["date"],
@@ -667,7 +705,13 @@ def deviation_check(args):
         "temporary_causes": temporary_causes,
     }
 
-    if severity == "deferred":
+    if severity == "adaptation":
+        result["recommendation"] = (
+            "Adaptation period — reassure the user that early fluctuation is normal. "
+            "Lightly mention any detected causes (temporary or otherwise) as context, "
+            "not as problems. Do NOT suggest adjustments."
+        )
+    elif severity == "deferred":
         result["recommendation"] = (
             "Reassure the user (temporary cause detected). "
             "Defer analysis to next weigh-in cycle."
@@ -751,6 +795,8 @@ def main():
     p_devcheck.add_argument("--plan-file", default=None)
     p_devcheck.add_argument("--health-profile", default=None)
     p_devcheck.add_argument("--user-file", default=None)
+    p_devcheck.add_argument("--plan-start-date", default=None,
+                            help="Plan start date YYYY-MM-DD for adaptation period detection")
     p_devcheck.add_argument("--tz-offset", type=int, default=0)
 
     # check-strategy

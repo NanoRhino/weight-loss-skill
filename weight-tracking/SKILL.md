@@ -140,9 +140,16 @@ The server runs in UTC. To record the correct local datetime:
      --plan-file {workspaceDir}/PLAN.md \
      --health-profile {workspaceDir}/health-profile.md \
      --user-file {workspaceDir}/USER.md \
+     --plan-start-date {plan_start_date} \
      --tz-offset {tz_offset}
    ```
+   Read `开始日期` / `Start date` from `PLAN.md` and pass it as `--plan-start-date`.
    - If `triggered: false` → do nothing, respond with just the log confirmation
+   - If `severity: "adaptation"` → **adaptation period (first 2 weeks).** Append a warm, normalizing message that leads with "body is still adjusting." If the deviation-check also detected specific causes (`temporary_causes` or raw calorie/exercise data), mention them lightly as context — informational, not concerning. Do NOT run `analyze`, do NOT suggest adjustments. Examples:
+     - No specific cause: "刚开始新计划，身体还在适应，头两周体重波动是正常的，不用担心～"
+     - With calorie surplus: "头两周身体还在适应中，体重波动是正常的。最近吃得稍微多了一些，等适应期过了可以留意一下～"
+     - With yesterday overeating: "刚开始计划体重波动很正常，加上昨天吃得多一些，今天涨一点完全可以预期～"
+     - With exercise decline: "头两周体重波动是正常的。这周运动少了一点，等节奏稳定下来身体会慢慢跟上的～"
    - If `severity: "deferred"` → **reassure and wait.** A temporary cause was detected (e.g., yesterday ate too much, menstrual cycle water retention, overnight sodium spike). Append a warm, normalizing message after the log confirmation using the `temporary_causes[].message` as guidance. Do NOT run `analyze`, do NOT suggest adjustments. Let the next weigh-in determine if there's a real trend. Examples:
      - Yesterday overeating: "昨天吃得比较多，今天体重涨一点很正常，大部分是水分～过两天再看看"
      - Menstrual cycle: "生理期前后波动 1–2 kg 是很正常的，不用担心，等过了这几天再看趋势～"
