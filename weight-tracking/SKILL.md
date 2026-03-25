@@ -133,7 +133,7 @@ The server runs in UTC. To record the correct local datetime:
    - `"created"` → confirm: "Logged ✓"
    - `"updated"` → confirm: "Updated ✓"
 4. Display the saved value in the user's preferred unit
-5. **Deviation check** — After confirming the log, silently run `weight-gain-strategy`'s deviation-check to see if the user is off track:
+5. **Streak check** — After confirming the log, silently run `weight-gain-strategy`'s deviation-check to count consecutive weight increases:
    ```bash
    python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
      --data-dir {workspaceDir}/data \
@@ -144,18 +144,17 @@ The server runs in UTC. To record the correct local datetime:
      --tz-offset {tz_offset}
    ```
    Read `开始日期` / `Start date` from `PLAN.md` and pass it as `--plan-start-date`.
-   - If `triggered: false` → do nothing, respond with just the log confirmation
-   - If `severity: "adaptation"` → **adaptation period (first 2 weeks).** Append a warm, normalizing message that leads with "body is still adjusting." If the deviation-check also detected specific causes (`temporary_causes` or raw calorie/exercise data), mention them lightly as context — informational, not concerning. Do NOT run `analyze`, do NOT suggest adjustments. Examples:
-     - No specific cause: "刚开始新计划，身体还在适应，头两周体重波动是正常的，不用担心～"
-     - With calorie surplus: "头两周身体还在适应中，体重波动是正常的。最近吃得稍微多了一些，等适应期过了可以留意一下～"
-     - With yesterday overeating: "刚开始计划体重波动很正常，加上昨天吃得多一些，今天涨一点完全可以预期～"
-     - With exercise decline: "头两周体重波动是正常的。这周运动少了一点，等节奏稳定下来身体会慢慢跟上的～"
-   - If `severity: "deferred"` → **reassure and wait.** A temporary cause was detected (e.g., yesterday ate too much, menstrual cycle water retention, overnight sodium spike). Append a warm, normalizing message after the log confirmation using the `temporary_causes[].message` as guidance. Do NOT run `analyze`, do NOT suggest adjustments. Let the next weigh-in determine if there's a real trend. Examples:
-     - Yesterday overeating: "昨天吃得比较多，今天体重涨一点很正常，大部分是水分～过两天再看看"
-     - Menstrual cycle: "生理期前后波动 1–2 kg 是很正常的，不用担心，等过了这几天再看趋势～"
-     - Sudden spike: "一夜之间涨这么多肯定不是脂肪，多半是水分，过几天会回来的"
-   - If `severity: "mild"` → append a gentle one-liner after the log confirmation, e.g., "最近体重有点波动，要不要一起看看数据？" / "Weight's been fluctuating a bit lately — want to take a look?" Do NOT push — if the user ignores it, drop it (single-ask rule).
-   - If `severity: "significant"` → after the log confirmation, run `weight-gain-strategy`'s `analyze` command, then **present the cause analysis to the user first** (trend + diagnosis only — do NOT jump to strategy options). Frame it naturally: "体重这两周和计划有点偏差，我帮你看了一下数据——" / "I noticed the trend's drifted from your plan — here's what the data shows:". After presenting the cause, ask whether the user wants to discuss adjustments. Only proceed to strategy discussion (Step 2) if the user agrees.
+   Handle the result based on `severity` (driven by consecutive increase streak):
+   - If `triggered: false` → do nothing, respond with just the log confirmation.
+   - If `severity: "comfort"` (streak 1) → **first increase.** Append a warm, encouraging one-liner. If `temporary_causes` detected, weave in lightly as reassurance. If `adaptation_period` is true, lead with "body is still adjusting." Examples:
+     - Plain: "比上次重了一点点，很正常的波动，继续保持就好～"
+     - Yesterday overeating: "昨天吃得多一些，今天涨一点很正常，大部分是水分～"
+     - Menstrual cycle: "生理期前后波动 1–2 kg 是很正常的，不用担心～"
+     - Adaptation period: "刚开始新计划，身体还在适应，头两周波动很正常，坚持就好～"
+   - If `severity: "cause-check"` (streak 2–3) → **consecutive increases.** Run `weight-gain-strategy`'s `analyze` command. Present causes conversationally — what to watch out for (weekend overeating, exercise decline, menstrual cycle, calorie surplus). Do NOT offer strategy options. If `adaptation_period` is true, lead with adaptation reassurance. Examples:
+     - "连着涨了两次，我看了一下数据——最近热量比目标高了一些，零食可能有点活跃哦～ 这周留意一下"
+     - "这周运动少了一些，看看能不能恢复上周的节奏～"
+   - If `severity: "significant"` (streak 4+) → **sustained trend.** Run `weight-gain-strategy`'s `analyze` command, present full cause analysis, then ask if they want to discuss adjustments: "体重连着涨了几次，我帮你看了一下数据——" Only proceed to strategy discussion if the user agrees.
    - **Skip this step** if `PLAN.md` does not exist (no plan to deviate from), or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
 
 ### User Asks for Trend / History

@@ -556,25 +556,24 @@ def detect_temporary_causes(args, local_now, readings, calorie_target):
 
 
 def deviation_check(args):
-    """Quick post-weigh-in check: is the user deviating from plan?
+    """Quick post-weigh-in check: has weight been going up consecutively?
 
-    Compares the latest weight readings against the expected trajectory
-    based on PLAN.md weekly loss rate. Also detects temporary causes
-    (yesterday overeating, menstrual cycle, water retention) that warrant
-    reassurance + deferral rather than immediate analysis.
+    Counts how many consecutive weigh-ins show an increase over the previous
+    one (streak), and maps that to a graduated severity level.
 
     Returns:
-      - triggered: true if deviation warrants action
-      - severity: "none" | "deferred" | "mild" | "significant"
+      - triggered: true if the latest weigh-in is higher than the previous
+      - severity: "none" | "comfort" | "cause-check" | "significant"
+      - consecutive_increases: the streak count driving severity
       - temporary_causes: list of detected temporary explanations (if any)
     """
     tz_offset = args.tz_offset
     local_now = get_local_now(tz_offset)
     display_unit = parse_display_unit(args.health_profile)
 
-    # Load recent weight readings (last 14 days)
+    # Load recent weight readings (last 28 days for streak counting)
     end_date = local_now.strftime("%Y-%m-%d")
-    start_date = (local_now - timedelta(days=14)).strftime("%Y-%m-%d")
+    start_date = (local_now - timedelta(days=28)).strftime("%Y-%m-%d")
 
     raw = load_json(os.path.join(args.data_dir, "weight.json"))
     readings = []
@@ -590,22 +589,33 @@ def deviation_check(args):
             "triggered": False,
             "severity": "none",
             "reason": "insufficient_data",
-            "message": "Not enough weight readings to assess deviation (need >= 2).",
+            "message": "Not enough weight readings to assess trend (need >= 2).",
         }, indent=2, ensure_ascii=False))
         return
 
-    # Get plan rate
-    plan_rate = parse_plan_rate(args.plan_file)
-    if not plan_rate:
-        print(json.dumps({
-            "triggered": False,
-            "severity": "none",
-            "reason": "no_plan",
-            "message": "No PLAN.md or no weekly loss rate found.",
-        }, indent=2, ensure_ascii=False))
-        return
+    # --- Count consecutive increases from most recent reading backwards ---
+    consecutive_increases = 0
+    for i in range(len(readings) - 1, 0, -1):
+        if readings[i]["value"] > readings[i - 1]["value"]:
+            consecutive_increases += 1
+        else:
+            break
 
-    # Detect adaptation period (first 2 weeks of plan)
+    # --- Map streak to severity ---
+    if consecutive_increases == 0:
+        severity = "none"
+        triggered = False
+    elif consecutive_increases == 1:
+        severity = "comfort"
+        triggered = True
+    elif consecutive_increases <= 3:
+        severity = "cause-check"
+        triggered = True
+    else:
+        severity = "significant"
+        triggered = True
+
+    # --- Detect adaptation period (first 2 weeks of plan) ---
     adaptation_period = False
     plan_start = args.plan_start_date
     if not plan_start:
@@ -620,52 +630,7 @@ def deviation_check(args):
         except ValueError:
             pass
 
-    # Calculate expected vs actual weight change over the window
-    first = readings[0]
-    last = readings[-1]
-    days_between = (
-        datetime.strptime(last["date"], "%Y-%m-%d")
-        - datetime.strptime(first["date"], "%Y-%m-%d")
-    ).days
-
-    if days_between < 3:
-        # Too short a window, daily fluctuation dominates
-        print(json.dumps({
-            "triggered": False,
-            "severity": "none",
-            "reason": "window_too_short",
-            "message": "Only {0} days between readings — too short to assess trend.".format(days_between),
-        }, indent=2, ensure_ascii=False))
-        return
-
-    actual_change = last["value"] - first["value"]  # negative = lost weight
-    weeks = days_between / 7.0
-    expected_change = -(plan_rate * weeks)  # expected is negative (losing)
-
-    deviation = actual_change - expected_change  # positive = worse than plan
-
-    # Determine raw severity before temporary-cause adjustment
-    # mild: deviation 0.3–0.8 kg above expected (falling behind)
-    # significant: deviation > 0.8 kg above expected OR actual gain > 0.5 kg
-    raw_severity = "none"
-    triggered = False
-
-    if actual_change > 0.3:
-        # Actually gaining weight
-        if actual_change > 0.8:
-            raw_severity = "significant"
-        else:
-            raw_severity = "mild"
-        triggered = True
-    elif deviation > 0.8:
-        # Not gaining, but far behind plan
-        raw_severity = "significant"
-        triggered = True
-    elif deviation > 0.3:
-        raw_severity = "mild"
-        triggered = True
-
-    # --- Detect temporary causes ---
+    # --- Detect temporary / specific causes ---
     calorie_target = parse_plan_target(args.plan_file) if args.plan_file else None
     temporary_causes = []
     if triggered:
@@ -673,56 +638,69 @@ def deviation_check(args):
             args, local_now, readings, calorie_target
         )
 
-    # Downgrade severity based on context
-    severity = raw_severity
-    if adaptation_period and severity in ("mild", "significant"):
-        # Adaptation period: still report the trend but cap to "adaptation"
-        # so the response is lighter — reassurance + brief cause note, no
-        # strategy suggestions
-        severity = "adaptation"
-    elif temporary_causes and severity in ("mild", "significant"):
-        # Temporary cause explains the spike — reassure now, re-evaluate
-        # at the next weigh-in
-        severity = "deferred"
+    # --- Plan deviation as context (not for severity) ---
+    first = readings[0]
+    last = readings[-1]
+    days_between = (
+        datetime.strptime(last["date"], "%Y-%m-%d")
+        - datetime.strptime(first["date"], "%Y-%m-%d")
+    ).days
+
+    plan_rate = parse_plan_rate(args.plan_file)
+    deviation_context = {}
+    if plan_rate and days_between > 0:
+        weeks = days_between / 7.0
+        actual_change = last["value"] - first["value"]
+        expected_change = -(plan_rate * weeks)
+        deviation = actual_change - expected_change
+        deviation_context = {
+            "plan_rate_kg_per_week": plan_rate,
+            "expected_change_kg": round(expected_change, 2),
+            "actual_change_kg": round(actual_change, 2),
+            "deviation_kg": round(deviation, 2),
+        }
+
+    # --- Latest increase amount ---
+    latest_increase_kg = round(readings[-1]["value"] - readings[-2]["value"], 2)
 
     result = {
         "triggered": triggered,
         "severity": severity,
-        "raw_severity": raw_severity,
+        "consecutive_increases": consecutive_increases,
         "adaptation_period": adaptation_period,
+        "latest_increase_kg": latest_increase_kg,
         "window": {
-            "start_date": first["date"],
-            "end_date": last["date"],
+            "start_date": readings[0]["date"],
+            "end_date": readings[-1]["date"],
             "days": days_between,
         },
-        "plan_rate_kg_per_week": plan_rate,
-        "expected_change_kg": round(expected_change, 2),
-        "actual_change_kg": round(actual_change, 2),
-        "deviation_kg": round(deviation, 2),
         "latest_weight": last["value"],
         "latest_unit": last["unit"],
         "readings_count": len(readings),
         "temporary_causes": temporary_causes,
+        "deviation_context": deviation_context,
     }
 
-    if severity == "adaptation":
+    if severity == "comfort":
         result["recommendation"] = (
-            "Adaptation period — reassure the user that early fluctuation is normal. "
-            "Lightly mention any detected causes (temporary or otherwise) as context, "
-            "not as problems. Do NOT suggest adjustments."
+            "Weight is up compared to last weigh-in. "
+            "Comfort and encourage — this is normal, keep going. "
+            "If a temporary cause was detected, mention it lightly."
         )
-    elif severity == "deferred":
+    elif severity == "cause-check":
         result["recommendation"] = (
-            "Reassure the user (temporary cause detected). "
-            "Defer analysis to next weigh-in cycle."
-        )
-    elif triggered:
-        if severity == "significant":
-            result["recommendation"] = "Run full analyze to diagnose causes and offer adjustment strategies."
-        else:
-            result["recommendation"] = "Mention the trend gently. Offer to investigate if the user wants."
+            "Weight has been going up for {0} consecutive weigh-ins. "
+            "Run analyze to identify probable causes (weekend overeating, "
+            "exercise decline, menstrual cycle, calorie surplus) and tell "
+            "the user what to watch out for. Do NOT offer strategy yet."
+        ).format(consecutive_increases)
+    elif severity == "significant":
+        result["recommendation"] = (
+            "Weight has been going up for {0} consecutive weigh-ins. "
+            "Run full analyze, present diagnosis, and offer adjustment strategies."
+        ).format(consecutive_increases)
     else:
-        result["recommendation"] = "On track or within normal fluctuation. No action needed."
+        result["recommendation"] = "Weight stable or down. No action needed."
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
 

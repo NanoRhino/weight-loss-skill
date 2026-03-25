@@ -38,32 +38,38 @@ the **primary trigger path**.
 
 **Severity → Response:**
 
-| Severity | Behavior |
-|----------|----------|
-| `none` | No action. Weight is on track or within normal fluctuation. |
-| `adaptation` | **Adaptation period (first 2 weeks of plan).** Body is still adjusting — reassure the user this is expected. Lightly mention any detected causes (calorie surplus, exercise change, water retention) as informational context, not as problems. Do NOT run `analyze`, do NOT suggest adjustments. Tone: warm, normalizing, educational. |
-| `deferred` | **Reassure first, observe later.** A temporary cause was detected (yesterday overeating, possible menstrual cycle, overnight water retention). Respond with a warm, normalizing message based on the `temporary_causes[].message` — then wait until the next weigh-in to re-evaluate. Do NOT run `analyze` or suggest adjustments. |
-| `mild` | Append a gentle one-liner to the log confirmation. Single-ask rule applies — if the user ignores it, drop it. |
-| `significant` | Run `analyze`, present cause analysis to the user (Step 1 only). Ask if they want to discuss adjustments before proceeding to Step 2. |
+Severity is driven by **consecutive increases** — how many weigh-ins in a row show weight going up compared to the previous one. The response escalates gradually.
 
-**`adaptation` response examples:**
+| Severity | Streak | Behavior |
+|----------|--------|----------|
+| `none` | 0 | No increase. Weight is stable or down — just confirm the log. |
+| `comfort` | 1 | **First increase.** Comfort and encourage. If a temporary cause was detected (yesterday overeating, menstrual cycle, water retention), mention it lightly as reassurance. Tone: warm, no concern at all. |
+| `cause-check` | 2–3 | **Consecutive increases.** Run `analyze` to identify probable causes (weekend overeating, exercise decline, menstrual cycle, calorie surplus). Present findings conversationally — tell the user what to watch out for. Do NOT offer strategy options yet. |
+| `significant` | 4+ | **Sustained upward trend.** Run `analyze`, present full cause analysis (Step 1), then ask if they want to discuss adjustments (Step 2). |
 
-Lead with "body adjusting" reassurance. If the deviation-check also detected specific causes (calorie surplus, exercise decline, temporary causes), mention them lightly as context — informational, not accusatory. The key: specific causes are framed as "by the way, this might also be a factor" rather than "this is the problem."
+**Adaptation period modifier:** When `adaptation_period` is true (first 2 weeks of plan), add "body is still adjusting" context to any severity level. For `comfort`, this is the primary message. For `cause-check`, lead with adaptation reassurance before mentioning causes.
 
-- **No specific cause detected:** "刚开始新计划，身体还在适应新的饮食节奏，头两周体重波动是很正常的——有时候甚至会先涨一点再往下走，不用担心～" / "Your body is still adjusting to the new routine — fluctuations in the first couple of weeks are totally expected, sometimes weight even goes up a bit before it comes down."
-- **With calorie surplus detected:** "头两周身体还在适应中，体重波动是正常的。顺便说一句，最近日均热量比目标稍高一些，等适应期过了可以留意一下～" / "Early fluctuation is normal while your body adjusts. By the way, your average intake has been slightly above target — something to keep an eye on once you've settled in."
-- **With temporary cause (e.g., yesterday overeating):** "刚开始计划体重波动很正常，加上昨天吃得多一些，今天涨一点完全可以预期——大部分是水分，别放在心上～" / "Fluctuation is normal this early, and yesterday's bigger meal adds to it — most of that bump is water, don't sweat it."
-- **With exercise decline:** "头两周体重波动是正常的，不用紧张。这周运动少了一些，等节奏稳定下来，身体会慢慢跟上的～" / "Totally normal early on. You've been a bit less active this week — once you find your rhythm, things will settle."
+**`comfort` response examples (streak = 1):**
 
-**Key rule:** In adaptation period, the primary message is always **"this is expected, your body is adjusting"**. Any specific cause is secondary context, never the headline. Do NOT suggest adjustments — the plan hasn't had enough time to work yet.
+- **No temporary cause:** "比上次重了一点点，很正常的波动，继续保持就好～" / "Up a tiny bit from last time — totally normal fluctuation, just keep doing what you're doing!"
+- **Yesterday overeating:** "昨天吃得多一些，今天涨一点很正常——大部分是水分，不是脂肪，过两天就回来了～" / "Yesterday's bigger meal shows up on the scale as water, not fat — it'll come back down in a day or two."
+- **Menstrual cycle:** "生理期前后体重波动 1–2 kg 是完全正常的，跟脂肪没关系，等过了这几天再看～" / "Weight fluctuates 1–2 kg around your period — totally normal, not fat. Check again after it passes."
+- **Sudden spike:** "一夜之间涨这么多肯定不是脂肪，多半是水分/盐分的原因，别担心～" / "That kind of overnight jump is water/sodium, not fat — don't worry about it."
+- **Adaptation period:** "刚开始新计划，身体还在适应，头两周波动很正常——有时候甚至会先涨一点再往下走，坚持就好～" / "Your body is still adjusting to the new plan — fluctuations in the first couple of weeks are expected, keep going!"
 
-**`deferred` response examples:**
+**Key rule:** `comfort` is pure encouragement. Never analyze, never suggest changes. Just normalize the fluctuation and cheer them on.
 
-- **Yesterday overeating:** "昨天吃得比较多，今天秤上看到变化很正常——多出来的大部分是水分，不是脂肪。过两天再称一次看看～" / "You ate more yesterday, so a bump today is expected — most of it is water, not fat. Let's see where you are in a couple of days."
-- **Possible menstrual cycle:** "生理期前后体重波动 1–2 kg 是完全正常的，跟脂肪没关系。等经期结束后再看趋势会更准确～" / "Weight fluctuates 1–2 kg around your period — that's totally normal and not fat. The trend will be clearer once your cycle passes."
-- **Sudden overnight spike:** "一夜之间涨了这么多肯定不是脂肪——多半是盐分/水分的原因，过几天会回落的。" / "That kind of overnight jump is almost certainly water/sodium, not fat — it'll come back down."
+**`cause-check` response examples (streak = 2–3):**
 
-**Key rule:** When severity is `deferred`, the response tone is **reassurance, not concern**. Never frame the temporary cause as a problem. The goal is to prevent unnecessary anxiety and let the next data point confirm whether a real trend exists.
+Run `analyze`, then present findings in a "here's what I noticed" tone — informational, not accusatory. Close with specific things to watch, not action demands.
+
+- **Calorie surplus:** "连着涨了两次，我看了一下数据——最近日均热量比目标高了大概 {surplus} kcal，{X} 天里有 {Y} 天超标了，零食可能有点活跃哦～ 这周可以留意一下零食和加餐的量" / "Two weigh-ins up in a row, so I took a look — you've been averaging about {surplus} kcal over target, over on {Y} of {X} days. Snacks might be the culprit. Something to keep an eye on this week."
+- **Exercise decline:** "这周运动了 {current} 次，上周是 {previous} 次——少了一些活动量。看看这周能不能恢复节奏～" / "You worked out {current} time(s) this week vs {previous} last week. See if you can get back to your rhythm this week."
+- **Weekend pattern:** "看了一下饮食记录，周末那两天热量明显偏高——工作日控制得挺好的，周末可以稍微留意一下～" / "Looking at your logs, weekends are noticeably higher — weekdays are solid though. Something to be mindful of on weekends."
+- **Menstrual cycle:** "连着涨了两次，不过看起来和生理期时间吻合——热量其实控制得不错，大概率是周期性的水肿，等经期过了趋势会更清楚～" / "Two increases in a row, but it lines up with your cycle — your intake looks fine, so this is likely water retention. Trend will be clearer after your period."
+- **Adaptation period + causes:** "头两周身体还在适应，波动是正常的。不过我顺便看了一下，最近热量稍微偏高一些，等适应期过了可以留意一下～" / "Still early days and your body is adjusting. I did notice intake has been a bit above target though — something to keep in mind once you've settled in."
+
+**Key rule:** `cause-check` identifies and explains causes, but stops at "watch out for this" — no strategy proposals, no action plans. Tone stays light and curious, not prescriptive.
 
 **Skip conditions:**
 - No `PLAN.md` (no plan to deviate from)
@@ -189,7 +195,8 @@ python3 {baseDir}/scripts/analyze-weight-trend.py analyze \
 ### Command: `deviation-check`
 
 Lightweight post-weigh-in check. Called by `weight-tracking` after every weight
-log to determine if the user's trend deviates from PLAN.md.
+log. Counts **consecutive weigh-in increases** (streak) and maps to a graduated
+severity level.
 
 ```bash
 python3 {baseDir}/scripts/analyze-weight-trend.py deviation-check \
@@ -210,21 +217,18 @@ The `--plan-start-date` is read from the `开始日期` / `Start date` field in
 ```json
 {
   "triggered": true,
-  "severity": "deferred",
-  "raw_severity": "mild",
+  "severity": "comfort",
+  "consecutive_increases": 1,
+  "adaptation_period": false,
+  "latest_increase_kg": 0.5,
   "window": {
     "start_date": "2026-03-10",
     "end_date": "2026-03-24",
     "days": 14
   },
-  "plan_rate_kg_per_week": 0.6,
-  "expected_change_kg": -1.2,
-  "actual_change_kg": 0.4,
-  "deviation_kg": 1.6,
   "latest_weight": 75.0,
   "latest_unit": "kg",
   "readings_count": 4,
-  "adaptation_period": false,
   "temporary_causes": [
     {
       "cause": "yesterday_overeating",
@@ -234,29 +238,33 @@ The `--plan-start-date` is read from the `开始日期` / `Start date` field in
       "overshoot_kcal": 700
     }
   ],
-  "recommendation": "Reassure the user (temporary cause detected). Defer analysis to next weigh-in cycle."
+  "deviation_context": {
+    "plan_rate_kg_per_week": 0.6,
+    "expected_change_kg": -1.2,
+    "actual_change_kg": 0.4,
+    "deviation_kg": 1.6
+  },
+  "recommendation": "Weight is up compared to last weigh-in. Comfort and encourage..."
 }
 ```
 
-**Severity levels:**
-- `none` — actual change tracks plan within 0.3 kg tolerance
-- `adaptation` — deviation detected but user is in the first 2 weeks of their plan. Reassure that early fluctuation is normal; lightly mention detected causes as context. No adjustments.
-- `deferred` — deviation detected but a temporary cause explains it (yesterday overeating, menstrual cycle water retention, sudden overnight spike). Reassure user and re-evaluate at next weigh-in.
-- `mild` — deviation 0.3–0.8 kg with no temporary explanation
-- `significant` — deviation > 0.8 kg with no temporary explanation
+**Severity levels (streak-based):**
+- `none` (streak 0) — weight stable or down, no action
+- `comfort` (streak 1) — first increase, comfort and encourage
+- `cause-check` (streak 2–3) — consecutive increases, run `analyze` to identify causes and tell user what to watch
+- `significant` (streak 4+) — sustained trend, run `analyze` with full diagnosis + strategy options
 
-**Temporary cause detection:**
+**Temporary cause detection** (used as context, especially at `comfort` level):
 - `yesterday_overeating` — previous day's calorie intake ≥ 30% over target
 - `possible_menstrual_cycle` — female user, sudden ≥ 0.5 kg spike in ≤ 5 days while average weekly intake is within target
 - `sudden_spike` — ≥ 0.8 kg jump in ≤ 2 days (water/sodium retention)
 
 **Design notes:**
-- Requires ≥ 2 readings spanning ≥ 3 days (avoids false alarms from daily fluctuation)
-- Reads `data/weight.json` and `data/meals/` directly for speed
-- Adaptation period (first 14 days of plan) caps severity to `adaptation` — reassure with light cause context, no adjustments
-- When temporary causes are detected (outside adaptation period), severity downgrades to `deferred` — no full analysis runs
-- `adaptation_period` takes priority over `deferred` (if both apply, `adaptation` wins since it's the stronger reassurance signal)
-- `raw_severity` preserves the pre-adjustment severity for logging/debugging
+- Requires ≥ 2 readings (loads last 28 days for accurate streak counting)
+- Severity is driven purely by consecutive increase count, not deviation magnitude
+- `deviation_context` provides plan deviation data as informational context (not for severity)
+- `adaptation_period` is a modifier flag — adds "body adjusting" context to any severity level
+- Temporary causes are always detected when triggered, used as context in responses (not as severity overrides)
 
 ### Command: `save-strategy`
 
