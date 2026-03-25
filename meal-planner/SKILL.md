@@ -264,6 +264,7 @@ Match the diet template to the user's language/locale (resolved in Step 1). The 
 - **Local foods** the user actually eats daily
 - **Local portion conventions** (hand portions, bowls, cups, etc.)
 - **Local meal structure** (e.g., Chinese breakfast is very different from American breakfast)
+- **Default meal prep assumption** — Unless the user has stated otherwise, assume **breakfast and lunch are takeout/eating-out, dinner is home-cooked**. For takeout meals, show ordering guidance (restaurant type + what to order + calorie estimate) instead of cooking-based portions. For home-cooked meals, show the standard portion-based template with ingredients. If the user later provides different info (e.g., "I cook all meals" or "lunch is home-cooked too"), adjust accordingly.
 
 Use the templates below as defaults. If the user's diet mode is non-standard (e.g., keto, IF 16:8), adapt the template accordingly — change the food types and portion ratios to match, but keep the same "template + example" format.
 

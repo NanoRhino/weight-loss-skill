@@ -100,7 +100,11 @@ Typical calorie distribution (defaults — adjustable based on user preference a
 
 **Build around cooking conditions:**
 
-Check `health-preferences.md` and conversation context for any mentions of the user's cooking situation. Use this to select the appropriate plan strategy:
+**Default meal prep assumption:** Unless the user has stated otherwise, assume **breakfast and lunch are takeout/eating-out, dinner is home-cooked**. This means:
+- **Breakfast & Lunch** → provide restaurant/takeout ordering guidance with specific dishes, calorie estimates, and ordering tips (use `[外卖]`/`[Takeout]` tag in H3)
+- **Dinner** → provide home-cooked recipes with ingredients, portions, and prep/batch-prep instructions
+
+If `health-preferences.md` or conversation context contains different info about the user's cooking situation (e.g., "I cook all meals", "I eat out for dinner too"), override this default accordingly. Use the table below for general guidance:
 
 | Cooking Situation | Plan Strategy |
 |---|---|
