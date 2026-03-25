@@ -125,14 +125,12 @@ If target weight is `null`, only show current BMI.
 
 **Round 4 — Activity level (required):**
 
-Ask the user's daily activity level based on job/lifestyle. Activity level determines the NEAT multiplier for TDEE; exercise calories are tracked separately when actually logged (not baked into TDEE). Also tell the user that exercise is tracked separately — they just need to report it after working out.
+Ask the user's daily activity level based on job/lifestyle. Activity level determines the NEAT multiplier for TDEE; exercise calories are tracked separately when actually logged (not baked into TDEE). Do NOT mention exercise tracking here — it will be covered in Step 2.
 
-> Example: "Got it! 你平时的日常活动大概是哪种？（运动另算，这里就是日常生活）
+> Example: "你平时的日常活动大概是哪种？
 > A. 几乎不出门，也不怎么走动
 > B. 正常上下班通勤
-> C. 工作需要经常走动（老师、零售、医护等）
->
-> 运动的部分不用选进去——之后你运动完告诉我，我会额外帮你算消耗。"
+> C. 工作需要经常走动（老师、零售、医护等）"
 
 Activity level mapping (internal — based on daily movement/job type ONLY, not exercise):
 
