@@ -318,6 +318,7 @@ When user describes what they're about to eat (or what they already ate):
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
 9. **China region:** Call `produce-check` — pass all meals from save output, evaluate cumulative produce intake
 10. **Reply in format** — meal details + nutrition summary + produce status (China only) + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
+11. **Meal place collection (workdays only)** — after the reply, run the venue collection or drift detection logic per `meal-place-rules.md`. If today is a weekend, skip entirely. If the current meal's place is not yet recorded and ask attempts remain, append a one-line venue question to the reply. If place is already recorded, silently run drift detection based on photo/text context clues.
 
 > **⚠️ Important:** When calling `detect-meal`, always pass `--timestamp` from the inbound message metadata (the UTC timestamp of the user's message). Never rely on `session_status` or cached time — the session may have been idle for hours.
 
@@ -658,3 +659,4 @@ Read these for detailed specs when needed:
 - `response-schemas.md` — Response format examples for food logs and daily summaries
 - `missing-meal-rules.md` — Missing meal detection rules, prompt templates, and user response handling
 - `ui-spec.md` — Message formatting guidelines for chat platforms
+- `meal-place-rules.md` — Workday meal venue collection, drift detection, and data schema

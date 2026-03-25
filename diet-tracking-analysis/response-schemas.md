@@ -99,3 +99,39 @@ Fat 32g ⚠️ Low
 
 💡 Today's calories are a bit under target but still above your resting metabolism, so no worries. If you get hungry later, feel free to grab a small snack — if not, no need to eat more.
 ```
+
+## Meal Place Collection Prompt (Workdays Only)
+
+Appended after the food log reply when the current meal's venue is not yet recorded. See `meal-place-rules.md` for full logic.
+
+### First-time collection (place is null, ask_count < 3)
+
+Chinese:
+```
+🍽 这顿工作日一般在哪吃？ 🏠 在家 ｜ 📦 外卖 ｜ 其他
+```
+
+English:
+```
+🍽 Where do you usually have this meal on workdays? 🏠 Home | 📦 Takeout | Other
+```
+
+Default top-2 options per meal:
+
+| Meal | Option 1 | Option 2 |
+|------|----------|----------|
+| breakfast | 🏠 在家 / Home | 📦 外卖 / Takeout |
+| lunch | 🏢 食堂 / Cafeteria | 📦 外卖 / Takeout |
+| dinner | 🏠 在家 / Home | 📦 外卖 / Takeout |
+
+### Drift detection confirmation (consecutive_mismatches >= 3)
+
+Chinese:
+```
+🍽 最近几次午饭好像都不在食堂了，是换地方了吗？ 📦 外卖 ｜ 没变还是🏢食堂
+```
+
+English:
+```
+🍽 Your last few lunches don't seem to be at the cafeteria anymore — has it changed? 📦 Takeout | No, still 🏢 Cafeteria
+```
