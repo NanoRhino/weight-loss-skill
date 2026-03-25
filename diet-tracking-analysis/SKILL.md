@@ -176,6 +176,34 @@ Returns: `logged_days`, `daily_totals`, `weekly_avg_cal`, `bmr`, `calorie_floor`
 
 **When to run:** Once per week (e.g. every Monday), or whenever reviewing weekly progress. This replaces per-meal below-BMR warnings — the per-meal `evaluate` command focuses on checkpoint-level calorie/macro balance, while this command handles the safety-floor check on a weekly cadence.
 
+### 9. Meal Place Profile — `meal-place.py` (workdays only)
+
+Separate script for venue collection and drift detection. See `meal-place-rules.md` for full logic.
+
+Script path: `python3 {baseDir}/scripts/meal-place.py`
+Data directory: `{workspaceDir}/data`
+
+**Commands:**
+
+| Command | Purpose | Key args |
+|---------|---------|----------|
+| `check` | Decide whether to ask / confirm drift | `--meal`, `--weekday` (0=Mon, 6=Sun) |
+| `save-place` | Store a venue for a meal slot | `--meal`, `--place` |
+| `no-reply` | Record user ignored the question | `--meal` |
+| `record-drift` | Record inferred venue, update mismatch counter | `--meal`, `--inferred` |
+| `reset-drift` | Zero out drift counters after confirm/deny | `--meal` |
+| `load` | Read full profile | — |
+
+All commands require `--data-dir`. Valid `--place` values: `home`, `cafeteria`, `takeout`, `restaurant`, `bring_meal`, `other`.
+
+**Workflow integration (step 11 in Logging Food):**
+
+1. Call `check --meal <meal> --weekday <0-6>` after the food log reply
+2. If `action: "ask"` → append venue question to reply, then call `no-reply` if user doesn't answer next turn (or `save-place` if they do)
+3. If `action: "drift_confirm"` → append drift confirmation question
+4. If `action: "none"` or `"skip"` → do nothing
+5. On each food log where venue can be inferred from photo/text → call `record-drift --inferred <place>`
+
 ---
 
 ## Meal Type Assignment
