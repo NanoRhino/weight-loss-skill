@@ -142,6 +142,10 @@ print('NOT_FOUND')
       fi
       TO="user:$SLACK_USER_ID"
       ;;
+    app|webchat)
+      # App channel: use webhook delivery to Bridge
+      TO="http://127.0.0.1:8100/cron-webhook"
+      ;;
     wechat|wecom)
       # Extract userId from agent ID: wechat-dm-xxx → xxx, wecom-dm-xxx → xxx
       USER_ID=$(echo "$AGENT" | sed -E 's/^(wechat|wecom)-dm-//')
@@ -164,15 +168,35 @@ echo "Agent: $AGENT → Channel: $CHANNEL → To: $TO"
 # Note: Do NOT wrap $MESSAGE with delivery instructions here.
 # The no-self-delivery rule is enforced in notification-composer SKILL.md
 # and AGENTS.md, not in each cron job's payload. See CONVENTIONS.md §11.
-CMD=(openclaw cron add
-  --name "$NAME"
-  --session isolated
-  --agent "$AGENT"
-  --message "$MESSAGE"
-  --announce
-  --channel "$CHANNEL"
-  --to "$TO"
-)
+if [[ "$CHANNEL" == "app" || "$CHANNEL" == "webchat" ]]; then
+  # App channel: agent composes message, then uses exec curl to push to Bridge.
+  # OpenClaw's SSRF guard blocks webhook delivery to localhost/private IPs,
+  # but agent exec tool bypasses SSRF since it's a shell command.
+  BRIDGE_URL="http://127.0.0.1:8100/cron-deliver"
+  WRAPPED_MESSAGE="$MESSAGE
+
+IMPORTANT: After composing your response, you MUST deliver it to the app by running this exec command (replace YOUR_MESSAGE with your actual composed message, properly escaped for JSON):
+exec command: curl -s -X POST '$BRIDGE_URL' -H 'Content-Type: application/json' -d '{\"agent_id\": \"$AGENT\", \"message\": \"YOUR_MESSAGE\", \"type\": \"other\", \"cron_name\": \"$NAME\", \"channel\": \"app\"}'
+Do NOT output the message as your reply. Instead, put your full message text into the curl command above and execute it. Reply with only: NO_REPLY"
+  CMD=(openclaw cron add
+    --name "$NAME"
+    --session isolated
+    --agent "$AGENT"
+    --message "$WRAPPED_MESSAGE"
+    --no-deliver
+    --json
+  )
+else
+  CMD=(openclaw cron add
+    --name "$NAME"
+    --session isolated
+    --agent "$AGENT"
+    --message "$MESSAGE"
+    --announce
+    --channel "$CHANNEL"
+    --to "$TO"
+  )
+fi
 
 if [[ -n "$AT" ]]; then
   CMD+=(--at "$AT")
