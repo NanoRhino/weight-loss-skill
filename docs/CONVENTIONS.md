@@ -155,7 +155,22 @@ Skills frequently read data owned by other skills. To keep this manageable:
 
 ---
 
-## 10. Language & Locale Policy
+## 10. Data File Ownership Quick Reference
+
+| File | Owner Skill | Purpose |
+|------|-------------|---------|
+| `data/meals/YYYY-MM-DD.json` | `diet-tracking-analysis` | Daily meal logs |
+| `data/recommendations/YYYY-MM-DD.json` | `notification-composer` | Meal recommendation dedup |
+| `data/weight.json` | `weight-tracking` | Weight records |
+| `data/engagement.json` | `notification-manager` | Notification lifecycle state |
+| `data/preference-tuning.json` | `preference-tuning` | User preference defaults + Week 1 nudge state |
+
+Other skills may **read** these files but should only **write** through the
+owning skill's scripts or conventions.
+
+---
+
+## 11. Language & Locale Policy
 
 **Do NOT add language selection logic to any skill.** Language is managed
 centrally:
@@ -173,7 +188,7 @@ centrally:
 
 ---
 
-## 11. Cron Job Delivery Policy
+## 12. Cron Job Delivery Policy
 
 Cron isolated sessions use **announce delivery** — the agent's text output
 is automatically delivered to the user by the OpenClaw cron system. This

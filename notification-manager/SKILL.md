@@ -134,7 +134,7 @@ Use the cron tool directly for listing and removing:
 **Every time this skill is activated** (by a cron trigger, by another skill like `meal-planner`, or by any interaction), verify that existing cron jobs match the current meal times in `health-profile.md > Meal Schedule`:
 
 1. List existing reminder cron jobs (`action: "list"`).
-2. Derive the expected cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min).
+2. Derive the expected cron times from `health-profile.md > Meal Schedule` (each meal time minus the **configured reminder offset**). Read `data/preference-tuning.json > defaults.reminder_offset_min` for the offset (default: 15 min if the file doesn't exist).
 3. Compare:
    - **Missing jobs** (expected time has no matching cron) → create them.
    - **Stale jobs** (cron exists but its time doesn't match any current meal time) → remove then recreate.
@@ -148,12 +148,29 @@ Use the cron tool directly for listing and removing:
 
 ## Cron Job Definitions
 
-Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus the **configured reminder offset**). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+
+### Reminder Offset
+
+Read `data/preference-tuning.json > defaults.reminder_offset_min` for the
+meal reminder offset. If the file doesn't exist, use the default of **15 min**.
+
+The cron time for each meal = `meal_time - reminder_offset_min`.
+
+Example offsets and their effect (assuming breakfast at 07:00):
+
+| `reminder_offset_min` | Cron time |
+|-----------------------|-----------|
+| 60 | `0 6 * * *` (06:00) |
+| 30 | `30 6 * * *` (06:30) |
+| 15 (default) | `45 6 * * *` (06:45) |
+| 5 | `55 6 * * *` (06:55) |
 
 Every meal cron `--message` MUST tell the agent to run `notification-composer` for that meal. Keep it minimal — notification-composer owns pre-send checks, message composition, and reply handling. Do not duplicate its rules in the cron message.
 
 ```bash
-# Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
+# Example: 3 meals, reminders at configured offset before each
+#          (default 15 min → 06:45, 11:45, 17:45 for 07:00/12:00/18:00 meals)
 # Note: --type meal ensures anti-burst scheduling with [-10, +5] min window
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --type meal --name "Breakfast reminder" \
@@ -263,6 +280,7 @@ Users may ask to change reminders in natural language. Handle inline:
 | Source | Field / Path | Purpose |
 |--------|-------------|---------|
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
+| `data/preference-tuning.json` | `defaults.reminder_offset_min` — direct read | Meal reminder offset (default: 15 min if file missing) |
 | `data/engagement.json` | `last_interaction` | Stage detection |
 
 ### Writes

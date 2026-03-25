@@ -55,6 +55,51 @@ without any manual intervention.
 
 ---
 
+## Preference-Aware Behavior
+
+Before composing any meal reminder or check-in response, read
+`data/preference-tuning.json` (if it exists). Two fields affect this skill's
+behavior:
+
+### Supervision Level (`defaults.supervision_level`)
+
+| Level | Meal Reminder Style | Check-in Response Style | Photo Prompt | Unlogged Nudge |
+|-------|--------------------|-----------------------|-------------|----------------|
+| `strict` | Full recommendations with tips + remaining calorie budget | Detailed macros + nutritional analysis + suggestions | Yes | Yes — mention if previous meal wasn't logged |
+| `moderate` (default) | Standard recommendations with tips | Calories + brief nutritional notes | Yes | No |
+| `relaxed` | Options only, no tips, shorter text | Brief confirmation (`"已记录 ✓ 约 450 kcal"`) | No | No |
+
+If `data/preference-tuning.json` doesn't exist, use `moderate` (current default behavior).
+
+### Week 1 Nudges (Preference Discovery)
+
+During `phase: "week1"`, check the `nudges` array for a nudge that is:
+- `status: "pending"`
+- `scheduled_day` <= (today - `onboarding_start` + 1)
+
+If a qualifying nudge exists:
+
+1. **`reminder_offset`** and **`open_feedback`** nudges: Append the nudge text
+   (from `preference-tuning` SKILL.md templates) after the meal reminder,
+   separated by `---`. Only on the **first meal reminder** of the day.
+2. **`supervision_level`** nudge: Append the nudge text after the **first
+   check-in response** (when user logs a meal) of the day, separated by `---`.
+   This nudge does NOT go on a reminder — it goes on a reply.
+
+After appending a nudge, update its status to `"sent_awaiting_reply"` and
+set `sent_date` to today in `data/preference-tuning.json`.
+
+If the user replies with a preference choice, hand off to `preference-tuning`
+skill for processing (update JSON + trigger downstream changes). Then mark
+the nudge `"answered"`.
+
+If the user's next message ignores the nudge (e.g., just logs food), mark the
+nudge `"sent_no_reply"` and move on. Never re-ask per the Single-Ask Rule.
+
+When all nudges have been sent and 1 day has passed, set `phase` to `"settled"`.
+
+---
+
 ## Pre-send Checks (MANDATORY — run before every reminder)
 
 **Every reminder MUST run the pre-send-check script FIRST. If it returns `NO_REPLY`, your entire response must be exactly `NO_REPLY` — stop immediately, do not compose a message, do not output anything else.**
@@ -102,6 +147,11 @@ This is both a recommendation and the entry point for diet logging — every rem
 **Style: text like a friend who knows their life, not a system notification.**
 Warm, concise, conversational. Each recommendation feels like a friend's suggestion, not a nutrition label.
 
+**Style adapts to `supervision_level`** (read from `data/preference-tuning.json`):
+- `strict`: Include remaining calorie budget in opening line. Tips are more directive. Add a note if the previous meal wasn't logged (e.g., `"午餐好像没记，要补一下吗？"`).
+- `moderate` (default): Current behavior as described below.
+- `relaxed`: Skip opening line and tips. List food options only. No photo prompt. Shorter overall.
+
 #### Generation Flow
 
 1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get the user's eating habits, recent meals, and recent recommendations.
@@ -136,7 +186,7 @@ Tip sources:
 - Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
 - If the user picked the same recommendation 3+ days in a row, don't force a change — respect their preference.
 
-**Closing line:** Always end with an invitation to photograph the meal. Examples:
+**Closing line:** End with an invitation to photograph the meal (skip if `supervision_level` is `relaxed`). Examples:
 - `"吃之前拍给我，现场帮你看~"`
 - `"Snap a photo before you eat — I'll check it out for you~"`
 
@@ -315,6 +365,8 @@ stop the current workflow and hand off immediately.
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
 | `data/engagement.json` | `last_interaction` — direct read | Stage detection |
+| `data/preference-tuning.json` | `defaults.supervision_level` — direct read | Adjust reminder style and check-in response detail |
+| `data/preference-tuning.json` | `phase`, `nudges` — direct read | Week 1 nudge delivery |
 
 ### Writes
 
@@ -322,6 +374,7 @@ stop the current workflow and hand off immediately.
 |------|-----|------|
 | `data/weight.json` | `weight-tracker.py save` | User reports weight |
 | `data/recommendations/YYYY-MM-DD.json` | `nutrition-calc.py save-recommendation` | After sending each meal recommendation |
+| `data/preference-tuning.json` | `nudges[].status`, `nudges[].sent_date` — direct write | After appending a nudge to a reminder/reply |
 
 Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals and recommendations via `nutrition-calc.py` from `diet-tracking-analysis`.
 Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.

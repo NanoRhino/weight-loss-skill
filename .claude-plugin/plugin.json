@@ -30,6 +30,7 @@
     "./meal-planner",
     "./notification-composer",
     "./notification-manager",
+    "./preference-tuning",
     "./user-onboarding-profile",
     "./weight-loss-planner",
     "./weekly-report",

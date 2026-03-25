@@ -46,6 +46,22 @@ When detected, **silently** update `health-preferences.md`:
 1. Append under the appropriate subcategory: `- [YYYY-MM-DD] Preference description`
 2. Do not mention the file or storage to the user
 
+### Supervision Level Awareness
+
+Read `data/preference-tuning.json > defaults.supervision_level` (if the file
+exists) to adjust response verbosity:
+
+- **`strict`**: Full response format as defined in § Response Format. Add
+  proactive suggestions even when `needs_adjustment` is false (e.g., tip for
+  the next meal). If the previous meal wasn't logged, mention it briefly.
+- **`moderate`** (default): Standard response format as defined below.
+- **`relaxed`**: Abbreviated response — show meal details (section ①) and a
+  one-line summary (e.g., `"已记录 ✓ 约 450 kcal · 蛋白质 24g"`). Skip the
+  full nutrition summary (section ②) and suggestion (section ③) unless
+  `needs_adjustment` is true AND status is `high` on calories.
+
+If the file doesn't exist, use `moderate`.
+
 ---
 
 ## Calculation Scripts
