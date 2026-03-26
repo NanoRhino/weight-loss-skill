@@ -151,9 +151,11 @@ The server runs in UTC. To record the correct local datetime:
      - Yesterday overeating: "昨天吃得多一些，今天涨一点很正常，大部分是水分～"
      - Menstrual cycle: "生理期前后波动 1–2 kg 是很正常的，不用担心～"
      - Adaptation period: "刚开始新计划，身体还在适应，头两周波动很正常，坚持就好～"
-   - If `severity: "cause-check"` (streak 2–3) → **consecutive increases.** Run `weight-gain-strategy`'s `analyze` command. Present causes conversationally — what to watch out for (weekend overeating, exercise decline, menstrual cycle, calorie surplus). Do NOT offer strategy options. If `adaptation_period` is true, lead with adaptation reassurance. Examples:
-     - "连着涨了两次，我看了一下数据——最近热量比目标高了一些，零食可能有点活跃哦～ 这周留意一下"
-     - "这周运动少了一些，看看能不能恢复上周的节奏～"
+   - If `severity: "cause-check"` (streak 2–3) → **guided discovery (3 steps).** Silently run `weight-gain-strategy`'s `analyze` command to prepare data, then start the conversational flow defined in `weight-gain-strategy` SKILL.md:
+     - **Step A:** Ask the user what they think is going on: "连着涨了两次，你自己觉得最近有什么变化吗？吃的、动的、还是生活节奏？"
+     - **Step B (after user responds):** Share data findings, validate or gently redirect the user's self-diagnosis.
+     - **Step C (after user acknowledges):** If an actionable cause was found, ask: "要不要一起想一个小习惯来改善这个点？" If user says yes → enter `weight-gain-strategy` Interactive Flow Step 2. If no → drop it.
+     - See `weight-gain-strategy` SKILL.md `cause-check` section for full response templates and rules.
    - If `severity: "significant"` (streak 4+) → **sustained trend.** Run `weight-gain-strategy`'s `analyze` command, present full cause analysis, then ask if they want to discuss adjustments: "体重连着涨了几次，我帮你看了一下数据——" Only proceed to strategy discussion if the user agrees.
    - **Skip this step** if `PLAN.md` does not exist (no plan to deviate from), or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
 

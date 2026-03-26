@@ -44,7 +44,7 @@ Severity is driven by **consecutive increases** — how many weigh-ins in a row 
 |----------|--------|----------|
 | `none` | 0 | No increase. Weight is stable or down — just confirm the log. |
 | `comfort` | 1 | **First increase.** Comfort and encourage. If a temporary cause was detected (yesterday overeating, menstrual cycle, water retention), mention it lightly as reassurance. Tone: warm, no concern at all. |
-| `cause-check` | 2–3 | **Consecutive increases.** Run `analyze` to identify probable causes (weekend overeating, exercise decline, menstrual cycle, calorie surplus). Present findings conversationally — tell the user what to watch out for. Do NOT offer strategy options yet. |
+| `cause-check` | 2–3 | **Consecutive increases.** Guide the user through a 3-step conversational discovery: (1) ask them what they think caused the increase, (2) run `analyze` and share findings alongside their own reflection, (3) ask if they want to build a small habit change together. Each step waits for user response before proceeding. |
 | `significant` | 4+ | **Sustained upward trend.** Run `analyze`, present full cause analysis (Step 1), then ask if they want to discuss adjustments (Step 2). |
 
 **Adaptation period modifier:** When `adaptation_period` is true (first 2 weeks of plan), add "body is still adjusting" context to any severity level. For `comfort`, this is the primary message. For `cause-check`, lead with adaptation reassurance before mentioning causes.
@@ -59,17 +59,60 @@ Severity is driven by **consecutive increases** — how many weigh-ins in a row 
 
 **Key rule:** `comfort` is pure encouragement. Never analyze, never suggest changes. Just normalize the fluctuation and cheer them on.
 
-**`cause-check` response examples (streak = 2–3):**
+**`cause-check` guided discovery flow (streak = 2–3):**
 
-Run `analyze`, then present findings in a "here's what I noticed" tone — informational, not accusatory. Close with specific things to watch, not action demands.
+A 3-step conversational flow. Each step waits for the user's response before
+moving to the next. The goal is to help the user **discover the cause
+themselves** — not lecture them. Run `analyze` silently at the start (before
+Step A) so the data is ready, but don't reveal findings until Step B.
 
-- **Calorie surplus:** "连着涨了两次，我看了一下数据——最近日均热量比目标高了大概 {surplus} kcal，{X} 天里有 {Y} 天超标了，零食可能有点活跃哦～ 这周可以留意一下零食和加餐的量" / "Two weigh-ins up in a row, so I took a look — you've been averaging about {surplus} kcal over target, over on {Y} of {X} days. Snacks might be the culprit. Something to keep an eye on this week."
-- **Exercise decline:** "这周运动了 {current} 次，上周是 {previous} 次——少了一些活动量。看看这周能不能恢复节奏～" / "You worked out {current} time(s) this week vs {previous} last week. See if you can get back to your rhythm this week."
-- **Weekend pattern:** "看了一下饮食记录，周末那两天热量明显偏高——工作日控制得挺好的，周末可以稍微留意一下～" / "Looking at your logs, weekends are noticeably higher — weekdays are solid though. Something to be mindful of on weekends."
-- **Menstrual cycle:** "连着涨了两次，不过看起来和生理期时间吻合——热量其实控制得不错，大概率是周期性的水肿，等经期过了趋势会更清楚～" / "Two increases in a row, but it lines up with your cycle — your intake looks fine, so this is likely water retention. Trend will be clearer after your period."
-- **Adaptation period + causes:** "头两周身体还在适应，波动是正常的。不过我顺便看了一下，最近热量稍微偏高一些，等适应期过了可以留意一下～" / "Still early days and your body is adjusting. I did notice intake has been a bit above target though — something to keep in mind once you've settled in."
+**Step A: Ask the user first** — Open with empathy, then ask what they think
+is going on. This gives the user agency and often surfaces context the data
+can't capture (stress, travel, social meals, sleep changes).
 
-**Key rule:** `cause-check` identifies and explains causes, but stops at "watch out for this" — no strategy proposals, no action plans. Tone stays light and curious, not prescriptive.
+Examples:
+- "连着涨了两次，你自己觉得最近有什么变化吗？吃的、动的、还是生活节奏？" / "Up two times in a row — do you have a sense of what's been different lately? Eating, exercise, lifestyle?"
+- "最近体重一直在往上走，你觉得是什么原因呢？" / "Weight's been creeping up — any hunches about why?"
+
+**Wait for user response.** If the user doesn't know or says "不知道/no idea",
+that's fine — move to Step B.
+
+**Step B: Share data findings together** — Now present the `analyze` results.
+If the user already identified a cause in Step A, validate their insight and
+add data to support it. If they were off, gently redirect with the data.
+
+Presentation style depends on whether the user's self-diagnosis was accurate:
+
+- **User was right:** "你说得对！数据也印证了——{data finding}。{light elaboration}" / "Spot on! The data backs you up — {data finding}."
+  - Example: User said "周末吃太多了" → "你说得对！看了一下记录，周末那两天热量明显偏高，工作日其实控制得挺好的～"
+- **User was partially right:** "有一部分是这个原因，数据还显示了另一个点——{additional finding}" / "That's part of it — the data also shows {additional finding}."
+  - Example: User said "运动少了" → "运动确实少了一些，这周 {current} 次 vs 上周 {previous} 次。另外看了一下饮食，日均热量也比目标高了一点～"
+- **User didn't know:** "我帮你看了一下数据——{data finding}。{possible cause}" / "I took a look at the data — {data finding}."
+  - Example: "我帮你看了一下——最近日均热量比目标高了大概 {surplus} kcal，{X} 天里有 {Y} 天超标了。可能是零食和加餐积少成多了～"
+- **Menstrual cycle detected:** "数据看下来热量其实控制得不错，时间上和生理期比较吻合——大概率是周期性的水肿，不是真的胖了，等经期过了再看～" / "Your intake actually looks fine — the timing lines up with your cycle, so this is likely water retention. Let's check again after it passes." (Skip Step C for menstrual cycle — no habit change needed.)
+- **Adaptation period:** "头两周身体还在适应，这本身就会有波动。{if cause detected: 不过数据也显示 {finding}，等适应期过了可以留意一下}" / "Still early and your body is adjusting. {if cause: The data does show {finding} though — something to watch once you've settled in.}"
+
+**Wait for user response.** If the user acknowledges or asks follow-up
+questions, answer them. Then move to Step C.
+
+**Step C: Ask about building a habit change** — Only if a real, actionable
+cause was identified (NOT menstrual cycle, NOT normal fluctuation). Frame it
+as a collaborative invitation, not a prescription.
+
+Examples:
+- "要不要一起想一个小习惯来改善这个点？不用大动作，一个小调整就好～" / "Want to figure out one small habit change together? Nothing dramatic — just a little tweak."
+- "这个点如果能稍微调一下，应该会有帮助——要不要聊聊怎么改？" / "Tweaking this could help — want to talk about how?"
+
+**If the user says yes** → proceed to the Interactive Flow Step 2 (strategy
+discussion). **If the user says no, ignores, or changes topic** → drop it.
+Single-ask rule applies.
+
+**Key rules for `cause-check`:**
+- **User reflects first, data second.** Never lead with the data dump — let the user think first.
+- **Validate before correcting.** If the user identified a cause, acknowledge it before adding or adjusting with data.
+- **Step C is optional.** If the cause is menstrual cycle, adaptation period with no actionable cause, or normal fluctuation, skip Step C — no habit change is needed.
+- **No prescriptions at any step.** Even in Step C, you're asking "want to?" not "you should."
+- **Tone stays curious and collaborative** throughout — "一起看看" not "我来告诉你".
 
 **Skip conditions:**
 - No `PLAN.md` (no plan to deviate from)
