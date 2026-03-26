@@ -97,14 +97,48 @@ questions, answer them. Then move to Step C.
 
 **Step C: Ask about building a habit change** — Only if a real, actionable
 cause was identified (NOT menstrual cycle, NOT normal fluctuation). Frame it
-as a collaborative invitation, not a prescription.
+as a collaborative invitation, not a prescription. The habit should be **one
+specific, small thing** — not a vague goal.
 
 Examples:
 - "要不要一起想一个小习惯来改善这个点？不用大动作，一个小调整就好～" / "Want to figure out one small habit change together? Nothing dramatic — just a little tweak."
 - "这个点如果能稍微调一下，应该会有帮助——要不要聊聊怎么改？" / "Tweaking this could help — want to talk about how?"
 
-**If the user says yes** → proceed to the Interactive Flow Step 2 (strategy
-discussion). **If the user says no, ignores, or changes topic** → drop it.
+**If the user says yes** → suggest a concrete micro-habit based on the detected
+cause. Match the habit to the user's existing routine and preferences (cross-
+reference `health-profile.md` and `health-preferences.md`). Always propose
+just **one** habit — if the user nails it, they can add more later.
+
+**Cause → Habit mapping:**
+
+| Detected cause | Micro-habit | Example dialogue |
+|---------------|-------------|-----------------|
+| **Snacking / calorie surplus** | Swap one specific snack for a lower-cal alternative based on the user's logged meals. Identify the highest-cal recurring snack and suggest a swap, not elimination. | "看了一下记录，下午那包薯片出镜率挺高的（大概 300 kcal），换成水果或酸奶试试？热量直接砍一半～" / "That afternoon chips habit is ~300 kcal a pop — what about swapping it for fruit or yogurt? Cuts it in half." |
+| **Weekend overeating** | Set a weekend portion-awareness habit — e.g., weekend meals still拍照记录, or pick one weekend meal to eat mindfully. Not "restrict weekends" but "stay aware on weekends." | "工作日控制得挺好的，周末容易放飞。试试周末也拍照记录吃的？不用刻意少吃，就是保持留意～" / "Weekdays are solid — weekends are where it slips. Try photo-logging weekend meals? Not to restrict, just to stay aware." |
+| **Exercise decline** | Restore one specific session the user used to do, not add something new. If user used to run 3x/week and dropped to 1x, the habit is "put back one run" — not "exercise more." | "之前一周跑三次，最近只有一次了。要不先把周三那次加回来？一次就好，不贪多～" / "You used to run 3x/week, now it's 1x. How about adding back your Wednesday run? Just that one." |
+| **Late-night eating** | Move dinner or last meal earlier by a specific amount (e.g., 30-60 min earlier), or set a kitchen-closes time. | "最近晚饭经常 9 点多才吃，试试提前到 8 点？不用完美，大部分时候能做到就行～" / "Dinner's been creeping past 9 PM — try aiming for 8 PM? Doesn't have to be perfect, just most days." |
+| **Delivery / eating out too often** | Swap one delivery meal per week for a home-cooked alternative. If user enjoys cooking, frame it as "more of what you already like." | "这两周点外卖次数有点多，试试一周少点一次，自己做一顿？你之前做的那些看起来都挺好的～" / "Lots of delivery lately — what about swapping one order per week for a home-cooked meal? Your past recipes looked great." |
+| **Logging gaps** | Commit to logging one specific meal consistently (pick the one they're most likely to remember — usually lunch or dinner). Not "log everything" but "log this one meal." | "最近好几天没记饮食了，不用每餐都记——先从午饭开始，每天就拍一张就行，一周试试？" / "You've been off logging lately. Don't worry about every meal — just snap your lunch every day for a week. That's it." |
+| **Calorie creep (no single culprit)** | Reduce portion of one specific staple food slightly — e.g., rice reduced by 1/3, or one less spoon of oil. Target the item that appears most frequently in meal logs. | "没有哪一顿特别多，但整体热量慢慢涨了。试试晚饭米饭少盛 1/3？其他都不用变～" / "No single meal stands out, but overall intake has crept up. Try 1/3 less rice at dinner? Everything else stays the same." |
+
+**Habit suggestion rules:**
+- **One habit only.** Never suggest two changes at once. If multiple causes
+  were detected, pick the one with the highest impact-to-effort ratio for this
+  specific user.
+- **Specific, not vague.** "少吃点零食" is vague. "下午的薯片换成酸奶" is specific.
+  Always name the concrete item, time, or number.
+- **Swap, not subtract.** Prefer "replace X with Y" over "stop doing X."
+  Removal feels like punishment; substitution feels like a trade.
+- **Based on their data.** Reference specific items from their meal logs,
+  exercise history, or schedule. Generic advice ("eat more vegetables") is
+  useless — personalized advice ("你那个下午的奶茶") lands.
+- **Duration: 1 week trial.** Frame it as an experiment: "试一周看看？" Not a
+  permanent life change. Lower commitment = higher compliance.
+- **Save if agreed.** If the user agrees, run `save-strategy` to persist it
+  (type = the matching strategy type, params include the specific habit). This
+  allows `weekly-report` and `check-strategy` to follow up.
+
+**If the user says no, ignores, or changes topic** → drop it.
 Single-ask rule applies.
 
 **Key rules for `cause-check`:**
