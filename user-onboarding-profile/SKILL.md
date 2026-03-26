@@ -61,7 +61,8 @@ These are the only fields you MUST collect before moving on. Each round focuses 
 5. Sex
 6. Target weight
 7. Core motivation (why they want to lose weight)
-8. Activity level (3-option pick — see Round 4)
+8. Activity level (4-option pick — see Round 4)
+9. Exercise habits & preferences
 
 > **Note:** Meal timing, taste preferences, and food restrictions are NOT collected during onboarding. These are asked later — after the user has seen and accepted their weight loss plan — to produce a personalized diet template.
 
@@ -143,36 +144,34 @@ If target weight is `null`, only show current BMI.
 
 **Single-ask rule:** Every question is asked at most once. If the user ignores a question or changes the subject, do not repeat it — use `null` or a sensible default for that field and continue to the next round. See `SKILL-ROUTING.md > Single-Ask Rule` for the full policy.
 
-**Round 4 — Activity level (required):**
+**Round 4 — Activity level & exercise habits (required):**
 
-Ask the user's daily activity level based on job/lifestyle. Activity level determines the NEAT multiplier for TDEE; exercise calories are tracked separately when actually logged (not baked into TDEE). Also tell the user that exercise is tracked separately — they just need to report it after working out.
+Present three options for the user to pick. Then ask about exercise habits.
 
-> Example: "Got it! 你平时的日常活动大概是哪种？（运动另算，这里就是日常生活）
-> A. 几乎不出门，也不怎么走动
-> B. 正常上下班通勤
-> C. 工作需要经常走动（老师、零售、医护等）
+> Example: "Got it! 你平时日常活动大概是哪种？
+> A. 几乎不出门，也不运动
+> B. 正常上下班，偶尔散步或运动
+> C. 经常做中高强度运动
 >
-> 运动的部分不用选进去——之后你运动完告诉我，我会额外帮你算消耗。"
+> 另外你现在有运动习惯吗？做什么运动，大概一周几次？"
 
-Activity level mapping (internal — based on daily movement/job type ONLY, not exercise):
+Activity level mapping (internal — do not expose multipliers to user):
 
 | Option | activity_level | ×     |
 |--------|---------------|-------|
 | A      | sedentary          | 1.2   |
 | B      | lightly_active     | 1.375 |
-| C      | moderately_active  | 1.55  |
-
-**Important:** Exercise habits do NOT affect the activity level selection. A desk worker who runs 5x/week is still `sedentary` (×1.2) — their running calories are tracked separately when logged. This prevents double-counting exercise in TDEE.
+| C      | active             | 1.55  |
 
 ### Step 2 — Confirm Activity Level & TDEE
 
 After receiving the user's answer in Round 4, do the following:
 
-1. **Map to activity level** — Determine the activity level based on **daily movement and job type ONLY** (ignore exercise habits for this mapping):
-   - WFH / homebound / rarely goes out → `sedentary`
-   - Office job with commute, normal errands, some daily walking → `lightly_active`
-   - On-feet job (teacher, retail, healthcare) or very active daily routine → `moderately_active`
-   - Physical labor job (construction, farming, delivery) → `very_active`
+1. **Map to activity level** — Determine the activity level based on work type and exercise habits:
+   - Sedentary job + no exercise → `sedentary`
+   - Sedentary job + light exercise (1–2 days/week, or commute-level activity like short daily walks/cycling) → `lightly_active`
+   - Sedentary job + moderate exercise (3–5 days/week) → `moderately_active`
+   - Active job or heavy daily training → `very_active`
 
 2. **Compute TDEE** — Run:
    ```bash
@@ -181,9 +180,9 @@ After receiving the user's answer in Round 4, do the following:
      --activity <activity_level>
    ```
 
-3. **Confirm work type + TDEE** — Explain what TDEE means and what activity level you assigned them based on their daily movement (not exercise). Mention that exercise calories will be tracked separately when they log workouts. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
+3. **Confirm work type + exercise + TDEE** — Show only these two fields (not a full summary of all collected data). Explain what TDEE means and what activity level you assigned them. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
 
-   > Example: "明白了！根据你的日常活动（上班通勤），我把你归为轻度活跃，你每天的基础消耗大约是 1750–1950 大卡。运动的部分不算在里面——你运动完跟我说一声，我会单独帮你算额外消耗。这个判断看起来合适吗？"
+   > Example: "明白了！根据你的情况（久坐工作 + 每周一次舞蹈 + 每天骑车通勤），我把你归为轻度活跃，也就是说你每天维持现有体重大约需要消耗 1750–1950 大卡。TDEE（总每日能量消耗）是我们后续制定饮食方案的基准。这个判断看起来合适吗？有没有想调整的地方？"
 
 4. **Generate the Profile** — After the user confirms, silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
 
