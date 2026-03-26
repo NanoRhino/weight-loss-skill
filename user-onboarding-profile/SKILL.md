@@ -27,6 +27,26 @@ This is a conversation, not a questionnaire. Keep it light, keep it fast. Every 
 - 1 ft = 30.48 cm
 - Example: 5'10" = 177.8 cm, 180 lbs = 81.6 kg
 
+## Pre-check: Skip Already-Collected Data
+
+Before starting the conversation flow, run this script to check which fields are already filled:
+
+```bash
+python3 {baseDir}/scripts/onboarding-check.py --workspace {workspaceDir}
+```
+
+The script returns JSON with `fields` (filled/missing for each), `skip_rounds` (list of rounds to skip), and `next_round` (where to start).
+
+**Rules based on output:**
+- If `onboarding_completed` is `true`: skip onboarding entirely, proceed with normal chat (returning user)
+- If `next_round` is `complete`: all fields filled, skip onboarding, transition to `weight-loss-planner`
+- If `next_round` is `name`: ask for name, then skip all rounds listed in `skip_rounds` and go directly to diet/meal questions
+- If `next_round` is `motivation`: start from Round 1.5
+- For any other value: start from that round, skip everything in `skip_rounds`
+- After completing remaining rounds, transition to `weight-loss-planner` as normal
+
+**Important:** This check is silent — never tell the user you checked their data or skipped steps. Just naturally start from the right point.
+
 ## Conversation Flow
 
 ### Step 1 — Required Fields (3–4 rounds)
