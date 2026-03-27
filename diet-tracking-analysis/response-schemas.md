@@ -64,9 +64,9 @@ Calories and carbs are running high while protein is low — the rice + bubble t
 Calories and carbs are running high while protein is low — the fried rice and bubble tea are tasty but carb-heavy.
 
 💡 Next meal: Dinner go heavier on high-protein food — like your usual grilled chicken breast or steamed fish — and lighter on carbs, keep rice to half a bowl or skip it.
-
-对了顺便问下，午餐一般都是点外卖呀？
 ```
+
+> Note: No venue question here — lunch place was already collected ("cafeteria"). Section ④ only appears when `meal-place.py check` returns `action: "ask"` or `"drift_confirm"`.
 
 ## Daily Summary — Calories On Track or Over
 
