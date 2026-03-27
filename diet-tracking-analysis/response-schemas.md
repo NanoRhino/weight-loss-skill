@@ -30,6 +30,8 @@ Protein and fat are on track, carbs slightly low — adding a bit of grain at di
 
 ✨ Great protein choice with the chicken breast!
 💡 Next time: Try adding half a cup of quinoa to your salad for an extra carb boost.
+
+对了顺便问下，午餐一般是吃食堂呢，还是在外面吃呢？
 ```
 
 ## Food Log with Adjustment Needed
@@ -45,6 +47,8 @@ Protein and fat are on track, carbs slightly low — adding a bit of grain at di
 Calories and carbs are running high while protein is low — the rice + bubble tea combo pushed carbs up.
 
 ⚡ Right now: Swap the bubble tea for unsweetened tea, and rice reduced to half a bowl — the other half can go with dinner. Protein is low, so dinner add some high-protein food, like your usual grilled chicken breast or eggs. After adjustment, this meal would total ~340 kcal, protein 8g, carbs 58g, fat 10g.
+
+对了顺便问下，午餐一般都是在外面吃呀？
 ```
 
 ## Food Log with Adjustment Needed — Already Eaten
@@ -60,6 +64,8 @@ Calories and carbs are running high while protein is low — the rice + bubble t
 Calories and carbs are running high while protein is low — the fried rice and bubble tea are tasty but carb-heavy.
 
 💡 Next meal: Dinner go heavier on high-protein food — like your usual grilled chicken breast or steamed fish — and lighter on carbs, keep rice to half a bowl or skip it.
+
+对了顺便问下，午餐一般都是点外卖呀？
 ```
 
 ## Daily Summary — Calories On Track or Over
