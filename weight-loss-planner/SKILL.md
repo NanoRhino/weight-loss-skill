@@ -156,7 +156,7 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 
 **[Opening]** — One short energetic sentence: greet the user by name (if known) and jump straight in. No "好的，我已经为你准备好了" — just start presenting.
 
-**[User info block]** — Always include, both Path A and Path B. A compact summary of what was collected, so the user can spot any errors before the plan is locked in. Label it clearly, e.g. "先确认一下你的信息：". Include:
+**[User info block]** — Always include, both Path A and Path B. A compact summary of what was collected, so the user can spot any errors before the plan is locked in. No label or header — just the bullet points directly. Include:
   • 身高 / 体重 / 年龄 / 性别
   • 目标体重
   • 活动等级（用口语描述，不要用 sedentary / lightly_active 等英文字段名）
