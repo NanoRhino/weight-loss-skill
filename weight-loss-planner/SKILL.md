@@ -156,19 +156,25 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 
 **[Opening]** — One short energetic sentence: greet the user by name (if known) and jump straight in. No "好的，我已经为你准备好了" — just start presenting.
 
-**[Body metrics block]** — **Path B (standalone) only:** BMI has not been shown yet. Include:
+**[User info block]** — Always include, both Path A and Path B. A compact summary of what was collected, so the user can spot any errors before the plan is locked in. Label it clearly, e.g. "先确认一下你的信息：". Include:
+  • 身高 / 体重 / 年龄 / 性别
+  • 目标体重
+  • 活动等级（用口语描述，不要用 sedentary / lightly_active 等英文字段名）
+  • 运动习惯（如有）
+
+**[Body metrics block]** — **Path B (standalone) only:** BMI has not been shown yet. Include after the user info block:
   • Current BMI: [X.X] ([classification per regional standard])
   • Target BMI: [X.X] ([classification])
 
-**Path A (post-onboarding):** BMI was already shown during onboarding. **Skip the body metrics block entirely** — go directly to the plan details block.
+**Path A (post-onboarding):** BMI was already shown during onboarding. **Skip the body metrics block** — go directly to the plan details block.
 
 **[Safety floor explanation]** — Omit. Do not mention BMR or TDEE values to the user.
 
-**[Plan details block]** — "So here's your plan:" followed by bullet list:
-• Daily calorie target: [X,XXX] kcal (rounded, single value — not a range)
-• Daily calorie deficit: ~[XXX] kcal (TDEE minus daily target, rounded to nearest 50)
-• Weekly loss rate: ~[X.X] kg/week ([X.X] lbs/week)
-• Estimated completion: [Specific month + year, e.g., "June 2027"] — single date only. If the user gave a target weight range, use the upper bound (easier target) as the completion date. Mention the lower bound as a follow-on milestone in the rate explanation if relevant.
+**[Plan details block]** — "你的计划：" followed by bullet list:
+• 每日热量目标：[X,XXX] 大卡
+• 每日热量缺口：约 [XXX] 大卡
+• 每周减重速度：约 [X.X] kg / [X.X] 斤
+• 预计完成：[具体月份 + 年份] — single date only. If the user gave a target weight range, use the upper bound (easier target) as the completion date. Mention the lower bound as a follow-on milestone in the rate explanation if relevant.
 
 > **Note:** Do NOT include per-meal split or macro targets (protein/fat/carb) at this stage. Those will be calculated after the user accepts the plan and chooses a diet mode.
 
