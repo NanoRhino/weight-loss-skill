@@ -259,9 +259,12 @@ Backfilled meals from missing-meal handling are always "already eaten."
 
 The server runs in UTC. To ensure meals are saved under the correct local date:
 
-1. **Call `detect-meal`** with `--tz-offset` from `timezone.json` and `--timestamp` from the message metadata — the response includes `local_date` (the user's local date, correctly computed).
-2. **Use `local_date`** as the `--date` parameter for `save`, `load`, `check-missing`, and `evaluate` commands.
-3. This replaces manual date calculation — `detect-meal` handles all timezone math.
+> **⚠️ MANDATORY: Re-read `timezone.json` every time you need `tz_offset`.** Do NOT cache or reuse a value read earlier in the session. The file may be updated at any time (e.g., user changes timezone, admin correction). Always read fresh before calling `detect-meal`, `save`, `load`, or any command that takes `--tz-offset`.
+
+1. **Read `timezone.json`** to get the current `tz_offset` — do this immediately before each `detect-meal` call, not once at session start.
+2. **Call `detect-meal`** with `--tz-offset` from the freshly-read `timezone.json` and `--timestamp` from the message metadata — the response includes `local_date` (the user's local date, correctly computed).
+3. **Use `local_date`** as the `--date` parameter for `save`, `load`, `check-missing`, and `evaluate` commands.
+4. This replaces manual date calculation — `detect-meal` handles all timezone math.
 
 **Fallback:** If you don't have `local_date` from `detect-meal`, pass `--tz-offset <seconds>` (from `timezone.json`) to `save` and `load` commands. The script will compute the local date automatically. **Never calculate the date yourself — always let the script do it.**
 

@@ -27,6 +27,26 @@ This is a conversation, not a questionnaire. Keep it light, keep it fast. Every 
 - 1 ft = 30.48 cm
 - Example: 5'10" = 177.8 cm, 180 lbs = 81.6 kg
 
+## Pre-check: Skip Already-Collected Data
+
+Before starting the conversation flow, run this script to check which fields are already filled:
+
+```bash
+python3 {baseDir}/scripts/onboarding-check.py --workspace {workspaceDir}
+```
+
+The script returns JSON with `fields` (filled/missing for each), `skip_rounds` (list of rounds to skip), and `next_round` (where to start).
+
+**Rules based on output:**
+- If `onboarding_completed` is `true`: skip onboarding entirely, proceed with normal chat (returning user)
+- If `next_round` is `complete`: all fields filled, skip onboarding, transition to `weight-loss-planner`
+- If `next_round` is `name`: ask for name, then skip all rounds listed in `skip_rounds` and go directly to diet/meal questions
+- If `next_round` is `motivation`: start from Round 1.5
+- For any other value: start from that round, skip everything in `skip_rounds`
+- After completing remaining rounds, transition to `weight-loss-planner` as normal
+
+**Important:** This check is silent — never tell the user you checked their data or skipped steps. Just naturally start from the right point.
+
 ## Conversation Flow
 
 ### Step 1 — Required Fields (3–4 rounds)
@@ -41,7 +61,8 @@ These are the only fields you MUST collect before moving on. Each round focuses 
 5. Sex
 6. Target weight
 7. Core motivation (why they want to lose weight)
-8. Activity level (3-option pick — see Round 4)
+8. Activity level (4-option pick — see Round 4)
+9. Exercise habits & preferences
 
 > **Note:** Meal timing, taste preferences, and food restrictions are NOT collected during onboarding. These are asked later — after the user has seen and accepted their weight loss plan — to produce a personalized diet template.
 
@@ -123,7 +144,7 @@ If target weight is `null`, only show current BMI.
 
 **Single-ask rule:** Every question is asked at most once. If the user ignores a question or changes the subject, do not repeat it — use `null` or a sensible default for that field and continue to the next round. See `SKILL-ROUTING.md > Single-Ask Rule` for the full policy.
 
-**Round 4 — Activity level (required):**
+**Round 4 — Activity level & exercise habits (required):**
 
 Ask the user's daily activity level based on job/lifestyle. Activity level determines the NEAT multiplier for TDEE; exercise calories are tracked separately when actually logged (not baked into TDEE). Do NOT mention exercise tracking here — it will be covered in Step 2.
 
@@ -132,25 +153,23 @@ Ask the user's daily activity level based on job/lifestyle. Activity level deter
 > B. 正常上下班通勤
 > C. 工作需要经常走动（老师、零售、医护等）"
 
-Activity level mapping (internal — based on daily movement/job type ONLY, not exercise):
+Activity level mapping (internal — do not expose multipliers to user):
 
 | Option | activity_level | ×     |
 |--------|---------------|-------|
 | A      | sedentary          | 1.2   |
 | B      | lightly_active     | 1.375 |
-| C      | moderately_active  | 1.55  |
-
-**Important:** Exercise habits do NOT affect the activity level selection. A desk worker who runs 5x/week is still `sedentary` (×1.2) — their running calories are tracked separately when logged. This prevents double-counting exercise in TDEE.
+| C      | active             | 1.55  |
 
 ### Step 2 — Confirm Activity Level & TDEE
 
 After receiving the user's answer in Round 4, do the following:
 
-1. **Map to activity level** — Determine the activity level based on **daily movement and job type ONLY** (ignore exercise habits for this mapping):
-   - WFH / homebound / rarely goes out → `sedentary`
-   - Office job with commute, normal errands, some daily walking → `lightly_active`
-   - On-feet job (teacher, retail, healthcare) or very active daily routine → `moderately_active`
-   - Physical labor job (construction, farming, delivery) → `very_active`
+1. **Map to activity level** — Determine the activity level based on work type and exercise habits:
+   - Sedentary job + no exercise → `sedentary`
+   - Sedentary job + light exercise (1–2 days/week, or commute-level activity like short daily walks/cycling) → `lightly_active`
+   - Sedentary job + moderate exercise (3–5 days/week) → `moderately_active`
+   - Active job or heavy daily training → `very_active`
 
 2. **Compute TDEE** — Run:
    ```bash
