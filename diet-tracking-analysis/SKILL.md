@@ -132,7 +132,7 @@ When user says "set my target" or provides weight/calorie goal:
 
 When user describes what they're about to eat (or what they already ate):
 
-1. **Collect all pending messages** — merge consecutive messages into a single input (see Batch Message Recognition)
+1. **Collect all pending messages** — merge consecutive messages into a single input before proceeding
 2. **Determine meal type** — if user explicitly states it (e.g. "breakfast", "this is lunch"), pass as `--meal-type` to `log-meal`; otherwise omit (script auto-detects from timestamp and schedule). User's statement always takes priority, even if it contradicts the time of day.
 3. **Detect meal timing** — before eating (default) or already eaten (see Meal Timing Detection). Pass as `--eaten` to `log-meal`.
 4. **Check portion clarity** — assume standard portions; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule)
@@ -189,33 +189,6 @@ When `locale.json` `region` is `"CN"`: pass `--region CN` to `log-meal`/`query-d
 ### Querying Progress
 
 User asks "how much have I eaten today" / "how much can I still eat" → call `query-day` → output the returned summary.
-
----
-
-## Batch Message Recognition
-
-Users often split a single meal log across multiple consecutive messages — for example, a photo in one message followed by clarifications in the next ("这些肥肉没吃", "没吃米饭", "加了一包辣椒酱"). These messages form **one logical input** and must be processed together.
-
-### Rule: Collect before responding
-
-When the conversation context contains multiple user messages that arrived in quick succession (i.e., no bot reply between them), **treat them all as a single input**. Read every pending user message before generating a response. Typical multi-message patterns:
-
-| Message 1 | Message 2+ | How to handle |
-|-----------|-----------|---------------|
-| Food photo | Text clarifying what was/wasn't eaten | Combine: use the photo for identification, apply the text as corrections (removals, additions, portion adjustments) |
-| Food photo | "这是午饭" / "breakfast" | Combine: use the photo for food items, use the text for meal type — skip `detect-meal` |
-| Text food log ("吃了炒饭") | Correction ("没放油" / "only half a bowl") | Combine: log the food with the corrected details |
-| Food photo | Photo of another dish | Combine: both are part of the same meal |
-
-### What NOT to do
-
-- **Do NOT respond to the photo alone** and then ask questions that the subsequent messages already answer. This forces the user to repeat themselves.
-- **Do NOT treat each message as a separate meal.** Consecutive messages without a bot reply in between are almost always about the same meal.
-- **Do NOT ask clarifying questions** about items that the user's own follow-up messages already address (e.g., don't ask "did you eat rice?" when a subsequent message says "没吃米饭").
-
-### Edge case: delayed follow-up
-
-If a user sends a follow-up correction **after** the bot has already replied (e.g., bot logged the meal, then user says "哦对了那个肥肉我没吃"), treat it as a **correction** — re-run `log-meal` with the updated items, then reply with the updated summary.
 
 ---
 
