@@ -5,7 +5,7 @@
 """
 Test suite for meal-place.py.
 
-Covers: load, check, save-place, no-reply, record-drift, reset-drift
+Covers: load, check, save-place, record-drift, reset-drift
 with all key scenarios from meal-place-rules.md.
 """
 
@@ -62,8 +62,6 @@ def test_load_creates_default():
                   f"load default: {meal} place is null")
             check(r["_collection_state"][meal]["ask_count"] == 0,
                   f"load default: {meal} ask_count is 0")
-            check(r["_collection_state"][meal]["collected"] is False,
-                  f"load default: {meal} collected is false")
             check(r["_drift_detection"][meal]["consecutive_mismatches"] == 0,
                   f"load default: {meal} drift is 0")
     finally:
@@ -74,13 +72,10 @@ def test_load_reads_existing():
     """Load reads back a previously saved profile."""
     tmpdir = tempfile.mkdtemp()
     try:
-        # Save a place first
         run_cmd(["save-place", "--data-dir", tmpdir, "--meal", "lunch", "--place", "cafeteria"])
         r = run_cmd(["load", "--data-dir", tmpdir])
         check(r["workday_meal_place_profile"]["lunch"]["place"] == "cafeteria",
               "load reads saved place")
-        check(r["_collection_state"]["lunch"]["collected"] is True,
-              "load reads collected state")
     finally:
         shutil.rmtree(tmpdir)
 
@@ -110,7 +105,23 @@ def test_check_workday_empty_asks_pick_two():
         check(r["mode"] == "pick_two", "no inference → pick_two mode")
         check(r["options"] == ["cafeteria", "restaurant"],
               "lunch default options = cafeteria, restaurant")
-        check(r["ask_count"] == 1, "first ask → ask_count=1")
+        check(r["ask_count"] == 1, "first check → ask_count=1")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
+def test_check_auto_increments_ask_count():
+    """Each check call auto-increments ask_count when place is null."""
+    tmpdir = tempfile.mkdtemp()
+    try:
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "1"])
+        check(r["ask_count"] == 1, "1st check → ask_count=1")
+
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "2"])
+        check(r["ask_count"] == 2, "2nd check → ask_count=2")
+
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "3"])
+        check(r["ask_count"] == 3, "3rd check → ask_count=3")
     finally:
         shutil.rmtree(tmpdir)
 
@@ -132,7 +143,6 @@ def test_check_low_confidence_pick_two_with_inferred():
     """Check with --inferred + --confidence low returns pick_two with inferred first."""
     tmpdir = tempfile.mkdtemp()
     try:
-        # cafeteria is not in dinner defaults (home, takeout) → replaces second
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "1",
                       "--inferred", "cafeteria", "--confidence", "low"])
         check(r["action"] == "ask", "low confidence → ask")
@@ -147,7 +157,6 @@ def test_check_low_confidence_inferred_already_in_defaults():
     """When inferred is already in defaults, it moves to first position."""
     tmpdir = tempfile.mkdtemp()
     try:
-        # restaurant is in lunch defaults (cafeteria, restaurant) → reorder
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "2",
                       "--inferred", "restaurant", "--confidence", "low"])
         check(r["options"] == ["restaurant", "cafeteria"],
@@ -193,7 +202,7 @@ def test_check_breakfast_options():
 
 
 def test_check_dinner_options():
-    """Dinner default top-2 is home + takeout."""
+    """Dinner default top-2 is home + restaurant."""
     tmpdir = tempfile.mkdtemp()
     try:
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "3"])
@@ -204,11 +213,11 @@ def test_check_dinner_options():
 
 
 # ---------------------------------------------------------------------------
-# CHECK: already collected
+# CHECK: already collected (place is set)
 # ---------------------------------------------------------------------------
 
 def test_check_already_collected_skips():
-    """Check after place is saved returns skip."""
+    """Check after place is saved returns none/no_drift."""
     tmpdir = tempfile.mkdtemp()
     try:
         run_cmd(["save-place", "--data-dir", tmpdir, "--meal", "lunch", "--place", "cafeteria"])
@@ -220,37 +229,22 @@ def test_check_already_collected_skips():
 
 
 # ---------------------------------------------------------------------------
-# NO-REPLY: 3-strike give-up
+# CHECK: 3-strike give-up (check auto-increments)
 # ---------------------------------------------------------------------------
 
-def test_no_reply_increments():
-    """no-reply increments ask_count."""
+def test_gave_up_after_3_checks():
+    """After 3 checks without save-place, 4th check returns skip/gave_up."""
     tmpdir = tempfile.mkdtemp()
     try:
-        r = run_cmd(["no-reply", "--data-dir", tmpdir, "--meal", "lunch"])
-        check(r["ask_count"] == 1, "first no-reply → ask_count=1")
-        check(r["gave_up"] is False, "1 no-reply → not gave_up")
+        # 3 checks auto-increment ask_count to 3
+        for i in range(3):
+            r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "0"])
+            check(r["action"] == "ask", f"check {i+1} → still ask")
 
-        r = run_cmd(["no-reply", "--data-dir", tmpdir, "--meal", "lunch"])
-        check(r["ask_count"] == 2, "second no-reply → ask_count=2")
-
-        r = run_cmd(["no-reply", "--data-dir", tmpdir, "--meal", "lunch"])
-        check(r["ask_count"] == 3, "third no-reply → ask_count=3")
-        check(r["gave_up"] is True, "3 no-replies → gave_up")
-    finally:
-        shutil.rmtree(tmpdir)
-
-
-def test_gave_up_skips_check():
-    """After 3 no-replies, check returns skip/gave_up."""
-    tmpdir = tempfile.mkdtemp()
-    try:
-        for _ in range(3):
-            run_cmd(["no-reply", "--data-dir", tmpdir, "--meal", "dinner"])
-
-        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "0"])
-        check(r["action"] == "skip", "gave_up → skip")
-        check(r["reason"] == "gave_up", "gave_up → reason=gave_up")
+        # 4th check: gave up
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "1"])
+        check(r["action"] == "skip", "4th check → skip")
+        check(r["reason"] == "gave_up", "4th check → reason=gave_up")
     finally:
         shutil.rmtree(tmpdir)
 
@@ -260,14 +254,12 @@ def test_gave_up_skips_check():
 # ---------------------------------------------------------------------------
 
 def test_save_place_stores():
-    """save-place stores the venue and marks collected."""
+    """save-place stores the venue."""
     tmpdir = tempfile.mkdtemp()
     try:
         r = run_cmd(["save-place", "--data-dir", tmpdir, "--meal", "breakfast", "--place", "home"])
         check(r["workday_meal_place_profile"]["breakfast"]["place"] == "home",
               "saved place = home")
-        check(r["_collection_state"]["breakfast"]["collected"] is True,
-              "saved → collected=true")
         check(r["workday_meal_place_profile"]["breakfast"]["updated_at"] is not None,
               "saved → updated_at set")
     finally:
@@ -411,39 +403,43 @@ def test_reset_drift_clears():
 # ---------------------------------------------------------------------------
 
 def test_full_collection_flow():
-    """End-to-end: check → no-reply × 2 → check → save → check."""
+    """End-to-end: check × 2 (no reply) → check → save → check."""
     tmpdir = tempfile.mkdtemp()
     try:
-        # First check: should ask
+        # First check: should ask (ask_count becomes 1)
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "1"])
         check(r["action"] == "ask", "flow: 1st check → ask")
+        check(r["ask_count"] == 1, "flow: ask_count=1")
 
-        # User doesn't reply twice
-        run_cmd(["no-reply", "--data-dir", tmpdir, "--meal", "lunch"])
-        run_cmd(["no-reply", "--data-dir", tmpdir, "--meal", "lunch"])
+        # User doesn't reply, next meal log triggers another check (ask_count becomes 2)
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "2"])
+        check(r["action"] == "ask", "flow: 2nd check → still ask")
+        check(r["ask_count"] == 2, "flow: ask_count=2")
 
-        # Third check: still should ask (ask_count=2, will become 3)
-        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "1"])
+        # Third check (ask_count becomes 3, last chance)
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "3"])
         check(r["action"] == "ask", "flow: 3rd check → still ask")
         check(r["ask_count"] == 3, "flow: ask_count=3")
 
         # User replies this time
         run_cmd(["save-place", "--data-dir", tmpdir, "--meal", "lunch", "--place", "cafeteria"])
 
-        # Fourth check: collected, no more asking
-        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "1"])
+        # Fourth check: collected (place is set), no more asking
+        r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "4"])
         check(r["action"] == "none", "flow: after save → no ask")
     finally:
         shutil.rmtree(tmpdir)
 
 
 def test_full_giveup_flow():
-    """End-to-end: 3 no-replies → gave up → never ask again."""
+    """End-to-end: 3 checks without reply → gave up → never ask again."""
     tmpdir = tempfile.mkdtemp()
     try:
+        # 3 checks auto-increment to ask_count=3
         for _ in range(3):
-            run_cmd(["no-reply", "--data-dir", tmpdir, "--meal", "dinner"])
+            run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "0"])
 
+        # 4th check: gave up
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "4"])
         check(r["action"] == "skip", "giveup flow: skip after 3")
         check(r["reason"] == "gave_up", "giveup flow: reason=gave_up")
@@ -517,18 +513,19 @@ def test_meals_independent():
     tmpdir = tempfile.mkdtemp()
     try:
         run_cmd(["save-place", "--data-dir", tmpdir, "--meal", "breakfast", "--place", "home"])
+        # Exhaust dinner's 3 checks
         for _ in range(3):
-            run_cmd(["no-reply", "--data-dir", tmpdir, "--meal", "dinner"])
+            run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "0"])
 
-        # Breakfast: collected
+        # Breakfast: collected (place set)
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "breakfast", "--weekday", "1"])
         check(r["action"] == "none", "independence: breakfast collected")
 
-        # Lunch: still needs asking
+        # Lunch: still needs asking (untouched)
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "lunch", "--weekday", "1"])
         check(r["action"] == "ask", "independence: lunch still asks")
 
-        # Dinner: gave up
+        # Dinner: gave up (3 checks exhausted)
         r = run_cmd(["check", "--data-dir", tmpdir, "--meal", "dinner", "--weekday", "1"])
         check(r["action"] == "skip", "independence: dinner gave up")
     finally:

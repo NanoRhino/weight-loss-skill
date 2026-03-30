@@ -10,9 +10,8 @@ Data file: {workspaceDir}/data/meal-place-profile.json
 
 Commands:
   load         — Load the full profile (create with defaults if missing).
-  check        — Check whether to ask venue for a meal (returns action + options).
+  check        — Check whether to ask venue for a meal (returns action + options, auto-increments ask_count).
   save-place   — Save a venue for a meal slot.
-  no-reply     — Record that the user did not reply to a venue question.
   record-drift — Record an inferred venue and update drift counters.
   reset-drift  — Reset drift counters for a meal (after user confirms or denies).
 
@@ -20,7 +19,6 @@ Usage:
   python3 meal-place.py load --data-dir /path/to/data
   python3 meal-place.py check --data-dir /path/to/data --meal lunch --weekday 2
   python3 meal-place.py save-place --data-dir /path/to/data --meal lunch --place cafeteria
-  python3 meal-place.py no-reply --data-dir /path/to/data --meal lunch
   python3 meal-place.py record-drift --data-dir /path/to/data --meal lunch --inferred takeout
   python3 meal-place.py reset-drift --data-dir /path/to/data --meal lunch
 """
@@ -54,7 +52,7 @@ def _empty_profile() -> dict:
             m: {"place": None, "updated_at": None} for m in VALID_MEALS
         },
         "_collection_state": {
-            m: {"ask_count": 0, "collected": False} for m in VALID_MEALS
+            m: {"ask_count": 0} for m in VALID_MEALS
         },
         "_drift_detection": {
             m: {"consecutive_mismatches": 0, "last_inferred": None}
@@ -72,7 +70,7 @@ def _load(data_dir: str) -> dict:
         # Back-fill any missing meals (forward compatibility)
         for section_key, factory in [
             ("workday_meal_place_profile", lambda: {"place": None, "updated_at": None}),
-            ("_collection_state", lambda: {"ask_count": 0, "collected": False}),
+            ("_collection_state", lambda: {"ask_count": 0}),
             ("_drift_detection", lambda: {"consecutive_mismatches": 0, "last_inferred": None}),
         ]:
             section = data.setdefault(section_key, {})
@@ -132,20 +130,19 @@ def cmd_check(args):
 
     # Case 1: place is null → check if we should ask
     if profile["place"] is None:
-        if state["collected"]:
-            print(json.dumps({"action": "skip", "reason": "already_collected"}))
-            return
         if state["ask_count"] >= MAX_ASK_COUNT:
             print(json.dumps({"action": "skip", "reason": "gave_up"}))
             return
-        # Should ask — mode depends on whether venue was inferred
-        # and confidence level
+        # Should ask — increment ask_count now
+        state["ask_count"] += 1
+        _save(args.data_dir, data)
+        # Mode depends on whether venue was inferred and confidence level
         defaults = DEFAULT_TOP2.get(meal, ["home", "takeout"])
         inferred = getattr(args, "inferred", None)
         confidence = getattr(args, "confidence", None)
         result = {
             "action": "ask",
-            "ask_count": state["ask_count"] + 1,
+            "ask_count": state["ask_count"],
         }
         if inferred and inferred in VALID_PLACES and confidence == "high":
             # High confidence → confirm mode
@@ -156,10 +153,8 @@ def cmd_check(args):
             # Low confidence → pick_two with inferred as first option
             result["mode"] = "pick_two"
             if inferred in defaults:
-                # Inferred already in defaults, put it first
                 options = [inferred] + [o for o in defaults if o != inferred]
             else:
-                # Replace second default with inferred-first ordering
                 options = [inferred, defaults[0]]
             result["options"] = options
         else:
@@ -195,25 +190,12 @@ def cmd_save_place(args):
         "place": args.place,
         "updated_at": _now_iso(),
     }
-    data["_collection_state"][meal] = {"ask_count": data["_collection_state"][meal]["ask_count"], "collected": True}
+    # ask_count preserved but no longer matters once place is set
     # Reset drift on explicit save
     data["_drift_detection"][meal] = {"consecutive_mismatches": 0, "last_inferred": None}
     _save(args.data_dir, data)
     print(json.dumps(data, indent=2, ensure_ascii=False))
 
-
-def cmd_no_reply(args):
-    """Increment ask_count for a meal when user doesn't reply."""
-    data = _load(args.data_dir)
-    meal = args.meal
-    state = data["_collection_state"][meal]
-    state["ask_count"] = min(state["ask_count"] + 1, MAX_ASK_COUNT)
-    _save(args.data_dir, data)
-    print(json.dumps({
-        "meal": meal,
-        "ask_count": state["ask_count"],
-        "gave_up": state["ask_count"] >= MAX_ASK_COUNT,
-    }))
 
 
 def cmd_record_drift(args):
@@ -282,11 +264,6 @@ def main():
     p_save.add_argument("--meal", required=True, choices=VALID_MEALS)
     p_save.add_argument("--place", required=True)
 
-    # no-reply
-    p_noreply = sub.add_parser("no-reply")
-    p_noreply.add_argument("--data-dir", required=True)
-    p_noreply.add_argument("--meal", required=True, choices=VALID_MEALS)
-
     # record-drift
     p_drift = sub.add_parser("record-drift")
     p_drift.add_argument("--data-dir", required=True)
@@ -303,7 +280,6 @@ def main():
         "load": cmd_load,
         "check": cmd_check,
         "save-place": cmd_save_place,
-        "no-reply": cmd_no_reply,
         "record-drift": cmd_record_drift,
         "reset-drift": cmd_reset_drift,
     }[args.command](args)

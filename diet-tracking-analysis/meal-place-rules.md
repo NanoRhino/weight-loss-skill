@@ -26,9 +26,9 @@ Owner: `diet-tracking-analysis`
     }
   },
   "_collection_state": {
-    "breakfast": { "ask_count": 0, "collected": false },
-    "lunch": { "ask_count": 0, "collected": false },
-    "dinner": { "ask_count": 0, "collected": false }
+    "breakfast": { "ask_count": 0 },
+    "lunch": { "ask_count": 0 },
+    "dinner": { "ask_count": 0 }
   },
   "_drift_detection": {
     "breakfast": { "consecutive_mismatches": 0, "last_inferred": null },
@@ -59,17 +59,14 @@ Before running any collection or drift detection logic, check whether today is a
 
 ### When to Ask
 
-**Rule: If the current meal's `place` is `null` AND `_collection_state` for that meal has `collected: false` AND `ask_count < 3` → ask after the food log reply.**
+**Rule: If the current meal's `place` is `null` AND `ask_count < 3` → ask after the food log reply.**
 
 Decision flow per meal log:
 
-1. Read `data/meal-place-profile.json` (create with empty defaults if missing)
-2. Look up current meal type (breakfast / lunch / dinner) in `workday_meal_place_profile`
-3. If `place` is not null → **do not ask** (already collected) → go to Drift Detection
-4. If `place` is null → check `_collection_state`:
-   - `collected: true` → do not ask (impossible state, but safe guard)
-   - `ask_count >= 3` → **do not ask** (gave up after 3 unanswered attempts)
-   - `ask_count < 3` → **ask** → increment `ask_count` and save
+1. Call `meal-place.py check --meal <meal> --weekday <0-6>` (creates profile with defaults if missing)
+2. If `place` is not null → **do not ask** (already collected) → drift detection runs instead
+3. If `place` is null and `ask_count >= 3` → **do not ask** (gave up after 3 unanswered attempts)
+4. If `place` is null and `ask_count < 3` → **ask** (the `check` command auto-increments `ask_count` and persists)
 
 ### How to Ask
 
@@ -129,8 +126,8 @@ Examples (low-confidence inference of cafeteria for dinner):
 
 ### Handling the Response
 
-- **User picks an option or types a venue** → set `place` to the matching value, set `collected: true`, save `updated_at` with current timestamp
-- **User ignores / does not reply** → `ask_count` was already incremented when the question was shown. On next food log for the same meal, re-evaluate the decision flow
+- **User picks an option or types a venue** → call `save-place` to set `place` and `updated_at`
+- **User ignores / does not reply** → no action needed. `ask_count` was already incremented by `check`. On next food log for the same meal, `check` will re-evaluate
 - **User replies with a venue not in the top 2** → match to the closest candidate value. If no match, use `other`
 
 ### Give-Up Rule
