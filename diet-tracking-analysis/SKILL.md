@@ -74,6 +74,13 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
   [--schedule '<JSON>'] [--mode balanced] [--bmr <kcal>] [--region CN]
 ```
 
+**`--meal-json` example (array of food items):**
+```json
+[{"name":"白米饭","amount_g":200,"calories":230,"protein_g":4,"carbs_g":50,"fat_g":0.5,"vegetables_g":0,"fruits_g":0},{"name":"番茄炒蛋","amount_g":180,"calories":165,"protein_g":10,"carbs_g":8,"fat_g":11,"vegetables_g":100,"fruits_g":0}]
+```
+
+Pass as single-line JSON string. Each item needs: `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`. China region: also `vegetables_g`, `fruits_g`.
+
 Runs detect → load → check-missing → save → evaluate → produce internally. Returns combined JSON with `meal_detection`, `existing_meals`, `missing_meals`, `save`, `evaluation`, `produce`. Same meal name overwrites (supports corrections).
 
 Always pass `--timestamp` from inbound message metadata. Pass `--eaten` when the user has already eaten (affects `evaluation.suggestion_type`). China region: include `vegetables_g` and `fruits_g` in `--meal-json`.
