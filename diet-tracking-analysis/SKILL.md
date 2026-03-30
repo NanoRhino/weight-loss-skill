@@ -119,63 +119,6 @@ Returns: `logged_days`, `daily_totals`, `weekly_avg_cal`, `bmr`, `calorie_floor`
 
 ---
 
-## Meal Type Assignment
-
-- **User explicitly states meal type** (e.g. "这是午饭", "breakfast") → pass it as `--meal-type` to `log-meal`. The script handles name resolution and mapping internally.
-- **User does NOT state meal type** → omit `--meal-type`; the script auto-detects from timestamp and schedule.
-- **User's statement always takes priority** — even if it contradicts the time of day.
-
----
-
-## Meal Timing Detection
-
-The default workflow is **before-eating**: users tell you what they're about to eat BEFORE eating, so you can give real-time suggestions to adjust the current meal. However, some users will report meals after the fact. Detect which case applies to choose the right suggestion type.
-
-- **Before eating (default)**: User describes what they're about to eat → eligible for `right_now` suggestions (adjust current meal) or `next_time` (if on track).
-- **Already eaten (exception)**: User reports a meal they already finished → `next_meal` / `next_time` suggestions only — never `right_now`.
-
-### Detection Priority
-
-Evaluate in order — stop at the first conclusive signal:
-
-**1. Explicit statement** — user says they're about to eat, are currently eating, or have finished (e.g., "I'm about to have…" / "I'm having…" vs. past tense "I had…" / "I already ate…"). Use directly, skip time checks.
-
-**2. Time vs. meal window** — when language is ambiguous, compare current time to the meal's window. Use custom times from `health-profile.md > Meal Schedule` if available; otherwise use standard meal windows (breakfast ~5-10h, lunch ~11-14h, dinner ~17-21h). Within or before the window → assume before-eating (default); past the window end → already eaten.
-
-**3. Scheduling habits** — `health-preferences.md > Scheduling & Lifestyle` patterns can shift windows (e.g., "works late on Wednesdays" extends dinner window) or mark meals as always retroactive (e.g., "always skips breakfast on workdays").
-
-**Default assumption:** When timing is ambiguous and no explicit signal exists, assume the user is logging **before eating** — this enables the most useful feedback (real-time meal adjustments).
-
-Backfilled meals from missing-meal handling are always "already eaten."
-
----
-## Batch Message Recognition
-
-Users often split a single meal log across multiple consecutive messages — for example, a photo in one message followed by clarifications in the next ("这些肥肉没吃", "没吃米饭", "加了一包辣椒酱"). These messages form **one logical input** and must be processed together.
-
-### Rule: Collect before responding
-
-When the conversation context contains multiple user messages that arrived in quick succession (i.e., no bot reply between them), **treat them all as a single input**. Read every pending user message before generating a response. Typical multi-message patterns:
-
-| Message 1 | Message 2+ | How to handle |
-|-----------|-----------|---------------|
-| Food photo | Text clarifying what was/wasn't eaten | Combine: use the photo for identification, apply the text as corrections (removals, additions, portion adjustments) |
-| Food photo | "这是午饭" / "breakfast" | Combine: use the photo for food items, use the text for meal type — skip `detect-meal` |
-| Text food log ("吃了炒饭") | Correction ("没放油" / "only half a bowl") | Combine: log the food with the corrected details |
-| Food photo | Photo of another dish | Combine: both are part of the same meal |
-
-### What NOT to do
-
-- **Do NOT respond to the photo alone** and then ask questions that the subsequent messages already answer. This forces the user to repeat themselves.
-- **Do NOT treat each message as a separate meal.** Consecutive messages without a bot reply in between are almost always about the same meal.
-- **Do NOT ask clarifying questions** about items that the user's own follow-up messages already address (e.g., don't ask "did you eat rice?" when a subsequent message says "没吃米饭").
-
-### Edge case: delayed follow-up
-
-If a user sends a follow-up correction **after** the bot has already replied (e.g., bot logged the meal, then user says "哦对了那个肥肉我没吃"), treat it as a **correction** — re-run `save` with the updated items and re-run `evaluate`, then reply with the updated summary.
-
----
-
 ## Workflow
 
 ### Setting a Target
@@ -249,6 +192,63 @@ User asks "how much have I eaten today" / "how much can I still eat" → call `q
 
 ---
 
+## Batch Message Recognition
+
+Users often split a single meal log across multiple consecutive messages — for example, a photo in one message followed by clarifications in the next ("这些肥肉没吃", "没吃米饭", "加了一包辣椒酱"). These messages form **one logical input** and must be processed together.
+
+### Rule: Collect before responding
+
+When the conversation context contains multiple user messages that arrived in quick succession (i.e., no bot reply between them), **treat them all as a single input**. Read every pending user message before generating a response. Typical multi-message patterns:
+
+| Message 1 | Message 2+ | How to handle |
+|-----------|-----------|---------------|
+| Food photo | Text clarifying what was/wasn't eaten | Combine: use the photo for identification, apply the text as corrections (removals, additions, portion adjustments) |
+| Food photo | "这是午饭" / "breakfast" | Combine: use the photo for food items, use the text for meal type — skip `detect-meal` |
+| Text food log ("吃了炒饭") | Correction ("没放油" / "only half a bowl") | Combine: log the food with the corrected details |
+| Food photo | Photo of another dish | Combine: both are part of the same meal |
+
+### What NOT to do
+
+- **Do NOT respond to the photo alone** and then ask questions that the subsequent messages already answer. This forces the user to repeat themselves.
+- **Do NOT treat each message as a separate meal.** Consecutive messages without a bot reply in between are almost always about the same meal.
+- **Do NOT ask clarifying questions** about items that the user's own follow-up messages already address (e.g., don't ask "did you eat rice?" when a subsequent message says "没吃米饭").
+
+### Edge case: delayed follow-up
+
+If a user sends a follow-up correction **after** the bot has already replied (e.g., bot logged the meal, then user says "哦对了那个肥肉我没吃"), treat it as a **correction** — re-run `save` with the updated items and re-run `evaluate`, then reply with the updated summary.
+
+---
+
+## Meal Type Assignment
+
+- **User explicitly states meal type** (e.g. "这是午饭", "breakfast") → pass it as `--meal-type` to `log-meal`. The script handles name resolution and mapping internally.
+- **User does NOT state meal type** → omit `--meal-type`; the script auto-detects from timestamp and schedule.
+- **User's statement always takes priority** — even if it contradicts the time of day.
+
+---
+
+## Meal Timing Detection
+
+The default workflow is **before-eating**: users tell you what they're about to eat BEFORE eating, so you can give real-time suggestions to adjust the current meal. However, some users will report meals after the fact. Detect which case applies to choose the right suggestion type.
+
+- **Before eating (default)**: User describes what they're about to eat → eligible for `right_now` suggestions (adjust current meal) or `next_time` (if on track).
+- **Already eaten (exception)**: User reports a meal they already finished → `next_meal` / `next_time` suggestions only — never `right_now`.
+
+### Detection Priority
+
+Evaluate in order — stop at the first conclusive signal:
+
+**1. Explicit statement** — user says they're about to eat, are currently eating, or have finished (e.g., "I'm about to have…" / "I'm having…" vs. past tense "I had…" / "I already ate…"). Use directly, skip time checks.
+
+**2. Time vs. meal window** — when language is ambiguous, compare current time to the meal's window. Use custom times from `health-profile.md > Meal Schedule` if available; otherwise use standard meal windows (breakfast ~5-10h, lunch ~11-14h, dinner ~17-21h). Within or before the window → assume before-eating (default); past the window end → already eaten.
+
+**3. Scheduling habits** — `health-preferences.md > Scheduling & Lifestyle` patterns can shift windows (e.g., "works late on Wednesdays" extends dinner window) or mark meals as always retroactive (e.g., "always skips breakfast on workdays").
+
+**Default assumption:** When timing is ambiguous and no explicit signal exists, assume the user is logging **before eating** — this enables the most useful feedback (real-time meal adjustments).
+
+Backfilled meals from missing-meal handling are always "already eaten."
+
+---
 ## Portion Follow-Up Rule
 
 **Default: assume and record directly.** Use standard single servings, prefix with `~`. Do NOT ask for confirmation — minimize user communication cost.
@@ -404,3 +404,4 @@ Read these for detailed specs when needed:
 - `response-schemas.md` — Response format examples for food logs and daily summaries
 - `missing-meal-rules.md` — Missing meal detection rules, prompt templates, and user response handling
 - `ui-spec.md` — Message formatting guidelines for chat platforms
+
