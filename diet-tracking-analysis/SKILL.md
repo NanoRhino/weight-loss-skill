@@ -55,89 +55,54 @@ All nutrition calculations and data storage **MUST** be done via scripts — nev
 Script path: `python3 {baseDir}/scripts/nutrition-calc.py`
 Data directory: `{workspaceDir}/data/meals`
 
-### 1. Set Target — `target`
+### `target` — set daily nutrition targets
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py target --weight <kg> --cal <kcal> [--meals 3] [--mode balanced]
 ```
 
-Supported `--mode` values: `usda`, `balanced` (default), `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2`. The mode determines the fat percentage range used for macro calculations — see `weight-loss-planner/references/diet-modes.md` for details.
+Supported `--mode` values: `usda`, `balanced` (default), `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2`.
 
-### 2. Save Entry — `save` (must call on every food log)
+### `log-meal` — log or correct a meal (primary command)
 
 ```bash
-python3 {baseDir}/scripts/nutrition-calc.py save \
-  --data-dir {workspaceDir}/data/meals \
-  --meal '{"name":"breakfast","meal_type":"breakfast","calories":379,"protein":24,"carbs":45,"fat":12,"foods":[{"name":"boiled eggs x2","calories":144}]}'
+python3 {baseDir}/scripts/nutrition-calc.py log-meal \
+  --data-dir {workspaceDir}/data/meals --tz-offset <seconds> \
+  --meals <2|3> --weight <kg> --cal <kcal> \
+  --meal-json '<nutrition estimate>' \
+  [--meal-type lunch] [--timestamp <ISO-8601 UTC>] \
+  [--schedule '<JSON>'] [--mode balanced] [--bmr <kcal>] [--region CN]
 ```
 
-`meal_type` records the user's original meal designation (e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). In 2-meal mode, `name` is the system slot (`meal_1`/`meal_2`) while `meal_type` preserves what the user actually said (e.g. `"lunch"`, `"dinner"`).
+Runs detect → load → check-missing → save → evaluate → produce internally. Returns combined JSON with `meal_detection`, `existing_meals`, `missing_meals`, `save`, `evaluation`, `produce`. Same meal name overwrites (supports corrections).
 
-**China region:** Include `vegetables_g` (grams of vegetables) and `fruits_g` (grams of fruit) in the meal JSON when these are present. Both fields are optional and default to 0 when absent. Example: `{"name":"lunch","meal_type":"lunch","calories":520,...,"vegetables_g":200,"fruits_g":0}`
+Always pass `--timestamp` from inbound message metadata. China region: include `vegetables_g` and `fruits_g` in `--meal-json`.
 
-Saves to `data/meals/YYYY-MM-DD.json`. Same meal name overwrites (supports corrections). Returns all saved meals for the day.
+### `delete-meal` — remove a meal record
 
-### 3. Load Records — `load` (read before logging or when querying)
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py delete-meal \
+  --data-dir ... --tz-offset <seconds> --meal-name <string> \
+  [--date YYYY-MM-DD] [--weight <kg> --cal <kcal> --meals <2|3>] [--region CN]
+```
+
+### `query-day` — get daily intake summary with evaluation
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py query-day \
+  --data-dir ... --tz-offset <seconds> --weight <kg> --cal <kcal> --meals <2|3> \
+  [--date YYYY-MM-DD] [--region CN]
+```
+
+### `load` — read meal records (for history queries)
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py load --data-dir {workspaceDir}/data/meals [--date 2026-02-27]
 ```
 
-Returns all logged meals for the day. **Always load before logging a new entry.**
+Returns all logged meals for the day.
 
-### 4. Cumulative Analysis — `analyze`
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py analyze --weight <kg> --cal <kcal> --meals <2|3> \
-  --log '[{"name":"breakfast","calories":379,"protein":24,"carbs":45,"fat":12}]'
-```
-
-`--log` takes a JSON array of all logged meals for the day (from load or save output).
-
-### 5. Checkpoint Evaluation — `evaluate` (must call on every food log)
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py evaluate --weight <kg> --cal <kcal> --meals <2|3> \
-  --current-meal "lunch" \
-  --log '[...]' \
-  [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]']
-```
-
-Evaluates cumulative intake at the current checkpoint against range-based targets. Uses min/max ranges for each macro.
-
-Returns: `checkpoint_pct`, `checkpoint_target`, `checkpoint_range`, `actual`, `adjusted` (if any), `status`, `needs_adjustment`, `diff_for_suggestions`, `missing_meals`
-
-All JSON fields use full names: `calories`, `protein`, `carbs`, `fat`. Old short names (`cal`, `p`, `c`, `f`) are auto-migrated on read for backward compatibility.
-
-**Adjustment trigger**: calories outside checkpoint kcal range OR 2+ macros outside their checkpoint ranges.
-
-`--assumed` optional: for forgotten meals, pass standard values based on that meal's ratio of daily targets (e.g. forgotten lunch in 30:40:30 mode = 40% of daily targets, NOT the cumulative checkpoint).
-
-### 6. Missing Meal Check — `check-missing`
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py check-missing --meals <2|3> \
-  --current-meal "lunch" \
-  --log '[...]'
-```
-
-Returns list of main meals missing before the current one.
-
-### 7. Produce Check — `produce-check` (China region only)
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py produce-check --meals <2|3> \
-  --current-meal "lunch" \
-  --log '[...]'
-```
-
-Evaluates cumulative vegetable and fruit intake at the current checkpoint. Only run when `locale.json` `region` is `"CN"`.
-
-Each meal in `--log` may include optional fields `vegetables_g` (grams of vegetables) and `fruits_g` (grams of fruit); missing fields default to 0.
-
-Returns: `is_final_meal`, `vegetables_actual_g`, `vegetables_target_g`, `has_vegetable_target`, `vegetable_status` (`"on_track"` / `"low"` / `null`), `fruits_actual_g`, `fruits_daily_min_g`, `fruits_daily_max_g`, `fruit_status` (`"on_track"` / `"low"` / `"high"` / `null`)
-
-### 8. Weekly Low-Calorie Check — `weekly-low-cal-check`
+### `weekly-low-cal-check`
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
