@@ -330,26 +330,19 @@ Every food log reply must contain up to three sections:
 - When adjustment is needed, the comment can naturally lead into the suggestion below — keep the two sections complementary, not repetitive
 - Language consistency: do not mix languages (e.g. no "蛋白质on track" or "Protein达标"). Use localized nutrient names when replying in non-English (e.g. 蛋白质, 碳水, 脂肪 for Chinese)
 - For forgotten/assumed meals: only show real recorded values (consistent with existing rule)
-- **China region:** After the macro status line, add a produce status line (from `produce-check` output) when `has_vegetable_target` is true or `is_final_meal` is true:
-  ```
-  🥦 蔬菜: ~XXXg ✅ / ⬇️ 还差XXg   🍎 水果: ~XXXg ✅ / ⬇️ 今天还没有水果 (only at final meal)
-  ```
-  Use ✅ when status is `on_track`, ⬇️ when `low`, ⬆️ when `high`. Omit the produce line when `has_vegetable_target` is false and `is_final_meal` is false (i.e., breakfast checkpoint).
+- **China region:** See `references/produce-rules.md` for produce status line format.
 
 **③ Suggestion** (based on evaluate output + meal timing detection — only one suggestion type per meal)
 
-**Case A: Before eating + adjustment needed** (`needs_adjustment: true` and meal NOT already eaten — this is the default/primary case):
+**Case A: Before eating + adjustment needed** (`needs_adjustment: true` and meal NOT yet eaten):
 ```
-⚡ Right now: [specific food + amount adjustment for current meal]
+⚡ Right now: [specific adjustment for current meal]
 ```
-- Since the user hasn't eaten yet, suggest removing, reducing portions, or swapping items before they start
-- **Additions go to the next eating occasion:** When suggesting the user eat MORE of something (add a side, increase protein, etc.), frame it as "next meal", "as an afternoon snack", "at dinner", or other upcoming eating occasion — NOT as adding to the current meal. The user likely already prepared this meal; asking them to add food now is impractical.
-- **Reductions can reference the current meal:** Removing or reducing items IS actionable before eating (e.g. "skip the bread", "eat half the rice").
-- **Deferred items:** When a food is reduced or removed from the current meal AND it would fit well in a later meal, explicitly tell the user they can have it then — e.g. "skip the bread now, save it for dinner" / "米饭减半，剩下的晚餐再吃". This avoids the feeling of deprivation.
-- Do NOT list per-item calories in the suggestion
-- Content must be user-facing — no internal reasoning exposed
-- Single option → one clear suggestion. End with: "After adjustment, this meal would total ~X kcal, protein Xg, carbs Xg, fat Xg."
-- Multiple options → list each on its own line, ask which they prefer
+- **Reduce/swap** items in the current meal (user hasn't eaten yet, still adjustable)
+- **Add** items to the next eating occasion — not the current meal (already prepared)
+- When reducing a food, tell the user they can have it later (e.g. "skip the bread now, save it for dinner") to avoid deprivation
+- Do NOT list per-item calories in suggestions
+- Single option → end with adjusted meal totals. Multiple options → list and ask preference.
 
 **Case B: Already eaten + adjustment needed** (`needs_adjustment: true` and meal already eaten):
 ```

@@ -7,6 +7,14 @@ When logging a meal, estimate vegetable and fruit gram weights and include `vege
 - Prefix estimates with `~` in the response
 - Starchy vegetables (potato, sweet potato, taro, corn) count toward carbs/calories but **not** toward the vegetable target
 
+## Response format
+
+After the macro status line in ② Nutrition Summary, add a produce status line when `has_vegetable_target` is true or `is_final_meal` is true:
+```
+🥦 Vegetables: ~XXXg ✅ / ⬇️ still need XXg   🍎 Fruit: ~XXXg ✅ / ⬇️ none today (only at final meal)
+```
+Use ✅ for `on_track`, ⬇️ for `low`, ⬆️ for `high`. Omit when `has_vegetable_target` is false and `is_final_meal` is false (i.e. breakfast checkpoint).
+
 ## Priority rules
 
 Produce targets have **lower priority** than calories and macros:
