@@ -57,15 +57,7 @@ response between Step C and Step D — they are one continuous message.
 - "Want to hear my plan?"
 - "I've got a little challenge for you — dare to take it?"
 
-**Wait for user response here.** If they ask what it is or show interest:
-
-**Build suspense (optional, 1 exchange max):**
-- "Say yes and you'll find out — it'll be worth it!"
-- "Just say yes — I promise you'll like it."
-
-Only use suspense if the user asks "what challenge?" or "what would you do?".
-If they directly agree, skip to the reveal. **Never drag suspense beyond 1
-extra exchange.**
+**Wait for user response.** If yes → reveal the pact immediately.
 
 **Reveal the habit as a pact:** Frame the habit as a mutual commitment, not a
 one-sided instruction. The AI is committing to something too (stricter
