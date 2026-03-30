@@ -77,6 +77,16 @@ Surface gently at next natural moment:
 **Never say:** "You failed" / "You broke your streak" / "Don't give up" /
 "You were doing so well" / "No pressure"
 
+**Strict habit failure:** When a `strict: true` (source: `weight-gain-strategy`)
+habit fails, follow the same keep/shrink/swap flow above. Additionally:
+- If the user's weight streak is at 4+ → `weight-gain-strategy` takes over
+  with the `significant` path (Interactive Flow) for a full reassessment.
+- If streak is still 2–3 → stay in cause-check, offer a new pact with a
+  smaller commitment.
+- If user chooses to keep/shrink → replacement stays `strict: true`.
+- If user swaps to something unrelated → `strict` resets to `false`.
+- See `weight-gain-strategy/references/strict-mode.md` for full rules.
+
 ## Scaling up
 
 After graduation:

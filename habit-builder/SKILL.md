@@ -56,6 +56,7 @@ Habits surface inside meal conversations — no separate reminders.
 | Week 3+ | ~Once/week |
 
 `strict: true` habits (from weight-gain-strategy): week-1 frequency for 2 weeks.
+See `weight-gain-strategy/references/strict-mode.md` for full strict-mode rules.
 
 ### Rules
 
@@ -85,13 +86,16 @@ Habits surface inside meal conversations — no separate reminders.
 
 ### Writes
 
+All habit data is stored under the `habits` namespace in workspace logs
+(`logs.habits.*`), not as files in `data/`.
+
 | Path | When |
 |------|------|
-| `habits.active` | Habit accepted |
-| `habits.graduated` | Habit graduates |
-| `habits.daily_log.{date}` | Completion/miss/no_response |
-| `habits.mention_counter` | After each mention |
-| `habits.lifestyle_gaps` | Gaps identified for Weekly Review |
+| `logs.habits.active` | Habit accepted |
+| `logs.habits.graduated` | Habit graduates |
+| `logs.habits.daily_log.{date}` | Completion/miss/no_response |
+| `logs.habits.mention_counter` | After each mention |
+| `logs.habits.lifestyle_gaps` | Gaps identified for Weekly Review |
 
 ---
 

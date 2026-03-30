@@ -21,7 +21,7 @@
 | Path | When |
 |------|------|
 | `data/weight-gain-strategy.json` | After the user confirms a strategy — stores the active strategy with start date, end date, type, and parameters |
-| `habits.active` | After cause-check pact is accepted — creates a tracked habit via `habit-builder` (week-1 phase, `source: "weight-gain-strategy"`). If `logging_gaps` + calorie issue detected, mark `strict: true` for tighter monitoring. |
+| `logs.habits.active` | After cause-check pact OR Interactive Flow Step 3 — creates a tracked habit via `habit-builder` (week-1 phase, `source: "weight-gain-strategy"`). If `logging_gaps` + calorie issue detected, mark `strict: true` (see `references/strict-mode.md`). |
 | `health-preferences.md` | If the user reveals new preferences during the conversation (append only) |
 
 ## Strategy Data Schema
@@ -116,7 +116,14 @@ If exercise volume increased significantly while weight went up, note the
 possibility: "You've been exercising more — some of this could be muscle.
 How do your clothes fit? That's often a better indicator than the scale."
 
-**Active strategy already exists:**
-If a strategy is already active and the user asks again, show progress on
-the current strategy first. Only propose a new strategy if the current one
-has ended or the user explicitly wants to change.
+**Active strategy / habit already exists:**
+If a strategy is already active (`weight-gain-strategy.json`) and/or a
+`source: "weight-gain-strategy"` habit exists in `habits.active`:
+- At `cause-check` (streak 2–3): do NOT open a new cause-check flow. Instead,
+  report progress on the current pact and encourage the user to keep going.
+  Only start a new flow if the habit has expired or failed.
+- At `significant` (streak 4+): the existing habit/strategy has had enough
+  time. Archive it (`status: "superseded"`), graduate or fail the habit, then
+  run the full Interactive Flow for a fresh assessment.
+- At manual trigger: same as `significant` — the user explicitly wants a
+  new analysis, so supersede the old one.

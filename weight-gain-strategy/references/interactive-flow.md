@@ -64,8 +64,15 @@ optimization every time.
    - What exactly changes (calorie target, number of sessions, specific meals)
    - For how long (start date → end date)
    - When to check in (midpoint and end)
-2. Run `save-strategy` to persist the strategy
-3. Close with encouragement — brief, genuine, a bit cheeky: "Let's see what the scale says next week — I'm betting on you."
+2. **Create a habit in `habits.active`** via `habit-builder` — maps the chosen
+   strategy to a tracked habit so notification-composer can follow up in daily
+   meal conversations. Use `source: "weight-gain-strategy"`, `phase: "week-1"`.
+   If `logging_gaps` + calorie issue also detected, mark `strict: true`
+   (see `references/strict-mode.md`).
+3. **Run `save-strategy`** to persist strategy metadata (type, params, dates).
+   This is for `check-strategy` / `weekly-report` only — `habits.active` is
+   the source of truth for daily execution.
+4. Close with encouragement — brief, genuine, a bit cheeky: "Let's see what the scale says next week — I'm betting on you."
 
 **Do NOT:**
 - Set up reminders here (that's `notification-manager`'s job)
