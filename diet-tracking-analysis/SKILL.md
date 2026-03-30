@@ -314,7 +314,7 @@ When user describes what they're about to eat (or what they already ate):
 4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
 5. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
 6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g. **China region:** also estimate `vegetables_g` and `fruits_g` for this meal.
-7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). **China region:** include `vegetables_g` and `fruits_g` in the meal JSON.
+7. **Call save** — persist **only the current meal the user is reporting** (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). **China region:** include `vegetables_g` and `fruits_g` in the meal JSON. **⚠️ NEVER save assumed/missing meals to disk** — assumed meals are only passed via `--assumed` to `evaluate` and must not be persisted.
 8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
 9. **China region:** Call `produce-check` — pass all meals from save output, evaluate cumulative produce intake
 10. **Reply in format** — meal details + nutrition summary + produce status (China only) + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
@@ -326,8 +326,9 @@ When user describes what they're about to eat (or what they already ate):
 When `check-missing` returns missing meals:
 1. **Assume normal intake** for each missing meal — use that meal's standard ratio of daily targets (e.g. in 3-meal 30:40:30 mode, missing breakfast = 30%, missing lunch = 40%)
 2. **Do NOT stop to ask** — proceed to log and evaluate the current meal immediately, passing assumed meals via `--assumed` to `evaluate`
-3. **Give the full current-meal response** as usual (meal details + nutrition summary + suggestion)
-4. **Append a note** after the suggestion: inform the user that missed meals were assumed normal, and if they share what they actually ate, the advice will be more accurate (see `missing-meal-rules.md` for prompt templates)
+3. **Do NOT save assumed meals** — only the current meal the user is actively reporting gets saved via `save`. Assumed meals exist only as `--assumed` parameters to `evaluate`. Never call `save` for a meal the user did not explicitly report.
+4. **Give the full current-meal response** as usual (meal details + nutrition summary + suggestion)
+5. **Append a note** after the suggestion: inform the user that missed meals were assumed normal, and if they share what they actually ate, the advice will be more accurate (see `missing-meal-rules.md` for prompt templates)
 
 If the user later provides details about the missed meal → record it, re-run `evaluate` without `--assumed` for that meal, and update suggestions accordingly.
 

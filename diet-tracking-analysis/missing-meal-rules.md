@@ -78,6 +78,6 @@ If the user later comes back and provides details about the missed meal:
 
 The assumed amount is that single meal's standard ratio of daily targets (e.g. in 3-meal 30:40:30 mode, a forgotten lunch = 40% of daily targets, NOT the 70% cumulative checkpoint).
 
-Assumed meals are used only for suggestion calculation — never shown in the progress display.
+Assumed meals are used only for suggestion calculation — **never saved to disk and never shown in the progress display**. Only pass them via `--assumed` to the `evaluate` command. Do NOT call `save` for assumed meals — only the meal the user is actively reporting gets saved.
 
 When the user later confirms they skipped / didn't eat, remove the assumed intake and re-evaluate.
