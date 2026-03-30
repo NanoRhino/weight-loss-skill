@@ -1172,6 +1172,234 @@ def detect_meal(tz_offset: int, meals: int,
 
 
 # ---------------------------------------------------------------------------
+# Composite commands (CRUD)
+# ---------------------------------------------------------------------------
+
+
+def log_meal(data_dir: str, tz_offset: int, meals: int,
+             weight: float, daily_cal: int, meal_json: dict,
+             meal_type: str = None, timestamp: str = None,
+             schedule: dict = None, mode: str = "balanced",
+             bmr: float = None, region: str = None) -> dict:
+    """Log a meal with full pipeline: detect → load → check-missing → save → evaluate → produce.
+
+    This is the primary command for food logging. It replaces the need to call
+    detect-meal, load, check-missing, save, evaluate, and produce-check separately.
+
+    Args:
+        data_dir: Directory with daily JSON logs.
+        tz_offset: Timezone offset from UTC in seconds.
+        meals: Meals per day (2 or 3).
+        weight: Body weight in kg.
+        daily_cal: Daily calorie target (kcal).
+        meal_json: Meal data dict (same format as save --meal).
+        meal_type: User-specified meal type. If None, auto-detected.
+        timestamp: ISO-8601 UTC timestamp of the user's message.
+        schedule: Optional meal schedule dict for detect-meal.
+        mode: Diet mode for evaluate (default "balanced").
+        bmr: BMR in kcal for Case D check. Optional.
+        region: Region code (e.g. "CN") to enable produce-check. Optional.
+
+    Returns: Combined result dict with meal_detection, existing_meals,
+             missing_meals, save, evaluation, and produce sections.
+    """
+    result = {}
+
+    # 1. Detect meal type or use user-specified
+    existing = load_meals(data_dir, None, tz_offset)
+    existing_meals_list = existing.get("meals", [])
+
+    if meal_type:
+        # User explicitly stated the meal type
+        local_date = existing.get("date") or _local_date(tz_offset)
+        resolved = resolve_meal_name(meal_type, meals)
+        result["meal_detection"] = {
+            "detected_meal": resolved,
+            "local_date": local_date,
+            "method": "user_specified",
+        }
+    else:
+        detection = detect_meal(tz_offset, meals, schedule,
+                                existing_meals_list, timestamp)
+        result["meal_detection"] = detection
+        local_date = detection.get("local_date", _local_date(tz_offset))
+        resolved = detection.get("detected_meal")
+
+    current_meal = resolved
+    result["existing_meals"] = existing_meals_list
+
+    # 2. Check missing meals before current one
+    missing = check_missing(meals, current_meal, existing_meals_list)
+    result["missing_meals"] = missing
+
+    # Build assumed meals for evaluate if there are missing meals
+    assumed = None
+    if missing.get("has_missing"):
+        targets = calc_targets(weight, daily_cal, meals, mode)
+        assumed = []
+        for m in missing["missing"]:
+            pct = m["expected_pct"] / 100.0
+            assumed.append({
+                "name": m["name"],
+                "meal_type": m["name"],
+                "calories": round(daily_cal * pct),
+                "protein": round(targets["protein"]["target"] * pct),
+                "carbs": round(targets["carb"]["target"] * pct),
+                "fat": round(targets["fat"]["target"] * pct),
+                "assumed": True,
+            })
+
+    # 3. Ensure meal_json has correct name/meal_type
+    meal_data = dict(meal_json)
+    meal_data["name"] = current_meal
+    if "meal_type" not in meal_data:
+        meal_data["meal_type"] = meal_type or current_meal
+
+    # 4. Save
+    save_result = save_meal(data_dir, meal_data, local_date)
+    result["save"] = save_result
+    all_meals = save_result.get("meals", [])
+
+    # 5. Evaluate
+    eval_result = evaluate(weight, daily_cal, meals,
+                           current_meal, all_meals, assumed, mode)
+    # Attach BMR info for Case D if provided
+    if bmr is not None:
+        daily_total = sum(m.get("calories", 0) for m in all_meals)
+        eval_result["bmr"] = bmr
+        eval_result["daily_total"] = daily_total
+        eval_result["below_bmr"] = daily_total < bmr
+    result["evaluation"] = eval_result
+
+    # 6. Produce check (China region only)
+    if region and region.upper() == "CN":
+        result["produce"] = produce_check(meals, current_meal, all_meals)
+    else:
+        result["produce"] = None
+
+    return result
+
+
+def delete_meal(data_dir: str, tz_offset: int, meal_name: str,
+                day: str = None, weight: float = None,
+                daily_cal: int = None, meals: int = None,
+                mode: str = "balanced", region: str = None) -> dict:
+    """Delete a meal from the daily log and optionally re-evaluate.
+
+    Args:
+        data_dir: Directory with daily JSON logs.
+        tz_offset: Timezone offset from UTC in seconds.
+        meal_name: Name of the meal to delete (e.g. "lunch", "meal_1").
+        day: Date override (YYYY-MM-DD). Defaults to today (local).
+        weight: Body weight in kg. If provided with cal/meals, re-evaluates.
+        daily_cal: Daily calorie target. If provided with weight/meals, re-evaluates.
+        meals: Meals per day (2 or 3). If provided with weight/cal, re-evaluates.
+        mode: Diet mode for evaluate.
+        region: Region code for produce-check.
+
+    Returns: dict with deleted status, remaining meals, and optional evaluation.
+    """
+    resolved_day = day or _local_date(tz_offset)
+    path = get_log_path(data_dir, resolved_day)
+
+    if not os.path.exists(path):
+        return {"deleted": False, "error": "No records for this date",
+                "date": resolved_day}
+
+    with open(path, "r", encoding="utf-8") as f:
+        existing = _migrate_meals(json.load(f))
+
+    # Find and remove the meal
+    remaining = [m for m in existing if m.get("name") != meal_name]
+    if len(remaining) == len(existing):
+        return {"deleted": False, "error": f"Meal '{meal_name}' not found",
+                "date": resolved_day, "meals": existing}
+
+    # Write back
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(remaining, f, ensure_ascii=False, indent=2)
+
+    result = {
+        "deleted": True,
+        "meal_name": meal_name,
+        "date": resolved_day,
+        "remaining_meals": remaining,
+        "remaining_count": len(remaining),
+    }
+
+    # Re-evaluate if enough params provided
+    if weight is not None and daily_cal is not None and meals is not None and remaining:
+        # Use the last remaining meal as the checkpoint
+        last_meal = remaining[-1].get("name", "breakfast")
+        result["evaluation"] = evaluate(weight, daily_cal, meals,
+                                        last_meal, remaining, None, mode)
+        if region and region.upper() == "CN":
+            result["produce"] = produce_check(meals, last_meal, remaining)
+        else:
+            result["produce"] = None
+    else:
+        result["evaluation"] = None
+        result["produce"] = None
+
+    return result
+
+
+def query_day(data_dir: str, tz_offset: int, weight: float,
+              daily_cal: int, meals: int, day: str = None,
+              mode: str = "balanced", region: str = None) -> dict:
+    """Load a day's records and evaluate current status.
+
+    Args:
+        data_dir: Directory with daily JSON logs.
+        tz_offset: Timezone offset from UTC in seconds.
+        weight: Body weight in kg.
+        daily_cal: Daily calorie target (kcal).
+        meals: Meals per day (2 or 3).
+        day: Date override (YYYY-MM-DD). Defaults to today (local).
+        mode: Diet mode for evaluate.
+        region: Region code for produce-check.
+
+    Returns: dict with date, meals, evaluation, and produce.
+    """
+    loaded = load_meals(data_dir, day, tz_offset)
+    all_meals = loaded.get("meals", [])
+    resolved_day = loaded.get("date", day or _local_date(tz_offset))
+
+    result = {
+        "date": resolved_day,
+        "meals": all_meals,
+        "meals_count": len(all_meals),
+    }
+
+    if not all_meals:
+        result["evaluation"] = None
+        result["produce"] = None
+        return result
+
+    # Determine the latest logged meal as checkpoint
+    blocks = get_meal_blocks(meals)
+    latest_block_idx = -1
+    for m in all_meals:
+        idx = find_block_index(m.get("name", ""), meals)
+        if idx is not None and idx > latest_block_idx:
+            latest_block_idx = idx
+            latest_meal = m.get("name", "")
+
+    if latest_block_idx < 0:
+        latest_meal = all_meals[-1].get("name", "breakfast")
+
+    result["evaluation"] = evaluate(weight, daily_cal, meals,
+                                    latest_meal, all_meals, None, mode)
+
+    if region and region.upper() == "CN":
+        result["produce"] = produce_check(meals, latest_meal, all_meals)
+    else:
+        result["produce"] = None
+
+    return result
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -1305,6 +1533,46 @@ def main():
     pc.add_argument("--log", type=str, required=True,
                     help="JSON array of all logged meals today (each may include vegetables_g, fruits_g)")
 
+    # ── Composite commands (CRUD) ──────────────────────────────────────────
+
+    lm = sub.add_parser("log-meal",
+                         help="Log a meal: detect → load → check-missing → save → evaluate → produce")
+    lm.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
+    lm.add_argument("--tz-offset", type=int, required=True, help="Timezone offset from UTC in seconds")
+    lm.add_argument("--meals", type=int, required=True, choices=[2, 3], help="Meals per day")
+    lm.add_argument("--weight", type=float, required=True, help="Body weight in kg")
+    lm.add_argument("--cal", type=int, required=True, help="Daily calorie target (kcal)")
+    lm.add_argument("--meal-json", type=str, required=True, help="Meal data JSON object")
+    lm.add_argument("--meal-type", type=str, default=None, help="User-specified meal type (skip detect if provided)")
+    lm.add_argument("--timestamp", type=str, default=None, help="ISO-8601 UTC timestamp of user message")
+    lm.add_argument("--schedule", type=str, default=None, help="Meal schedule JSON")
+    lm.add_argument("--mode", type=str, default="balanced", help="Diet mode for evaluate")
+    lm.add_argument("--bmr", type=float, default=None, help="BMR in kcal for Case D check")
+    lm.add_argument("--region", type=str, default=None, help="Region code (e.g. CN) for produce-check")
+
+    dm_cmd = sub.add_parser("delete-meal",
+                             help="Delete a meal from today's log and optionally re-evaluate")
+    dm_cmd.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
+    dm_cmd.add_argument("--tz-offset", type=int, required=True, help="Timezone offset from UTC in seconds")
+    dm_cmd.add_argument("--meal-name", type=str, required=True, help="Name of meal to delete")
+    dm_cmd.add_argument("--date", type=str, default=None, help="Date (YYYY-MM-DD), default today")
+    dm_cmd.add_argument("--weight", type=float, default=None, help="Body weight in kg (enables re-eval)")
+    dm_cmd.add_argument("--cal", type=int, default=None, help="Daily calorie target (enables re-eval)")
+    dm_cmd.add_argument("--meals", type=int, default=None, choices=[2, 3], help="Meals per day (enables re-eval)")
+    dm_cmd.add_argument("--mode", type=str, default="balanced", help="Diet mode for evaluate")
+    dm_cmd.add_argument("--region", type=str, default=None, help="Region code for produce-check")
+
+    qd = sub.add_parser("query-day",
+                          help="Load a day's records and evaluate current status")
+    qd.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
+    qd.add_argument("--tz-offset", type=int, required=True, help="Timezone offset from UTC in seconds")
+    qd.add_argument("--weight", type=float, required=True, help="Body weight in kg")
+    qd.add_argument("--cal", type=int, required=True, help="Daily calorie target (kcal)")
+    qd.add_argument("--meals", type=int, required=True, choices=[2, 3], help="Meals per day")
+    qd.add_argument("--date", type=str, default=None, help="Date (YYYY-MM-DD), default today")
+    qd.add_argument("--mode", type=str, default="balanced", help="Diet mode for evaluate")
+    qd.add_argument("--region", type=str, default=None, help="Region code for produce-check")
+
     args = parser.parse_args()
 
     if args.cmd == "detect-meal":
@@ -1389,6 +1657,40 @@ def main():
             print(f"Error: invalid --log JSON: {e}", file=sys.stderr)
             sys.exit(1)
         result = produce_check(args.meals, args.current_meal, log)
+    elif args.cmd == "log-meal":
+        try:
+            meal_json = json.loads(args.meal_json)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --meal-json JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        sched = None
+        if args.schedule:
+            try:
+                sched = json.loads(args.schedule)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --schedule JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = log_meal(
+            data_dir=args.data_dir, tz_offset=args.tz_offset,
+            meals=args.meals, weight=args.weight, daily_cal=args.cal,
+            meal_json=meal_json, meal_type=args.meal_type,
+            timestamp=args.timestamp, schedule=sched,
+            mode=args.mode, bmr=args.bmr, region=args.region,
+        )
+    elif args.cmd == "delete-meal":
+        result = delete_meal(
+            data_dir=args.data_dir, tz_offset=args.tz_offset,
+            meal_name=args.meal_name, day=args.date,
+            weight=args.weight, daily_cal=args.cal,
+            meals=args.meals, mode=args.mode, region=args.region,
+        )
+    elif args.cmd == "query-day":
+        result = query_day(
+            data_dir=args.data_dir, tz_offset=args.tz_offset,
+            weight=args.weight, daily_cal=args.cal,
+            meals=args.meals, day=args.date,
+            mode=args.mode, region=args.region,
+        )
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
