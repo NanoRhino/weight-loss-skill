@@ -86,37 +86,19 @@ Examples:
 If the user says "no idea" or shrugs → that's fine, move to Step C and lead
 with the data.
 
-**Step C: Data reveal + consequence + motivation** — Now show the `analyze`
-findings. The structure is: **validate/show data → light consequence warning
-→ positive motivation**. This is not a lecture — it's a "here's what's real
-+ here's what's at stake + here's why it's worth it" sandwich.
+**Step C: Data reveal + consequence + motivation** — Structure: **validate
+→ data → consequence → motivation**. See `references/diagnosis-templates.md`
+for per-factor diagnosis lines, consequence lines, and cause-specific
+motivation lines.
 
-**Data reveal** — If the user guessed, validate first:
-- **User was right:** "Spot on! The data backs you up — {data finding}."
-- **User was partially right:** "That's part of it — data also shows {finding}."
-- **User didn't know:** "I dug into the data — {data finding}."
+**Validation** — If the user guessed in Step B, validate first:
+- **Right:** "Spot on! The data backs you up — {data finding}."
+- **Partially right:** "That's part of it — data also shows {finding}."
+- **Didn't know:** "I dug into the data — {data finding}."
 
-**Consequence (light touch)** — Don't catastrophize, but don't sugarcoat
-either. One sentence connecting the cause to the weight trend:
-- "The short-term gain isn't all fat, but if the pattern sticks, it'll be hard to make progress."
-- "Once in a while is fine, but two weeks in a row and your body starts keeping score."
-
-**Motivation (pull them forward)** — Immediately follow the consequence with
-a positive, aspirational pull **tied to the specific cause**. Connect the
-cause to a concrete benefit of fixing it — don't use generic cheerleading.
-
-| Cause | Motivation example |
-|-------|-------------------|
-| Snacking / calorie surplus | "But hey — food is tempting, but so is looking amazing, right? A few small swaps and you're right back on track." |
-| Weekend overeating | "Weekdays you're crushing it — imagine what happens when weekends stop undoing all that hard work." |
-| Exercise decline | "You used to be so consistent — your body remembers that rhythm, it won't take much to get it back." |
-| Late-night eating | "One small timing shift and your body gets way more time to do its thing overnight." |
-| Logging gaps | "Hard to win a game you're not keeping score in — but the fix is easy." |
-| Calorie creep | "No single meal is the villain here — just a tiny trim and the math starts working for you again." |
-
-**Special cases — skip consequence + motivation:**
-- **Menstrual cycle detected:** "Your intake actually looks fine — the timing lines up with your cycle, so this is likely water retention. Let's check again after it passes." (End flow here — no Step D needed.)
-- **Adaptation period:** "Still early and your body is adjusting — fluctuation is expected. {if cause: The data does show {finding} though — something to watch once you've settled in.}" (End flow here if no actionable cause.)
+**Special cases — end flow here, skip Step D:**
+- **Menstrual cycle:** "Your intake looks fine — timing lines up with your cycle, likely water retention. Let's check again after it passes."
+- **Adaptation period with no actionable cause:** "Still early and your body is adjusting — fluctuation is expected."
 
 **Step D flows directly from Step C (same message, no wait).** After the
 motivation line, immediately tease the challenge. Do NOT wait for user
@@ -218,42 +200,20 @@ See `references/script-api.md` for full usage, parameters, and return schemas.
 
 ## Interactive Flow
 
-Applies to both auto-triggered (post-weigh-in significant deviation) and
-manual-triggered (user asks about weight gain) paths. **The key principle:
-always show the cause analysis first — never jump straight to strategies.**
+Used by `significant` (streak 4+) and manual trigger paths.
 
-### Step 1: Analyze & Present Causes (always runs first)
+### Step 1: Analyze & Present Causes
 
-1. Read `timezone.json` for tz_offset
-2. Run the `analyze` command
-3. Present findings to the user in a conversational, non-alarming way
+1. Read `timezone.json` → run `analyze`
+2. Present: **[Reassurance]** → **[Trend summary]** → **[Diagnosis]**
+   - Reassurance: one playful sentence normalizing fluctuation. Never open with bad news.
+   - Trend: "Over the past {N} days, your weight wandered from {start} to {end} — that's {change}."
+   - Diagnosis: use per-factor templates from `references/diagnosis-templates.md`.
+3. Pause — do NOT continue to Step 2 automatically.
+4. Transition: "Want to brainstorm a tweak or two?"
 
-**Presentation structure:**
-
-**[Reassurance]** — One playful sentence normalizing weight fluctuation. Never open with bad news. Set a light, "no big deal" tone.
-
-**[Trend summary]** — State the facts briefly but conversationally:
-- "Over the past {N} days, your weight wandered from {start} to {end} — that's {change}."
-
-**[Diagnosis]** — For each detected factor in `top_factors`, explain it in plain language with data. Also cross-reference behavioral patterns from `health-profile.md` and recent logs — behavior changes (skipped workouts, new snack habits, shifted meal times) are valid diagnostic evidence alongside raw numbers. Keep the tone curious and light, not accusatory:
-
-- **Calorie surplus:** "You averaged {avg} kcal/day — about {surplus} over your {target} target. Over target on {X} of {Y} days. Looks like snacks have been busy!"
-- **Exercise decline:** "You worked out {current} time(s) this week vs {previous} last week — {diff} fewer minutes. Your body might be on vacation mode!"
-- **Logging gaps:** "No meal logs for {X} days — even a detective needs clues!"
-- **Water retention:** "That jump is suspiciously sudden — likely water playing tricks. Give it a few days."
-- **Normal fluctuation:** "Totally normal fluctuation — bodies aren't machines!"
-- **Behavioral pattern shift:** When a habit change is detected (e.g., user stopped their usual evening walks, started ordering delivery more often, shifted dinner to later), call it out gently: "Looks like dinner has been creeping later — that can throw off your body's rhythm."
-
-**[Pause here — do NOT continue to Step 2 automatically]**
-
-**[Transition to Step 2]** — "Want to brainstorm a tweak or two?"
-
-If the diagnosis is `normal_fluctuation`, skip to a reassuring close — do NOT propose changes for normal fluctuation.
-
-**Only proceed to Step 2 when the user explicitly agrees.** If the user
-ignores the question, acknowledges without interest, or changes topic, drop it.
-This ensures the user never feels pressured into a strategy discussion they
-didn't ask for.
+If `normal_fluctuation` → reassuring close, no Step 2.
+Only proceed to Step 2 when the user explicitly agrees. If ignored → drop it.
 
 ### Step 2: Discuss & Choose Strategy
 
