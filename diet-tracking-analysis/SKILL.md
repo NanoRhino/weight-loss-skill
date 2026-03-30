@@ -251,33 +251,11 @@ User asks "how much have I eaten today" / "how much can I still eat" → call `q
 
 ## Portion Follow-Up Rule
 
-**Default behavior: assume and record directly.** When a user logs food (text or photo), assume they will eat everything described/shown in a standard single serving and record it immediately — do NOT ask for confirmation. The goal is to minimize user communication cost.
+**Default: assume and record directly.** Use standard single servings, prefix with `~`. Do NOT ask for confirmation — minimize user communication cost.
 
-### When to use default portions (no asking)
+**Only ask** when a portion appears **≥ 2× normal** (e.g. "I ate a whole pizza", "I had 6 eggs"). Ask ONE question using everyday references (palm-sized, half plate, etc.) — **never ask for grams**. If multiple items are ≥ 2×, ask about all in one message.
 
-- User describes food without quantity → assume one standard medium portion, prefix with `~`
-- User sends a photo → estimate portions from the photo and record directly
-- Standardized foods (a can of Coke, one egg, a slice of toast) → record directly
-- Any food where the amount is within a normal range (under 2× a standard single serving) → record directly
-
-### When to ask (only if portion ≥ 2× normal)
-
-Only ask a clarifying question when the described or photographed quantity appears to be **2 times or more** of a normal single-person serving — e.g., "I ate a whole pizza", "I had 6 eggs", or a photo showing a clearly oversized portion. In this case, ask ONE clarifying question using everyday references — **never ask for grams**:
-
-- Size: "About how big? Palm-sized, fist-sized, or bigger?"
-- Bowl: "How full was the bowl? Half, mostly full, or heaping?"
-- Plate: "How much? A small plate, half plate, or full plate?"
-- Count: "How many? One or two or three?"
-
-If multiple foods in the same meal all appear ≥ 2× normal, **ask about them together in one message** — do not split into multiple rounds.
-
-### One-ask rule
-
-If the user does not answer the clarifying question, **default to the most likely reasonable portion** and record it — do NOT ask a second time. For example:
-- "I ate a whole pizza" + no reply → assume 4 slices (~half a medium pizza)
-- Photo shows a large bowl of rice + no reply → assume ~1.5 standard bowls
-
-Never ask more than once per food item. The principle is: **ask at most once, then move on.**
+**One-ask rule:** If the user doesn't answer, default to the most likely reasonable portion and record it. Never ask more than once per food item.
 
 ---
 
@@ -387,25 +365,18 @@ Example format:
 
 ## Closing the Day
 
-**Trigger:** User signals they're done eating for the day — e.g. "今天都吃完了", "done eating for today", "no more meals today", "今天就这些了".
+**Trigger:** User signals they're done eating — e.g. "done eating for today", "no more meals today".
 
-**This is NOT a goodnight signal.** "Done eating" means the food log is closed — NOT that the user is going to sleep or ending the conversation. The user may still want to chat, ask questions, review their day, or log a forgotten snack.
+**This is NOT a goodnight signal.** The user may still want to chat or log a forgotten snack.
 
 ### Workflow
 
-1. **Call `load`** — get all meals for today
-2. **Call `evaluate`** — evaluate final daily totals (use `dinner` or the last logged meal as `--current-meal`)
-3. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
-4. **Calorie deficit check** — if daily total is below target, apply the Case D logic from the Suggestion section:
-   - Compare daily total against BMR (from PLAN.md / USER.md / health-profile.md)
-   - Below BMR → recommend adding a snack (category + user-history examples)
-   - ≥ BMR but below target → "if hungry later, grab a snack; if not, no need to eat more"
-5. **If calories are on track or over**, add one forward-looking suggestion for tomorrow if intake was notably high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
-6. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
+1. **Call `query-day`** — get daily totals with evaluation
+2. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
+3. **Calorie check** — if under target, apply Case D logic. If on track or over, add one brief forward-looking suggestion for tomorrow.
+4. **Do NOT add closing sign-offs** — no "goodnight" / 🌙 / "see you tomorrow". The user decides when the conversation is over.
 
-### If the user also runs `detect-diet-pattern` criteria
-
-If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pattern` (see Diet Pattern Detection above). Append pattern feedback after the daily summary if `has_pattern` is true.
+If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pattern` (see Diet Pattern Detection).
 
 ---
 
@@ -421,17 +392,7 @@ If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pat
 
 ## Skill Routing
 
-**Before responding**, check if the user message triggers multiple skills.
-Read `SKILL-ROUTING.md` for the full conflict resolution rules. Key scenarios
-for this skill:
-
-- **Exercise + food in one message** (Pattern 1): Merge — log both in a single response. Exercise summary first, then meal details.
-- **Food log + emotional distress** (Pattern 2A): Emotional support leads. Do NOT log food in the first reply.
-- **Food log + positive emotion** (Pattern 2B): Log food normally, add brief warm acknowledgment.
-- **Habit mention in reply** (Pattern 7): Log food as primary, record habit inline.
-
-This skill is **Priority Tier P2 (Data Logging)**. Defer to P0 (safety) and
-P1 (emotional support) when those signals are detected.
+If the user message may trigger multiple skills (e.g. food + exercise, food + emotion), read `SKILL-ROUTING.md` for conflict resolution. This skill is Priority Tier P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support).
 
 ---
 
