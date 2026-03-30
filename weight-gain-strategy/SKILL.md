@@ -15,6 +15,17 @@ reassurance on the first increase, to guided cause discovery, to full
 diagnosis with adjustment strategies — matching the response depth to how
 persistent the trend is.
 
+## Routing Gate
+
+**Entry paths:**
+- **Auto (post-weigh-in):** `weight-tracking` calls `deviation-check` after every weight log → severity returned → respond per severity table below.
+- **Manual:** User asks about weight gain ("why am I gaining weight", "体重怎么涨了") → skip streak logic → run `analyze` directly → Interactive Flow Step 1.
+
+**Skip — do NOT enter this skill if:**
+- No `PLAN.md` exists (no plan to deviate from)
+- `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
+- User shows emotional distress about weight → defer to `emotional-support` (P1 priority)
+
 ## Principles
 
 1. **Normalize first.** Weight fluctuations are normal. Never alarm the user — lead with reassurance, then dig into data.
@@ -26,9 +37,6 @@ persistent the trend is.
 ---
 
 ## Severity → Response
-
-After every weight log, `weight-tracking` calls `deviation-check` which counts
-consecutive increases (streak) and returns a severity level.
 
 | Severity | Streak | Behavior |
 |----------|--------|----------|
@@ -142,9 +150,6 @@ cheeky confirmation:
 
 **If the user says no, ignores, or changes topic** → drop it. Single-ask rule
 applies at each step.
-
-**Manual trigger:** When the user explicitly asks about weight gain, skip
-streak logic — run `analyze` directly → Interactive Flow Step 1.
 
 ---
 
