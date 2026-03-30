@@ -189,19 +189,13 @@ When user says "set my target" or provides weight/calorie goal:
 
 When user describes what they're about to eat (or what they already ate):
 
-0. **Collect all pending messages** — if there are multiple consecutive user messages with no bot reply in between, read them all first and merge into a single input before proceeding (see Batch Message Recognition above)
-1. **Determine meal type** — if user explicitly states the meal type, use it directly. Otherwise, **call `detect-meal`** (see §0) passing `--tz-offset`, `--meals`, `--schedule` (from health-profile.md), `--timestamp` (from message metadata), and `--log` (from step 3). Use the returned `detected_meal` as the meal type and `local_date` as the date for all subsequent commands.
-2. **Detect meal timing** — determine if the user is logging before eating (default) or reporting a meal already eaten (see Meal Timing Detection above)
-3. **Call load** — get today's existing records (use `local_date` from `detect-meal` as `--date`)
-4. **Call check-missing** — check for skipped meals before current one; if missing, assume normal intake and pass via `--assumed` (see Missing Meal Handling below)
-5. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
-6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g. **China region:** also estimate `vegetables_g` and `fruits_g` for this meal.
-7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). **China region:** include `vegetables_g` and `fruits_g` in the meal JSON.
-8. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
-9. **China region:** Call `produce-check` — pass all meals from save output, evaluate cumulative produce intake
-10. **Reply in format** — meal details + nutrition summary + produce status (China only) + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
-
-> **⚠️ Important:** When calling `detect-meal`, always pass `--timestamp` from the inbound message metadata (the UTC timestamp of the user's message). Never rely on `session_status` or cached time — the session may have been idle for hours.
+1. **Collect all pending messages** — merge consecutive messages into a single input (see Batch Message Recognition)
+2. **Determine meal type** — if user explicitly states it, pass as `--meal-type`; otherwise omit (auto-detected)
+3. **Detect meal timing** — before eating (default) or already eaten (see Meal Timing Detection)
+4. **Check portion clarity** — assume standard portions; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule)
+5. **Estimate nutrition** — calories / protein / carbs / fat per item. China region: also estimate `vegetables_g` and `fruits_g`.
+6. **Call `log-meal`** — pass the nutrition estimate and all required parameters. The script handles load, missing-meal check, save, evaluate, and produce-check internally.
+7. **Reply in format** — use `log-meal` results to generate meal details + nutrition summary + suggestion (see Response Format)
 
 ### Missing Meal Handling
 
@@ -325,7 +319,7 @@ Produce targets have **lower priority** than calories and macros:
 
 ### Querying Progress
 
-User asks "how much have I eaten today" / "how much can I still eat" → call `load` → call `evaluate` → output checkpoint summary. **China region:** also call `produce-check` and include produce status in the reply.
+User asks "how much have I eaten today" / "how much can I still eat" → call `query-day` → output the returned summary.
 
 ---
 
