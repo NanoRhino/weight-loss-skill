@@ -133,7 +133,7 @@ When user says "set my target" or provides weight/calorie goal:
 When user describes what they're about to eat (or what they already ate):
 
 1. **Collect all pending messages** — merge consecutive messages into a single input (see Batch Message Recognition)
-2. **Determine meal type** — if user explicitly states it, pass as `--meal-type`; otherwise omit (auto-detected)
+2. **Determine meal type** — if user explicitly states it (e.g. "breakfast", "this is lunch"), pass as `--meal-type` to `log-meal`; otherwise omit (script auto-detects from timestamp and schedule). User's statement always takes priority, even if it contradicts the time of day.
 3. **Detect meal timing** — before eating (default) or already eaten (see Meal Timing Detection)
 4. **Check portion clarity** — assume standard portions; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule)
 5. **Estimate nutrition** — calories / protein / carbs / fat per item. China region: also estimate `vegetables_g` and `fruits_g`.
@@ -215,15 +215,7 @@ When the conversation context contains multiple user messages that arrived in qu
 
 ### Edge case: delayed follow-up
 
-If a user sends a follow-up correction **after** the bot has already replied (e.g., bot logged the meal, then user says "哦对了那个肥肉我没吃"), treat it as a **correction** — re-run `save` with the updated items and re-run `evaluate`, then reply with the updated summary.
-
----
-
-## Meal Type Assignment
-
-- **User explicitly states meal type** (e.g. "这是午饭", "breakfast") → pass it as `--meal-type` to `log-meal`. The script handles name resolution and mapping internally.
-- **User does NOT state meal type** → omit `--meal-type`; the script auto-detects from timestamp and schedule.
-- **User's statement always takes priority** — even if it contradicts the time of day.
+If a user sends a follow-up correction **after** the bot has already replied (e.g., bot logged the meal, then user says "哦对了那个肥肉我没吃"), treat it as a **correction** — re-run `log-meal` with the updated items, then reply with the updated summary.
 
 ---
 
@@ -383,7 +375,7 @@ If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pat
 ## Special Scenarios
 
 - **Forgotten meals**: progress shows actual values only; suggestions use assumed standard values (avoids compensatory overeating)
-- **Correcting a record**: user fixes portion → re-run `save` (overwrites) → re-run `evaluate`
+- **Correcting a record**: user fixes portion → re-run `log-meal` (same meal name overwrites)
 - **New day**: starts from zero
 - **Default portions**: rice bowl ≈ 150g, egg ≈ 50g, milk cup ≈ 250ml, vegetable plate ≈ 200g, bread slice ≈ 35g, chicken breast ≈ 120g
 - **Data source**: USDA FoodData Central primary; for regional foods not well-covered by USDA, use local food composition databases (e.g. China CDC for Chinese foods)
