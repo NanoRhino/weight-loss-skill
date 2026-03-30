@@ -42,7 +42,7 @@ persistent the trend is.
 |----------|--------|----------|
 | `none` | 0 | Weight stable or down — just confirm the log. |
 | `comfort` | 1 | Comfort and encourage. Mention temporary causes lightly. See `references/diagnosis-templates.md` for examples. |
-| `cause-check` | 2–3 | Multi-step guided discovery: hook → user guesses → data + challenge → mutual pact. See `references/cause-check-flow.md`. |
+| `cause-check` | 2–3 | Multi-step guided discovery: hook → user guesses → data + challenge → mutual pact → habit created in `habit-builder`. See `references/cause-check-flow.md`. |
 | `significant` | 4+ | Full analysis → strategy options. See `references/interactive-flow.md`. |
 
 ---

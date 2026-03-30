@@ -90,9 +90,31 @@ Structure: **"I will do X" + "you do Y"**
 
 ### After user agrees
 
-Run `save-strategy` to persist. Close with a short, cheeky confirmation:
-- "Deal! Don't say I didn't warn you 😏"
-- "Alright, you're on my watch list this week 👀"
+1. **Create a habit in `habits.active`** via `habit-builder` — the pact becomes
+   a tracked habit with the standard lifecycle (week-1 phase = check-in every
+   2 days, woven into meal conversations by notification-composer). Map the
+   pact to habit-builder's schema:
+   - `habit_id`: derive from cause (e.g., `"swap-afternoon-snack"`, `"log-meals"`, `"restore-wed-run"`)
+   - `description`: the user's side of the pact
+   - `tiny_version`: the smallest version of the commitment
+   - `trigger`: the meal or time it's bound to
+   - `type`: `"post-meal"` / `"end-of-day"` / `"all-day"` depending on cause
+   - `phase`: `"week-1"` (starts with highest check-in frequency)
+   - `source`: `"weight-gain-strategy"` (so weekly-report knows it came from a cause-check pact)
+
+2. **Also run `save-strategy`** to persist the strategy metadata (type, params,
+   start/end date). This lets `check-strategy` report progress.
+
+3. **Strict mode** — when the cause includes `logging_gaps` (user wasn't
+   logging meals) AND `calorie_surplus` or `calorie_creep`, mark the habit
+   with `strict: true`. This signals notification-composer to:
+   - Give more detailed calorie feedback after each meal log (running total vs target)
+   - Proactively ask "what did you eat?" if no meal is logged by meal time + 1 hour
+   - Keep week-1 frequency for 2 weeks instead of the normal 1 week before stepping down
+
+4. Close with a short, cheeky confirmation:
+   - "Deal! Don't say I didn't warn you 😏"
+   - "Alright, you're on my watch list this week 👀"
 
 If the user says no, ignores, or changes topic → drop it. Single-ask rule
 applies at each step.

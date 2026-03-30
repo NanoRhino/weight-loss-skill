@@ -21,6 +21,7 @@
 | Path | When |
 |------|------|
 | `data/weight-gain-strategy.json` | After the user confirms a strategy — stores the active strategy with start date, end date, type, and parameters |
+| `habits.active` | After cause-check pact is accepted — creates a tracked habit via `habit-builder` (week-1 phase, `source: "weight-gain-strategy"`). If `logging_gaps` + calorie issue detected, mark `strict: true` for tighter monitoring. |
 | `health-preferences.md` | If the user reveals new preferences during the conversation (append only) |
 
 ## Strategy Data Schema
@@ -61,8 +62,9 @@
 
 | Skill | Integration |
 |-------|-------------|
+| `habit-builder` | Cause-check pacts are written to `habits.active` as tracked habits. Habit-builder owns the lifecycle (check-in frequency, graduation, failure handling). `strict: true` habits get tighter monitoring. |
 | `weekly-report` | Reads `check-strategy` output to report on active strategy progress. |
-| `notification-composer` | Reads `check-strategy` output to optionally include mid-week strategy check-in reminders. |
+| `notification-composer` | Reads `check-strategy` output and `habits.active` to weave pact check-ins into meal conversations. For `strict: true` habits, gives detailed calorie feedback and proactive meal-log nudges. |
 | `weight-tracking` | Source of weight data. This skill reads only — never writes to `data/weight.json`. |
 | `diet-tracking-analysis` | Source of meal data. This skill reads only — never writes to `data/meals/`. |
 | `exercise-tracking-planning` | Source of exercise data. This skill reads only — never writes to `data/exercise.json`. |
