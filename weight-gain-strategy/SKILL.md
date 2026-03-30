@@ -44,7 +44,7 @@ Severity is driven by **consecutive increases** — how many weigh-ins in a row 
 |----------|--------|----------|
 | `none` | 0 | No increase. Weight is stable or down — just confirm the log. |
 | `comfort` | 1 | **First increase.** Comfort and encourage. If a temporary cause was detected (yesterday overeating, menstrual cycle, water retention), mention it lightly as reassurance. Tone: warm, no concern at all. |
-| `cause-check` | 2–3 | **Consecutive increases.** Guide the user through a 3-step conversational discovery: (1) ask them what they think caused the increase, (2) run `analyze` and share findings alongside their own reflection, (3) ask if they want to build a small habit change together. Each step waits for user response before proceeding. |
+| `cause-check` | 2–3 | **Consecutive increases.** Guide the user through a multi-step discovery flow: hook + opt-in → let user guess → data reveal with consequence + motivation + challenge tease → suspense → mutual pact. See `cause-check` section below for full flow. |
 | `significant` | 4+ | **Sustained upward trend.** Run `analyze`, present full cause analysis (Step 1), then ask if they want to discuss adjustments (Step 2). |
 
 **Adaptation period modifier:** When `adaptation_period` is true (first 2 weeks of plan), add "body is still adjusting" context to any severity level. For `comfort`, this is the primary message. For `cause-check`, lead with adaptation reassurance before mentioning causes.
@@ -175,9 +175,12 @@ cheeky confirmation:
 **If the user says no, ignores, or changes topic** → drop it. Single-ask rule
 applies at each step.
 
-**Overall `cause-check` key rules:**
+**`cause-check` key rules:**
 - **Opt-in at every step.** The user can exit at Step A, B, C, or D. Never
   push past a "no" or lack of interest.
+- **User reflects first, data second.** Never lead with the data dump — let the user think first.
+- **Validate before correcting.** If the user identified a cause, acknowledge it before adding or adjusting with data.
+- **Early exit for non-actionable causes.** If menstrual cycle, adaptation period with no actionable cause, or normal fluctuation is detected, end at Step C with reassurance — skip the challenge/pact (Step D).
 - **Push-pull rhythm.** Alternate between teasing/challenging (push) and
   motivating/encouraging (pull). Never be all push (nagging) or all pull
   (sycophantic).
@@ -187,13 +190,6 @@ applies at each step.
   commitment, not a one-sided recommendation. Both sides have skin in the game.
 - **Tone: playful coach.** Think personal trainer who's also your witty friend
   — not a doctor reading test results, not a cheerleader with no substance.
-
-**Key rules for `cause-check`:**
-- **User reflects first, data second.** Never lead with the data dump — let the user think first.
-- **Validate before correcting.** If the user identified a cause, acknowledge it before adding or adjusting with data.
-- **Step C is optional.** If the cause is menstrual cycle, adaptation period with no actionable cause, or normal fluctuation, skip Step C — no habit change is needed.
-- **No prescriptions at any step.** Even in Step C, you're asking "want to?" not "you should."
-- **Tone stays curious and collaborative** throughout — "let's look together" not "let me tell you."
 
 **Skip conditions:**
 - No `PLAN.md` (no plan to deviate from)
@@ -395,7 +391,7 @@ The `--plan-start-date` is read from the `开始日期` / `Start date` field in
 ```bash
 python3 {baseDir}/scripts/analyze-weight-trend.py save-strategy \
   --data-dir {workspaceDir}/data \
-  --strategy-type reduce_calories|increase_exercise|adjust_schedule|combined \
+  --strategy-type reduce_calories|increase_exercise|combined \
   --params '{"target_kcal": 1450, "duration_days": 7}' \
   --tz-offset {tz_offset}
 ```
@@ -487,12 +483,7 @@ Option {N}: {strategy_name}
 - If user doesn't exercise, suggest walking 20–30 min/day as a starting point
 - Duration: 1–2 weeks, then reassess
 
-#### C. Adjust Schedule (`adjust_schedule`)
-- Shift meal timing (e.g., earlier dinner, longer overnight fast)
-- Only suggest if the user's current schedule has obvious issues (e.g., late-night eating pattern detected)
-- Duration: 1 week trial
-
-#### D. Combined (`combined`)
+#### C. Combined (`combined`)
 - A modest version of A + B (smaller calorie reduction + 1 extra session)
 - For users who prefer balanced adjustments
 - Duration: 1–2 weeks
@@ -610,10 +601,12 @@ check if calorie intake is a factor. Want to start logging meals?"
 
 **User is in first 2 weeks of plan (adaptation period):**
 Weight fluctuation is expected at the start. The `deviation-check` will return
-`severity: "adaptation"` — respond with reassurance and lightly mention any
-detected causes as context (not problems). Do NOT suggest adjustments. If the
-user explicitly asks for changes, gently recommend waiting: "Your body is still
-adjusting — let's give it another week and the picture will be clearer."
+`adaptation_period: true` — add "body is still adjusting" context to whatever
+severity level applies. At `comfort`, this is the primary message. At
+`cause-check`, early-exit at Step C with reassurance if no actionable cause.
+If the user explicitly asks for changes, gently recommend waiting: "Your body
+is still adjusting — let's give it another week and the picture will be
+clearer."
 
 **Weight gain is muscle gain (exercise increased significantly):**
 If exercise volume increased significantly while weight went up, note the

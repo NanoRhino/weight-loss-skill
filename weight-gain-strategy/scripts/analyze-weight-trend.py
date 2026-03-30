@@ -763,7 +763,7 @@ def main():
     p_save.add_argument("--data-dir", required=True)
     p_save.add_argument("--strategy-type", required=True,
                         choices=["reduce_calories", "increase_exercise",
-                                 "adjust_schedule", "combined"])
+                                 "combined"])
     p_save.add_argument("--params", default="{}")
     p_save.add_argument("--tz-offset", type=int, default=0)
 
