@@ -161,11 +161,16 @@ The opening line is optional — use it for context when relevant (time of day, 
 
 **Strict-mode accountability (first meal of the day only):** If `habits.active`
 contains a habit with `strict: true` AND `source: "weight-gain-strategy"`,
-check yesterday's `habits.daily_log` for meal logging. If yesterday was
-`missed` or `no_response`, use the opening line to call it out with playful
-strictness — e.g., "Yesterday you went off the radar — today let's get
-back on track!" / "昨天一整天没报到哦——今天可别再溜了！" If yesterday was
-`completed`, skip this. Only applies to the first meal reminder of the day.
+check yesterday's meal logs (`data/meals/YYYY-MM-DD.json`). If **any** meal
+from the user's schedule (`health-profile.md > Meal Schedule`) was not logged
+yesterday, use the opening line to call it out — name the specific missed
+meal(s). Examples:
+- One meal missed: "Yesterday's lunch went unlogged — don't let it slip again today!" / "昨天午饭没记哦——今天别再漏了！"
+- Multiple missed: "Yesterday you skipped logging lunch and dinner — today let's get back on track!" / "昨天午饭晚饭都没记——今天咱们补回来！"
+- All logged: skip this, normal opening.
+
+Tone: playful strictness, not guilt. Only applies to the first meal reminder
+of the day.
 
 #### Examples
 
