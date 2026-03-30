@@ -44,8 +44,6 @@ Severity is driven by **consecutive increases** — how many weigh-ins in a row 
 | `cause-check` | 2–3 | **Consecutive increases.** Guide the user through a multi-step discovery flow: hook + opt-in → let user guess → data reveal with consequence + motivation + challenge tease → suspense → mutual pact. See `cause-check` section below for full flow. |
 | `significant` | 4+ | **Sustained upward trend.** Run `analyze`, present full cause analysis (Step 1), then ask if they want to discuss adjustments (Step 2). |
 
-**Adaptation period modifier:** When `adaptation_period` is true (first 2 weeks of plan), add "body is still adjusting" context to any severity level. For `comfort`, this is the primary message. For `cause-check`, lead with adaptation reassurance before mentioning causes.
-
 **`comfort` response examples (streak = 1):**
 
 - **No temporary cause:** "Up a tiny bit from last time — totally normal fluctuation, just keep doing what you're doing!"
@@ -172,22 +170,6 @@ cheeky confirmation:
 **If the user says no, ignores, or changes topic** → drop it. Single-ask rule
 applies at each step.
 
-**`cause-check` key rules:**
-- **Opt-in at every step.** The user can exit at Step A, B, C, or D. Never
-  push past a "no" or lack of interest.
-- **User reflects first, data second.** Never lead with the data dump — let the user think first.
-- **Validate before correcting.** If the user identified a cause, acknowledge it before adding or adjusting with data.
-- **Early exit for non-actionable causes.** If menstrual cycle, adaptation period with no actionable cause, or normal fluctuation is detected, end at Step C with reassurance — skip the challenge/pact (Step D).
-- **Push-pull rhythm.** Alternate between teasing/challenging (push) and
-  motivating/encouraging (pull). Never be all push (nagging) or all pull
-  (sycophantic).
-- **Suspense is seasoning, not the meal.** Max 1 exchange of "guess what my
-  plan is." Don't string the user along.
-- **The pact is the product.** The output of cause-check is a mutual
-  commitment, not a one-sided recommendation. Both sides have skin in the game.
-- **Tone: playful coach.** Think personal trainer who's also your witty friend
-  — not a doctor reading test results, not a cheerleader with no substance.
-
 **Skip conditions:**
 - No `PLAN.md` (no plan to deviate from)
 - `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
@@ -195,8 +177,8 @@ applies at each step.
 ### Manual Trigger (user-initiated)
 
 When the user explicitly asks about weight gain ("why am I gaining weight",
-"体重怎么涨了"), this skill takes over as the primary responder and runs
-the full interactive flow (Analysis → Discussion → Strategy).
+"体重怎么涨了"), skip streak logic — run `analyze` directly and enter the
+Interactive Flow at Step 1 (cause analysis → strategy discussion).
 
 ---
 
