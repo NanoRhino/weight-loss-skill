@@ -44,6 +44,17 @@ Never say: `"You failed"` · `"You broke your streak"` · `"Don't give up"` ·
 | "Can I change my habit?" | Offer keep/shrink/swap. |
 | "I want to stop tracking" | `"Done — no more habit check-ins. Let me know if you ever want to pick it back up."` Move all active to paused. |
 
+## Check-in Frequency
+
+| Phase | Frequency |
+|-------|-----------|
+| Week 1 | Every 2 days |
+| Week 2-3 | Every 3-4 days |
+| Week 3+ | ~Once/week |
+
+`strict: true` habits (from weight-gain-strategy): week-1 frequency for 2 weeks.
+See `weight-gain-strategy/references/strict-mode.md` for full strict-mode rules.
+
 ## Habit Types — Full Table
 
 | Type | When to mention | Example |

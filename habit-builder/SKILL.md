@@ -34,163 +34,43 @@ description: >
 
 ## How Habits Surface
 
-Habits appear inside meal conversations (Notification Composer). No separate reminders.
+Habits appear inside meal conversations. No separate reminders. Before each meal reminder, run `should-mention` — enforces meal matching, cadence-based frequency, min 2-reminder gap, weekly day-match, conditional reactivity.
 
-Before each meal reminder, run `should-mention` for each active habit. The script enforces: meal matching, cadence-based frequency, min 2-reminder gap, weekly day-match, conditional reactivity.
+- One sentence max. Tone: casual friend. Record response to `habits.daily_log.{date}`.
+- `strict: true` habits (from weight-gain-strategy): week-1 frequency for 2 weeks. See `weight-gain-strategy/references/strict-mode.md`.
 
-See `references/habit-details.md` for the full type → timing table.
-
-### Mention rules
-
-- One sentence max. Record response to `habits.daily_log.{date}`.
-- Tone: casual friend. Good: `"Walk after dinner tonight?"` Bad: `"Did you complete your habit today?"`
-
-### Frequency
-
-| Phase | Frequency |
-|-------|-----------|
-| Week 1 | Every 2 days |
-| Week 2-3 | Every 3-4 days |
-| Week 3+ | ~Once/week |
-
-`strict: true` habits (from weight-gain-strategy): week-1 frequency for 2 weeks.
-See `weight-gain-strategy/references/strict-mode.md` for full strict-mode rules.
+→ Full type table, frequency phases, examples: `references/habit-details.md`
 
 ---
 
 ## Habit Recommendation
 
-### Triggers
+1. Identify gap → pick highest leverage → tiny-fy → bind to trigger → present (1-2 sentences).
+2. Accept → energy. Decline → one alternative. Decline again → drop it. **Single-ask rule applies.**
 
-After onboarding | habit graduated | Weekly Review insight | user asks | failure restart | `weight-gain-strategy` cause-check pact
-
-### Design method
-
-1. **Identify gap** — read `USER.md`, `health-profile.md`, `health-preferences.md`, recent `logs.*`. See `references/habit-details.md` for dimension checklist.
-2. **Pick highest leverage** — "Which one change makes the most other things easier?"
-3. **Tiny-fy** — shrink until passable on the worst day. See `references/habit-details.md` for examples.
-4. **Bind to trigger** — `"After I [EXISTING], I will [NEW TINY]."` Specific > vague.
-5. **Present** — 1-2 sentences, conversational. Never explain methodology.
-
-Accept → react with energy. Decline → one alternative (hydration/sleep as fallback). Decline again → drop it.
-**Single-ask rule applies** (`SKILL-ROUTING.md`).
+→ Full method, examples, presentation rules: `references/recommendation.md`
 
 ---
 
 ## Habit Lifecycle
 
-### Active tracking
+- **Activate:** `habits.active` via `activate`. Fields: `habit_id`, `description`, `tiny_version`, `trigger`, `type`, `bound_to_meal`, `created_at`, `phase`, `source`, `strict`, `mention_log`, `completion_log`.
+- **Track:** `completed` / `missed` / `no_response` / `self_initiated`. Praise behavior, not person; ~1 in 3-4 gets a real comment.
+- **Graduate:** run `check-graduation`. ≥ 80% completion + (self-initiation > 30% or user confirms automatic).
+- **Fail:** run `check-failure`. 3 consecutive misses → keep / shrink / swap.
+- **Concurrency:** run `check-concurrency`. Max 3 active; flags struggling habits.
 
-Write to `habits.active` via `activate`. Standalone habits: write directly with `habit_id`, `description`, `tiny_version`, `trigger`, `type`, `bound_to_meal`, `created_at`, `phase`, `mention_log`, `completion_log`.
-
-### Completion signals
-
-| Signal | Record as |
-|--------|-----------|
-| Confirms done / partial | `completed` |
-| Says missed | `missed` |
-| Ignores mention | `no_response` |
-| Does it unprompted | `completed` + `self_initiated: true` |
-
-### Feedback
-
-- Praise behavior, not person. No streak counts. Vary energy.
-- ~1 in 3-4 completions gets a real comment; rest get `"✓"`.
-- See `references/habit-details.md` for examples.
-
-### Graduation
-
-Run `check-graduation`. Graduation = Signal 1 + at least one of Signal 2 or 3:
-- Signal 1 (required): ≥ 80% completion (daily=14d, weekly=6 occurrences, conditional=8)
-- Signal 2: self-initiation > 30%
-- Signal 3: user confirms automatic
-
-On graduation: celebrate briefly → move to `habits.graduated` → advance queue → monthly spot-check via Weekly Review.
-
-### Failure
-
-Run `check-failure`. When 3 consecutive misses/no-responses detected, surface gently. Three paths: keep going (reset) / make easier (shrink) / try different. See `references/habit-details.md` for response examples and blacklisted phrases.
-
-### Concurrency
-
-Run `check-concurrency` before adding a new habit. Enforces max 3 active and flags struggling habits. Upgrade after graduation only if user wants.
+→ Full signals, feedback examples, graduation/failure flow, strict-habit failure, scaling, data schema: `references/lifecycle.md`
 
 ---
 
 ## Advice-to-Action Pipeline
 
-Turns advice from any skill into a queue of tiny, trackable actions.
-Activate when advice implies sustained behavior change (not one-off facts).
+Turns advice from any skill into a queue of tiny, trackable actions. Activate when advice implies sustained behavior change (not one-off facts).
 
-### Step 1: Decompose
+**Flow:** Decompose (≤ 5 actions) → Prioritize (`prioritize`) → Activate (`activate`) → Follow-up (`should-mention`) → Graduate → Advance queue.
 
-≤ 5 independent actions. Each = one trigger + one behavior. Must pass Tiny Habits test.
-
-### Step 2: Prioritize
-
-Run `prioritize`. Present top one casually, ask if user wants 1-2 more (max 3 concurrent, different time slots).
-
-### Step 3: Activate
-
-Run `activate`. Maps `trigger_cadence` → `type` for notification-composer. Update `habits.action_queue` status to `active`.
-
-### Step 4: Follow-up
-
-Run `schedule` or `should-mention`. Habits surface in meal conversations.
-- **Weekly:** relevant day only, first meal conversation.
-- **Conditional:** reactive only — mention when user's message matches the condition.
-
-### Step 5: Graduation
-
-Same as § Lifecycle Graduation. On graduation, introduce next queued action immediately. Exception: emotionally taxing → wait for Weekly Review. Max tracking: 90 days.
-
-### Step 6: Queue
-
-| Event | Action |
-|-------|--------|
-| Graduation | Advance next (fill freed slots, cap 3) |
-| Failure (3 misses) | Offer: keep / shrink / swap / skip |
-| User skips | Move to end of queue |
-| User stops all | Pause entire queue |
-| New advice | Append (don't jump line) |
-
-Data structure: see `references/script-reference.md`.
-
----
-
-## Workspace
-
-### Reads
-
-| Path | Purpose |
-|------|---------|
-| `USER.md` | Basic info, health flags |
-| `health-profile.md` | Goals, meal schedule, body, activity, diet config |
-| `health-preferences.md` | Accumulated preferences |
-| `PLAN.md` | BMR, TDEE, calorie targets |
-| `data/meals/YYYY-MM-DD.json` | Eating patterns (via `nutrition-calc.py load`) |
-| `data/weight.json` | Weight trend (via `weight-tracker.py load`) |
-
-### Writes
-
-| Path | When |
-|------|------|
-| `habits.active` | Habit accepted |
-| `habits.graduated` | Habit graduates |
-| `habits.daily_log.{date}` | Completion/miss/no_response |
-| `habits.mention_counter` | After each mention |
-| `habits.lifestyle_gaps` | Gap analysis (for Weekly Review) |
-| `habits.action_queue` | Pipeline actions with priority and status |
-| `habits.advice_history` | Completed advice records |
-
-Weekly Review reads `habits.*` for progress summaries.
-
-### References
-
-| File | Contents |
-|------|----------|
-| `references/recommendation.md` | How to choose, tiny-fy, present, and handle acceptance/decline |
-| `references/lifecycle.md` | Active tracking, completion signals, positive feedback, graduation, failure/restart, scaling, concurrent habits, data schema |
+→ Full step details and queue rules: `references/action-pipeline.md`
 
 ---
 
@@ -206,7 +86,37 @@ Weekly Review reads `habits.*` for progress summaries.
 
 ## Workspace
 
+### Response length
+
 - Recommendation: 3-5 turns max
 - Mention: 1 sentence
 - Acknowledgment: 1-5 words
 - Failure restart: 2-3 turns max
+
+### Reads
+
+`USER.md`, `health-profile.md`, `health-preferences.md`, `PLAN.md`,
+`data/meals/YYYY-MM-DD.json` (via `nutrition-calc.py load`),
+`data/weight.json` (via `weight-tracker.py load`)
+
+### Writes
+
+| Path | When |
+|------|------|
+| `habits.active` | Habit accepted |
+| `habits.graduated` | Habit graduates |
+| `habits.daily_log.{date}` | Completion/miss/no_response |
+| `habits.mention_counter` | After each mention |
+| `habits.lifestyle_gaps` | Gap analysis (for Weekly Review) |
+| `habits.action_queue` | Pipeline actions with priority and status |
+| `habits.advice_history` | Completed advice records |
+
+### References
+
+| File | Contents |
+|------|----------|
+| `references/habit-details.md` | Type → timing table, frequency phases, tiny-fy examples, feedback examples, blacklisted phrases, lifestyle gap dimensions |
+| `references/recommendation.md` | How to choose, tiny-fy, present, and handle acceptance/decline |
+| `references/lifecycle.md` | Active tracking, completion signals, graduation, failure/restart, strict-habit failure, scaling, concurrent habits, data schema |
+| `references/action-pipeline.md` | Advice-to-Action Pipeline step details and queue management rules |
+| `references/script-reference.md` | `action-pipeline.py` subcommand syntax and data structures |
