@@ -358,21 +358,11 @@ Every food log reply must contain up to three sections:
 💡 Next time: [habit tip or next-meal pairing suggestion — specific food + amount, no calorie listing]
 ```
 
-**Case D: Last meal of the day + calories under target** (current meal is the final meal — dinner in 3-meal mode or meal_2 in 2-meal mode — and daily total calories are below the calorie target):
+**Case D: Last meal of the day + calories under target** (final meal checkpoint and daily total below calorie target):
 
-Determine severity by comparing daily total against BMR (from PLAN.md, USER.md, or health-profile.md):
-
-- **Daily total < BMR:** Proactively recommend adding a snack — eating below BMR consistently is unhealthy. Use a gentle but clear tone:
-  ```
-  🍽 今天总热量偏低（~X kcal），低于基础代谢（~Y kcal），建议加个餐补一下——比如【category】，像【example from user history】。
-  ```
-  English: "Today's total (~X kcal) is below your resting metabolism (~Y kcal) — I'd recommend adding a snack, something like [category], e.g. [example from user history]."
-
-- **Daily total ≥ BMR but below calorie target:** The deficit is mild and safe. Do NOT push the user to eat more. Instead, note that they CAN snack if hungry, but it's fine to skip:
-  ```
-  💡 今天热量比目标少了一些，不过还在安全范围。如果晚点饿了，可以加个小零食；不饿的话不吃也没关系。
-  ```
-  English: "Today's calories are a bit under target but still in a safe range. If you get hungry later, feel free to grab a small snack — if not, no need to eat more."
+Use `--bmr` from log-meal to determine severity:
+- **Daily total < BMR:** Recommend adding a snack — eating below BMR consistently is unhealthy. Gentle but clear tone. Use Food Suggestion Format.
+- **Daily total ≥ BMR:** Mild deficit, safe. Note they CAN snack if hungry later, but no need to eat more if not.
 
 **✨ Nice work** (optional, between nutrition summary and suggestion):
 ```
