@@ -43,17 +43,6 @@ See `references/habit-details.md` for the full type → timing table.
 
 After onboarding | habit graduated | Weekly Review insight | user asks | failure restart
 
-When no user question triggers a specific habit, recommend from the default pool:
-
-```bash
-python3 {baseDir}/scripts/default-habits.py recommend \
-  --profile '<gap flags JSON>' \
-  [--exclude-ids '["already-active-id"]'] \
-  [--top 3]
-```
-
-The script holds 30 pre-designed habits across 5 dimensions (hydration, meal rhythm, food quality, movement, sleep). It adjusts priority based on user profile gaps. See `scripts/default-habits.py` for the full pool.
-
 ### Design method
 
 1. **Identify gap** — read `USER.md`, `health-profile.md`, `health-preferences.md`, recent `logs.*`. See `references/habit-details.md` for dimension checklist.
