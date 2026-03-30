@@ -46,6 +46,39 @@ Patterns table to determine how they coordinate.
 Before routing, parse the user message into **intents**. A single message
 can contain multiple intents.
 
+### Short Follow-Up Messages (Context Lookup)
+
+When the user sends a very short message — `?`, `??`, `???`, `。`, `.`,
+`怎么不说话`, `说话`, or similar nudge-like messages — **look at the
+previous message(s) in the conversation that the agent has not yet responded
+to.** These short messages almost always mean: "Why didn't you reply to what
+I just said?"
+
+**Resolution:**
+
+1. **Find the last unanswered user message(s)** — scan backward through the
+   conversation for the most recent user message(s) that received no agent
+   reply (or only a partial/unrelated reply).
+2. **Route based on that message, not the nudge.** The "?" itself carries no
+   intent — the intent lives in the unanswered message. Parse intents from
+   the unanswered message and route normally using the priority tiers below.
+3. **Include all context** — if the unanswered message had attachments
+   (photos, files), those are part of the context too. Process them together
+   with the text of the unanswered message.
+4. **Do NOT treat the nudge as a standalone message.** Never route "?" to
+   diet-tracking just because there are food photos attached to a prior
+   message — first read the text of that prior message to understand the
+   full intent (it might be emotional, e.g., "有暴饮暴食了" + photos).
+
+**Example:**
+- User sends: `"有暴饮暴食了"` + food photos → (no agent reply)
+- User sends: `"?"`
+- Correct behavior: Route based on `"有暴饮暴食了"` + photos → emotional
+  distress signal detected (binge eating) → `emotional-support` leads (P1),
+  diet logging defers per Pattern 2A.
+- Wrong behavior: Process only the photos as a food log → misses the
+  emotional signal entirely.
+
 ### Examples
 
 | User Message | Intents | Skills |

@@ -27,6 +27,26 @@ This is a conversation, not a questionnaire. Keep it light, keep it fast. Every 
 - 1 ft = 30.48 cm
 - Example: 5'10" = 177.8 cm, 180 lbs = 81.6 kg
 
+## Pre-check: Skip Already-Collected Data
+
+Before starting the conversation flow, run this script to check which fields are already filled:
+
+```bash
+python3 {baseDir}/scripts/onboarding-check.py --workspace {workspaceDir}
+```
+
+The script returns JSON with `fields` (filled/missing for each), `skip_rounds` (list of rounds to skip), and `next_round` (where to start).
+
+**Rules based on output:**
+- If `onboarding_completed` is `true`: skip onboarding entirely, proceed with normal chat (returning user)
+- If `next_round` is `complete`: all fields filled, skip onboarding, transition to `weight-loss-planner`
+- If `next_round` is `name`: ask for name, then skip all rounds listed in `skip_rounds` and go directly to diet/meal questions
+- If `next_round` is `motivation`: start from Round 1.5
+- For any other value: start from that round, skip everything in `skip_rounds`
+- After completing remaining rounds, transition to `weight-loss-planner` as normal
+
+**Important:** This check is silent — never tell the user you checked their data or skipped steps. Just naturally start from the right point.
+
 ## Conversation Flow
 
 ### Step 1 — Required Fields (3–4 rounds)
@@ -41,8 +61,7 @@ These are the only fields you MUST collect before moving on. Each round focuses 
 5. Sex
 6. Target weight
 7. Core motivation (why they want to lose weight)
-8. Activity level (4-option pick — see Round 4)
-9. Exercise habits & preferences
+8. Activity level (3-option pick — see Round 4)
 
 > **Note:** Meal timing, taste preferences, and food restrictions are NOT collected during onboarding. These are asked later — after the user has seen and accepted their weight loss plan — to produce a personalized diet template.
 
@@ -124,34 +143,34 @@ If target weight is `null`, only show current BMI.
 
 **Single-ask rule:** Every question is asked at most once. If the user ignores a question or changes the subject, do not repeat it — use `null` or a sensible default for that field and continue to the next round. See `SKILL-ROUTING.md > Single-Ask Rule` for the full policy.
 
-**Round 4 — Activity level & exercise habits (required):**
+**Round 4 — Activity level (required):**
 
-Present three options for the user to pick. Then ask about exercise habits.
+Ask the user's daily activity level based on job/lifestyle. Activity level determines the NEAT multiplier for TDEE; exercise calories are tracked separately when actually logged (not baked into TDEE). Do NOT mention exercise tracking here — it will be covered in Step 2.
 
-> Example: "Got it! 你平时日常活动大概是哪种？
-> A. 几乎不出门，也不运动
-> B. 正常上下班，偶尔散步或运动
-> C. 经常做中高强度运动
->
-> 另外你现在有运动习惯吗？做什么运动，大概一周几次？"
+> Example: "你平时的日常活动大概是哪种？（先不算其他运动哦）
+> A. 几乎不出门，也不怎么走动
+> B. 正常上下班通勤
+> C. 工作需要经常走动（老师、零售、医护等）"
 
-Activity level mapping (internal — do not expose multipliers to user):
+Activity level mapping (internal — based on daily movement/job type ONLY, not exercise):
 
 | Option | activity_level | ×     |
 |--------|---------------|-------|
 | A      | sedentary          | 1.2   |
 | B      | lightly_active     | 1.375 |
-| C      | active             | 1.55  |
+| C      | moderately_active  | 1.55  |
+
+**Important:** Exercise habits do NOT affect the activity level selection. A desk worker who runs 5x/week is still `sedentary` (×1.2) — their running calories are tracked separately when logged. This prevents double-counting exercise in TDEE.
 
 ### Step 2 — Confirm Activity Level & TDEE
 
 After receiving the user's answer in Round 4, do the following:
 
-1. **Map to activity level** — Determine the activity level based on work type and exercise habits:
-   - Sedentary job + no exercise → `sedentary`
-   - Sedentary job + light exercise (1–2 days/week, or commute-level activity like short daily walks/cycling) → `lightly_active`
-   - Sedentary job + moderate exercise (3–5 days/week) → `moderately_active`
-   - Active job or heavy daily training → `very_active`
+1. **Map to activity level** — Determine the activity level based on **daily movement and job type ONLY** (ignore exercise habits for this mapping):
+   - WFH / homebound / rarely goes out → `sedentary`
+   - Office job with commute, normal errands, some daily walking → `lightly_active`
+   - On-feet job (teacher, retail, healthcare) or very active daily routine → `moderately_active`
+   - Physical labor job (construction, farming, delivery) → `very_active`
 
 2. **Compute TDEE** — Run:
    ```bash
@@ -160,11 +179,16 @@ After receiving the user's answer in Round 4, do the following:
      --activity <activity_level>
    ```
 
-3. **Confirm work type + exercise + TDEE** — Show only these two fields (not a full summary of all collected data). Explain what TDEE means and what activity level you assigned them. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
+3. **Confirm work type + TDEE, then ask exercise habits** — State the activity level and TDEE, then ask about exercise habits in the same message. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
 
-   > Example: "明白了！根据你的情况（久坐工作 + 每周一次舞蹈 + 每天骑车通勤），我把你归为轻度活跃，也就是说你每天维持现有体重大约需要消耗 1750–1950 大卡。TDEE（总每日能量消耗）是我们后续制定饮食方案的基准。这个判断看起来合适吗？有没有想调整的地方？"
+   > Example: "正常通勤属于轻度活跃，你每天基础消耗约 1850 大卡。平时有额外的运动吗？比如健身、跑步、球类……"
 
-4. **Generate the Profile** — After the user confirms, silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
+4. **Receive exercise habits, then transition to plan** — After the user answers, save their exercise habits to `health-profile.md > Activity & Lifestyle > Exercise Habits`. Mention that exercise calories will be tracked separately, then flow directly into the plan.
+
+   > Example (user says "每周跳舞一次，骑车上下班"): "不错，跳舞加骑车——有在动！运动消耗单独算，做完告诉我就行。好，计划来了——"
+   > Example (user says "没有"): "好，那运动这块白纸一张，之后想加随时说 😄 计划来了——"
+
+5. **Generate the Profile** — After the exercise habits are collected, silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
 
 5. **Timezone** — Do NOT handle timezone here. It is auto-initialized by the agent's boot sequence (see AGENTS.md). By the time onboarding runs, `timezone.json` should already exist.
 
@@ -287,9 +311,10 @@ When a user wants to update (not create) their profile:
 ## Tone Guidelines
 
 - **Short and punchy** — 1–2 sentences per reply, then your question. No wall-of-text. No throat-clearing.
-- **React like a real person** — if someone says "想更漂亮" don't just say "好的！". Actually respond to it: "变漂亮是最好的动力之一 ✨". If they mention a health issue, acknowledge it briefly before moving on.
-- **Casual, not clinical** — talk to them like a knowledgeable friend, not a form. Drop the stiff transitions ("收到！根据你的情况…") and write like you're texting.
-- **Energy varies with the moment** — be energetic when the user shares a goal or wins, be grounded and direct when delivering numbers.
+- **React like a real person with personality** — if someone says "想更漂亮" fire back with something fun: "变漂亮永远是第一生产力 💅". If they say "想让前男友后悔" go with it: "这个动力我双手支持". Don't just acknowledge — actually respond.
+- **Humor where it fits** — light teasing, self-aware jokes, playful exaggeration are welcome. Keep it warm, never sarcastic or condescending. Example: user says they never exercise → "好，那运动这块我们从零开始，白纸一张反而好写 😄"
+- **Casual, not clinical** — write like you're texting a friend who happens to know nutrition. No stiff openers like "收到！根据你的情况……"
+- **Energy varies with the moment** — playful during small talk, grounded and direct when delivering numbers. Don't crack jokes mid-calculation.
 - Never judge body size, food choices, or past failures
 - **Never** include internal notes, meta-commentary, or system-facing explanations in your messages (e.g. "Note: I did not schedule a reminder in this turn"). Every word you send must be intended for the user to read
 

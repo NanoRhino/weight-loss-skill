@@ -267,6 +267,33 @@ The server runs in UTC. To ensure meals are saved under the correct local date:
 
 **Example:** User is in `Asia/Shanghai` (UTC+8). Message arrives at UTC 16:30 (local 00:30 next day). `detect-meal` returns `local_date: "2026-03-18"` (the next day), which you pass as `--date` to all subsequent commands.
 
+## Batch Message Recognition
+
+Users often split a single meal log across multiple consecutive messages — for example, a photo in one message followed by clarifications in the next ("这些肥肉没吃", "没吃米饭", "加了一包辣椒酱"). These messages form **one logical input** and must be processed together.
+
+### Rule: Collect before responding
+
+When the conversation context contains multiple user messages that arrived in quick succession (i.e., no bot reply between them), **treat them all as a single input**. Read every pending user message before generating a response. Typical multi-message patterns:
+
+| Message 1 | Message 2+ | How to handle |
+|-----------|-----------|---------------|
+| Food photo | Text clarifying what was/wasn't eaten | Combine: use the photo for identification, apply the text as corrections (removals, additions, portion adjustments) |
+| Food photo | "这是午饭" / "breakfast" | Combine: use the photo for food items, use the text for meal type — skip `detect-meal` |
+| Text food log ("吃了炒饭") | Correction ("没放油" / "only half a bowl") | Combine: log the food with the corrected details |
+| Food photo | Photo of another dish | Combine: both are part of the same meal |
+
+### What NOT to do
+
+- **Do NOT respond to the photo alone** and then ask questions that the subsequent messages already answer. This forces the user to repeat themselves.
+- **Do NOT treat each message as a separate meal.** Consecutive messages without a bot reply in between are almost always about the same meal.
+- **Do NOT ask clarifying questions** about items that the user's own follow-up messages already address (e.g., don't ask "did you eat rice?" when a subsequent message says "没吃米饭").
+
+### Edge case: delayed follow-up
+
+If a user sends a follow-up correction **after** the bot has already replied (e.g., bot logged the meal, then user says "哦对了那个肥肉我没吃"), treat it as a **correction** — re-run `save` with the updated items and re-run `evaluate`, then reply with the updated summary.
+
+---
+
 ## Workflow
 
 ### Setting a Target
@@ -280,6 +307,7 @@ When user says "set my target" or provides weight/calorie goal:
 
 When user describes what they're about to eat (or what they already ate):
 
+0. **Collect all pending messages** — if there are multiple consecutive user messages with no bot reply in between, read them all first and merge into a single input before proceeding (see Batch Message Recognition above)
 1. **Determine meal type** — if user explicitly states the meal type, use it directly. Otherwise, **call `detect-meal`** (see §0) passing `--tz-offset`, `--meals`, `--schedule` (from health-profile.md), `--timestamp` (from message metadata), and `--log` (from step 3). Use the returned `detected_meal` as the meal type and `local_date` as the date for all subsequent commands.
 2. **Detect meal timing** — determine if the user is logging before eating (default) or reporting a meal already eaten (see Meal Timing Detection above)
 3. **Call load** — get today's existing records (use `local_date` from `detect-meal` as `--date`)
@@ -451,6 +479,29 @@ Never ask more than once per food item. The principle is: **ask at most once, th
 
 ---
 
+## Cooking Oil Estimation
+
+When estimating calories for cooked dishes (especially Chinese-style stir-fries, braised dishes, etc.), cooking oil is a major hidden calorie source that is commonly underestimated. Apply the following rules:
+
+### Visual assessment
+
+1. **No visible oil** (matte surface, no pooling, no sheen) — estimate **5g cooking oil per 200g of dish** as a baseline. This covers absorbed oil in standard home-cooked or canteen-style dishes.
+2. **Light sheen** (slight reflective gloss on food surfaces) — estimate **8–10g cooking oil per 200g of dish**.
+3. **Moderate oil** (visible oil film, some pooling at edges, noticeable reflection under light) — estimate **12–15g cooking oil per 200g of dish**.
+4. **Heavy oil** (oil pooling on the plate/bowl, food glistening heavily, strong light reflection) — estimate **18–25g cooking oil per 200g of dish**.
+
+### Application rules
+
+- **Always include cooking oil** in the calorie and fat calculation for cooked dishes — do not ignore it.
+- **Fold oil into each dish's calories** — add the estimated cooking oil calories and fat directly into that dish's total. Do NOT list cooking oil as a separate line item in the meal details. For example, if stir-fried greens (200g) is 60 kcal before oil and the estimated oil is 5g (45 kcal), report the dish as ~105 kcal total.
+- For photo-based logging, judge the oil level by the **reflective sheen and pooling** visible in the image under ambient lighting conditions.
+- For text-based logging with no photo, default to the **"no visible oil" baseline** (5g per 200g) unless the user describes the dish as oily, deep-fried, or swimming in oil.
+- Deep-fried foods already have oil absorption factored into standard USDA/nutrition data — do not double-count.
+- Soups and broths: estimate oil from any visible oil droplets floating on the surface; clear broth with no oil film → 0g added oil.
+- Each 1g of cooking oil ≈ 9 kcal, counted entirely as fat.
+
+---
+
 ## Response Format
 
 Every food log reply must contain up to three sections:
@@ -489,8 +540,10 @@ Every food log reply must contain up to three sections:
 ```
 ⚡ Right now: [specific food + amount adjustment for current meal]
 ```
-- Since the user hasn't eaten yet, suggest adding, removing, or swapping items before they start
-- Can adjust portions, swap ingredients, add sides, or reduce amounts
+- Since the user hasn't eaten yet, suggest removing, reducing portions, or swapping items before they start
+- **Additions go to the next eating occasion:** When suggesting the user eat MORE of something (add a side, increase protein, etc.), frame it as "next meal", "as an afternoon snack", "at dinner", or other upcoming eating occasion — NOT as adding to the current meal. The user likely already prepared this meal; asking them to add food now is impractical.
+- **Reductions can reference the current meal:** Removing or reducing items IS actionable before eating (e.g. "skip the bread", "eat half the rice").
+- **Deferred items:** When a food is reduced or removed from the current meal AND it would fit well in a later meal, explicitly tell the user they can have it then — e.g. "skip the bread now, save it for dinner" / "米饭减半，剩下的晚餐再吃". This avoids the feeling of deprivation.
 - Do NOT list per-item calories in the suggestion
 - Content must be user-facing — no internal reasoning exposed
 - Single option → one clear suggestion. End with: "After adjustment, this meal would total ~X kcal, protein Xg, carbs Xg, fat Xg."
@@ -501,18 +554,49 @@ Every food log reply must contain up to three sections:
 💡 Next meal: [forward-looking compensatory advice for the next upcoming meal]
 ```
 - Give a concrete suggestion for the **next meal** to compensate — do NOT suggest modifying the current meal
+- Follow the Food Suggestion Format below: state the category first, then give examples from the user's food history
 - Frame as planning ahead, not fixing a mistake
-- Last meal of the day (dinner): keep it brief — "A bit over today, totally normal — aim for your usual pattern tomorrow."
+- Last meal of the day (dinner) with calories OVER target: keep it brief — "A bit over today, totally normal — aim for your usual pattern tomorrow."
 
 **Case C: On track** (`needs_adjustment: false`, regardless of eaten status):
 ```
 💡 Next time: [habit tip or next-meal pairing suggestion — specific food + amount, no calorie listing]
 ```
 
+**Case D: Last meal of the day + calories under target** (current meal is the final meal — dinner in 3-meal mode or meal_2 in 2-meal mode — and daily total calories are below the calorie target):
+
+Determine severity by comparing daily total against BMR (from PLAN.md, USER.md, or health-profile.md):
+
+- **Daily total < BMR:** Proactively recommend adding a snack — eating below BMR consistently is unhealthy. Use a gentle but clear tone:
+  ```
+  🍽 今天总热量偏低（~X kcal），低于基础代谢（~Y kcal），建议加个餐补一下——比如【category】，像【example from user history】。
+  ```
+  English: "Today's total (~X kcal) is below your resting metabolism (~Y kcal) — I'd recommend adding a snack, something like [category], e.g. [example from user history]."
+
+- **Daily total ≥ BMR but below calorie target:** The deficit is mild and safe. Do NOT push the user to eat more. Instead, note that they CAN snack if hungry, but it's fine to skip:
+  ```
+  💡 今天热量比目标少了一些，不过还在安全范围。如果晚点饿了，可以加个小零食；不饿的话不吃也没关系。
+  ```
+  English: "Today's calories are a bit under target but still in a safe range. If you get hungry later, feel free to grab a small snack — if not, no need to eat more."
+
 **✨ Nice work** (optional, between nutrition summary and suggestion):
 ```
 ✨ [1–2 genuine lines tied to their actual food choices, or omit if nothing noteworthy]
 ```
+
+### Food Suggestion Format
+
+When suggesting food to add — whether in right_now, next_meal, next_time, or Case D — follow this format:
+
+1. **State the category first** (what kind of food is needed) — e.g. "high-protein food", "complex carbs", "healthy fat"
+2. **Then give concrete examples**, prioritizing foods the user has previously logged. Check today's and recent meal records (`load` with past dates) for familiar foods the user actually eats. This makes suggestions more actionable because the user already knows where to get these foods and how to prepare them.
+3. If no relevant history exists, fall back to common, easy-to-obtain foods.
+
+Example format:
+- ✅ "加点**优质蛋白**，比如你常吃的鸡胸肉或水煮蛋" (category → user's own foods)
+- ✅ "Add some **complex carbs** — like the oatmeal you had yesterday, or a small sweet potato"
+- ❌ "Add 100g chicken breast" (no category, no personalization)
+- ❌ "Try quinoa with salmon" (user may never eat these)
 
 ---
 
@@ -527,8 +611,12 @@ Every food log reply must contain up to three sections:
 1. **Call `load`** — get all meals for today
 2. **Call `evaluate`** — evaluate final daily totals (use `dinner` or the last logged meal as `--current-meal`)
 3. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
-4. **Add one forward-looking suggestion** for tomorrow if intake was notably low or high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
-5. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
+4. **Calorie deficit check** — if daily total is below target, apply the Case D logic from the Suggestion section:
+   - Compare daily total against BMR (from PLAN.md / USER.md / health-profile.md)
+   - Below BMR → recommend adding a snack (category + user-history examples)
+   - ≥ BMR but below target → "if hungry later, grab a snack; if not, no need to eat more"
+5. **If calories are on track or over**, add one forward-looking suggestion for tomorrow if intake was notably high — keep it brief and concrete (e.g. "明天试试午餐加碗米饭" / "Try adding a bowl of rice at lunch tomorrow")
+6. **Do NOT add any closing sign-off that implies the conversation is over** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". Just end with the suggestion or summary. The user decides when the conversation is over.
 
 ### If the user also runs `detect-diet-pattern` criteria
 

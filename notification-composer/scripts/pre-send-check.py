@@ -59,6 +59,10 @@ def check_engagement_stage(workspace_dir):
         with open(path) as f:
             data = json.load(f)
         stage = data.get("notification_stage", 1)
+        # Handle string stage names
+        if isinstance(stage, str):
+            stage_map = {"active": 1, "pause": 2, "recall": 3, "silent": 4}
+            stage = stage_map.get(stage.lower(), 1)
         if stage >= 4:
             return False, f"notification_stage={stage} — user is in silent mode"
         return True, None
