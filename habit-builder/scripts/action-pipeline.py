@@ -71,7 +71,10 @@ GRADUATION = {
 COMPLETION_THRESHOLD = 0.80  # 80%
 SELF_INIT_THRESHOLD = 0.30   # 30%
 NO_RESPONSE_STALL = 3        # consecutive no-responses → stall
+FAILURE_THRESHOLD = 3         # consecutive missed/no_response → failure
 MAX_ACTIVE_DAYS = 90         # auto-pause after this
+MAX_CONCURRENT = 3           # max active habits
+STABILIZE_THRESHOLD = 0.70   # below this → suggest stabilizing before adding
 
 
 # ── Cadence → habit type mapping ────────────────────────────────────────────
@@ -229,6 +232,129 @@ def cmd_activate(args):
     print(json.dumps(entry, ensure_ascii=False, indent=2))
 
 
+def cmd_should_mention(args):
+    """Decide whether to mention a habit in the current meal conversation."""
+    habit = json.loads(args.habit)
+    cadence = habit.get("trigger_cadence", "daily_fixed")
+    habit_type = habit.get("type", "all-day")
+    current_meal = args.meal
+    days = args.days or 0
+
+    # Weekly: only on the relevant day
+    if habit_type == "weekly":
+        # Caller must pass --today-matches if today is the relevant day
+        if not args.today_matches:
+            print(json.dumps({"mention": False, "reason": "wrong_day"}))
+            return
+
+    # Conditional: never proactive — caller decides based on conversation
+    if habit_type == "conditional":
+        print(json.dumps({"mention": False,
+                          "reason": "conditional_reactive_only"}))
+        return
+
+    # Check min gap: last mention must be ≥ min_gap_reminders ago
+    last_mention_ago = args.reminders_since_last_mention
+    if last_mention_ago is not None and last_mention_ago < 2:
+        print(json.dumps({"mention": False, "reason": "too_soon",
+                          "reminders_since_last": last_mention_ago}))
+        return
+
+    # Get schedule frequency
+    phase = args.phase or get_phase(days)
+    if phase == "solidify" and days > 42:
+        phase = "autopilot"
+    key = (cadence, phase)
+    freq = SCHEDULE.get(key)
+
+    if freq == -1:
+        print(json.dumps({"mention": False,
+                          "reason": "autopilot_no_regression"}))
+        return
+
+    is_daily = cadence in ("every_meal", "daily_fixed", "daily_random")
+
+    # Check meal match for meal-bound and post-meal types
+    bound = habit.get("bound_to_meal")
+    if bound and current_meal and bound != current_meal:
+        if habit_type in ("meal-bound", "post-meal"):
+            print(json.dumps({"mention": False, "reason": "wrong_meal",
+                              "bound_to": bound, "current": current_meal}))
+            return
+
+    # For daily cadences, check if enough days have passed since last mention
+    if is_daily:
+        days_since = args.days_since_last_mention
+        if days_since is not None and days_since < freq:
+            print(json.dumps({"mention": False, "reason": "interval_not_reached",
+                              "need": freq, "elapsed": days_since}))
+            return
+
+    print(json.dumps({"mention": True, "phase": phase,
+                      "frequency": freq, "type": habit_type}))
+
+
+def cmd_check_failure(args):
+    """Check if a habit has hit the failure threshold."""
+    log = json.loads(args.log)
+
+    consecutive_fail = 0
+    for e in reversed(log):
+        if e["result"] in ("missed", "no_response"):
+            consecutive_fail += 1
+        else:
+            break
+
+    failed = consecutive_fail >= FAILURE_THRESHOLD
+    result = {
+        "failed": failed,
+        "consecutive_fail": consecutive_fail,
+        "threshold": FAILURE_THRESHOLD,
+    }
+    if failed:
+        result["action"] = "surface_gently"
+        result["options"] = ["keep_going", "make_easier", "try_different"]
+
+    print(json.dumps(result, ensure_ascii=False))
+
+
+def cmd_check_concurrency(args):
+    """Check if a new habit can be added given current active count."""
+    active_habits = json.loads(args.active_habits)
+    count = len(active_habits)
+
+    if count >= MAX_CONCURRENT:
+        print(json.dumps({
+            "can_add": False,
+            "reason": "at_max",
+            "active": count,
+            "max": MAX_CONCURRENT,
+        }))
+        return
+
+    # Check if any active habit is struggling
+    struggling = []
+    for h in active_habits:
+        log = h.get("completion_log", [])
+        if len(log) >= 7:
+            recent = log[-7:]
+            completed = sum(1 for e in recent if e.get("result") == "completed")
+            rate = completed / len(recent)
+            if rate < STABILIZE_THRESHOLD:
+                struggling.append({
+                    "habit_id": h.get("habit_id"),
+                    "rate_7d": round(rate, 2),
+                })
+
+    print(json.dumps({
+        "can_add": len(struggling) == 0,
+        "reason": "struggling_habits" if struggling else "ok",
+        "active": count,
+        "max": MAX_CONCURRENT,
+        "struggling": struggling,
+    }, ensure_ascii=False))
+
+
 # ── CLI ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -271,6 +397,38 @@ def main():
     ac.add_argument("--source-advice", default="",
                     help="The source_advice string from the parent queue")
 
+    # should-mention
+    sm = sub.add_parser("should-mention",
+                        help="Decide whether to mention a habit now")
+    sm.add_argument("--habit", required=True,
+                    help="JSON object: the habit from habits.active")
+    sm.add_argument("--meal",
+                    help="Current meal (breakfast/lunch/dinner)")
+    sm.add_argument("--days", type=int,
+                    help="Days since activation")
+    sm.add_argument("--phase",
+                    choices=["anchor","build","solidify","autopilot"])
+    sm.add_argument("--days-since-last-mention", type=int, dest="days_since_last_mention",
+                    help="Calendar days since last mention")
+    sm.add_argument("--reminders-since-last-mention", type=int,
+                    dest="reminders_since_last_mention",
+                    help="Number of reminders since last mention")
+    sm.add_argument("--today-matches", action="store_true",
+                    dest="today_matches",
+                    help="For weekly habits: today is the relevant day")
+
+    # check-failure
+    cf = sub.add_parser("check-failure",
+                        help="Check if habit hit failure threshold")
+    cf.add_argument("--log", required=True,
+                    help='JSON array of completion log entries')
+
+    # check-concurrency
+    cc = sub.add_parser("check-concurrency",
+                        help="Check if a new habit can be added")
+    cc.add_argument("--active-habits", required=True, dest="active_habits",
+                    help="JSON array of current active habits with completion_log")
+
     args = p.parse_args()
     if not args.command:
         p.print_help()
@@ -281,6 +439,9 @@ def main():
         "schedule": cmd_schedule,
         "check-graduation": cmd_check_graduation,
         "activate": cmd_activate,
+        "should-mention": cmd_should_mention,
+        "check-failure": cmd_check_failure,
+        "check-concurrency": cmd_check_concurrency,
     }[args.command](args)
 
 

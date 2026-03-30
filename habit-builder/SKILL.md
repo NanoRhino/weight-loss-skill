@@ -24,27 +24,26 @@ description: >
 
 Habits appear inside meal conversations (Notification Composer). No separate reminders.
 
-Before each meal reminder, read `habits.active`. Pick the slot matching the habit type.
-See `references/habit-details.md` for the full type → timing table.
-
-### Frequency
+Before each meal reminder, check whether to mention each active habit:
 
 ```bash
-python3 {baseDir}/scripts/action-pipeline.py schedule \
-  --cadence <cadence> --days <days_since_activation>
+python3 {baseDir}/scripts/action-pipeline.py should-mention \
+  --habit '<habit JSON from habits.active>' \
+  --meal <breakfast|lunch|dinner> \
+  --days <days_since_activation> \
+  --days-since-last-mention <N> \
+  --reminders-since-last-mention <N> \
+  [--today-matches]  # for weekly habits: pass when today is the relevant day
 ```
 
-- Daily behaviors: **daily** (Anchor/week 1) → every 3d (Build) → every 5-7d (Solidify) → weekly (Autopilot)
-- Weekly/conditional: every occurrence early → every-other later
-- **3 consecutive no-responses → stall.** Stop. Revisit at Weekly Review.
+Returns `{"mention": true/false, ...}`. The script enforces: meal matching, cadence-based frequency, min 2-reminder gap, weekly day-match, conditional reactivity.
+
+See `references/habit-details.md` for the full type → timing table.
 
 ### Mention rules
 
-- One sentence max, woven into the meal conversation
-- Record response to `habits.daily_log.{date}`
-- Min gap: 2 reminders between mentions
-- Tone: casual friend, not compliance coach
-  - Good: `"Walk after dinner tonight?"` Bad: `"Did you complete your habit today?"`
+- One sentence max. Record response to `habits.daily_log.{date}`.
+- Tone: casual friend. Good: `"Walk after dinner tonight?"` Bad: `"Did you complete your habit today?"`
 
 ---
 
@@ -104,14 +103,21 @@ On graduation: celebrate briefly → move to `habits.graduated` → advance queu
 
 ### Failure
 
-Detection: 3 consecutive `missed` or `no_response`.
+```bash
+python3 {baseDir}/scripts/action-pipeline.py check-failure \
+  --log '<completion_log JSON>'
+```
 
-Surface gently at next natural moment. Three paths: keep going (reset) / make easier (shrink) / try different (re-recommend). See `references/habit-details.md` for response examples and blacklisted phrases.
+Returns `{"failed": true, "options": ["keep_going","make_easier","try_different"]}` when 3 consecutive misses/no-responses. Surface gently at next natural moment. See `references/habit-details.md` for response examples and blacklisted phrases.
 
-### Scaling & concurrency
+### Concurrency
 
-- Upgrade after graduation only if user wants. Don't auto-upgrade.
-- Max 3 active. If any < 70% completion, suggest stabilizing first.
+```bash
+python3 {baseDir}/scripts/action-pipeline.py check-concurrency \
+  --active-habits '<habits.active JSON with completion_log>'
+```
+
+Returns `can_add: true/false`. Enforces max 3 active and flags habits with < 70% recent completion. Upgrade after graduation only if user wants.
 
 ---
 
