@@ -112,9 +112,9 @@ Bad: `"Did you complete your habit today?"` · `"Remember your commitment!"`
 
 ### How to choose the right habit
 
-Read `USER.md`, `health-profile.md`, and `health-preferences.md` + recent `logs.*` to build a picture of the user's
-current lifestyle. **`health-preferences.md` is especially valuable here** — it contains accumulated preferences across all conversations that reveal what the user enjoys, dislikes, and finds practical. Design habits that align with these preferences for maximum adherence (e.g., if the user loves cooking on weekends, a meal-prep habit is a natural fit; if they hate mornings, don't suggest a morning routine habit). Then find the **smallest behavior change with the biggest
-impact.**
+Read `USER.md`, `health-profile.md`, `health-preferences.md`, and recent `logs.*`.
+Design habits that align with the user's preferences (from `health-preferences.md`)
+for maximum adherence. Find the **smallest behavior change with the biggest impact.**
 
 **Step 1: Identify lifestyle gaps**
 
@@ -174,43 +174,16 @@ Keep it conversational — 1-2 sentences max. You're suggesting something
 to a friend, not assigning a task. No bullet points, no bold habit names,
 no "your habit is X, your trigger is Y" structure.
 
-Good:
-`"What if you tried a short walk after dinner? Even 5 minutes — it really helps with cravings."`
+Good: `"What if you tried a short walk after dinner? Even 5 minutes — it really helps with cravings."`
+On accept: `"Let's go! This is gonna be a game changer."`
 
-Bad:
-```
-"Here's your habit:
-**Walk 5 minutes after dinner.**
-Trigger: after finishing dinner.
-Why: helps digestion and reduces cravings."
-```
+Never repeat the habit back formally or explain the methodology. React like
+a friend, not a coach.
 
-When the user accepts, don't repeat the habit back as a formal commitment.
-React with genuine energy — like a friend who's excited you're in:
-
-Good: `"Let's go! This is gonna be a game changer."` · `"Love it — dinner walks, here we come."`
-Bad: `"Great! Your habit is: 5-minute walk after dinner. Trigger: after eating. I'll check in every 2 days."`
-
-Match the energy to the moment. Acceptance = good news. React like it.
-
-User can: accept / adjust ("can it be something else?") / decline.
-If they decline, ask what they'd prefer. If they don't know, offer
-one alternative based on ACTUAL data in their profile and logs — never
-invent or assume behaviors not in the data. If there's not enough data
-to make a specific suggestion, offer a broad low-risk option:
-
-`"How about starting with water? One glass first thing in the morning, before anything else."`
-
-Hydration and sleep are safe fallback categories when data is thin.
-Never push more than one alternative. If they decline everything,
-drop it: `"No problem — we can revisit anytime."` Don't suggest again
-until the next Weekly Review or the user brings it up.
-
-**Single-ask rule:** Each habit recommendation or question is asked at most once per conversation. If the user ignores the suggestion or doesn't respond, do not repeat or rephrase it. See `SKILL-ROUTING.md > Single-Ask Rule`.
-
-**First recommendation vs. repeat:** Even the first recommendation should
-be casual — 1-2 sentences + ask. Don't over-explain the method. The user
-doesn't need to know about Habit Stacking or Tiny Habits theory.
+User can: accept / adjust / decline. If decline, offer one data-based
+alternative (hydration and sleep are safe fallbacks). If they decline
+everything: `"No problem — we can revisit anytime."` Don't suggest again
+until next Weekly Review. **Single-ask rule applies** (`SKILL-ROUTING.md`).
 
 ---
 
@@ -218,26 +191,11 @@ doesn't need to know about Habit Stacking or Tiny Habits theory.
 
 ### Active tracking
 
-Once a habit is accepted, write it to `habits.active` with:
-
-```json
-{
-  "habit_id": "walk-after-dinner",
-  "description": "Walk for 5 minutes after dinner",
-  "tiny_version": "Put on shoes and step outside after dinner",
-  "trigger": "After finishing dinner",
-  "type": "post-meal",
-  "bound_to_meal": "dinner",
-  "created_at": "2026-02-27",
-  "phase": "week-1",
-  "mention_log": [],
-  "completion_log": []
-}
-```
-
-This data is used by the check-in logic above (§ "How Habits Get Into
-Conversations") to decide when and how to mention the habit in meal
-conversations.
+Once a habit is accepted, write it to `habits.active` using the activate script
+(see § "Advice-to-Action Pipeline > Step 3"). For standalone habits (not from
+the pipeline), write directly with fields: `habit_id`, `description`,
+`tiny_version`, `trigger`, `type`, `bound_to_meal`, `created_at`, `phase`,
+`mention_log`, `completion_log`.
 
 ### Tracking completion
 
@@ -390,25 +348,9 @@ No separate cron jobs.
 
 ### Step 5: Graduation
 
-```bash
-python3 {baseDir}/scripts/action-pipeline.py check-graduation \
-  --cadence daily_fixed \
-  --log '[{"date":"2026-04-01","result":"completed","self_initiated":false}, ...]'
-```
-
-The script checks Signal 1 (completion rate ≥ 80% over cadence-appropriate
-sample) and Signal 2 (self-initiation > 30%). If Signal 1 passes but not
-Signal 2, it returns a prompt to ask Signal 3 (user confirmation).
-
-See `scripts/action-pipeline.py` for sample windows per cadence (daily=14 days,
-weekly=6 occurrences, conditional=8 occurrences).
-
-**On graduation:** move to `habits.graduated`, introduce next queued action
-immediately (no wait period). Exception: emotionally taxing actions → wait for
-next Weekly Review.
-
-**Stall:** 3 consecutive no-responses (counted per mention, not per day) →
-pause and flag for Weekly Review.
+Same criteria as § "Habit Lifecycle > Graduation". On graduation, introduce
+the next queued action immediately (no wait period). Exception: emotionally
+taxing actions → wait for next Weekly Review.
 
 **Max tracking:** 90 days per action. Auto-pause if not graduated.
 
@@ -487,16 +429,10 @@ conversational — not a dashboard readout.
 | `habits.active` | New habit accepted by user |
 | `habits.graduated` | Habit graduates |
 | `habits.daily_log.{date}` | Each completion/miss/no_response record |
+| `habits.mention_counter` | After each habit mention |
 | `habits.lifestyle_gaps` | Identified gaps from analysis (for Weekly Review) |
 | `habits.action_queue` | Decomposed actions from advice, with priority and status |
 | `habits.advice_history` | Completed advice records (all actions graduated or removed) |
-
-### Writes (during check-ins)
-
-| Path | When |
-|------|------|
-| `habits.mention_counter` | After each habit mention, to track frequency |
-| `habits.daily_log.{date}` | When user responds to a habit mention (completed/missed/no_response) |
 
 ### Read by other skills
 
