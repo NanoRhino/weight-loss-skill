@@ -152,18 +152,30 @@ def cmd_check_graduation(args):
     min_sample, unit = GRADUATION[cadence]
 
     if unit == "days":
-        # Filter to the last min_sample days
-        cutoff = datetime.now() - timedelta(days=min_sample)
+        # Filter to the last min_sample days (inclusive, truncate to midnight)
+        cutoff = (datetime.now() - timedelta(days=min_sample)).replace(
+            hour=0, minute=0, second=0, microsecond=0)
         recent = [e for e in log
                   if datetime.fromisoformat(e["date"]) >= cutoff]
     else:
         # Last N occurrences
         recent = log[-min_sample:] if len(log) >= min_sample else []
 
+    # Check consecutive no-response for stall detection (always, even if
+    # insufficient data — stall can happen before enough samples accumulate)
+    consecutive_no_response = 0
+    for e in reversed(log):
+        if e["result"] == "no_response":
+            consecutive_no_response += 1
+        else:
+            break
+    stall = consecutive_no_response >= NO_RESPONSE_STALL
+
     if not recent or len(recent) < min_sample:
         print(json.dumps({
             "eligible": False,
             "reason": f"insufficient_data: {len(recent)}/{min_sample}",
+            "stall": stall,
         }))
         return
 
@@ -178,20 +190,12 @@ def cmd_check_graduation(args):
     signal_1 = rate >= COMPLETION_THRESHOLD
     signal_2 = self_init_rate >= SELF_INIT_THRESHOLD
 
-    # Check consecutive no-response for stall detection
-    consecutive_no_response = 0
-    for e in reversed(log):
-        if e["result"] == "no_response":
-            consecutive_no_response += 1
-        else:
-            break
-
     result = {
         "eligible": signal_1 and signal_2,
         "signal_1_completion": {"rate": round(rate, 2), "pass": signal_1},
         "signal_2_self_init": {"rate": round(self_init_rate, 2), "pass": signal_2},
         "signal_3_user_confirm": "ask_user",
-        "stall": consecutive_no_response >= NO_RESPONSE_STALL,
+        "stall": stall,
         "sample_size": total,
     }
     # Signal 1 + (Signal 2 OR Signal 3) — Signal 3 needs user input
