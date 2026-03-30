@@ -151,11 +151,13 @@ The server runs in UTC. To record the correct local datetime:
      - Yesterday overeating: "昨天吃得多一些，今天涨一点很正常，大部分是水分～"
      - Menstrual cycle: "生理期前后波动 1–2 kg 是很正常的，不用担心～"
      - Adaptation period: "刚开始新计划，身体还在适应，头两周波动很正常，坚持就好～"
-   - If `severity: "cause-check"` (streak 2–3) → **guided discovery (3 steps).** Silently run `weight-gain-strategy`'s `analyze` command to prepare data, then start the conversational flow defined in `weight-gain-strategy` SKILL.md:
-     - **Step A:** Ask the user what they think is going on: "连着涨了两次，你自己觉得最近有什么变化吗？吃的、动的、还是生活节奏？"
-     - **Step B (after user responds):** Share data findings, validate or gently redirect the user's self-diagnosis.
-     - **Step C (after user acknowledges):** If an actionable cause was found, ask: "要不要一起想一个小习惯来改善这个点？" If user says yes → enter `weight-gain-strategy` Interactive Flow Step 2. If no → drop it.
-     - See `weight-gain-strategy` SKILL.md `cause-check` section for full response templates and rules.
+   - If `severity: "cause-check"` (streak 2–3) → **guided discovery (multi-turn).** Silently run `weight-gain-strategy`'s `analyze` command to prepare data, then start the conversational flow defined in `weight-gain-strategy` SKILL.md:
+     - **Step A:** Playful hook + opt-in: "唔，这两次秤有点不太乖哦。先别急，让我们一起来看看是怎么回事——进入减重分析模式吗？"
+     - **Step B (after opt-in):** Let the user guess: "你先猜猜看，觉得是什么原因？"
+     - **Step C (after user guesses):** Reveal data + light consequence + positive motivation. Validate their guess if accurate.
+     - **Step D (after user acknowledges):** Challenge + suspense → reveal a mutual pact (AI commits to stricter monitoring, user commits to one specific habit).
+     - User can exit at any step — single-ask rule applies throughout.
+     - See `weight-gain-strategy` SKILL.md `cause-check` section for full flow, templates, and cause→habit mapping.
    - If `severity: "significant"` (streak 4+) → **sustained trend.** Run `weight-gain-strategy`'s `analyze` command, present full cause analysis, then ask if they want to discuss adjustments: "体重连着涨了几次，我帮你看了一下数据——" Only proceed to strategy discussion if the user agrees.
    - **Skip this step** if `PLAN.md` does not exist (no plan to deviate from), or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
 

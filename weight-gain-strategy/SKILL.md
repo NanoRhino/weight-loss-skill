@@ -61,85 +61,127 @@ Severity is driven by **consecutive increases** — how many weigh-ins in a row 
 
 **`cause-check` guided discovery flow (streak = 2–3):**
 
-A 3-step conversational flow. Each step waits for the user's response before
-moving to the next. The goal is to help the user **discover the cause
-themselves** — not lecture them. Run `analyze` silently at the start (before
-Step A) so the data is ready, but don't reveal findings until Step B.
+A multi-turn conversational flow with **push-pull rhythm** — playful teasing,
+user opt-in at each step, suspense before the reveal. Run `analyze` silently
+at the very start so data is ready, but don't reveal findings until the user
+is engaged. Each step waits for the user's response before proceeding.
 
-**Step A: Ask the user first** — Open with empathy, then ask what they think
-is going on. This gives the user agency and often surfaces context the data
-can't capture (stress, travel, social meals, sleep changes).
-
-Examples:
-- "连着涨了两次，你自己觉得最近有什么变化吗？吃的、动的、还是生活节奏？" / "Up two times in a row — do you have a sense of what's been different lately? Eating, exercise, lifestyle?"
-- "最近体重一直在往上走，你觉得是什么原因呢？" / "Weight's been creeping up — any hunches about why?"
-
-**Wait for user response.** If the user doesn't know or says "不知道/no idea",
-that's fine — move to Step B.
-
-**Step B: Share data findings together** — Now present the `analyze` results.
-If the user already identified a cause in Step A, validate their insight and
-add data to support it. If they were off, gently redirect with the data.
-
-Presentation style depends on whether the user's self-diagnosis was accurate:
-
-- **User was right:** "你说得对！数据也印证了——{data finding}。{light elaboration}" / "Spot on! The data backs you up — {data finding}."
-  - Example: User said "周末吃太多了" → "你说得对！看了一下记录，周末那两天热量明显偏高，工作日其实控制得挺好的～"
-- **User was partially right:** "有一部分是这个原因，数据还显示了另一个点——{additional finding}" / "That's part of it — the data also shows {additional finding}."
-  - Example: User said "运动少了" → "运动确实少了一些，这周 {current} 次 vs 上周 {previous} 次。另外看了一下饮食，日均热量也比目标高了一点～"
-- **User didn't know:** "我帮你看了一下数据——{data finding}。{possible cause}" / "I took a look at the data — {data finding}."
-  - Example: "我帮你看了一下——最近日均热量比目标高了大概 {surplus} kcal，{X} 天里有 {Y} 天超标了。可能是零食和加餐积少成多了～"
-- **Menstrual cycle detected:** "数据看下来热量其实控制得不错，时间上和生理期比较吻合——大概率是周期性的水肿，不是真的胖了，等经期过了再看～" / "Your intake actually looks fine — the timing lines up with your cycle, so this is likely water retention. Let's check again after it passes." (Skip Step C for menstrual cycle — no habit change needed.)
-- **Adaptation period:** "头两周身体还在适应，这本身就会有波动。{if cause detected: 不过数据也显示 {finding}，等适应期过了可以留意一下}" / "Still early and your body is adjusting. {if cause: The data does show {finding} though — something to watch once you've settled in.}"
-
-**Wait for user response.** If the user acknowledges or asks follow-up
-questions, answer them. Then move to Step C.
-
-**Step C: Ask about building a habit change** — Only if a real, actionable
-cause was identified (NOT menstrual cycle, NOT normal fluctuation). Frame it
-as a collaborative invitation, not a prescription. The habit should be **one
-specific, small thing** — not a vague goal.
+**Step A: Hook + opt-in** — Open with a playful, light-hearted observation
+about the streak. Frame it as a fun investigation, not a problem. Ask if the
+user wants to enter "analysis mode" — this gives them a chance to opt in
+rather than being ambushed with data.
 
 Examples:
-- "要不要一起想一个小习惯来改善这个点？不用大动作，一个小调整就好～" / "Want to figure out one small habit change together? Nothing dramatic — just a little tweak."
-- "这个点如果能稍微调一下，应该会有帮助——要不要聊聊怎么改？" / "Tweaking this could help — want to talk about how?"
+- "唔，这两次秤有点不太乖哦。先别急，让我们一起来看看是怎么回事——进入减重分析模式吗？" / "Hmm, the scale's been a bit naughty twice in a row. No rush — want to go into analysis mode and figure it out together?"
+- "秤又调皮了，连着两次在往上跑。要不要一起来当回侦探？" / "Scale's acting up again — two in a row. Want to play detective with me?"
 
-**If the user says yes** → suggest a concrete micro-habit based on the detected
-cause. Match the habit to the user's existing routine and preferences (cross-
-reference `health-profile.md` and `health-preferences.md`). Always propose
-just **one** habit — if the user nails it, they can add more later.
+**Wait for user response.** If the user says no or ignores → drop it (single-
+ask rule). If yes → proceed.
 
-**Cause → Habit mapping:**
+**Step B: Let the user guess** — Don't show data yet. Ask the user to guess
+the cause first. This surfaces context the data can't capture (stress, social
+events, mood) and makes the user an active participant, not a passive
+recipient of a report.
 
-| Detected cause | Micro-habit | Example dialogue |
-|---------------|-------------|-----------------|
-| **Snacking / calorie surplus** | Swap one specific snack for a lower-cal alternative based on the user's logged meals. Identify the highest-cal recurring snack and suggest a swap, not elimination. | "看了一下记录，下午那包薯片出镜率挺高的（大概 300 kcal），换成水果或酸奶试试？热量直接砍一半～" / "That afternoon chips habit is ~300 kcal a pop — what about swapping it for fruit or yogurt? Cuts it in half." |
-| **Weekend overeating** | Set a weekend portion-awareness habit — e.g., weekend meals still拍照记录, or pick one weekend meal to eat mindfully. Not "restrict weekends" but "stay aware on weekends." | "工作日控制得挺好的，周末容易放飞。试试周末也拍照记录吃的？不用刻意少吃，就是保持留意～" / "Weekdays are solid — weekends are where it slips. Try photo-logging weekend meals? Not to restrict, just to stay aware." |
-| **Exercise decline** | Restore one specific session the user used to do, not add something new. If user used to run 3x/week and dropped to 1x, the habit is "put back one run" — not "exercise more." | "之前一周跑三次，最近只有一次了。要不先把周三那次加回来？一次就好，不贪多～" / "You used to run 3x/week, now it's 1x. How about adding back your Wednesday run? Just that one." |
-| **Late-night eating** | Move dinner or last meal earlier by a specific amount (e.g., 30-60 min earlier), or set a kitchen-closes time. | "最近晚饭经常 9 点多才吃，试试提前到 8 点？不用完美，大部分时候能做到就行～" / "Dinner's been creeping past 9 PM — try aiming for 8 PM? Doesn't have to be perfect, just most days." |
-| **Delivery / eating out too often** | Swap one delivery meal per week for a home-cooked alternative. If user enjoys cooking, frame it as "more of what you already like." | "这两周点外卖次数有点多，试试一周少点一次，自己做一顿？你之前做的那些看起来都挺好的～" / "Lots of delivery lately — what about swapping one order per week for a home-cooked meal? Your past recipes looked great." |
-| **Logging gaps** | Commit to logging one specific meal consistently (pick the one they're most likely to remember — usually lunch or dinner). Not "log everything" but "log this one meal." | "最近好几天没记饮食了，不用每餐都记——先从午饭开始，每天就拍一张就行，一周试试？" / "You've been off logging lately. Don't worry about every meal — just snap your lunch every day for a week. That's it." |
-| **Calorie creep (no single culprit)** | Reduce portion of one specific staple food slightly — e.g., rice reduced by 1/3, or one less spoon of oil. Target the item that appears most frequently in meal logs. | "没有哪一顿特别多，但整体热量慢慢涨了。试试晚饭米饭少盛 1/3？其他都不用变～" / "No single meal stands out, but overall intake has crept up. Try 1/3 less rice at dinner? Everything else stays the same." |
+Examples:
+- "你先猜猜看，觉得是什么原因？" / "Take a guess first — what do you think is going on?"
+- "在我亮底牌之前，你先说说看？" / "Before I show my cards — what's your hunch?"
 
-**Habit suggestion rules:**
-- **One habit only.** Never suggest two changes at once. If multiple causes
-  were detected, pick the one with the highest impact-to-effort ratio for this
-  specific user.
-- **Specific, not vague.** "少吃点零食" is vague. "下午的薯片换成酸奶" is specific.
-  Always name the concrete item, time, or number.
-- **Swap, not subtract.** Prefer "replace X with Y" over "stop doing X."
-  Removal feels like punishment; substitution feels like a trade.
-- **Based on their data.** Reference specific items from their meal logs,
-  exercise history, or schedule. Generic advice ("eat more vegetables") is
-  useless — personalized advice ("你那个下午的奶茶") lands.
-- **Duration: 1 week trial.** Frame it as an experiment: "试一周看看？" Not a
-  permanent life change. Lower commitment = higher compliance.
-- **Save if agreed.** If the user agrees, run `save-strategy` to persist it
-  (type = the matching strategy type, params include the specific habit). This
-  allows `weekly-report` and `check-strategy` to follow up.
+**Wait for user response.** If the user has a guess → validate in Step C.
+If the user says "不知道/no idea" → that's fine, move to Step C and lead
+with the data.
 
-**If the user says no, ignores, or changes topic** → drop it.
-Single-ask rule applies.
+**Step C: Data reveal + consequence + motivation** — Now show the `analyze`
+findings. The structure is: **validate/show data → light consequence warning
+→ positive motivation**. This is not a lecture — it's a "here's what's real
++ here's what's at stake + here's why it's worth it" sandwich.
+
+**Data reveal** — If the user guessed, validate first:
+- **User was right:** "没错！看了一下记录也印证了——{data finding}" / "Spot on! The data backs you up — {data finding}."
+- **User was partially right:** "有一部分是，数据还显示了另一个点——{finding}" / "That's part of it — data also shows {finding}."
+- **User didn't know:** "我帮你翻了一下记录——{data finding}" / "I dug into the data — {finding}."
+
+**Consequence (light touch)** — Don't catastrophize, but don't sugarcoat
+either. One sentence connecting the cause to the weight trend:
+- "虽然短期涨的不全是脂肪，不过一直管不住嘴可是真的很难减下来的哦" / "The short-term gain isn't all fat, but if the pattern sticks, it'll be hard to make progress."
+- "偶尔一次没关系，不过已经连着两周了，身体是会记账的～" / "Once in a while is fine, but two weeks in a row and your body starts keeping score."
+
+**Motivation (pull them forward)** — Immediately follow the consequence with
+a positive, aspirational pull. Reference the user's own goal or a concrete
+benefit. Never guilt — always aspiration:
+- "不过话说回来，美食的诱惑很大，变美的诱惑是不是也很大？" / "But hey — food is tempting, but so is looking amazing, right?"
+- "不过你都坚持到现在了，这点小boss肯定打得过～" / "You've come this far — this is just a mini-boss, you've got it."
+
+**Special cases — skip consequence + motivation:**
+- **Menstrual cycle detected:** "数据看下来热量控制得不错，时间上和生理期吻合——大概率是水肿，不是真的胖了，等经期过了再看～" (End flow here — no Step D needed.)
+- **Adaptation period:** "头两周身体还在适应，这本身就会波动。{if cause: 不过数据也显示 {finding}，等适应期过了留意一下}" (End flow here if no actionable cause.)
+
+**Wait for user response.**
+
+**Step D: Challenge + suspense → reveal habit** — Don't just suggest a habit.
+Frame it as a **challenge** with a bit of mystery. This creates buy-in through
+curiosity and a sense of game.
+
+**Tease the challenge:**
+- "要不要听听我的办法？" / "Want to hear my plan?"
+- "我有一个小挑战想给你，敢不敢接？" / "I've got a little challenge for you — dare to take it?"
+
+**Wait for user response.** If they ask what it is or show interest:
+
+**Build suspense (optional, 1 exchange max):**
+- "接受了你就知道了，为了变美值得的！" / "Say yes and you'll find out — it'll be worth it!"
+- "先答应，内容包你满意～" / "Just say yes — I promise you'll like it."
+
+Only use suspense if the user asks "什么挑战/你怎么做". If they directly agree,
+skip to the reveal. **Never drag suspense beyond 1 extra exchange.**
+
+**Reveal the habit as a pact:** Frame the habit as a mutual commitment, not a
+one-sided instruction. The AI is committing to something too (stricter
+monitoring, closer attention, daily check-ins).
+
+Structure: **"I will do X" + "you do Y"**
+
+Examples by cause:
+
+| Detected cause | AI commits to | User commits to | Example |
+|---------------|--------------|----------------|---------|
+| **Snacking / calorie surplus** | Tighter meal review, flag when close to target | Log every meal, swap the specific snack | "接下来我会更严格地盯着你的饮食——你呢，把每天吃的都告诉我，下午那包薯片换成酸奶，一周试试？" |
+| **Weekend overeating** | Weekend meal check-in reminder | Photo-log weekend meals | "周末我会特别来问你吃了什么——你就拍个照给我就行，不用刻意少吃，就是让我看到～" |
+| **Exercise decline** | Exercise check-in mid-week | Restore one specific session | "周三我来问你跑了没——你就把那次跑步加回来就行，一次就好～" |
+| **Late-night eating** | Evening check-in before kitchen-closes time | Move last meal earlier | "晚上 8 点我来问你吃完了没——你试试 8 点前把晚饭解决，行不行？" |
+| **Logging gaps** | Daily meal-log reminder, gentler tone | Log one specific meal daily | "之后你要把每天吃的东西都告诉我哦——先从午饭和晚饭开始，拍个照就行！" |
+| **Calorie creep** | Calorie summary after each meal log | Slightly smaller portion of one staple | "每次你记完吃的我就帮你算，你就晚饭米饭少盛一点——deal？" |
+
+**Key rules for the pact:**
+- **AI side is real.** The commitment from the AI side (stricter monitoring,
+  check-ins, daily review) must actually be followed through. If promising
+  "更严格盯着", subsequent meal logs should get more detailed calorie feedback.
+  Coordinate with `notification-composer` for any check-in reminders.
+- **Mutual, not one-sided.** The user shouldn't feel like they're the only one
+  making an effort. The AI is stepping up too.
+- **Playful accountability.** The tone is "we're in this together" with a
+  dash of playful strictness — like a coach who teases you but clearly cares.
+
+**After user agrees** → run `save-strategy` to persist. Close with a short,
+cheeky confirmation:
+- "成交！从今天开始我可不会客气的哦～" / "Deal! Don't say I didn't warn you 😏"
+- "好，这一周你是我的重点关注对象了～" / "Alright, you're on my watch list this week 👀"
+
+**If the user says no, ignores, or changes topic** → drop it. Single-ask rule
+applies at each step.
+
+**Overall `cause-check` key rules:**
+- **Opt-in at every step.** The user can exit at Step A, B, C, or D. Never
+  push past a "no" or lack of interest.
+- **Push-pull rhythm.** Alternate between teasing/challenging (push) and
+  motivating/encouraging (pull). Never be all push (nagging) or all pull
+  (sycophantic).
+- **Suspense is seasoning, not the meal.** Max 1 exchange of "guess what my
+  plan is." Don't string the user along.
+- **The pact is the product.** The output of cause-check is a mutual
+  commitment, not a one-sided recommendation. Both sides have skin in the game.
+- **Tone: playful coach.** Think personal trainer who's also your witty friend
+  — not a doctor reading test results, not a cheerleader with no substance.
 
 **Key rules for `cause-check`:**
 - **User reflects first, data second.** Never lead with the data dump — let the user think first.
