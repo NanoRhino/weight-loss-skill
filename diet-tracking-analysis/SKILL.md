@@ -224,11 +224,7 @@ The below-BMR safety check runs **weekly** (not per-meal). This avoids noisy dai
 
 ### Diet Pattern Detection
 
-When logging food, the system can detect whether the user's actual eating pattern over the past 3 consecutive days differs from their currently selected diet mode. This helps users discover that their natural eating habits may align better with a different mode.
-
-#### When to Run
-
-Run `detect-diet-pattern` **once per day**, after the user logs their last meal (dinner) and only when at least 3 days of data exist. Do not run it on every meal — only at the end-of-day checkpoint.
+Run `detect-diet-pattern` **once per day** after the last meal, only when ≥3 days of data exist.
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py detect-diet-pattern \
@@ -237,42 +233,9 @@ python3 {baseDir}/scripts/nutrition-calc.py detect-diet-pattern \
   [--date 2026-03-06]
 ```
 
-Returns: `has_pattern`, `detected_mode`, `current_mode`, `avg_split` (average macro percentages), `daily_splits` (per-day breakdown), `current_mode_distance`, `detected_mode_distance`, `pros_cons`
+Returns: `has_pattern`, `detected_mode`, `current_mode`, `avg_split`, `daily_splits`, `pros_cons`
 
-#### When `has_pattern` is `true`
-
-The user's actual macro split over 3 consecutive days is closer to a different diet mode than their current one. Notify the user **after the normal meal log reply** (after the nutrition summary and suggestion sections), using this format:
-
-```
-📋 I noticed something over the past few days — your actual eating pattern looks more like [detected_mode_name] than [current_mode_name]. Here's a quick comparison:
-
-Your average macro split: Protein [X]% / Carbs [X]% / Fat [X]%
-[current_mode_name] range: Protein [X-X]% / Carbs [X-X]% / Fat [X-X]%
-[detected_mode_name] range: Protein [X-X]% / Carbs [X-X]% / Fat [X-X]%
-
-Switching to [detected_mode_name] could work well for you:
-✅ [pro 1]
-✅ [pro 2]
-
-Things to keep in mind:
-⚠️ [con 1]
-⚠️ [con 2]
-
-Would you like to switch to [detected_mode_name], or keep your current plan? Either way is totally fine — the best diet mode is the one you can stick with.
-```
-
-- Keep the tone neutral and supportive — this is a suggestion, not a correction
-- Only show the top 2-3 pros and 1-2 cons from the `pros_cons` output
-- Do not mention this again for at least 7 days after the user declines
-- If the user agrees to switch, update `health-profile.md > Diet Config > Diet Mode` and recalculate macro targets using the new mode
-
-#### When `has_pattern` is `false`
-
-No action needed. The detection passes silently — either the user's pattern matches their current mode, or there isn't enough data yet.
-
-#### When `reason` is `insufficient_data`
-
-Not enough days with logged meals (less than 3 within the 7-day lookback window). No action needed — wait for more data.
+When `has_pattern` is `true`: read `references/diet-pattern-response.md` for the response template. When `false` or `insufficient_data`: no action needed.
 
 ---
 
