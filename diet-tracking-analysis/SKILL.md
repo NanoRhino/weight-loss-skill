@@ -55,30 +55,6 @@ All nutrition calculations and data storage **MUST** be done via scripts — nev
 Script path: `python3 {baseDir}/scripts/nutrition-calc.py`
 Data directory: `{workspaceDir}/data/meals`
 
-### 0. Detect Meal Type — `detect-meal` (must call when user does NOT explicitly state meal type)
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py detect-meal \
-  --tz-offset <seconds> \
-  --meals <2|3> \
-  [--schedule '{"breakfast":"09:00","lunch":"12:00","dinner":"18:00"}'] \
-  [--log '[...]'] \
-  [--timestamp <ISO-8601 UTC>]
-```
-
-**When to call:** Every time a user logs food WITHOUT explicitly stating which meal it is (e.g. sends a photo with no text, or just says "吃了这个"). If the user says "这是我的午饭" or "早餐", use their statement directly — do NOT call this command.
-
-**Parameters:**
-- `--tz-offset`: from `timezone.json` → `tz_offset` (seconds, e.g. 28800 for UTC+8)
-- `--meals`: 2 or 3 (from `health-profile.md`)
-- `--schedule`: optional, from `health-profile.md > Meal Schedule` (e.g. `{"breakfast":"09:00","lunch":"12:00","dinner":"18:00"}`)
-- `--log`: optional, JSON array of already-logged meals today (from `load` output). Enables snack detection: if the main meal for this window is already logged AND current time is >1.5h past that meal time, returns the corresponding snack type instead.
-- `--timestamp`: optional, the UTC timestamp of the user's message. **Always pass this** from the inbound message metadata to avoid clock drift. If omitted, uses current server UTC time.
-
-**Returns:** `detected_meal`, `local_time`, `local_date`, `method` ("schedule"|"default"|"fallback"), `window_start`, `window_end`
-
-**Use `local_date` from the response** as the `--date` parameter for subsequent `load`, `save`, `check-missing`, and `evaluate` calls — this ensures correct date handling across timezones.
-
 ### 1. Set Target — `target`
 
 ```bash
@@ -180,55 +156,9 @@ Returns: `logged_days`, `daily_totals`, `weekly_avg_cal`, `bmr`, `calorie_floor`
 
 ## Meal Type Assignment
 
-### How to determine meal type
-
-1. **User explicitly states meal type** → use it directly (e.g. "这是午饭", "dinner", "早餐吃了这个")
-2. **User does NOT state meal type** → call `detect-meal` command (see §0 above) to determine it from the message timestamp and meal schedule. **Do NOT guess the time or use stale time info from earlier in the session.**
-
-### 3-meal mode (default)
-
-`meal_type` must be one of: `breakfast` / `lunch` / `dinner` / `snack_am` / `snack_pm`
-
-### 2-meal mode
-
-`meal_type` must be one of: `meal_1` / `meal_2` / `snack_1` / `snack_2`
-
-If the user uses traditional names (breakfast, lunch, dinner), the script automatically maps them:
-
-| User says | Resolved to |
-|-----------|-------------|
-| breakfast | meal_1 |
-| lunch     | meal_1 |
-| snack_am  | snack_1 |
-| dinner    | meal_2 |
-| snack_pm  | snack_2 |
-
-### Checkpoint percentages
-
-| Mode | Checkpoint | Cumulative % |
-|------|-----------|-------------|
-| 3-meal | breakfast / snack_am | 30% |
-| 3-meal | lunch / snack_pm | 70% |
-| 3-meal | dinner | 100% |
-| 2-meal | meal_1 / snack_1 | 50% |
-| 2-meal | meal_2 / snack_2 | 100% |
-
-In 2-meal mode there is no separate dinner checkpoint. `meal_2` (or "dinner" when aliased) is the final checkpoint at 100%.
-
-**User's own statement always takes priority over `detect-meal`.**
-
-The `detect-meal` command handles all time-based logic internally:
-- If `--schedule` is provided (from `health-profile.md > Meal Schedule`), it uses midpoint-based windows between meals.
-- If no schedule, it falls back to default time windows:
-
-| Time | 3-meal mode | 2-meal mode |
-|------|-------------|-------------|
-| 05–10h | breakfast | meal_1 |
-| 10–11h | snack_am | snack_1 |
-| 11–14h | lunch | meal_1 |
-| 14–17h | snack_pm | snack_2 |
-| 17–21h | dinner | meal_2 |
-| other  | snack_pm | snack_2 |
+- **User explicitly states meal type** (e.g. "这是午饭", "breakfast") → pass it as `--meal-type` to `log-meal`. The script handles name resolution and mapping internally.
+- **User does NOT state meal type** → omit `--meal-type`; the script auto-detects from timestamp and schedule.
+- **User's statement always takes priority** — even if it contradicts the time of day.
 
 ---
 
@@ -245,7 +175,7 @@ Evaluate in order — stop at the first conclusive signal:
 
 **1. Explicit statement** — user says they're about to eat, are currently eating, or have finished (e.g., "I'm about to have…" / "I'm having…" vs. past tense "I had…" / "I already ate…"). Use directly, skip time checks.
 
-**2. Time vs. meal window** — when language is ambiguous, compare current time to the meal's window. Use custom times from `health-profile.md > Meal Schedule` if available; otherwise fall back to the windows in the Meal Type Assignment table above. Within or before the window → assume before-eating (default); past the window end → already eaten.
+**2. Time vs. meal window** — when language is ambiguous, compare current time to the meal's window. Use custom times from `health-profile.md > Meal Schedule` if available; otherwise use standard meal windows (breakfast ~5-10h, lunch ~11-14h, dinner ~17-21h). Within or before the window → assume before-eating (default); past the window end → already eaten.
 
 **3. Scheduling habits** — `health-preferences.md > Scheduling & Lifestyle` patterns can shift windows (e.g., "works late on Wednesdays" extends dinner window) or mark meals as always retroactive (e.g., "always skips breakfast on workdays").
 
@@ -254,19 +184,6 @@ Evaluate in order — stop at the first conclusive signal:
 Backfilled meals from missing-meal handling are always "already eaten."
 
 ---
-
-## Timezone Handling
-
-The server runs in UTC. To ensure meals are saved under the correct local date:
-
-1. **Call `detect-meal`** with `--tz-offset` from `timezone.json` and `--timestamp` from the message metadata — the response includes `local_date` (the user's local date, correctly computed).
-2. **Use `local_date`** as the `--date` parameter for `save`, `load`, `check-missing`, and `evaluate` commands.
-3. This replaces manual date calculation — `detect-meal` handles all timezone math.
-
-**Fallback:** If you don't have `local_date` from `detect-meal`, pass `--tz-offset <seconds>` (from `timezone.json`) to `save` and `load` commands. The script will compute the local date automatically. **Never calculate the date yourself — always let the script do it.**
-
-**Example:** User is in `Asia/Shanghai` (UTC+8). Message arrives at UTC 16:30 (local 00:30 next day). `detect-meal` returns `local_date: "2026-03-18"` (the next day), which you pass as `--date` to all subsequent commands.
-
 ## Batch Message Recognition
 
 Users often split a single meal log across multiple consecutive messages — for example, a photo in one message followed by clarifications in the next ("这些肥肉没吃", "没吃米饭", "加了一包辣椒酱"). These messages form **one logical input** and must be processed together.
