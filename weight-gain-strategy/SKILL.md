@@ -1,7 +1,7 @@
 ---
 name: weight-gain-strategy
 version: 1.0.0
-description: "Respond to upward weight trends with graduated support — comfort on the first increase, guided cause discovery on consecutive increases, full diagnosis and strategy on sustained trends. Trigger when consecutive weigh-ins trend up, or when the user explicitly asks why their weight is rising. Trigger phrases: 'why am I gaining weight', 'weight keeps going up', 'gaining weight', '体重怎么涨了', '越来越重了', '为什么体重上升', '体重反弹了'."
+description: "Detect and respond to upward weight trends after weigh-ins or when the user asks why their weight is increasing. Use for: (1) consecutive weight increases detected by post-weigh-in deviation checks, (2) explicit weight-gain questions like 'why am I gaining weight' or '体重怎么涨了'. Provides graduated support from reassurance to cause analysis to temporary adjustment strategies. Do not use when emotional distress needs higher-priority support or when weight-focus should be avoided (history_of_ed / avoid_weight_focus flags)."
 metadata:
   openclaw:
     emoji: "mag"
@@ -25,34 +25,25 @@ persistent the trend is.
 
 ---
 
-## Trigger Conditions
+## Severity → Response
 
-### Automatic Trigger: Post-Weigh-In Deviation Check
-
-After every weight log, `weight-tracking` calls the `deviation-check` command
-to compare the user's recent trend against their PLAN.md target rate. This is
-the **primary trigger path**.
-
-**Severity → Response:**
-
-Severity is driven by **consecutive increases** — how many weigh-ins in a row show weight going up compared to the previous one. The response escalates gradually.
+After every weight log, `weight-tracking` calls `deviation-check` which counts
+consecutive increases (streak) and returns a severity level.
 
 | Severity | Streak | Behavior |
 |----------|--------|----------|
-| `none` | 0 | No increase. Weight is stable or down — just confirm the log. |
-| `comfort` | 1 | **First increase.** Comfort and encourage. If a temporary cause was detected (yesterday overeating, menstrual cycle, water retention), mention it lightly as reassurance. Tone: warm, no concern at all. |
-| `cause-check` | 2–3 | **Consecutive increases.** Guide the user through a multi-step discovery flow: hook + opt-in → let user guess → data reveal with consequence + motivation + challenge tease → suspense → mutual pact. See `cause-check` section below for full flow. |
-| `significant` | 4+ | **Sustained upward trend.** Run `analyze`, present full cause analysis (Step 1), then ask if they want to discuss adjustments (Step 2). |
+| `none` | 0 | Weight stable or down — just confirm the log. |
+| `comfort` | 1 | Comfort and encourage. Mention temporary causes (yesterday overeating, menstrual cycle, water retention) lightly as reassurance. |
+| `cause-check` | 2–3 | Multi-step guided discovery flow — see below. |
+| `significant` | 4+ | Run `analyze` → Interactive Flow Step 1 (cause analysis), then Step 2 (strategy) if user agrees. |
 
-**`comfort` response examples (streak = 1):**
+**`comfort` examples (streak = 1):**
 
 - **No temporary cause:** "Up a tiny bit from last time — totally normal fluctuation, just keep doing what you're doing!"
 - **Yesterday overeating:** "Yesterday's bigger meal shows up on the scale as water, not fat — it'll come back down in a day or two."
 - **Menstrual cycle:** "Weight fluctuates 1–2 kg around your period — totally normal, not fat. Check again after it passes."
 - **Sudden spike:** "That kind of overnight jump is water/sodium, not fat — don't worry about it."
 - **Adaptation period:** "Your body is still adjusting to the new plan — fluctuations in the first couple of weeks are expected, keep going!"
-
-**Key rule:** `comfort` is pure encouragement. Never analyze, never suggest changes. Just normalize the fluctuation and cheer them on.
 
 **`cause-check` guided discovery flow (streak = 2–3):**
 
@@ -152,15 +143,8 @@ cheeky confirmation:
 **If the user says no, ignores, or changes topic** → drop it. Single-ask rule
 applies at each step.
 
-**Skip conditions:**
-- No `PLAN.md` (no plan to deviate from)
-- `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
-
-### Manual Trigger (user-initiated)
-
-When the user explicitly asks about weight gain ("why am I gaining weight",
-"体重怎么涨了"), skip streak logic — run `analyze` directly and enter the
-Interactive Flow at Step 1 (cause analysis → strategy discussion).
+**Manual trigger:** When the user explicitly asks about weight gain, skip
+streak logic — run `analyze` directly → Interactive Flow Step 1.
 
 ---
 
