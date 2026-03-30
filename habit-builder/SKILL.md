@@ -3,9 +3,10 @@ name: habit-builder
 description: >
   Designs and manages healthy habits for sustainable weight loss.
   Atomic Habits / Tiny Habits methodology. Use when: recommending a habit
-  after onboarding, graduating or restarting a habit, user asks about habits,
-  or Weekly Review identifies a pattern. Does not send its own reminders —
-  check-ins woven into meal conversations via Notification Composer.
+  (after onboarding, graduation, Weekly Review insight, user request,
+  failure restart, or weight-gain-strategy pact), tracking an active habit,
+  or handling user queries about habits. Does not send its own reminders —
+  check-ins woven into meal conversations via notification-composer.
 ---
 
 # Habit Builder
@@ -14,7 +15,16 @@ description: >
 
 > 📖 **Script calls:** All lifecycle decisions use `{baseDir}/scripts/action-pipeline.py`. See `references/script-reference.md` for full command syntax.
 
-## Philosophy
+## Routing Gate
+
+**Entry paths:**
+- **Recommendation trigger:** onboarding complete / habit graduated / Weekly Review insight / user asks / failure restart / `weight-gain-strategy` cause-check pact
+- **Check-in:** notification-composer reads `habits.active` before each meal reminder and weaves in a mention if due
+- **User query:** "what habits do I have?" / "how am I doing?" / "can I change my habit?"
+
+**Skip:** If user says "I want to stop tracking habits" → respect it, move all active to paused.
+
+## Principles
 
 - **Small > ambitious.** Start tiny. Scale later.
 - **System > willpower.** Design the environment so the behavior is easy.
@@ -35,13 +45,24 @@ See `references/habit-details.md` for the full type → timing table.
 - One sentence max. Record response to `habits.daily_log.{date}`.
 - Tone: casual friend. Good: `"Walk after dinner tonight?"` Bad: `"Did you complete your habit today?"`
 
+### Frequency
+
+| Phase | Frequency |
+|-------|-----------|
+| Week 1 | Every 2 days |
+| Week 2-3 | Every 3-4 days |
+| Week 3+ | ~Once/week |
+
+`strict: true` habits (from weight-gain-strategy): week-1 frequency for 2 weeks.
+See `weight-gain-strategy/references/strict-mode.md` for full strict-mode rules.
+
 ---
 
 ## Habit Recommendation
 
 ### Triggers
 
-After onboarding | habit graduated | Weekly Review insight | user asks | failure restart
+After onboarding | habit graduated | Weekly Review insight | user asks | failure restart | `weight-gain-strategy` cause-check pact
 
 ### Design method
 
@@ -164,6 +185,13 @@ Data structure: see `references/script-reference.md`.
 
 Weekly Review reads `habits.*` for progress summaries.
 
+### References
+
+| File | Contents |
+|------|----------|
+| `references/recommendation.md` | How to choose, tiny-fy, present, and handle acceptance/decline |
+| `references/lifecycle.md` | Active tracking, completion signals, positive feedback, graduation, failure/restart, scaling, concurrent habits, data schema |
+
 ---
 
 ## Safety
@@ -171,12 +199,12 @@ Weekly Review reads `habits.*` for progress summaries.
 | Signal | Action |
 |--------|--------|
 | Extreme habit proposed | Redirect to sustainable alternative. |
-| Obsessive tracking / guilt | Scale back frequency. Write `flags.habit_anxiety: true`. |
+| Obsessive tracking / guilt over misses | Scale back frequency. Write `flags.habit_anxiety: true`. |
 | Self-hatred over misses | **Defer to `emotional-support`.** Emotion first. Write `flags.body_image_distress: true` if severe. |
 
 ---
 
-## Performance
+## Workspace
 
 - Recommendation: 3-5 turns max
 - Mention: 1 sentence

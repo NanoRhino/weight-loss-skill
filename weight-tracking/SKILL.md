@@ -133,6 +133,23 @@ The server runs in UTC. To record the correct local datetime:
    - `"created"` → confirm: "Logged ✓"
    - `"updated"` → confirm: "Updated ✓"
 4. Display the saved value in the user's preferred unit
+5. **Streak check** — After confirming the log, silently run `weight-gain-strategy`'s deviation-check to count consecutive weight increases:
+   ```bash
+   python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
+     --data-dir {workspaceDir}/data \
+     --plan-file {workspaceDir}/PLAN.md \
+     --health-profile {workspaceDir}/health-profile.md \
+     --user-file {workspaceDir}/USER.md \
+     --plan-start-date {plan_start_date} \
+     --tz-offset {tz_offset}
+   ```
+   Read `开始日期` / `Start date` from `PLAN.md` and pass it as `--plan-start-date`.
+   Handle the result based on `severity` (driven by consecutive increase streak):
+   - `triggered: false` → do nothing, just the log confirmation.
+   - `severity: "comfort"` (streak 1) → append a warm one-liner. See `weight-gain-strategy` SKILL.md `comfort` section for templates.
+   - `severity: "cause-check"` (streak 2–3) → start the multi-turn guided discovery flow (Steps A→B→C+D). See `weight-gain-strategy` SKILL.md `cause-check` section for full flow and rules.
+   - `severity: "significant"` (streak 4+) → run full analysis and present causes (Interactive Flow Step 1). See `weight-gain-strategy` SKILL.md Interactive Flow section.
+   - **Skip this step** if `PLAN.md` does not exist, or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`.
 
 ### User Asks for Trend / History
 
@@ -170,3 +187,4 @@ This skill's script is called by other skills for weight data access:
 | `habit-builder` | `load` for weight trend analysis |
 | `user-onboarding-profile` | `save` to record initial weight during onboarding |
 | `weight-loss-planner` | `load --last 1` to get current weight for calculations |
+| `weight-gain-strategy` | `deviation-check` called after each weigh-in to detect plan deviation |
