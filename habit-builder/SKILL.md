@@ -418,28 +418,37 @@ to determine the sequence.
 **Priority = Impact × Ease + Chain bonus (+1 if it unblocks other actions)**
 
 **Sequencing rules:**
-1. **Start with ONE action only.** The highest-priority action becomes the
-   first active habit. Never start multiple new actions simultaneously.
-2. **Gate the next action behind graduation.** The second action activates
-   only after the first graduates (≥80% completion over 14 days) or is
-   consciously swapped by the user.
-3. **Exception: independent, different-time actions.** If two actions occupy
-   completely different time slots (e.g., morning vs. evening) AND the user
-   has ≥1 graduated habit already, allow parallel introduction. Max 2
-   concurrent new actions.
-4. **Store the full queue.** All decomposed actions are saved to
+1. **Default: recommend 1 action.** Present the highest-priority action first.
+   This is the safe starting point for most users.
+2. **Let the user choose to start more.** If the user says "I want to do more"
+   or "can I start a few at once?", allow up to **3 concurrent new actions** —
+   but only if they occupy **different time slots** (e.g., morning + lunch +
+   evening). Same-time-slot actions compete for attention and should not run
+   in parallel.
+3. **Hard cap: 3 concurrent active actions.** Even experienced users with
+   multiple graduated habits should not exceed 3 active actions. If a user
+   pushes for more, respond honestly:
+   `"三个同时跑已经不少了——先把这几个稳住，再加新的？"`
+4. **Gate the next queued action behind a slot opening.** The next action
+   in the queue activates when an active action graduates, is paused, or
+   the user drops one — freeing a slot.
+5. **Store the full queue.** All decomposed actions are saved to
    `habits.action_queue` so the system remembers what comes next, even
    across sessions.
 
 **Presenting to the user:**
 
-Don't dump the full action list. Present only the first action, casually:
+Present the top action casually. Then **ask** if they want to start just this
+one or add 1-2 more from the queue:
 
-Good: `"先从一个小的开始——起床后喝杯水怎么样？"`
+Good: `"先从起床后喝杯水开始？还是你想同时再挑一两个一起上？"`
 Bad: `"我帮你分解成了5个行动项：1. 起床后喝水 2. 午餐配水..."`
 
-If the user asks "what else?" or "what's next?", reveal the next 1-2 actions
-in the queue. Never show the full list unless explicitly asked.
+If the user picks multiple, briefly confirm the set:
+`"好——早上喝水 + 午餐配白水 + 晚饭后散步，三个一起走。"`
+
+Never show the full queue unprompted. If they ask "what else is in the queue?",
+reveal the remaining actions.
 
 ### Step 3: Set Follow-up Schedule — Action → Cron Task
 
@@ -447,20 +456,34 @@ Each active action gets a follow-up schedule woven into existing meal
 conversations (same mechanism as habit check-ins — see § "How Habits Get
 Into Conversations"). No separate cron jobs for individual actions.
 
-**Schedule by action phase:**
+**Schedule varies by behavior complexity.** Not all actions need the same
+ramp-up. Classify each action when it's created:
 
-| Phase | Duration | Check-in frequency | Method |
-|-------|----------|-------------------|--------|
-| **Anchor** (days 1-7) | 1 week | Every 2 days | Woven into the meal conversation closest to the action's trigger time |
-| **Build** (days 8-21) | 2 weeks | Every 3-4 days | Same — lighter touch |
-| **Solidify** (days 22-42) | 3 weeks | Once a week | Occasional mention, mostly observe |
-| **Autopilot** (day 43+) | Until graduation | Only if data shows regression | Minimal intervention |
+| Complexity | Examples | Graduation window |
+|-----------|---------|-------------------|
+| **Simple** (single cue, zero prep) | Drink water after waking, eat protein first at lunch | 14-28 days |
+| **Moderate** (requires minor planning or resisting a cue) | Swap milk tea for water, walk 5 min after dinner, stop eating by 9 PM | 28-49 days |
+| **Complex** (multi-step, requires setup or scheduling) | Weekly meal prep, 30-min exercise routine, consistent sleep schedule | 49-84 days |
 
-**Why these durations:** Research (Lally et al., 2010) shows habit formation
-averages 66 days, with a range of 18-254 days. The 42-day active tracking
-covers the median, with the Autopilot phase extending as needed. Simple
-behaviors (drinking water) may graduate in 3-4 weeks; complex ones (meal
-prep) may take 8+ weeks.
+**Check-in frequency by complexity × phase:**
+
+| Phase | Simple | Moderate | Complex |
+|-------|--------|----------|---------|
+| **Anchor** (week 1) | Every 3 days | Every 2 days | Daily mention |
+| **Build** (week 2-3) | Every 4-5 days | Every 3 days | Every 2 days |
+| **Solidify** (week 4+) | Once a week | Every 4-5 days | Every 3-4 days |
+| **Autopilot** (graduation eligible) | Only if regression | Once a week | Every 5-7 days |
+
+**Why the difference:** Simple actions (drink water) need less reinforcement
+because the behavior is short and friction-free — over-reminding feels
+patronizing. Complex actions (meal prep) have more failure points and benefit
+from sustained check-ins. Research (Lally et al., 2010) shows habit formation
+averages 66 days but ranges from 18 to 254 days; complexity is the primary
+driver of that range.
+
+**Store complexity in the action data:** Add `"complexity": "simple" | "moderate" | "complex"`
+to each action in `habits.action_queue`. AI assigns complexity at creation time
+based on the number of steps, prep required, and willpower demand.
 
 **Integration with notification-composer:** This skill does NOT create its own
 cron jobs. Instead, it writes the active action and its check-in schedule to
@@ -477,8 +500,14 @@ An action graduates using the same criteria as a habit (§ "Graduation"):
 **On graduation:**
 1. Move the action from `habits.active` to `habits.graduated`
 2. Celebrate lightly (same tone as habit graduation)
-3. **Wait 3-5 days**, then introduce the next action from `habits.action_queue`
-4. Present the next action casually: `"上次喝水的习惯稳了——接下来试试午餐配白水？"`
+3. **Introduce the next queued action in the same conversation or the next
+   natural meal conversation.** No mandatory wait period — momentum matters
+   more than ceremonial gaps. If the user just graduated something, they're
+   in a good place to take on the next step.
+4. Present casually: `"喝水的事稳了——午餐配白水要不要也安排上？"`
+5. **Exception:** If the user graduated an action that was emotionally taxing
+   or required high effort (complex actions), let them breathe — introduce
+   the next action at the next Weekly Review instead of immediately.
 
 **Queue management:**
 
@@ -524,6 +553,7 @@ Store in `habits.action_queue`:
       "description": "起床后喝一杯水",
       "trigger": "起床后",
       "behavior": "喝一杯温水",
+      "complexity": "simple",
       "priority_score": 7,
       "status": "graduated",
       "activated_at": "2026-03-30",
@@ -534,6 +564,7 @@ Store in `habits.action_queue`:
       "description": "午餐配白水",
       "trigger": "午餐时",
       "behavior": "点白水不点奶茶",
+      "complexity": "moderate",
       "priority_score": 6,
       "status": "active",
       "activated_at": "2026-05-04"
@@ -543,6 +574,7 @@ Store in `habits.action_queue`:
       "description": "奶茶冲动时先喝水等10分钟",
       "trigger": "想喝奶茶时",
       "behavior": "先喝一杯水，等10分钟再决定",
+      "complexity": "moderate",
       "priority_score": 5,
       "status": "queued"
     }
