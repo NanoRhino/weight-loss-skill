@@ -66,7 +66,7 @@ without any manual intervention.
 ```bash
 python3 {baseDir}/scripts/pre-send-check.py \
   --workspace-dir {workspaceDir} \
-  --meal-type <breakfast|lunch|dinner|meal_1|meal_2|weight> \
+  --meal-type <breakfast|lunch|dinner|meal_1|meal_2|weight|weight_evening|weight_morning_followup> \
   --tz-offset {tz_offset}
 ```
 
@@ -86,7 +86,10 @@ The script runs these checks deterministically (no LLM involvement):
 3. Health flags — `avoid_weight_focus` or `history_of_ed` (weight reminders only)?
 4. Scheduling constraints from `health-preferences.md` (e.g., "skips breakfast on workdays")?
 5. Meal already logged today? (via `data/meals/YYYY-MM-DD.json`)
-6. Weight already logged today? (via `data/weight.json`, weight reminders only)
+6. Weight-specific checks (via `data/weight.json`):
+   - `weight`: already weighed today?
+   - `weight_evening`: already weighed today? (if yes → suppress evening followup)
+   - `weight_morning_followup`: weighed yesterday or today? (if either → suppress morning followup)
 
 Any fail → `NO_REPLY`. All pass → `SEND`.
 
@@ -205,11 +208,18 @@ If user has already eaten → still log if they want, but note internally that r
 
 ### Weight Reminder Rules
 
-- **Wed & Sat only.** Max 2x/week. Always framed as optional.
-- Reminder time = breakfast time from `health-profile.md > Meal Schedule` minus 30 min. Always remind user to weigh **on an empty stomach** (before eating). If user has already eaten, still accept the reading but tag it internally as `fasting: false`.
-- If `Health Flags` contains `avoid_weight_focus` or `history_of_ed` → never send.
-- Never show the user's target weight or last weigh-in in the reminder message.
-- Check whether user already weighed today: call `weight-tracker.py load --data-dir {workspaceDir}/data --display-unit <unit from health-profile.md> --last 1` and check if the last entry is from today. If so, skip.
+- **Primary (Wed & Sat morning):** Reminder time = breakfast time minus 30 min. Always mention fasting (empty stomach). Suppressed if already weighed today. Pre-send type: `weight`.
+- **Evening followup (Wed & Sat after dinner):** Fires dinner time + 30 min. Only sends if user did NOT weigh in that day. Remind them to weigh tomorrow morning on empty stomach. Brief and casual — not nagging. Pre-send type: `weight_evening`.
+- **Next-morning followup (Thu & Sun morning):** Fires breakfast time minus 30 min. Only sends if user did NOT weigh in yesterday or today. Same tone as primary weight reminder. Pre-send type: `weight_morning_followup`.
+- If `Health Flags` contains `avoid_weight_focus` or `history_of_ed` → never send any weight reminder.
+- Never show the user's target weight or last weigh-in in any weight reminder.
+
+**Evening followup examples:**
+- "Hey — didn't get a chance to weigh in today? No worries. Try tomorrow morning before breakfast, empty stomach."
+- "Missed today's weigh-in. All good — hop on the scale tomorrow morning before eating."
+
+**Next-morning followup examples:**
+- Same style as primary weight reminders — casual, mention fasting, one short sentence.
 
 ### Recall Messages
 
