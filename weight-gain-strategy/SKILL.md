@@ -107,26 +107,31 @@ either. One sentence connecting the cause to the weight trend:
 - "Once in a while is fine, but two weeks in a row and your body starts keeping score."
 
 **Motivation (pull them forward)** — Immediately follow the consequence with
-a positive, aspirational pull. Reference the user's own goal or a concrete
-benefit. Never guilt — always aspiration:
-- "But hey — food is tempting, but so is looking amazing, right?"
-- "You've come this far — this is just a mini-boss, you've got it."
+a positive, aspirational pull **tied to the specific cause**. Connect the
+cause to a concrete benefit of fixing it — don't use generic cheerleading.
+
+| Cause | Motivation example |
+|-------|-------------------|
+| Snacking / calorie surplus | "But hey — food is tempting, but so is looking amazing, right? A few small swaps and you're right back on track." |
+| Weekend overeating | "Weekdays you're crushing it — imagine what happens when weekends stop undoing all that hard work." |
+| Exercise decline | "You used to be so consistent — your body remembers that rhythm, it won't take much to get it back." |
+| Late-night eating | "One small timing shift and your body gets way more time to do its thing overnight." |
+| Logging gaps | "Hard to win a game you're not keeping score in — but the fix is easy." |
+| Calorie creep | "No single meal is the villain here — just a tiny trim and the math starts working for you again." |
 
 **Special cases — skip consequence + motivation:**
 - **Menstrual cycle detected:** "Your intake actually looks fine — the timing lines up with your cycle, so this is likely water retention. Let's check again after it passes." (End flow here — no Step D needed.)
 - **Adaptation period:** "Still early and your body is adjusting — fluctuation is expected. {if cause: The data does show {finding} though — something to watch once you've settled in.}" (End flow here if no actionable cause.)
 
-**Wait for user response.**
-
-**Step D: Challenge + suspense → reveal habit** — Don't just suggest a habit.
-Frame it as a **challenge** with a bit of mystery. This creates buy-in through
-curiosity and a sense of game.
+**Step D flows directly from Step C (same message, no wait).** After the
+motivation line, immediately tease the challenge. Do NOT wait for user
+response between Step C and Step D — they are one continuous message.
 
 **Tease the challenge:**
 - "Want to hear my plan?"
 - "I've got a little challenge for you — dare to take it?"
 
-**Wait for user response.** If they ask what it is or show interest:
+**Wait for user response here.** If they ask what it is or show interest:
 
 **Build suspense (optional, 1 exchange max):**
 - "Say yes and you'll find out — it'll be worth it!"
