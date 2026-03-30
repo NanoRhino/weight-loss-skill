@@ -145,21 +145,11 @@ The server runs in UTC. To record the correct local datetime:
    ```
    Read `开始日期` / `Start date` from `PLAN.md` and pass it as `--plan-start-date`.
    Handle the result based on `severity` (driven by consecutive increase streak):
-   - If `triggered: false` → do nothing, respond with just the log confirmation.
-   - If `severity: "comfort"` (streak 1) → **first increase.** Append a warm, encouraging one-liner. If `temporary_causes` detected, weave in lightly as reassurance. If `adaptation_period` is true, lead with "body is still adjusting." Examples:
-     - Plain: "比上次重了一点点，很正常的波动，继续保持就好～"
-     - Yesterday overeating: "昨天吃得多一些，今天涨一点很正常，大部分是水分～"
-     - Menstrual cycle: "生理期前后波动 1–2 kg 是很正常的，不用担心～"
-     - Adaptation period: "刚开始新计划，身体还在适应，头两周波动很正常，坚持就好～"
-   - If `severity: "cause-check"` (streak 2–3) → **guided discovery (multi-turn).** Silently run `weight-gain-strategy`'s `analyze` command to prepare data, then start the conversational flow defined in `weight-gain-strategy` SKILL.md:
-     - **Step A:** Playful hook + opt-in: "唔，这两次秤有点不太乖哦。先别急，让我们一起来看看是怎么回事——进入减重分析模式吗？"
-     - **Step B (after opt-in):** Let the user guess: "你先猜猜看，觉得是什么原因？"
-     - **Step C (after user guesses):** Reveal data + light consequence + positive motivation. Validate their guess if accurate.
-     - **Step D (after user acknowledges):** Challenge + suspense → reveal a mutual pact (AI commits to stricter monitoring, user commits to one specific habit).
-     - User can exit at any step — single-ask rule applies throughout.
-     - See `weight-gain-strategy` SKILL.md `cause-check` section for full flow, templates, and cause→habit mapping.
-   - If `severity: "significant"` (streak 4+) → **sustained trend.** Run `weight-gain-strategy`'s `analyze` command, present full cause analysis, then ask if they want to discuss adjustments: "体重连着涨了几次，我帮你看了一下数据——" Only proceed to strategy discussion if the user agrees.
-   - **Skip this step** if `PLAN.md` does not exist (no plan to deviate from), or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`
+   - `triggered: false` → do nothing, just the log confirmation.
+   - `severity: "comfort"` (streak 1) → append a warm one-liner. See `weight-gain-strategy` SKILL.md `comfort` section for templates.
+   - `severity: "cause-check"` (streak 2–3) → start the multi-turn guided discovery flow (Steps A→B→C+D). See `weight-gain-strategy` SKILL.md `cause-check` section for full flow and rules.
+   - `severity: "significant"` (streak 4+) → run full analysis and present causes (Interactive Flow Step 1). See `weight-gain-strategy` SKILL.md Interactive Flow section.
+   - **Skip this step** if `PLAN.md` does not exist, or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`.
 
 ### User Asks for Trend / History
 
