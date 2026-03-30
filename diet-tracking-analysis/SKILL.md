@@ -199,15 +199,11 @@ When user describes what they're about to eat (or what they already ate):
 
 ### Missing Meal Handling
 
-When `check-missing` returns missing meals:
-1. **Assume normal intake** for each missing meal — use that meal's standard ratio of daily targets (e.g. in 3-meal 30:40:30 mode, missing breakfast = 30%, missing lunch = 40%)
-2. **Do NOT stop to ask** — proceed to log and evaluate the current meal immediately, passing assumed meals via `--assumed` to `evaluate`
-3. **Give the full current-meal response** as usual (meal details + nutrition summary + suggestion)
-4. **Append a note** after the suggestion: inform the user that missed meals were assumed normal, and if they share what they actually ate, the advice will be more accurate (see `missing-meal-rules.md` for prompt templates)
+`log-meal` automatically detects and handles missing meals (assumed normal intake). Do NOT stop to ask about skipped meals — proceed with the current meal immediately.
 
-If the user later provides details about the missed meal → record it, re-run `evaluate` without `--assumed` for that meal, and update suggestions accordingly.
+In the reply, append a note that missed meals were assumed normal and invite the user to provide details for more accurate advice (see `missing-meal-rules.md`).
 
-**Backfilled meals** (meals reported after the fact): these are always "already eaten" — apply the meal timing detection outcome accordingly (no `right_now`, use `next_meal` or `next_time` instead — see Response Format).
+If the user later reports the missed meal → re-run `log-meal` for that meal (same name overwrites the assumed entry). Backfilled meals are always "already eaten."
 
 ### Weekly Low-Calorie Check
 
@@ -282,40 +278,7 @@ Not enough days with logged meals (less than 3 within the 7-day lookback window)
 
 ### Produce Tracking (China Region)
 
-**Only active when `locale.json` `region` is `"CN"`.**
-
-Read `locale.json` at the start of each conversation. If `region` is `"CN"`, activate produce tracking for every meal log reply.
-
-#### Targets
-
-| Produce | Target |
-|---------|--------|
-| Vegetables | ≥300g/day; ≥150g cumulative by lunch (or meal_1); ≥300g cumulative by dinner (or meal_2); no target at breakfast |
-| Fruit | 200–350g/day total; checked only at the final meal of the day |
-
-#### Estimating produce amounts
-
-When the user logs a meal, estimate the gram weight of vegetables and fruits:
-- Use standard portion sizes (e.g. a plate of stir-fried greens ≈ 200g, one medium apple ≈ 180g, half a cucumber ≈ 100g)
-- Prefix estimated amounts with `~` in the response
-- Common vegetables: leafy greens, broccoli, cucumber, tomato, carrot, eggplant, etc.
-- Common fruits: apple, orange, banana, grapes, watermelon, etc.
-- Starchy vegetables (potato, sweet potato, taro, corn) count toward carbs/calories but **not** toward the vegetable target
-
-#### Priority rules
-
-Produce targets have **lower priority** than calories and macros:
-- If a vegetable is high in oil or sugar and causes calories/macros to exceed targets, suggest reducing that vegetable
-- For all other vegetables, **never suggest reducing them** — only suggest adding more if the target is not met
-- If there is a conflict between adding vegetables and staying within calorie targets, the calorie/macro target takes precedence; acknowledge both without pushing the user to over-eat
-
-#### Suggestions
-
-- **Vegetable target not met at lunch/meal_1:** Gently note the gap and suggest adding vegetables at dinner (e.g. "再加一份青菜就达标了")
-- **Vegetable target not met at dinner/meal_2 (final):** Suggest adding a side of low-calorie vegetables now or note it for next time
-- **Fruit target not met at final meal:** Suggest a suitable fruit as a snack or dessert, only if calories allow
-- **Fruit over target:** Briefly mention it; no strong push to eliminate
-- When produce targets are met, give a brief positive note
+When `locale.json` `region` is `"CN"`: pass `--region CN` to `log-meal`/`query-day`/`delete-meal`, and read `references/produce-rules.md` for estimation and suggestion guidelines.
 
 ### Querying Progress
 
