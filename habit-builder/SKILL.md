@@ -64,18 +64,21 @@ exists, decide whether this reminder slot should include a habit mention
 
 ### How often to mention
 
-Frequency depends on how established the habit is. Track mention count in
-`habits.mention_counter` to space them out evenly.
+Frequency depends on trigger cadence and phase. Use the schedule script:
 
-| Phase | Frequency | Why |
-|-------|-----------|-----|
-| Week 1 (new habit) | Every 2 days | Still building awareness |
-| Week 2-3 (building) | Every 3-4 days | User knows what to do, just needs nudges |
-| Week 3+ (approaching graduation) | Rarely — maybe once a week | If it's becoming automatic, don't over-manage it |
+```bash
+python3 {baseDir}/scripts/action-pipeline.py schedule \
+  --cadence <cadence> --days <days_since_activation>
+```
 
-**If the user doesn't engage with a habit mention 3 times in a row,**
-stop mentioning it short-term. Pick it up again at the next Weekly Review
-to ask if they still want to continue.
+Daily behaviors (every_meal / daily_fixed / daily_random) get **daily
+mentions** in the Anchor phase (week 1), tapering to every 3 days (Build),
+every 5-7 days (Solidify), and once a week or less (Autopilot). Weekly and
+conditional behaviors are mentioned at every occurrence early on, tapering
+to every-other later.
+
+**3 consecutive no-responses → stall.** Stop mentioning. Pick it up at
+the next Weekly Review.
 
 ### Rules for habit mentions
 
@@ -275,30 +278,24 @@ When the user confirms a habit, acknowledge it — but don't overdo it.
 
 ### Graduation
 
-A habit graduates when it's become automatic — the user does it without
-thinking about it. AI judges this based on three signals:
+Use the graduation check script:
 
-**Signal 1 (required): Completion rate ≥ 80% over 14 days**
-This is the minimum bar. Below this, the habit isn't stable yet.
+```bash
+python3 {baseDir}/scripts/action-pipeline.py check-graduation \
+  --cadence <cadence> --log '<completion_log JSON>'
+```
 
-**Signal 2 (soft): Self-initiation**
-User mentions doing the habit before being asked, or does it before the
-reminder window. If `self_initiated` appears in > 30% of completions,
-strong graduation signal.
-
-**Signal 3 (soft): Confirmation check**
-AI asks: `"The walking thing — do you still need me to bring it up, or
-is it just part of your routine now?"` If user says they don't need
-reminders, that's the strongest signal.
-
-Graduation = Signal 1 + at least one of Signal 2 or 3.
+**Graduation = Signal 1 + at least one of Signal 2 or 3:**
+- Signal 1: ≥ 80% completion over cadence-appropriate sample (daily=14 days, weekly=6 occurrences, conditional=8)
+- Signal 2: Self-initiation > 30%
+- Signal 3: User confirms it's automatic (`"还需要我提醒吗？"`)
 
 **On graduation:**
 - Celebrate lightly: `"The after-dinner walk is officially a habit. You
   don't need me for that one anymore."`
-- Stop active tracking. Move from `habits.active` to `habits.graduated`.
-- Occasionally check in via Weekly Review (once a month or so).
-- If it relapses later, can be reactivated.
+- Move from `habits.active` to `habits.graduated`.
+- If in an action queue, immediately introduce the next queued action.
+- Monthly spot-check via Weekly Review. Reactivate if relapse.
 
 ### Failure and restart
 
@@ -323,322 +320,109 @@ Three paths:
 `"You were doing so well"` · `"Remember your goals"` ·
 `"No pressure"` · `"不用有压力"` (repeating this creates the opposite effect)
 
-### Scaling up
+### Scaling up & concurrent habits
 
-When a habit graduates, two things can happen:
+**Upgrade (optional):** After graduation, ask `"Want to extend the walk, or
+is 5 minutes your sweet spot?"` Don't auto-upgrade.
 
-**1. Upgrade the graduated habit (optional)**
-"5-min walk → 10-min walk" — only if the user is interested. Don't
-auto-upgrade. Ask: `"Want to extend the walk, or is 5 minutes your sweet
-spot?"` Many users will keep the tiny version forever. That's fine.
-
-**2. Recommend the next habit**
-Go back to the recommendation flow. Read updated data. The user's
-lifestyle has shifted — the next highest-leverage gap may be different.
-
-Pace: wait at least a few days after graduation before suggesting the
-next habit. Let the user enjoy the win.
-
-### Concurrent habits
-
-No hard limit, but AI controls the pace:
-
-| Situation | Response |
-|-----------|----------|
-| User has 1 active habit, it's going well, user asks to add another | Allow it. Two concurrent habits is fine. |
-| User has 2 active habits, wants a third | Check completion rates. If both > 70%, allow. If either is struggling, suggest stabilizing first. |
-| User has 3+ active habits and completion rates drop | Proactively suggest: `"You've got a lot going — want to pause one and focus?"` |
-| User asks for many habits at once | `"Love the ambition. Let's nail one first and stack from there."` |
+**Concurrency:** Max 3 active habits (including pipeline actions). If any
+are struggling (completion < 70%), suggest stabilizing first. See
+§ "Advice-to-Action Pipeline > Step 2" for sequencing rules.
 
 ---
 
 ## Advice-to-Action Pipeline
 
-When the AI gives advice (from any skill — weight-loss-planner, meal-planner,
-exercise-tracking-planning, weekly-report, etc.), the habit-builder can
-decompose that advice into concrete, trackable actions. This pipeline turns
-"you should X" into a sequence of tiny behaviors with follow-up schedules.
+Turns "you should X" from any skill into a queue of tiny, trackable actions.
 
-### When to activate the pipeline
+**When to activate:** Advice implies a behavior change sustained over days/weeks.
+Don't activate for one-off facts.
 
-| Source | Example advice | Pipeline? |
-|--------|---------------|-----------|
-| Weekly Report suggestion | "Try adding protein to breakfast" | Yes — decompose into action |
-| Weight-loss planner rate explanation | "Adding exercise would speed things up" | Yes — if user shows interest |
-| Meal planner dietary shift | "Switching to more home-cooked meals" | Yes — break into steps |
-| User asks "how do I actually do this?" | After any advice | Yes — explicitly requested |
-| One-off factual answer | "Avocados are high in healthy fats" | No — informational only |
+### Step 1: Decompose
 
-**Trigger rule:** Activate the pipeline when advice implies a **behavior change
-the user needs to sustain over days/weeks.** Don't activate for one-time
-information or facts the user can act on immediately.
+Break advice into ≤ 5 independent actions. Each action = one trigger + one behavior.
+Must pass the Tiny Habits test. See § "Habit Recommendation" for design method.
 
-### Step 1: Decompose — Advice → Action List
+### Step 2: Prioritize
 
-Break the advice into the smallest independent actions. Each action must pass
-the **"one verb, one context"** test: it describes a single thing to do in a
-specific situation.
-
-**Decomposition method:**
-
-```
-Advice: "你应该多喝水，少喝奶茶"
-  ↓
-Dimension analysis:
-  - What to increase: water intake
-  - What to decrease: milk tea
-  - When: throughout the day
-  ↓
-Action list:
-  1. "起床后喝一杯水" (drink water after waking up)
-  2. "午餐配白水不配奶茶" (water with lunch instead of milk tea)
-  3. "下午想喝奶茶时，先喝一杯水等 10 分钟" (when craving milk tea, drink water first and wait 10 min)
+```bash
+python3 {baseDir}/scripts/action-pipeline.py prioritize \
+  --actions '[{"action_id":"x", "impact":3, "ease":3, "chain":true, ...}]'
 ```
 
-**Rules:**
-- Maximum 5 actions per advice. If there are more, group related ones.
-- Each action must have a clear **trigger** (when/where) and **behavior**
-  (what to do). No vague actions like "drink more water."
-- Actions should be **independently completable** — failing one doesn't
-  block others.
-- Apply the Tiny Habits test: "Can this person do it on their worst day?"
-  If not, shrink it.
+Returns actions sorted by `Impact × Ease + chain bonus`. Present the top one
+casually, then ask if the user wants to add 1-2 more (max 3 concurrent,
+different time slots). Never dump the full list.
 
-### Step 2: Prioritize — Which Action First?
+### Step 3: Activate
 
-Not all actions should start at once. Use the **Leverage × Ease** matrix
-to determine the sequence.
+When user accepts, generate the `habits.active` entry:
 
-**Scoring (internal — never show scores to user):**
-
-| Factor | Score 1 (low) | Score 3 (high) |
-|--------|--------------|----------------|
-| **Impact** | Nice-to-have, marginal effect | Directly addresses the core problem |
-| **Ease** | Requires new purchases, schedule changes, or willpower | Can be done with existing routine, zero friction |
-| **Chain value** | Standalone action | Enables or makes other actions easier |
-
-**Priority = Impact × Ease + Chain bonus (+1 if it unblocks other actions)**
-
-**Sequencing rules:**
-1. **Default: recommend 1 action.** Present the highest-priority action first.
-   This is the safe starting point for most users.
-2. **Let the user choose to start more.** If the user says "I want to do more"
-   or "can I start a few at once?", allow up to **3 concurrent new actions** —
-   but only if they occupy **different time slots** (e.g., morning + lunch +
-   evening). Same-time-slot actions compete for attention and should not run
-   in parallel.
-3. **Hard cap: 3 concurrent active actions.** Even experienced users with
-   multiple graduated habits should not exceed 3 active actions. If a user
-   pushes for more, respond honestly:
-   `"三个同时跑已经不少了——先把这几个稳住，再加新的？"`
-4. **Gate the next queued action behind a slot opening.** The next action
-   in the queue activates when an active action graduates, is paused, or
-   the user drops one — freeing a slot.
-5. **Store the full queue.** All decomposed actions are saved to
-   `habits.action_queue` so the system remembers what comes next, even
-   across sessions.
-
-**Presenting to the user:**
-
-Present the top action casually. Then **ask** if they want to start just this
-one or add 1-2 more from the queue:
-
-Good: `"先从起床后喝杯水开始？还是你想同时再挑一两个一起上？"`
-Bad: `"我帮你分解成了5个行动项：1. 起床后喝水 2. 午餐配水..."`
-
-If the user picks multiple, briefly confirm the set:
-`"好——早上喝水 + 午餐配白水 + 晚饭后散步，三个一起走。"`
-
-Never show the full queue unprompted. If they ask "what else is in the queue?",
-reveal the remaining actions.
-
-### Step 2.5: Activate — Queue → `habits.active`
-
-When the user accepts an action (or multiple), **write each accepted action
-to `habits.active`** so notification-composer can pick it up. The queue stores
-the full plan; `habits.active` stores what's currently being tracked.
-
-**Field mapping — action_queue → habits.active:**
-
-Each action in the queue must be translated to the `habits.active` format
-that notification-composer already reads:
-
-```json
-{
-  "habit_id": "{action_id}",
-  "description": "{description}",
-  "tiny_version": "{behavior}",
-  "trigger": "{trigger}",
-  "type": "{mapped from trigger_cadence — see table below}",
-  "bound_to_meal": "{inferred from trigger — see table below}",
-  "trigger_cadence": "{from action_queue}",
-  "created_at": "{today}",
-  "phase": "week-1",
-  "source_advice": "{source_advice from parent queue entry}",
-  "mention_log": [],
-  "completion_log": []
-}
+```bash
+python3 {baseDir}/scripts/action-pipeline.py activate \
+  --action '{"action_id":"water-after-waking", "description":"起床后喝水", "trigger":"起床后", "behavior":"喝一杯温水", "trigger_cadence":"daily_fixed"}' \
+  --source-advice "多喝水少喝奶茶"
 ```
 
-**Cadence → type mapping** (bridges the new cadence system with the existing
-habit type system that notification-composer uses):
+This maps `trigger_cadence` to the `type` field that notification-composer reads
+(e.g., `daily_fixed` → `post-meal`, `every_meal` → `meal-bound`,
+`daily_random` → `all-day`, `weekly` → `weekly`, `conditional` → `conditional`).
 
-| trigger_cadence | → type | → bound_to_meal | Logic |
-|----------------|--------|----------------|-------|
-| `every_meal` | `meal-bound` | The specific meal in `trigger` (e.g., "午餐" → lunch) | Mention built into that meal's reminder |
-| `daily_fixed` | `post-meal` if trigger is after a meal; `end-of-day` if evening; `meal-bound` if before/during meal | Inferred from trigger time vs. meal schedule | Match trigger time to nearest meal |
-| `daily_random` | `all-day` | `null` | Dropped into a random meal conversation |
-| `weekly` | `weekly` (new type) | `null` | Mentioned on the relevant day only |
-| `conditional` | `conditional` (new type) | `null` | Mentioned only when condition detected |
+Also update `habits.action_queue` status to `active`.
 
-**Also update `habits.action_queue` status** for the activated action(s):
-change `status` from `queued` to `active`, set `activated_at` to today.
+### Step 4: Follow-up Schedule
 
-### Step 3: Set Follow-up Schedule — Action → Cron Task
+Check-in frequency is determined by trigger cadence and phase:
 
-Each active action gets a follow-up schedule woven into existing meal
-conversations (same mechanism as habit check-ins — see § "How Habits Get
-Into Conversations"). No separate cron jobs for individual actions.
+```bash
+python3 {baseDir}/scripts/action-pipeline.py schedule \
+  --cadence daily_fixed --days 3
+# → {"phase":"anchor", "value":1, "rule":"mention every 1 day(s)"}
+```
 
-**Schedule follows trigger frequency — how often the behavior's scene naturally
-occurs determines how often to check in.** Classify each action by its trigger
-cadence when it's created:
+Habits surface in meal conversations (§ "How Habits Get Into Conversations").
+No separate cron jobs.
 
-| Trigger cadence | Examples | Check-in rule |
-|----------------|---------|---------------|
-| **Every meal** | Eat protein first, drink water with lunch | Mention at the bound meal — but not every day (see phase table below) |
-| **Daily fixed** | Walk after dinner, drink water after waking, stop eating by 9 PM | Mention at the nearest meal conversation to the trigger time |
-| **Daily random** | Swap milk tea when craving hits, take stairs instead of elevator | Drop into a random meal conversation — the trigger is unpredictable, so check-in timing is flexible |
-| **Weekly** | Sunday meal prep, weekend grocery shopping, weekly exercise plan | Mention once on the relevant day; never mid-week |
-| **Conditional** | "When dining out, pick the lighter option" | Mention only when the condition is detected (e.g., user mentions eating out). Never on days the condition doesn't arise |
+**Special delivery rules:**
+- **Weekly:** mention only on the relevant day, in the first meal conversation.
+- **Conditional:** reactive only — mention in reply when user's message matches
+  the condition (e.g., mentions dining out). Never proactive.
 
-**Check-in frequency by trigger cadence × phase:**
+### Step 5: Graduation
 
-| Phase | Every meal / Daily fixed | Daily random | Weekly | Conditional |
-|-------|-------------------------|-------------|--------|-------------|
-| **Anchor** (week 1) | Every 2 days | Every 2 days | Every occurrence | Every occurrence |
-| **Build** (week 2-3) | Every 3 days | Every 3-4 days | Every occurrence | Every occurrence |
-| **Solidify** (week 4+) | Every 5 days | Once a week | Every other occurrence | 50% of occurrences |
-| **Autopilot** (graduation eligible) | Once a week | Only if regression | Only if regression | Only if regression |
+```bash
+python3 {baseDir}/scripts/action-pipeline.py check-graduation \
+  --cadence daily_fixed \
+  --log '[{"date":"2026-04-01","result":"completed","self_initiated":false}, ...]'
+```
 
-**Key principles:**
-- **Match the rhythm of the behavior, not an arbitrary calendar.** A weekly
-  meal-prep habit should be checked weekly, not "every 3 days."
-- **Conditional actions only surface when the condition is true.** Reminding
-  someone to "choose lighter options when dining out" on a day they eat at
-  home is noise.
-- **Every-meal and daily-fixed actions taper faster** because the user gets
-  many natural repetitions per week. Weekly and conditional actions taper
-  slower because each occurrence is precious practice.
-- Research (Lally et al., 2010) shows habit formation averages 66 days but
-  ranges 18-254 days; trigger frequency is a key driver — daily behaviors
-  automate faster than weekly ones.
+The script checks Signal 1 (completion rate ≥ 80% over cadence-appropriate
+sample) and Signal 2 (self-initiation > 30%). If Signal 1 passes but not
+Signal 2, it returns a prompt to ask Signal 3 (user confirmation).
 
-**Graduation windows by cadence:**
+See `scripts/action-pipeline.py` for sample windows per cadence (daily=14 days,
+weekly=6 occurrences, conditional=8 occurrences).
 
-| Trigger cadence | Typical graduation | Why |
-|----------------|-------------------|-----|
-| Every meal / Daily fixed | 14-28 days | High repetition = fast automaticity |
-| Daily random | 21-42 days | Fewer consistent reps, more variable |
-| Weekly | 6-10 occurrences (~42-70 days) | Need enough repetitions to judge; count occurrences, not calendar days |
-| Conditional | 8-12 occurrences | Same — count actual trigger events, not elapsed time |
+**On graduation:** move to `habits.graduated`, introduce next queued action
+immediately (no wait period). Exception: emotionally taxing actions → wait for
+next Weekly Review.
 
-**Store cadence in the action data:** Add `"trigger_cadence": "every_meal" | "daily_fixed" | "daily_random" | "weekly" | "conditional"`
-to each action in `habits.action_queue`. AI assigns cadence at creation time
-based on when the trigger naturally occurs in the user's routine.
+**Stall:** 3 consecutive no-responses (counted per mention, not per day) →
+pause and flag for Weekly Review.
 
-**Integration with notification-composer:** This skill does NOT create its own
-cron jobs. Instead, it writes the active action and its check-in schedule to
-`habits.active`, which notification-composer reads when composing meal
-reminders. The habit mention is woven into the meal conversation naturally
-(see existing § "How Habits Get Into Conversations").
+**Max tracking:** 90 days per action. Auto-pause if not graduated.
 
-**Delivery rules for weekly and conditional types:**
+### Step 6: Queue Management
 
-- **Weekly:** notification-composer checks `habits.active` for `type: "weekly"`
-  entries. On the relevant day (stored in the action's `trigger` field, e.g.,
-  "周日" → Sunday), mention it in the first meal conversation of that day.
-  On other days, skip entirely — never mention mid-week.
-- **Conditional:** notification-composer does NOT proactively mention these.
-  Instead, when the user's reply to any meal conversation matches the
-  condition (e.g., mentions dining out, ordering delivery, skipping a meal),
-  the conditional action is triggered in the response. This means conditional
-  actions are **reactive, not proactive** — they fire in reply, not in the
-  reminder itself.
-
-**No-response rule adapted by cadence:**
-
-The "3× no-response → stall" rule applies to **3 consecutive mentions**,
-not 3 calendar days. What this means in practice:
-
-| Cadence | 3× no-response = roughly... | Notes |
-|---------|----------------------------|-------|
-| Daily fixed (Anchor phase, every 2 days) | ~6 days | Fast signal — expected |
-| Weekly | ~3 weeks | Slower signal, but 3 missed Sundays is a clear pattern |
-| Conditional | 3 trigger events with no engagement | Could span weeks; that's fine — only count actual mentions |
-
-### Step 4: Graduation & Queue Advancement
-
-An action graduates using adapted criteria based on trigger cadence:
-
-**Signal 1 (required): Completion rate ≥ 80% over a sufficient sample**
-
-| Trigger cadence | Sample window | Why |
-|----------------|---------------|-----|
-| Every meal / Daily fixed / Daily random | 14 calendar days | Enough daily reps to judge consistency |
-| Weekly | ≥ 6 occurrences | 14 days = only 2 reps, not enough. Need 6+ weekly reps (~6 weeks) |
-| Conditional | ≥ 8 occurrences | Trigger events are unpredictable; need enough samples. Track actual trigger count, not calendar days |
-
-**Signal 2 (soft, unchanged):** Self-initiation > 30% of completions
-**Signal 3 (soft, unchanged):** User confirms it's automatic
-
-Graduation = Signal 1 + at least one of Signal 2 or 3.
-
-**On graduation:**
-1. Move the action from `habits.active` to `habits.graduated`
-2. Celebrate lightly (same tone as habit graduation)
-3. **Introduce the next queued action in the same conversation or the next
-   natural meal conversation.** No mandatory wait period — momentum matters
-   more than ceremonial gaps. If the user just graduated something, they're
-   in a good place to take on the next step.
-4. Present casually: `"喝水的事稳了——午餐配白水要不要也安排上？"`
-5. **Exception:** If the user graduated an action that was emotionally taxing
-   (e.g., breaking a craving pattern, resisting social eating pressure),
-   let them breathe — introduce the next action at the next Weekly Review
-   instead of immediately.
-
-**Queue management:**
-
-| Event | Action on queue |
-|-------|----------------|
-| Action graduates | Remove from queue, advance next. If multiple actions graduate at once, fill all freed slots from queue (respect the 3-concurrent cap) |
-| Action fails (3 consecutive misses) | Offer: keep/shrink/swap/skip to next in queue |
-| User asks to skip | Move current to end of queue, advance next |
-| User asks to stop all | Pause queue entirely, respect the decision |
-| New advice generates new actions | Append to queue (don't jump the line unless higher priority) |
-| User explicitly requests a specific action | Move it to front of queue |
-
-### Step 5: Ending a Follow-up Schedule
-
-A follow-up schedule ends (cron task effectively stops) in these situations:
-
-| Condition | What happens |
-|-----------|-------------|
-| **Graduation** | Action moves to `graduated`. Check-in stops. Monthly spot-check via Weekly Review. |
-| **User opt-out** | User says "don't remind me about this." Immediately stop. Move to `paused`. |
-| **3× no-response** | Stop mentioning. Flag for Weekly Review discussion. Move to `stalled`. |
-| **Replaced** | User swaps for a different action. Old one moves to `paused`. |
-| **Advice invalidated** | The underlying advice no longer applies (e.g., user changed diet mode). Remove from queue. |
-| **All actions in advice graduated** | The entire advice is "done." Log to `habits.advice_history` for reference. |
-
-**No zombie tasks:** Every active action must have a path to termination.
-The system never keeps nudging indefinitely. Maximum active tracking duration
-for any single action is **90 days** — if not graduated by then, auto-pause
-and surface in Weekly Review for reassessment.
+| Event | Action |
+|-------|--------|
+| Graduation | Advance next from queue (fill all freed slots, cap 3) |
+| Failure (3 misses) | Offer: keep / shrink / swap / skip |
+| User skips | Move to end of queue |
+| User stops all | Pause entire queue |
+| New advice | Append to queue (don't jump line) |
 
 ### Action Queue Data Structure
-
-Store in `habits.action_queue`:
 
 ```json
 {
@@ -652,35 +436,15 @@ Store in `habits.action_queue`:
       "trigger": "起床后",
       "behavior": "喝一杯温水",
       "trigger_cadence": "daily_fixed",
-      "priority_score": 7,
-      "status": "graduated",
-      "activated_at": "2026-03-30",
-      "graduated_at": "2026-05-01"
-    },
-    {
-      "action_id": "water-with-lunch",
-      "description": "午餐配白水",
-      "trigger": "午餐时",
-      "behavior": "点白水不点奶茶",
-      "trigger_cadence": "every_meal",
-      "priority_score": 6,
+      "priority_score": 10,
       "status": "active",
-      "activated_at": "2026-05-04"
-    },
-    {
-      "action_id": "milk-tea-delay",
-      "description": "奶茶冲动时先喝水等10分钟",
-      "trigger": "想喝奶茶时",
-      "behavior": "先喝一杯水，等10分钟再决定",
-      "trigger_cadence": "every_meal",
-      "priority_score": 5,
-      "status": "queued"
+      "activated_at": "2026-03-30"
     }
   ]
 }
 ```
 
-Valid `status` values: `queued` → `active` → `graduated` | `paused` | `stalled` | `removed`
+Valid `status`: `queued` → `active` → `graduated` | `paused` | `stalled` | `removed`
 
 ---
 
