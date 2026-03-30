@@ -70,13 +70,13 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
   --data-dir {workspaceDir}/data/meals --tz-offset <seconds> \
   --meals <2|3> --weight <kg> --cal <kcal> \
   --meal-json '<nutrition estimate>' \
-  [--meal-type lunch] [--timestamp <ISO-8601 UTC>] \
+  [--meal-type lunch] [--timestamp <ISO-8601 UTC>] [--eaten] \
   [--schedule '<JSON>'] [--mode balanced] [--bmr <kcal>] [--region CN]
 ```
 
 Runs detect → load → check-missing → save → evaluate → produce internally. Returns combined JSON with `meal_detection`, `existing_meals`, `missing_meals`, `save`, `evaluation`, `produce`. Same meal name overwrites (supports corrections).
 
-Always pass `--timestamp` from inbound message metadata. China region: include `vegetables_g` and `fruits_g` in `--meal-json`.
+Always pass `--timestamp` from inbound message metadata. Pass `--eaten` when the user has already eaten (affects `evaluation.suggestion_type`). China region: include `vegetables_g` and `fruits_g` in `--meal-json`.
 
 ### `delete-meal` — remove a meal record
 
@@ -134,7 +134,7 @@ When user describes what they're about to eat (or what they already ate):
 
 1. **Collect all pending messages** — merge consecutive messages into a single input (see Batch Message Recognition)
 2. **Determine meal type** — if user explicitly states it (e.g. "breakfast", "this is lunch"), pass as `--meal-type` to `log-meal`; otherwise omit (script auto-detects from timestamp and schedule). User's statement always takes priority, even if it contradicts the time of day.
-3. **Detect meal timing** — before eating (default) or already eaten (see Meal Timing Detection)
+3. **Detect meal timing** — before eating (default) or already eaten (see Meal Timing Detection). Pass as `--eaten` to `log-meal`.
 4. **Check portion clarity** — assume standard portions; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule)
 5. **Estimate nutrition** — calories / protein / carbs / fat per item. China region: also estimate `vegetables_g` and `fruits_g`.
 6. **Call `log-meal`** — pass the nutrition estimate and all required parameters. The script handles load, missing-meal check, save, evaluate, and produce-check internally.
@@ -285,9 +285,9 @@ Every food log reply must contain up to three sections:
 - For forgotten/assumed meals: only show real recorded values (consistent with existing rule)
 - **China region:** See `references/produce-rules.md` for produce status line format.
 
-**③ Suggestion** (based on evaluate output + meal timing detection — only one suggestion type per meal)
+**③ Suggestion** — use `evaluation.suggestion_type` from `log-meal` to determine which format:
 
-**Case A: Before eating + adjustment needed** (`needs_adjustment: true` and meal NOT yet eaten):
+**`"right_now"`** — Before eating, adjustment needed:
 ```
 ⚡ Right now: [specific adjustment for current meal]
 ```
@@ -297,25 +297,23 @@ Every food log reply must contain up to three sections:
 - Do NOT list per-item calories in suggestions
 - Single option → end with adjusted meal totals. Multiple options → list and ask preference.
 
-**Case B: Already eaten + adjustment needed** (`needs_adjustment: true` and meal already eaten):
+**`"next_meal"`** — Already eaten, adjustment needed:
 ```
-💡 Next meal: [forward-looking compensatory advice for the next upcoming meal]
+💡 Next meal: [forward-looking compensatory advice]
 ```
-- Give a concrete suggestion for the **next meal** to compensate — do NOT suggest modifying the current meal
-- Follow the Food Suggestion Format below: state the category first, then give examples from the user's food history
-- Frame as planning ahead, not fixing a mistake
-- Last meal of the day (dinner) with calories OVER target: keep it brief — "A bit over today, totally normal — aim for your usual pattern tomorrow."
+- Suggest what to adjust at the **next meal** — frame as planning ahead, never as fixing a mistake. Follow the Food Suggestion Format below.
+- Last meal of the day + over target: keep it brief — "A bit over today, totally normal — aim for your usual pattern tomorrow."
 
-**Case C: On track** (`needs_adjustment: false`, regardless of eaten status):
+**`"next_time"`** — On track:
 ```
 💡 Next time: [habit tip or next-meal pairing suggestion — specific food + amount, no calorie listing]
 ```
 
-**Case D: Last meal of the day + calories under target** (final meal checkpoint and daily total below calorie target):
+**`"case_d_snack"`** — Final meal, daily total below BMR:
+Recommend adding a snack — eating below BMR consistently is unhealthy. Gentle but clear tone. Use Food Suggestion Format.
 
-Use `--bmr` from log-meal to determine severity:
-- **Daily total < BMR:** Recommend adding a snack — eating below BMR consistently is unhealthy. Gentle but clear tone. Use Food Suggestion Format.
-- **Daily total ≥ BMR:** Mild deficit, safe. Note they CAN snack if hungry later, but no need to eat more if not.
+**`"case_d_ok"`** — Final meal, mild deficit (≥ BMR but below target):
+Note they CAN snack if hungry later, but no need to eat more if not.
 
 **✨ Nice work** (optional, between nutrition summary and suggestion):
 ```

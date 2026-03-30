@@ -1176,11 +1176,42 @@ def detect_meal(tz_offset: int, meals: int,
 # ---------------------------------------------------------------------------
 
 
+def _resolve_suggestion_type(evaluation: dict, eaten: bool,
+                             is_final_meal: bool, bmr: float = None) -> str:
+    """Determine the suggestion type based on evaluation results and meal timing.
+
+    Returns one of: "right_now", "next_meal", "next_time",
+                    "case_d_snack", "case_d_ok"
+    """
+    needs_adj = evaluation.get("needs_adjustment", False)
+    daily_total = evaluation.get("daily_total", 0)
+
+    # Case D: final meal + under calorie target
+    if is_final_meal:
+        checkpoint_cal = evaluation.get("checkpoint_target", {}).get("calories", 0)
+        if daily_total < checkpoint_cal:
+            if bmr and daily_total < bmr:
+                return "case_d_snack"
+            return "case_d_ok"
+
+    # Case A: before eating + adjustment needed
+    if needs_adj and not eaten:
+        return "right_now"
+
+    # Case B: already eaten + adjustment needed
+    if needs_adj and eaten:
+        return "next_meal"
+
+    # Case C: on track
+    return "next_time"
+
+
 def log_meal(data_dir: str, tz_offset: int, meals: int,
              weight: float, daily_cal: int, meal_json: dict,
              meal_type: str = None, timestamp: str = None,
              schedule: dict = None, mode: str = "balanced",
-             bmr: float = None, region: str = None) -> dict:
+             bmr: float = None, region: str = None,
+             eaten: bool = False) -> dict:
     """Log a meal with full pipeline: detect → load → check-missing → save → evaluate → produce.
 
     This is the primary command for food logging. It replaces the need to call
@@ -1199,6 +1230,7 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         mode: Diet mode for evaluate (default "balanced").
         bmr: BMR in kcal for Case D check. Optional.
         region: Region code (e.g. "CN") to enable produce-check. Optional.
+        eaten: Whether the user has already eaten this meal (default False).
 
     Returns: Combined result dict with meal_detection, existing_meals,
              missing_meals, save, evaluation, and produce sections.
@@ -1269,6 +1301,19 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         eval_result["bmr"] = bmr
         eval_result["daily_total"] = daily_total
         eval_result["below_bmr"] = daily_total < bmr
+    else:
+        daily_total = sum(m.get("calories", 0) for m in all_meals)
+        eval_result["daily_total"] = daily_total
+
+    # Determine if this is the final meal of the day
+    blocks = get_meal_blocks(meals)
+    is_final = find_block_index(current_meal, meals) == len(blocks) - 1
+
+    # Resolve suggestion type
+    eval_result["suggestion_type"] = _resolve_suggestion_type(
+        eval_result, eaten, is_final, bmr)
+    eval_result["is_final_meal"] = is_final
+
     result["evaluation"] = eval_result
 
     # 6. Produce check (China region only)
@@ -1549,6 +1594,7 @@ def main():
     lm.add_argument("--mode", type=str, default="balanced", help="Diet mode for evaluate")
     lm.add_argument("--bmr", type=float, default=None, help="BMR in kcal for Case D check")
     lm.add_argument("--region", type=str, default=None, help="Region code (e.g. CN) for produce-check")
+    lm.add_argument("--eaten", action="store_true", default=False, help="Whether the user has already eaten this meal")
 
     dm_cmd = sub.add_parser("delete-meal",
                              help="Delete a meal from today's log and optionally re-evaluate")
@@ -1676,6 +1722,7 @@ def main():
             meal_json=meal_json, meal_type=args.meal_type,
             timestamp=args.timestamp, schedule=sched,
             mode=args.mode, bmr=args.bmr, region=args.region,
+            eaten=args.eaten,
         )
     elif args.cmd == "delete-meal":
         result = delete_meal(
