@@ -111,7 +111,7 @@ Structure: **"I will do X" + "you do Y"**
    - Give more detailed calorie feedback after each meal log (running total vs target)
    - Proactively ask "what did you eat?" if no meal is logged by meal time + 1 hour
    - Keep week-1 frequency for 2 weeks instead of the normal 1 week before stepping down
-   - **Morning accountability:** in the first meal reminder of the day, check yesterday's `habits.daily_log`. If yesterday has `missed` or `no_response` for meal logging, mention it with playful strictness — e.g., "Yesterday you went off the radar — today let's get back on track, deal?" Never guilt-trip, but don't pretend it didn't happen either. If yesterday was `completed`, skip this.
+   - **Morning accountability:** notification-composer checks yesterday's `habits.daily_log` in the first meal reminder of the day. If yesterday was `missed`/`no_response`, the opening line calls it out with playful strictness. See notification-composer SKILL.md "Strict-mode accountability" for details.
 
 4. Close with a short, cheeky confirmation:
    - "Deal! Don't say I didn't warn you 😏"
