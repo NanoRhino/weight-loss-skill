@@ -350,6 +350,210 @@ No hard limit, but AI controls the pace:
 
 ---
 
+## Advice-to-Action Pipeline
+
+When the AI gives advice (from any skill — weight-loss-planner, meal-planner,
+exercise-tracking-planning, weekly-report, etc.), the habit-builder can
+decompose that advice into concrete, trackable actions. This pipeline turns
+"you should X" into a sequence of tiny behaviors with follow-up schedules.
+
+### When to activate the pipeline
+
+| Source | Example advice | Pipeline? |
+|--------|---------------|-----------|
+| Weekly Report suggestion | "Try adding protein to breakfast" | Yes — decompose into action |
+| Weight-loss planner rate explanation | "Adding exercise would speed things up" | Yes — if user shows interest |
+| Meal planner dietary shift | "Switching to more home-cooked meals" | Yes — break into steps |
+| User asks "how do I actually do this?" | After any advice | Yes — explicitly requested |
+| One-off factual answer | "Avocados are high in healthy fats" | No — informational only |
+
+**Trigger rule:** Activate the pipeline when advice implies a **behavior change
+the user needs to sustain over days/weeks.** Don't activate for one-time
+information or facts the user can act on immediately.
+
+### Step 1: Decompose — Advice → Action List
+
+Break the advice into the smallest independent actions. Each action must pass
+the **"one verb, one context"** test: it describes a single thing to do in a
+specific situation.
+
+**Decomposition method:**
+
+```
+Advice: "你应该多喝水，少喝奶茶"
+  ↓
+Dimension analysis:
+  - What to increase: water intake
+  - What to decrease: milk tea
+  - When: throughout the day
+  ↓
+Action list:
+  1. "起床后喝一杯水" (drink water after waking up)
+  2. "午餐配白水不配奶茶" (water with lunch instead of milk tea)
+  3. "下午想喝奶茶时，先喝一杯水等 10 分钟" (when craving milk tea, drink water first and wait 10 min)
+```
+
+**Rules:**
+- Maximum 5 actions per advice. If there are more, group related ones.
+- Each action must have a clear **trigger** (when/where) and **behavior**
+  (what to do). No vague actions like "drink more water."
+- Actions should be **independently completable** — failing one doesn't
+  block others.
+- Apply the Tiny Habits test: "Can this person do it on their worst day?"
+  If not, shrink it.
+
+### Step 2: Prioritize — Which Action First?
+
+Not all actions should start at once. Use the **Leverage × Ease** matrix
+to determine the sequence.
+
+**Scoring (internal — never show scores to user):**
+
+| Factor | Score 1 (low) | Score 3 (high) |
+|--------|--------------|----------------|
+| **Impact** | Nice-to-have, marginal effect | Directly addresses the core problem |
+| **Ease** | Requires new purchases, schedule changes, or willpower | Can be done with existing routine, zero friction |
+| **Chain value** | Standalone action | Enables or makes other actions easier |
+
+**Priority = Impact × Ease + Chain bonus (+1 if it unblocks other actions)**
+
+**Sequencing rules:**
+1. **Start with ONE action only.** The highest-priority action becomes the
+   first active habit. Never start multiple new actions simultaneously.
+2. **Gate the next action behind graduation.** The second action activates
+   only after the first graduates (≥80% completion over 14 days) or is
+   consciously swapped by the user.
+3. **Exception: independent, different-time actions.** If two actions occupy
+   completely different time slots (e.g., morning vs. evening) AND the user
+   has ≥1 graduated habit already, allow parallel introduction. Max 2
+   concurrent new actions.
+4. **Store the full queue.** All decomposed actions are saved to
+   `habits.action_queue` so the system remembers what comes next, even
+   across sessions.
+
+**Presenting to the user:**
+
+Don't dump the full action list. Present only the first action, casually:
+
+Good: `"先从一个小的开始——起床后喝杯水怎么样？"`
+Bad: `"我帮你分解成了5个行动项：1. 起床后喝水 2. 午餐配水..."`
+
+If the user asks "what else?" or "what's next?", reveal the next 1-2 actions
+in the queue. Never show the full list unless explicitly asked.
+
+### Step 3: Set Follow-up Schedule — Action → Cron Task
+
+Each active action gets a follow-up schedule woven into existing meal
+conversations (same mechanism as habit check-ins — see § "How Habits Get
+Into Conversations"). No separate cron jobs for individual actions.
+
+**Schedule by action phase:**
+
+| Phase | Duration | Check-in frequency | Method |
+|-------|----------|-------------------|--------|
+| **Anchor** (days 1-7) | 1 week | Every 2 days | Woven into the meal conversation closest to the action's trigger time |
+| **Build** (days 8-21) | 2 weeks | Every 3-4 days | Same — lighter touch |
+| **Solidify** (days 22-42) | 3 weeks | Once a week | Occasional mention, mostly observe |
+| **Autopilot** (day 43+) | Until graduation | Only if data shows regression | Minimal intervention |
+
+**Why these durations:** Research (Lally et al., 2010) shows habit formation
+averages 66 days, with a range of 18-254 days. The 42-day active tracking
+covers the median, with the Autopilot phase extending as needed. Simple
+behaviors (drinking water) may graduate in 3-4 weeks; complex ones (meal
+prep) may take 8+ weeks.
+
+**Integration with notification-composer:** This skill does NOT create its own
+cron jobs. Instead, it writes the active action and its check-in schedule to
+`habits.active`, which notification-composer reads when composing meal
+reminders. The habit mention is woven into the meal conversation naturally
+(see existing § "How Habits Get Into Conversations").
+
+### Step 4: Graduation & Queue Advancement
+
+An action graduates using the same criteria as a habit (§ "Graduation"):
+- Completion rate ≥ 80% over 14 days (required)
+- Plus at least one of: self-initiation > 30%, or user confirms it's automatic
+
+**On graduation:**
+1. Move the action from `habits.active` to `habits.graduated`
+2. Celebrate lightly (same tone as habit graduation)
+3. **Wait 3-5 days**, then introduce the next action from `habits.action_queue`
+4. Present the next action casually: `"上次喝水的习惯稳了——接下来试试午餐配白水？"`
+
+**Queue management:**
+
+| Event | Action on queue |
+|-------|----------------|
+| Action graduates | Remove from queue, advance next |
+| Action fails (3 consecutive misses) | Offer: keep/shrink/swap/skip to next in queue |
+| User asks to skip | Move current to end of queue, advance next |
+| User asks to stop all | Pause queue entirely, respect the decision |
+| New advice generates new actions | Append to queue (don't jump the line unless higher priority) |
+| User explicitly requests a specific action | Move it to front of queue |
+
+### Step 5: Ending a Follow-up Schedule
+
+A follow-up schedule ends (cron task effectively stops) in these situations:
+
+| Condition | What happens |
+|-----------|-------------|
+| **Graduation** | Action moves to `graduated`. Check-in stops. Monthly spot-check via Weekly Review. |
+| **User opt-out** | User says "don't remind me about this." Immediately stop. Move to `paused`. |
+| **3× no-response** | Stop mentioning. Flag for Weekly Review discussion. Move to `stalled`. |
+| **Replaced** | User swaps for a different action. Old one moves to `paused`. |
+| **Advice invalidated** | The underlying advice no longer applies (e.g., user changed diet mode). Remove from queue. |
+| **All actions in advice graduated** | The entire advice is "done." Log to `habits.advice_history` for reference. |
+
+**No zombie tasks:** Every active action must have a path to termination.
+The system never keeps nudging indefinitely. Maximum active tracking duration
+for any single action is **90 days** — if not graduated by then, auto-pause
+and surface in Weekly Review for reassessment.
+
+### Action Queue Data Structure
+
+Store in `habits.action_queue`:
+
+```json
+{
+  "source_advice": "多喝水少喝奶茶",
+  "source_skill": "weekly-report",
+  "created_at": "2026-03-30",
+  "actions": [
+    {
+      "action_id": "water-after-waking",
+      "description": "起床后喝一杯水",
+      "trigger": "起床后",
+      "behavior": "喝一杯温水",
+      "priority_score": 7,
+      "status": "graduated",
+      "activated_at": "2026-03-30",
+      "graduated_at": "2026-05-01"
+    },
+    {
+      "action_id": "water-with-lunch",
+      "description": "午餐配白水",
+      "trigger": "午餐时",
+      "behavior": "点白水不点奶茶",
+      "priority_score": 6,
+      "status": "active",
+      "activated_at": "2026-05-04"
+    },
+    {
+      "action_id": "milk-tea-delay",
+      "description": "奶茶冲动时先喝水等10分钟",
+      "trigger": "想喝奶茶时",
+      "behavior": "先喝一杯水，等10分钟再决定",
+      "priority_score": 5,
+      "status": "queued"
+    }
+  ]
+}
+```
+
+Valid `status` values: `queued` → `active` → `graduated` | `paused` | `stalled` | `removed`
+
+---
+
 ## User Queries
 
 Users may ask about their habits at any time. Keep answers brief and
@@ -390,6 +594,8 @@ conversational — not a dashboard readout.
 | `habits.graduated` | Habit graduates |
 | `habits.daily_log.{date}` | Each completion/miss/no_response record |
 | `habits.lifestyle_gaps` | Identified gaps from analysis (for Weekly Review) |
+| `habits.action_queue` | Decomposed actions from advice, with priority and status |
+| `habits.advice_history` | Completed advice records (all actions graduated or removed) |
 
 ### Writes (during check-ins)
 

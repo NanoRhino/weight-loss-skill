@@ -303,6 +303,31 @@ build a habit or get exercise programming.
 
 ---
 
+### Pattern 11: Advice-to-Action Handoff (Any Skill → habit-builder)
+
+**Trigger:** Any skill gives advice that implies a sustained behavior change,
+and the user shows interest or asks "how do I actually do this?"
+
+**Resolution: Advising skill leads, habit-builder queues actions in background.**
+
+1. The advising skill (e.g., `weekly-report`, `weight-loss-planner`,
+   `meal-planner`) delivers its advice normally in the conversation.
+2. If the advice contains actionable behavior changes (not one-time info),
+   `habit-builder` silently decomposes the advice into an action queue
+   (see habit-builder § "Advice-to-Action Pipeline").
+3. `habit-builder` does NOT interrupt the advising skill's conversation.
+   It writes the action queue to `habits.action_queue` in the background.
+4. The first action is presented to the user only after the advising skill's
+   conversation naturally concludes — or when the user explicitly asks
+   "how do I start?" / "具体怎么做?"
+5. If the user is already tracking an active habit, new actions are appended
+   to the queue (not started immediately). The active habit retains priority.
+6. **Single-ask rule applies:** If the user ignores the first action
+   suggestion, don't repeat it. It stays in the queue for the next
+   natural opportunity (e.g., Weekly Review).
+
+---
+
 ## Response Merge Rules
 
 When two skills co-execute in a single response, follow these formatting
