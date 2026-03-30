@@ -12,6 +12,8 @@ description: >
 
 > ⚠️ **SILENT OPERATION:** Never narrate internal actions or tool calls.
 
+> 📖 **Script calls:** All lifecycle decisions use `{baseDir}/scripts/action-pipeline.py`. See `references/script-reference.md` for full command syntax.
+
 ## Philosophy
 
 - **Small > ambitious.** Start tiny. Scale later.
@@ -24,19 +26,7 @@ description: >
 
 Habits appear inside meal conversations (Notification Composer). No separate reminders.
 
-Before each meal reminder, check whether to mention each active habit:
-
-```bash
-python3 {baseDir}/scripts/action-pipeline.py should-mention \
-  --habit '<habit JSON from habits.active>' \
-  --meal <breakfast|lunch|dinner> \
-  --days <days_since_activation> \
-  --days-since-last-mention <N> \
-  --reminders-since-last-mention <N> \
-  [--today-matches]  # for weekly habits: pass when today is the relevant day
-```
-
-Returns `{"mention": true/false, ...}`. The script enforces: meal matching, cadence-based frequency, min 2-reminder gap, weekly day-match, conditional reactivity.
+Before each meal reminder, run `should-mention` for each active habit. The script enforces: meal matching, cadence-based frequency, min 2-reminder gap, weekly day-match, conditional reactivity.
 
 See `references/habit-details.md` for the full type → timing table.
 
@@ -56,10 +46,10 @@ After onboarding | habit graduated | Weekly Review insight | user asks | failure
 ### Design method
 
 1. **Identify gap** — read `USER.md`, `health-profile.md`, `health-preferences.md`, recent `logs.*`. See `references/habit-details.md` for dimension checklist.
-2. **Pick highest leverage** — "Which one change makes the most other things easier?" (e.g., "go to bed by 11" > "stop snacking" — eliminates the window)
+2. **Pick highest leverage** — "Which one change makes the most other things easier?"
 3. **Tiny-fy** — shrink until passable on the worst day. See `references/habit-details.md` for examples.
-4. **Bind to trigger** — `"After I [EXISTING], I will [NEW TINY]."`  Specific > vague ("after dinner" > "in the evening").
-5. **Present** — 1-2 sentences, conversational. Never repeat formally or explain methodology.
+4. **Bind to trigger** — `"After I [EXISTING], I will [NEW TINY]."` Specific > vague.
+5. **Present** — 1-2 sentences, conversational. Never explain methodology.
 
 Accept → react with energy. Decline → one alternative (hydration/sleep as fallback). Decline again → drop it.
 **Single-ask rule applies** (`SKILL-ROUTING.md`).
@@ -70,7 +60,7 @@ Accept → react with energy. Decline → one alternative (hydration/sleep as fa
 
 ### Active tracking
 
-Write to `habits.active` via the activate script (§ Pipeline Step 3). Standalone habits: write directly with `habit_id`, `description`, `tiny_version`, `trigger`, `type`, `bound_to_meal`, `created_at`, `phase`, `mention_log`, `completion_log`.
+Write to `habits.active` via `activate`. Standalone habits: write directly with `habit_id`, `description`, `tiny_version`, `trigger`, `type`, `bound_to_meal`, `created_at`, `phase`, `mention_log`, `completion_log`.
 
 ### Completion signals
 
@@ -89,35 +79,20 @@ Write to `habits.active` via the activate script (§ Pipeline Step 3). Standalon
 
 ### Graduation
 
-```bash
-python3 {baseDir}/scripts/action-pipeline.py check-graduation \
-  --cadence <cadence> --log '<completion_log JSON>'
-```
-
-**Signal 1 (required):** ≥ 80% completion (daily=14 days, weekly=6 occurrences, conditional=8)
-**+ at least one of:**
+Run `check-graduation`. Graduation = Signal 1 + at least one of Signal 2 or 3:
+- Signal 1 (required): ≥ 80% completion (daily=14d, weekly=6 occurrences, conditional=8)
 - Signal 2: self-initiation > 30%
-- Signal 3: user confirms automatic (`"还需要我提醒吗？"`)
+- Signal 3: user confirms automatic
 
 On graduation: celebrate briefly → move to `habits.graduated` → advance queue → monthly spot-check via Weekly Review.
 
 ### Failure
 
-```bash
-python3 {baseDir}/scripts/action-pipeline.py check-failure \
-  --log '<completion_log JSON>'
-```
-
-Returns `{"failed": true, "options": ["keep_going","make_easier","try_different"]}` when 3 consecutive misses/no-responses. Surface gently at next natural moment. See `references/habit-details.md` for response examples and blacklisted phrases.
+Run `check-failure`. When 3 consecutive misses/no-responses detected, surface gently. Three paths: keep going (reset) / make easier (shrink) / try different. See `references/habit-details.md` for response examples and blacklisted phrases.
 
 ### Concurrency
 
-```bash
-python3 {baseDir}/scripts/action-pipeline.py check-concurrency \
-  --active-habits '<habits.active JSON with completion_log>'
-```
-
-Returns `can_add: true/false`. Enforces max 3 active and flags habits with < 70% recent completion. Upgrade after graduation only if user wants.
+Run `check-concurrency` before adding a new habit. Enforces max 3 active and flags struggling habits. Upgrade after graduation only if user wants.
 
 ---
 
@@ -132,34 +107,21 @@ Activate when advice implies sustained behavior change (not one-off facts).
 
 ### Step 2: Prioritize
 
-```bash
-python3 {baseDir}/scripts/action-pipeline.py prioritize \
-  --actions '[{"action_id":"x", "impact":3, "ease":3, "chain":true, ...}]'
-```
-
-Sorted by `Impact × Ease + chain bonus`. Present top one casually, ask if user wants 1-2 more (max 3 concurrent, different time slots).
+Run `prioritize`. Present top one casually, ask if user wants 1-2 more (max 3 concurrent, different time slots).
 
 ### Step 3: Activate
 
-```bash
-python3 {baseDir}/scripts/action-pipeline.py activate \
-  --action '<action JSON with trigger_cadence>' \
-  --source-advice "..."
-```
-
-Maps `trigger_cadence` → `type` for notification-composer. Update `habits.action_queue` status to `active`.
+Run `activate`. Maps `trigger_cadence` → `type` for notification-composer. Update `habits.action_queue` status to `active`.
 
 ### Step 4: Follow-up
 
-Schedule via `action-pipeline.py schedule`. Habits surface in meal conversations.
+Run `schedule` or `should-mention`. Habits surface in meal conversations.
 - **Weekly:** relevant day only, first meal conversation.
 - **Conditional:** reactive only — mention when user's message matches the condition.
 
 ### Step 5: Graduation
 
-Same as § Lifecycle Graduation. On graduation, introduce next queued action immediately. Exception: emotionally taxing → wait for Weekly Review.
-
-Max tracking: 90 days. Auto-pause if not graduated.
+Same as § Lifecycle Graduation. On graduation, introduce next queued action immediately. Exception: emotionally taxing → wait for Weekly Review. Max tracking: 90 days.
 
 ### Step 6: Queue
 
@@ -171,29 +133,7 @@ Max tracking: 90 days. Auto-pause if not graduated.
 | User stops all | Pause entire queue |
 | New advice | Append (don't jump line) |
 
-### Data structure
-
-```json
-{
-  "source_advice": "多喝水少喝奶茶",
-  "source_skill": "weekly-report",
-  "created_at": "2026-03-30",
-  "actions": [
-    {
-      "action_id": "water-after-waking",
-      "description": "起床后喝一杯水",
-      "trigger": "起床后",
-      "behavior": "喝一杯温水",
-      "trigger_cadence": "daily_fixed",
-      "priority_score": 10,
-      "status": "active",
-      "activated_at": "2026-03-30"
-    }
-  ]
-}
-```
-
-Valid `status`: `queued` → `active` → `graduated` | `paused` | `stalled` | `removed`
+Data structure: see `references/script-reference.md`.
 
 ---
 
