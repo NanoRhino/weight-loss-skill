@@ -456,34 +456,52 @@ Each active action gets a follow-up schedule woven into existing meal
 conversations (same mechanism as habit check-ins — see § "How Habits Get
 Into Conversations"). No separate cron jobs for individual actions.
 
-**Schedule varies by behavior complexity.** Not all actions need the same
-ramp-up. Classify each action when it's created:
+**Schedule follows trigger frequency — how often the behavior's scene naturally
+occurs determines how often to check in.** Classify each action by its trigger
+cadence when it's created:
 
-| Complexity | Examples | Graduation window |
-|-----------|---------|-------------------|
-| **Simple** (single cue, zero prep) | Drink water after waking, eat protein first at lunch | 14-28 days |
-| **Moderate** (requires minor planning or resisting a cue) | Swap milk tea for water, walk 5 min after dinner, stop eating by 9 PM | 28-49 days |
-| **Complex** (multi-step, requires setup or scheduling) | Weekly meal prep, 30-min exercise routine, consistent sleep schedule | 49-84 days |
+| Trigger cadence | Examples | Check-in rule |
+|----------------|---------|---------------|
+| **Every meal** | Eat protein first, drink water with lunch | Mention at the bound meal — but not every day (see phase table below) |
+| **Daily fixed** | Walk after dinner, drink water after waking, stop eating by 9 PM | Mention at the nearest meal conversation to the trigger time |
+| **Daily random** | Swap milk tea when craving hits, take stairs instead of elevator | Drop into a random meal conversation — the trigger is unpredictable, so check-in timing is flexible |
+| **Weekly** | Sunday meal prep, weekend grocery shopping, weekly exercise plan | Mention once on the relevant day; never mid-week |
+| **Conditional** | "When dining out, pick the lighter option" | Mention only when the condition is detected (e.g., user mentions eating out). Never on days the condition doesn't arise |
 
-**Check-in frequency by complexity × phase:**
+**Check-in frequency by trigger cadence × phase:**
 
-| Phase | Simple | Moderate | Complex |
-|-------|--------|----------|---------|
-| **Anchor** (week 1) | Every 3 days | Every 2 days | Daily mention |
-| **Build** (week 2-3) | Every 4-5 days | Every 3 days | Every 2 days |
-| **Solidify** (week 4+) | Once a week | Every 4-5 days | Every 3-4 days |
-| **Autopilot** (graduation eligible) | Only if regression | Once a week | Every 5-7 days |
+| Phase | Every meal / Daily fixed | Daily random | Weekly | Conditional |
+|-------|-------------------------|-------------|--------|-------------|
+| **Anchor** (week 1) | Every 2 days | Every 2 days | Every occurrence | Every occurrence |
+| **Build** (week 2-3) | Every 3 days | Every 3-4 days | Every occurrence | Every occurrence |
+| **Solidify** (week 4+) | Every 5 days | Once a week | Every other occurrence | 50% of occurrences |
+| **Autopilot** (graduation eligible) | Once a week | Only if regression | Only if regression | Only if regression |
 
-**Why the difference:** Simple actions (drink water) need less reinforcement
-because the behavior is short and friction-free — over-reminding feels
-patronizing. Complex actions (meal prep) have more failure points and benefit
-from sustained check-ins. Research (Lally et al., 2010) shows habit formation
-averages 66 days but ranges from 18 to 254 days; complexity is the primary
-driver of that range.
+**Key principles:**
+- **Match the rhythm of the behavior, not an arbitrary calendar.** A weekly
+  meal-prep habit should be checked weekly, not "every 3 days."
+- **Conditional actions only surface when the condition is true.** Reminding
+  someone to "choose lighter options when dining out" on a day they eat at
+  home is noise.
+- **Every-meal and daily-fixed actions taper faster** because the user gets
+  many natural repetitions per week. Weekly and conditional actions taper
+  slower because each occurrence is precious practice.
+- Research (Lally et al., 2010) shows habit formation averages 66 days but
+  ranges 18-254 days; trigger frequency is a key driver — daily behaviors
+  automate faster than weekly ones.
 
-**Store complexity in the action data:** Add `"complexity": "simple" | "moderate" | "complex"`
-to each action in `habits.action_queue`. AI assigns complexity at creation time
-based on the number of steps, prep required, and willpower demand.
+**Graduation windows by cadence:**
+
+| Trigger cadence | Typical graduation | Why |
+|----------------|-------------------|-----|
+| Every meal / Daily fixed | 14-28 days | High repetition = fast automaticity |
+| Daily random | 21-42 days | Fewer consistent reps, more variable |
+| Weekly | 6-10 occurrences (~42-70 days) | Need enough repetitions to judge; count occurrences, not calendar days |
+| Conditional | 8-12 occurrences | Same — count actual trigger events, not elapsed time |
+
+**Store cadence in the action data:** Add `"trigger_cadence": "every_meal" | "daily_fixed" | "daily_random" | "weekly" | "conditional"`
+to each action in `habits.action_queue`. AI assigns cadence at creation time
+based on when the trigger naturally occurs in the user's routine.
 
 **Integration with notification-composer:** This skill does NOT create its own
 cron jobs. Instead, it writes the active action and its check-in schedule to
@@ -506,8 +524,9 @@ An action graduates using the same criteria as a habit (§ "Graduation"):
    in a good place to take on the next step.
 4. Present casually: `"喝水的事稳了——午餐配白水要不要也安排上？"`
 5. **Exception:** If the user graduated an action that was emotionally taxing
-   or required high effort (complex actions), let them breathe — introduce
-   the next action at the next Weekly Review instead of immediately.
+   (e.g., breaking a craving pattern, resisting social eating pressure),
+   let them breathe — introduce the next action at the next Weekly Review
+   instead of immediately.
 
 **Queue management:**
 
@@ -553,7 +572,7 @@ Store in `habits.action_queue`:
       "description": "起床后喝一杯水",
       "trigger": "起床后",
       "behavior": "喝一杯温水",
-      "complexity": "simple",
+      "trigger_cadence": "daily_fixed",
       "priority_score": 7,
       "status": "graduated",
       "activated_at": "2026-03-30",
@@ -564,7 +583,7 @@ Store in `habits.action_queue`:
       "description": "午餐配白水",
       "trigger": "午餐时",
       "behavior": "点白水不点奶茶",
-      "complexity": "moderate",
+      "trigger_cadence": "every_meal",
       "priority_score": 6,
       "status": "active",
       "activated_at": "2026-05-04"
@@ -574,7 +593,7 @@ Store in `habits.action_queue`:
       "description": "奶茶冲动时先喝水等10分钟",
       "trigger": "想喝奶茶时",
       "behavior": "先喝一杯水，等10分钟再决定",
-      "complexity": "moderate",
+      "trigger_cadence": "every_meal",
       "priority_score": 5,
       "status": "queued"
     }
