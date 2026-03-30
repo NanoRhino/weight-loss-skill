@@ -59,6 +59,8 @@ exists, decide whether this reminder slot should include a habit mention
 | End-of-day | Attached to last meal conversation of the day | After dinner reply → `"Try to wrap up by 11 tonight?"` |
 | Next-morning recovery | In the next day's first conversation | `"Morning! Did you make it to bed by 11 last night?"` |
 | All-day (water, steps) | Dropped into a random meal conversation | `"How's the water going today?"` |
+| Weekly | Mentioned on the relevant day, in the most contextual meal conversation (e.g., Sunday breakfast for "周日备餐") | `"Today's meal-prep day — got a plan?"` |
+| Conditional | Mentioned only when the condition is detected in conversation (e.g., user says "今天在外面吃") | User mentions dining out → `"Outside today — go for the lighter option?"` |
 
 ### How often to mention
 
@@ -450,6 +452,48 @@ If the user picks multiple, briefly confirm the set:
 Never show the full queue unprompted. If they ask "what else is in the queue?",
 reveal the remaining actions.
 
+### Step 2.5: Activate — Queue → `habits.active`
+
+When the user accepts an action (or multiple), **write each accepted action
+to `habits.active`** so notification-composer can pick it up. The queue stores
+the full plan; `habits.active` stores what's currently being tracked.
+
+**Field mapping — action_queue → habits.active:**
+
+Each action in the queue must be translated to the `habits.active` format
+that notification-composer already reads:
+
+```json
+{
+  "habit_id": "{action_id}",
+  "description": "{description}",
+  "tiny_version": "{behavior}",
+  "trigger": "{trigger}",
+  "type": "{mapped from trigger_cadence — see table below}",
+  "bound_to_meal": "{inferred from trigger — see table below}",
+  "trigger_cadence": "{from action_queue}",
+  "created_at": "{today}",
+  "phase": "week-1",
+  "source_advice": "{source_advice from parent queue entry}",
+  "mention_log": [],
+  "completion_log": []
+}
+```
+
+**Cadence → type mapping** (bridges the new cadence system with the existing
+habit type system that notification-composer uses):
+
+| trigger_cadence | → type | → bound_to_meal | Logic |
+|----------------|--------|----------------|-------|
+| `every_meal` | `meal-bound` | The specific meal in `trigger` (e.g., "午餐" → lunch) | Mention built into that meal's reminder |
+| `daily_fixed` | `post-meal` if trigger is after a meal; `end-of-day` if evening; `meal-bound` if before/during meal | Inferred from trigger time vs. meal schedule | Match trigger time to nearest meal |
+| `daily_random` | `all-day` | `null` | Dropped into a random meal conversation |
+| `weekly` | `weekly` (new type) | `null` | Mentioned on the relevant day only |
+| `conditional` | `conditional` (new type) | `null` | Mentioned only when condition detected |
+
+**Also update `habits.action_queue` status** for the activated action(s):
+change `status` from `queued` to `active`, set `activated_at` to today.
+
 ### Step 3: Set Follow-up Schedule — Action → Cron Task
 
 Each active action gets a follow-up schedule woven into existing meal
@@ -509,11 +553,46 @@ cron jobs. Instead, it writes the active action and its check-in schedule to
 reminders. The habit mention is woven into the meal conversation naturally
 (see existing § "How Habits Get Into Conversations").
 
+**Delivery rules for weekly and conditional types:**
+
+- **Weekly:** notification-composer checks `habits.active` for `type: "weekly"`
+  entries. On the relevant day (stored in the action's `trigger` field, e.g.,
+  "周日" → Sunday), mention it in the first meal conversation of that day.
+  On other days, skip entirely — never mention mid-week.
+- **Conditional:** notification-composer does NOT proactively mention these.
+  Instead, when the user's reply to any meal conversation matches the
+  condition (e.g., mentions dining out, ordering delivery, skipping a meal),
+  the conditional action is triggered in the response. This means conditional
+  actions are **reactive, not proactive** — they fire in reply, not in the
+  reminder itself.
+
+**No-response rule adapted by cadence:**
+
+The "3× no-response → stall" rule applies to **3 consecutive mentions**,
+not 3 calendar days. What this means in practice:
+
+| Cadence | 3× no-response = roughly... | Notes |
+|---------|----------------------------|-------|
+| Daily fixed (Anchor phase, every 2 days) | ~6 days | Fast signal — expected |
+| Weekly | ~3 weeks | Slower signal, but 3 missed Sundays is a clear pattern |
+| Conditional | 3 trigger events with no engagement | Could span weeks; that's fine — only count actual mentions |
+
 ### Step 4: Graduation & Queue Advancement
 
-An action graduates using the same criteria as a habit (§ "Graduation"):
-- Completion rate ≥ 80% over 14 days (required)
-- Plus at least one of: self-initiation > 30%, or user confirms it's automatic
+An action graduates using adapted criteria based on trigger cadence:
+
+**Signal 1 (required): Completion rate ≥ 80% over a sufficient sample**
+
+| Trigger cadence | Sample window | Why |
+|----------------|---------------|-----|
+| Every meal / Daily fixed / Daily random | 14 calendar days | Enough daily reps to judge consistency |
+| Weekly | ≥ 6 occurrences | 14 days = only 2 reps, not enough. Need 6+ weekly reps (~6 weeks) |
+| Conditional | ≥ 8 occurrences | Trigger events are unpredictable; need enough samples. Track actual trigger count, not calendar days |
+
+**Signal 2 (soft, unchanged):** Self-initiation > 30% of completions
+**Signal 3 (soft, unchanged):** User confirms it's automatic
+
+Graduation = Signal 1 + at least one of Signal 2 or 3.
 
 **On graduation:**
 1. Move the action from `habits.active` to `habits.graduated`
@@ -532,7 +611,7 @@ An action graduates using the same criteria as a habit (§ "Graduation"):
 
 | Event | Action on queue |
 |-------|----------------|
-| Action graduates | Remove from queue, advance next |
+| Action graduates | Remove from queue, advance next. If multiple actions graduate at once, fill all freed slots from queue (respect the 3-concurrent cap) |
 | Action fails (3 consecutive misses) | Offer: keep/shrink/swap/skip to next in queue |
 | User asks to skip | Move current to end of queue, advance next |
 | User asks to stop all | Pause queue entirely, respect the decision |
