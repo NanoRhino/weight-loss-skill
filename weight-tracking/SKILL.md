@@ -14,9 +14,9 @@ metadata:
 
 ## Performance
 
-**On first weight message in a session**, parallel-read in ONE tool call:
-- `{workspaceDir}/timezone.json` (for tz_offset)
-- `{workspaceDir}/health-profile.md` (for Unit Preference)
+**Use TOOLS.md Quick Reference first.** If `tz_offset`, `unit_preference`, and `daily_cal_target` are already in the auto-injected TOOLS.md context, use those values directly — do NOT read `timezone.json` or `health-profile.md`.
+
+Only fall back to reading those files if Quick Reference is missing or outdated.
 
 Do NOT read this SKILL.md again if it's already in context from a prior turn.
 
