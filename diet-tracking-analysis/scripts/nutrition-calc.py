@@ -1282,7 +1282,11 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
             })
 
     # 3. Ensure meal_json has correct name/meal_type
-    meal_data = dict(meal_json)
+    # meal_json may be a list of food items or a single dict
+    if isinstance(meal_json, list):
+        meal_data = {"items": meal_json}
+    else:
+        meal_data = dict(meal_json)
     meal_data["name"] = current_meal
     if "meal_type" not in meal_data:
         meal_data["meal_type"] = meal_type or current_meal
