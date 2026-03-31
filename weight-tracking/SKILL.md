@@ -127,29 +127,38 @@ The server runs in UTC. To record the correct local datetime:
 
 ### User Reports Weight
 
+**Phase 1 — Log**
+
 1. Read `health-profile.md > Body > Unit Preference` for display unit
 2. Call `save` with the reported value, unit, and timezone offset
-3. Check the response `action` field:
-   - `"created"` → confirm: "Logged ✓"
-   - `"updated"` → confirm: "Updated ✓"
-4. Display the saved value in the user's preferred unit
-5. **Streak check** — After confirming the log, silently run `weight-gain-strategy`'s deviation-check to count consecutive weight increases:
-   ```bash
-   python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
-     --data-dir {workspaceDir}/data \
-     --plan-file {workspaceDir}/PLAN.md \
-     --health-profile {workspaceDir}/health-profile.md \
-     --user-file {workspaceDir}/USER.md \
-     --plan-start-date {plan_start_date} \
-     --tz-offset {tz_offset}
-   ```
-   Read `开始日期` / `Start date` from `PLAN.md` and pass it as `--plan-start-date`.
-   Handle the result based on `severity` (driven by consecutive increase streak):
-   - `triggered: false` → do nothing, just the log confirmation.
-   - `severity: "comfort"` (streak 1) → append a warm one-liner. See `weight-gain-strategy` SKILL.md `comfort` section for templates.
-   - `severity: "cause-check"` (streak 2–3) → start the multi-turn guided discovery flow (Steps A→B→C+D). See `weight-gain-strategy` SKILL.md `cause-check` section for full flow and rules.
-   - `severity: "significant"` (streak 4+) → run full analysis and present causes (Interactive Flow Step 1). See `weight-gain-strategy` SKILL.md Interactive Flow section.
-   - **Skip this step** if `PLAN.md` does not exist, or if `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`.
+3. Confirm: `"created"` → "Logged ✓" / `"updated"` → "Updated ✓", display in preferred unit
+
+**Phase 2 — Deviation check (REQUIRED after every save)**
+
+> ⚠️ **ALWAYS run this immediately after Phase 1.** Do NOT respond to the user until this phase completes. Skipping this step means weight gain goes undetected.
+
+Skip only if: `PLAN.md` does not exist, or `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`.
+
+```bash
+python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
+  --data-dir {workspaceDir}/data \
+  --plan-file {workspaceDir}/PLAN.md \
+  --health-profile {workspaceDir}/health-profile.md \
+  --user-file {workspaceDir}/USER.md \
+  --plan-start-date {plan_start_date} \
+  --tz-offset {tz_offset}
+```
+
+Read `开始日期` / `Start date` from `PLAN.md` → pass as `--plan-start-date`.
+
+**Route on `severity`:**
+
+| `severity` | Streak | Action |
+|------------|--------|--------|
+| `none` | 0 | No addition — just the Phase 1 confirmation. |
+| `comfort` | 1 | Append a warm one-liner to confirmation. See `weight-gain-strategy/references/diagnosis-templates.md`. |
+| `cause-check` | 2–3 | Start multi-turn guided discovery (Steps A→D). See `weight-gain-strategy/references/cause-check-flow.md`. |
+| `significant` | 4+ | Run full analysis + strategy options. See `weight-gain-strategy/references/interactive-flow.md`. |
 
 ### User Asks for Trend / History
 
