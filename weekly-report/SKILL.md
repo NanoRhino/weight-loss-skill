@@ -150,6 +150,32 @@ and `.calorie-bar` in the HTML template.
 
 ---
 
+### Section 2b: Weekly Low-Calorie Safety Check
+
+Run **after** Section 2 calorie analysis. Checks if the user's weekly average intake fell below their calorie floor (BMR).
+
+```bash
+python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
+  --data-dir {workspaceDir}/data/meals --bmr <kcal> [--date <end-of-week>]
+```
+
+Returns: `below_floor`, `weekly_avg_cal`, `calorie_floor`, `days_below_floor`, `days_below_count`.
+
+BMR source: `PLAN.md` or calculate via Mifflin-St Jeor (see `weight-loss-planner/references/formulas.md`).
+
+**When `below_floor` is true:**
+Append a gentle safety note in the Calorie Analysis section:
+```
+⚠️ 这周平均每日摄入（~X kcal）低于基础代谢（~Y kcal）。
+持续低于这个水平可能影响代谢和营养摄入。
+其中 [day1, day2, ...] 偏低比较明显，下周可以在这几天多加一餐或增加份量。
+```
+Tone: informational, never guilt or alarm. Offer concrete suggestions (add a snack, increase portion).
+
+**When `below_floor` is false:** No mention — the check passes silently.
+
+---
+
 ### Section 3: Weight Progress
 
 Show weight readings and net change. See `.weight-table` and `.weight-change`
