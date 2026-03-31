@@ -11,6 +11,28 @@ metadata:
 
 > ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
 
+## ⚡ Performance: Tool Call Optimization
+
+**This SKILL.md is self-contained.** All reference content (response format, cooking oil rules, missing meal rules, produce rules, UI formatting) is inlined below. **Do NOT read any reference files at runtime:**
+- ❌ `response-schemas.md` — format + examples are in §Response Format below
+- ❌ `references/cooking-oil-rules.md` — rules are in §Cooking Oil Estimation below
+- ❌ `missing-meal-rules.md` — rules + templates are in §Missing Meal Handling below
+- ❌ `references/produce-rules.md` — rules are in §Produce Tracking below
+- ❌ `ui-spec.md` — formatting rules are in §Chat Formatting below (end of file)
+
+### Meal Logging — 3 tool turns max
+
+**Turn 1 — Read user files (all in parallel):**
+- `health-profile.md`, `health-preferences.md`, `timezone.json` (or `locale.json`)
+- Do NOT read any other files. All reference content is already in this SKILL.md.
+
+**Turn 2 — Estimate nutrition + call script:**
+- Using profile data from Turn 1, estimate nutrition, then call `log-meal` (or equivalent).
+
+**Turn 3 — Generate final response:**
+- Format reply using the inlined §Response Format. No more tool calls needed.
+
+---
 
 ## Role
 
@@ -327,9 +349,22 @@ When `check-missing` returns missing meals:
 1. **Assume normal intake** for each missing meal — use that meal's standard ratio of daily targets (e.g. in 3-meal 30:40:30 mode, missing breakfast = 30%, missing lunch = 40%)
 2. **Do NOT stop to ask** — proceed to log and evaluate the current meal immediately, passing assumed meals via `--assumed` to `evaluate`
 3. **Give the full current-meal response** as usual (meal details + nutrition summary + suggestion)
-4. **Append a note** after the suggestion: inform the user that missed meals were assumed normal, and if they share what they actually ate, the advice will be more accurate (see `missing-meal-rules.md` for prompt templates)
+4. **Append a note** after the suggestion — one short PS, matching the user's language:
 
-If the user later provides details about the missed meal → record it, re-run `evaluate` without `--assumed` for that meal, and update suggestions accordingly.
+**Chinese:**
+- "PS: 早餐还没打卡，我先按正常吃了帮你算的。下次记得吃之前告诉我，建议会更准确哦~"
+- "PS: 午餐还没打卡，暂时按正常饮食算了。下次吃之前先说一声，建议可以更精准~"
+
+**English:**
+- "PS: Breakfast wasn't logged — I assumed a normal meal for now. Next time, let me know what you're having before you eat so I can give better suggestions!"
+
+If the user later provides details about the missed meal:
+
+| User response | Action |
+|---|---|
+| Describes food | Record normally, re-run `evaluate` without `--assumed`, update suggestions |
+| "Didn't eat" / "Skipped" | Mark as skipped (zero intake), re-run `evaluate`, update suggestions |
+| "Ate but can't recall" | Keep assumed value as-is |
 
 **Backfilled meals** (meals reported after the fact): these are always "already eaten" — apply the meal timing detection outcome accordingly (no `right_now`, use `next_meal` or `next_time` instead — see Response Format).
 
@@ -651,10 +686,65 @@ P1 (emotional support) when those signals are detected.
 ---
 
 
-## Reference Files
+## Reference Files (maintenance copies — do NOT read at runtime)
 
-Read these for detailed specs when needed:
+All reference content is inlined in this SKILL.md. These files exist only for maintenance/review:
+- `response-schemas.md` → see §Response Format above
+- `missing-meal-rules.md` → see §Missing Meal Handling in Step 4
+- `ui-spec.md` → see §Chat Formatting above
+- `references/cooking-oil-rules.md` → see §Cooking Oil Estimation above
+- `references/produce-rules.md` → see §Produce Tracking above
+- `references/default-portions.md` — Standard portions (the only reference you may read if needed)
 
-- `response-schemas.md` — Response format examples for food logs and daily summaries
-- `missing-meal-rules.md` — Missing meal detection rules, prompt templates, and user response handling
-- `ui-spec.md` — Message formatting guidelines for chat platforms
+---
+
+## Chat Formatting
+
+- Plain text with emoji section markers — no Markdown tables in replies (most chat apps don't render them)
+- Emoji separators: 📝 food log, ⚡ right now, 💡 next time, ✨ nice work
+- Round calories to whole numbers, macros to one decimal
+- Prefix estimated portions with `~`
+- Tone: friendly, concise, encouraging — no lecturing
+- Reply in user's language; do not mix languages (no "蛋白质on track")
+- **Never add "晚安"/"goodnight"/🌙/💤** to meal log responses — logging dinner ≠ end of conversation
+
+---
+
+## Response Examples
+
+**On track:**
+```
+📝 午餐已记录！
+
+🍽 本餐合计: 460 kcal | 蛋白质 38g | 碳水 42g | 脂肪 14g
+· 鸡胸肉沙拉 ~一大盘 — 280 kcal
+· 全麦面包 2片 — 180 kcal
+
+📊 今日已记录: 839 kcal ✅ | 蛋白质 62g ✅ | 碳水 87g ⬇️ | 脂肪 33g ✅
+蛋白质和脂肪达标，碳水略低——晚餐加点主食就够了。
+
+✨ 鸡胸肉沙拉蛋白质很棒！
+💡 下次试试加半碗糙米，碳水更均衡。
+```
+
+**Before eating + adjustment needed:**
+```
+📝 午餐已记录！
+
+🍽 本餐合计: 900 kcal | 蛋白质 15g | 碳水 128g | 脂肪 35g
+· 炒饭 ~一碗 — 520 kcal
+· 奶茶 一杯 — 380 kcal
+
+📊 今日已记录: 1279 kcal ⬆️ | 蛋白质 39g ⬇️ | 碳水 173g ⬆️ | 脂肪 49g ✅
+热量和碳水偏高，蛋白质偏低。
+
+⚡ 现在调整: 奶茶换无糖茶，米饭减半（剩下的晚餐再吃）。蛋白质低，晚餐加点优质蛋白，比如鸡胸肉或鸡蛋。调整后本餐约 340 kcal。
+```
+
+**Daily summary (below BMR):**
+```
+📊 今日总结:
+热量 980 kcal ⚠️ 偏低 | 蛋白质 72g ✅ | 碳水 98g ⚠️ | 脂肪 28g ⚠️
+
+🍽 今天总热量(~980 kcal)低于基础代谢(~1280 kcal)，建议加个餐——比如坚果或一杯酸奶。
+```
