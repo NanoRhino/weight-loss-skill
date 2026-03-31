@@ -20,8 +20,6 @@ Only fall back to reading those files if Quick Reference is missing or outdated.
 
 Do NOT read this SKILL.md again if it's already in context from a prior turn.
 
-**After save**, call `deviation-check` and generate the reply in the SAME LLM turn — do not split into separate turns.
-
 ## Data Storage
 
 **File:** `{workspaceDir}/data/weight.json` — JSON object keyed by ISO-8601 datetime with timezone offset. Each entry: `{ "value": 80, "unit": "kg" }`.
@@ -30,7 +28,35 @@ Do NOT read this SKILL.md again if it's already in context from a prior turn.
 
 Script path: `python3 {baseDir}/scripts/weight-tracker.py`
 
-### Save — `save`
+### Save + Deviation Check — `save-and-check.py` (preferred)
+
+**Use this for all weight saves.** Combines save + deviation-check in ONE call — no second tool call needed.
+
+```bash
+python3 {baseDir}/scripts/save-and-check.py \
+  --data-dir {workspaceDir}/data \
+  --value 79.5 --unit kg \
+  --tz-offset 28800 \
+  --plan-file {workspaceDir}/PLAN.md \
+  --health-profile {workspaceDir}/health-profile.md \
+  --user-file {workspaceDir}/USER.md \
+  --wgs-script {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py \
+  [--correct]
+```
+
+Returns:
+```json
+{
+  "save": { "action": "created"|"updated", "key": "<datetime>", "value": 79.5, "unit": "kg" },
+  "deviation": { "triggered": true|false, "severity": "none"|"comfort"|"cause-check"|"significant", ... }
+}
+```
+
+- `deviation` is `null` if PLAN.md missing, health flags active, or insufficient data — no extra handling needed.
+
+### Save only — `weight-tracker.py save`
+
+Use only when deviation-check is not needed (e.g., onboarding initial weight).
 
 ```bash
 python3 {baseDir}/scripts/weight-tracker.py save \
@@ -42,7 +68,6 @@ python3 {baseDir}/scripts/weight-tracker.py save \
 
 - Auto-detects new vs correction: if last entry ≤ 30 min ago, overwrites. Otherwise creates new.
 - `--correct`: force overwrite most recent entry (when user explicitly says "that was wrong")
-- Returns: `{ "action": "created"|"updated", "key": "<datetime>", "value": <n>, "unit": "<u>" }`
 
 ### Load — `load`
 
@@ -65,19 +90,20 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
 ### User Reports Weight
 
 1. Read `timezone.json` → `tz_offset`; read `health-profile.md` → Unit Preference (parallel, first session only)
-2. Call `save` with value, unit, tz_offset
-3. Confirm: `"created"` → "Logged ✓"; `"updated"` → "Updated ✓". Show value in preferred unit.
-4. Call `deviation-check` — **always call, the script handles skip logic internally** (missing PLAN.md, health flags, insufficient data):
+2. Call `save-and-check.py` — **one call does both save and deviation-check:**
    ```bash
-   python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
+   python3 {baseDir}/scripts/save-and-check.py \
      --data-dir {workspaceDir}/data \
+     --value <N> --unit <u> --tz-offset <tz> \
      --plan-file {workspaceDir}/PLAN.md \
      --health-profile {workspaceDir}/health-profile.md \
      --user-file {workspaceDir}/USER.md \
-     --tz-offset {tz_offset}
+     --wgs-script {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py
    ```
-   - `triggered: false` → just the log confirmation, no extra output
-   - `triggered: true` → respond per `severity`. See `references/deviation-workflow.md` for severity table and response guide.
+3. Read response — both results arrive together:
+   - `save.action`: `"created"` → "Logged ✓"; `"updated"` → "Updated ✓". Show value in preferred unit.
+   - `deviation` is `null` or `triggered: false` → just the log confirmation.
+   - `deviation.triggered: true` → respond per `severity`. See `references/deviation-workflow.md`.
 
 ### User Asks for Trend / History
 

@@ -1,6 +1,6 @@
 # Deviation Check — Severity Response Guide
 
-After every weight save, call `deviation-check`. The script handles all skip logic internally (missing PLAN.md, health flags). Just pass the file paths.
+Deviation-check is bundled into `save-and-check.py` — no separate call needed. The `deviation` field in the combined response contains the result. The script handles all skip logic internally (missing PLAN.md, health flags, insufficient data).
 
 ## Severity → Response
 
@@ -23,6 +23,8 @@ After every weight save, call `deviation-check`. The script handles all skip log
 
 ## Command
 
+Normally called via `save-and-check.py` (see SKILL.md). For standalone use (e.g., manual re-check):
+
 ```bash
 python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
   --data-dir {workspaceDir}/data \
@@ -31,5 +33,3 @@ python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation
   --user-file {workspaceDir}/USER.md \
   --tz-offset {tz_offset}
 ```
-
-No need to read PLAN.md or USER.md yourself — the script parses plan start date, calorie target, and health flags internally.
