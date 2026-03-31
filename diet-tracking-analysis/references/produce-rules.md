@@ -1,30 +1,24 @@
 # Produce Tracking Rules (China Region)
 
-## Estimating produce amounts
+## Logging
 
-When logging a meal, estimate vegetable and fruit gram weights and include `vegetables_g`/`fruits_g` in `--meal-json`:
-- Standard portions: a plate of stir-fried greens ≈ 200g, one medium apple ≈ 180g, half a cucumber ≈ 100g
-- Prefix estimates with `~` in the response
-- Starchy vegetables (potato, sweet potato, taro, corn) count toward carbs/calories but **not** toward the vegetable target
+Estimate vegetable/fruit gram weights in `--meal-json` (`vegetables_g`/`fruits_g`). Prefix with `~` in response.
+Starchy vegetables (potato, sweet potato, taro, corn) count toward carbs — **not** toward the vegetable target.
 
-## Response format
+## Display
 
-After the macro status line in ② Nutrition Summary, add a produce status line when `has_vegetable_target` is true or `is_final_meal` is true:
+Show produce status line when `has_vegetable_target = true` or `is_final_meal = true`:
 ```
-🥦 Vegetables: ~XXXg ✅ / ⬇️ still need XXg   🍎 Fruit: ~XXXg ✅ / ⬇️ none today (only at final meal)
+🥦 Vegetables: ~XXXg ✅/⬇️   🍎 Fruit: ~XXXg ✅/⬇️ (fruit only at final meal)
 ```
-Use ✅ for `on_track`, ⬇️ for `low`, ⬆️ for `high`. Omit when `has_vegetable_target` is false and `is_final_meal` is false (i.e. breakfast checkpoint).
+Icons: ✅ on_track, ⬇️ low, ⬆️ high. Omit entirely at breakfast checkpoint if no vegetable target.
 
-## Priority rules
+## Priority
 
-Produce targets have **lower priority** than calories and macros:
-- Never suggest reducing vegetables unless they cause calorie/macro excess (e.g. oily stir-fry)
-- If adding vegetables conflicts with calorie targets, calorie target takes precedence
+Calorie/macro targets always override produce targets — never cut vegetables unless they cause calorie excess.
 
-## Suggestions (based on `produce` in log-meal results)
+## Suggestions
 
-- `vegetable_status: "low"` at non-final meal → suggest adding vegetables at the next meal
-- `vegetable_status: "low"` at final meal → suggest a side of low-calorie vegetables now
-- `fruit_status: "low"` at final meal → suggest a fruit as snack/dessert if calories allow
-- `fruit_status: "high"` → briefly mention, no strong push
-- On track → brief positive note
+- **Low at non-final meal** → suggest adding vegetables/fruit next meal
+- **Low at final meal** → suggest a side of vegetables or fruit now (if calories allow)
+- **High / on track** → brief note, no push
