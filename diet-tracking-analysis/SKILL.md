@@ -34,7 +34,8 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
   --meals <2|3> --weight <kg> --cal <kcal> \
   --meal-json '<nutrition estimate>' \
   [--meal-type lunch] [--timestamp <ISO-8601 UTC>] [--eaten] \
-  [--schedule '<JSON>'] [--mode balanced] [--bmr <kcal>] [--region CN]
+  [--schedule '<JSON>'] [--mode balanced] [--bmr <kcal>] [--region CN] \
+  [--append]
 ```
 
 **Parameters:**
@@ -53,6 +54,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 | `--schedule` | `health-profile.md > Meal Schedule` | JSON: `{"breakfast":"07:00","lunch":"12:00","dinner":"18:00"}` |
 | `--mode` | `health-profile.md > Diet Mode` | `balanced` (default), `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2` |
 | `--bmr` | `PLAN.md` | BMR in kcal (for case_d evaluation) |
+| `--append` | context | **Adding food to an already-logged meal.** Only pass NEW items in `--meal-json`; script auto-merges with existing items. |
 | `--region` | `locale.json > region` | Pass `CN` for China (enables produce tracking) |
 
 **`--meal-json` format** (single-line JSON array):
@@ -166,8 +168,9 @@ User asks "how much have I eaten today" / "how much can I still eat" → call `q
 
 ---
 
-## Workflow — Correct / Delete
+## Workflow — Correct / Delete / Append
 
+- **Adding food to an already-logged meal**: user says "I also had..." or sends another photo for the same meal → call `log-meal` with `--append` and only the NEW items in `--meal-json`. The script auto-merges with existing items. **Do NOT re-send old items.** One `log-meal --append` call is enough.
 - **Correcting a record**: user fixes portion → re-run `log-meal` (same meal name overwrites) → **must follow the format templates in `response-schemas.md`.**
 - **Delete**: call `delete-meal` with the meal name
 
