@@ -113,13 +113,6 @@ Returns all logged meals for the day.
 
 ## Workflow
 
-### Setting a Target
-
-When user says "set my target" or provides weight/calorie goal:
-1. Collect: `weight (kg)`, `daily calories (kcal)`, `meal plan (2 or 3)`
-2. Run `target` command to get nutrition targets
-3. Reply with target summary and per-meal allocation
-
 ### Logging Food
 
 When user describes what they're about to eat (or what they already ate):
@@ -128,7 +121,7 @@ When user describes what they're about to eat (or what they already ate):
 2. **Determine meal type** — if user explicitly states it (e.g. "breakfast", "this is lunch"), pass as `--meal-type` to `log-meal`; otherwise omit (script auto-detects from timestamp and schedule). User's statement always takes priority, even if it contradicts the time of day.
 3. **Detect meal timing** — before eating (default) or already eaten (see Meal Timing Detection). Pass as `--eaten` to `log-meal`.
 4. **Check portion clarity** — assume standard portions; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule)
-5. **Estimate nutrition** — calories / protein / carbs / fat per item. China region: also estimate `vegetables_g` and `fruits_g`.
+5. **Estimate nutrition** — calories / protein / carbs / fat per item. China region: also estimate `vegetables_g` and `fruits_g`. For cooked dishes (especially Chinese-style), read `references/cooking-oil-rules.md` for oil estimation — always fold oil into each dish's calorie total, never list as a separate line item.
 6. **Call `log-meal`** — pass the nutrition estimate and all required parameters. The script handles load, missing-meal check, save, evaluate, and produce-check internally.
 7. **Reply in format** — use `log-meal` results to generate meal details + nutrition summary + suggestion (see Response Format)
 
@@ -179,12 +172,6 @@ Backfilled meals from missing-meal handling are always "already eaten."
 **Only ask** when a portion appears **≥ 2× normal** (e.g. "I ate a whole pizza", "I had 6 eggs"). Ask ONE question using everyday references (palm-sized, half plate, etc.) — **never ask for grams**. If multiple items are ≥ 2×, ask about all in one message.
 
 **One-ask rule:** If the user doesn't answer, default to the most likely reasonable portion and record it. Never ask more than once per food item.
-
----
-
-## Cooking Oil Estimation
-
-When estimating cooked dishes (especially Chinese-style), read `references/cooking-oil-rules.md` for oil estimation guidelines. Always fold oil into each dish's calorie total — never list it as a separate line item.
 
 ---
 
