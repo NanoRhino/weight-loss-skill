@@ -426,6 +426,8 @@ Present the following message (adapt to the user's meal schedule):
 > 4. 按需调整 — 如果偏高或偏低，我会马上告诉你当餐怎么调，比如"加个蛋"或"米饭少盛点"
 >
 > 不用追求完美，照着食谱吃、吃之前告诉我一声就行。我来帮你微调 👍
+>
+> 除了打卡指导外，你想让我做什么都可以直接说，比如提醒喝水，给食物购买建议等等。觉得我哪里做得不好也随时告诉我，比如推荐的东西不合口味、监督力度太小了，语气太温和了，说了我就改。
 
 English equivalent:
 
@@ -437,6 +439,8 @@ English equivalent:
 > 4. Adjust on the spot — if something's off, I'll tell you right away how to tweak the current meal, like "add an egg" or "go easy on the rice"
 >
 > Don't stress about perfection — just follow the plan and tell me what you're having before you eat. I'll fine-tune from there 👍
+>
+> Beyond meal tracking, just tell me whatever you need — like water reminders or grocery tips. And if anything feels off — recommendations don't suit your taste, I'm not pushing you hard enough, or my tone is too soft — just let me know and I'll adjust.
 
 ---
 
