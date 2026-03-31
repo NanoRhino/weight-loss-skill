@@ -60,18 +60,36 @@ optimization every time.
 
 ## Step 3: Confirm & Save Strategy
 
+> ⚠️ **MUST execute both script calls below before replying.** Do not skip.
+
 1. Confirm the chosen strategy with specific, actionable details:
    - What exactly changes (calorie target, number of sessions, specific meals)
    - For how long (start date → end date)
    - When to check in (midpoint and end)
-2. **Create a habit in `habits.active`** via `habit-builder` — maps the chosen
-   strategy to a tracked habit so notification-composer can follow up in daily
-   meal conversations. Use `source: "weight-gain-strategy"`, `phase: "week-1"`.
-   If `logging_gaps` + calorie issue also detected, mark `strict: true`
-   (see `references/strict-mode.md`).
-3. **Run `save-strategy`** to persist strategy metadata (type, params, dates).
-   This is for `check-strategy` / `weekly-report` only — `habits.active` is
-   the source of truth for daily execution.
+
+2. **Create habit** via `action-pipeline.py activate`:
+   ```bash
+   python3 {habit-builder:baseDir}/scripts/action-pipeline.py activate \
+     --action '{
+       "action_id": "<strategy-derived-id>",
+       "description": "<what the user committed to>",
+       "trigger": "<meal or time>",
+       "behavior": "<tiny version>",
+       "trigger_cadence": "<every_meal|daily_fixed|daily_random|weekly|conditional>"
+     }' \
+     --source-advice "<strategy context>"
+   ```
+   After activate, patch if needed: set `strict: true` when `logging_gaps` + calorie issue detected (see `references/strict-mode.md`), set `bound_to_meal` if applicable.
+
+3. **Save strategy metadata:**
+   ```bash
+   python3 {baseDir}/scripts/analyze-weight-trend.py save-strategy \
+     --data-dir {workspaceDir}/data \
+     --strategy-type <reduce_calories|increase_exercise|combined> \
+     --params '{"duration_days": 7, ...}' \
+     --tz-offset {tz_offset}
+   ```
+
 4. Close with encouragement — brief, genuine, a bit cheeky: "Let's see what the scale says next week — I'm betting on you."
 
 **Do NOT:**

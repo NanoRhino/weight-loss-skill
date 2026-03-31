@@ -92,30 +92,47 @@ Structure: **"I will do X" + "you do Y"**
 
 ### After user agrees
 
-1. **Create a habit in `habits.active`** via `habit-builder` — the pact becomes
-   a tracked habit with the standard lifecycle (week-1 phase = check-in every
-   2 days, woven into meal conversations by notification-composer). Map the
-   pact to habit-builder's schema:
-   - `habit_id`: derive from cause (e.g., `"swap-afternoon-snack"`, `"log-meals"`, `"restore-wed-run"`)
-   - `description`: the user's side of the pact
-   - `tiny_version`: the smallest version of the commitment
-   - `trigger`: the meal or time it's bound to
-   - `type`: `"post-meal"` / `"end-of-day"` / `"all-day"` depending on cause
-   - `phase`: `"week-1"` (starts with highest check-in frequency)
-   - `source`: `"weight-gain-strategy"` (so weekly-report knows it came from a cause-check pact)
+> ⚠️ **MUST execute both script calls below before replying.** Do not skip.
 
-2. **Run `save-strategy`** to persist strategy metadata (type, params, dates).
-   This is for `check-strategy` / `weekly-report` only — `habits.active` is
-   the source of truth for daily execution and tracking.
+**Step 1 — Create habit** via `action-pipeline.py activate`:
 
-3. **Strict mode** — when the cause includes `logging_gaps` AND `calorie_surplus`
-   or `calorie_creep`, mark the habit with `strict: true`. See
-   `references/strict-mode.md` for full behavior rules, duration, and failure
-   escalation.
+```bash
+python3 {habit-builder:baseDir}/scripts/action-pipeline.py activate \
+  --action '{
+    "action_id": "<cause-derived-id>",
+    "description": "<user side of pact>",
+    "trigger": "<meal or time>",
+    "behavior": "<tiny version>",
+    "trigger_cadence": "<every_meal|daily_fixed|daily_random|weekly|conditional>"
+  }' \
+  --source-advice "<AI side of pact + context>"
+```
 
-4. Close with a short, cheeky confirmation:
-   - "Deal! Don't say I didn't warn you 😏"
-   - "Alright, you're on my watch list this week 👀"
+Field mapping:
+- `action_id`: derive from cause (e.g., `"swap-afternoon-snack"`, `"log-meals"`, `"restore-wed-run"`)
+- `trigger_cadence`: `daily_fixed` for meal-bound pacts, `weekly` for exercise, `conditional` for situational
+- The script auto-generates `habits.active` entry with `source: "weight-gain-strategy"`, `phase: "week-1"`
+
+After activate returns, patch the entry if needed:
+- Set `strict: true` when the cause includes `logging_gaps` AND (`calorie_surplus` or `calorie_creep`). See `references/strict-mode.md`.
+- Set `bound_to_meal` to the specific meal if applicable.
+
+**Step 2 — Save strategy metadata:**
+
+```bash
+python3 {baseDir}/scripts/analyze-weight-trend.py save-strategy \
+  --data-dir {workspaceDir}/data \
+  --strategy-type <reduce_calories|increase_exercise|combined> \
+  --params '{"duration_days": 7, ...}' \
+  --tz-offset {tz_offset}
+```
+
+This is for `check-strategy` / `weekly-report` only — `habits.active` is
+the source of truth for daily execution.
+
+**Step 3 — Reply** with a short, cheeky confirmation:
+- "Deal! Don't say I didn't warn you 😏"
+- "Alright, you're on my watch list this week 👀"
 
 If the user says no, ignores, or changes topic → drop it. Single-ask rule
 applies at each step.
