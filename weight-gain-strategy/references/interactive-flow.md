@@ -75,11 +75,15 @@ optimization every time.
        "description": "<what the user committed to>",
        "trigger": "<meal or time>",
        "behavior": "<tiny version>",
-       "trigger_cadence": "<every_meal|daily_fixed|daily_random|weekly|conditional>"
+       "trigger_cadence": "<every_meal|daily_fixed|daily_random|weekly|conditional>",
+       "bound_to_meal": "<breakfast|lunch|dinner|null>"
      }' \
+     --source weight-gain-strategy \
+     [--strict] \
      --source-advice "<strategy context>"
    ```
-   After activate, patch if needed: set `strict: true` when `logging_gaps` + calorie issue detected (see `references/strict-mode.md`), set `bound_to_meal` if applicable.
+   - `--strict`: add when `logging_gaps` + calorie issue detected (see `references/strict-mode.md`).
+   - The script outputs the complete `habits.active` entry JSON. **Write it to `habits.active` immediately.**
 
 3. **Save strategy metadata:**
    ```bash

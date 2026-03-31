@@ -225,6 +225,8 @@ def cmd_activate(args):
         "trigger_cadence": cadence,
         "created_at": datetime.now().strftime("%Y-%m-%d"),
         "phase": "anchor",
+        "source": args.source or "habit-builder",
+        "strict": args.strict,
         "source_advice": args.source_advice or "",
         "mention_log": [],
         "completion_log": [],
@@ -394,6 +396,10 @@ def main():
                         help="Generate habits.active entry from queue item")
     ac.add_argument("--action", required=True,
                     help="JSON object: single action from action_queue")
+    ac.add_argument("--source", default="habit-builder",
+                    help="Origin skill: 'habit-builder' or 'weight-gain-strategy'")
+    ac.add_argument("--strict", action="store_true", default=False,
+                    help="Enable strict mode (tighter monitoring for weight-gain pacts)")
     ac.add_argument("--source-advice", default="",
                     help="The source_advice string from the parent queue")
 

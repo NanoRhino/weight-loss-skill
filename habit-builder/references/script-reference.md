@@ -65,9 +65,16 @@ python3 {baseDir}/scripts/action-pipeline.py prioritize \
 ```bash
 python3 {baseDir}/scripts/action-pipeline.py activate \
   --action '{"action_id":"water-after-waking", "description":"起床后喝水", "trigger":"起床后", "behavior":"喝一杯温水", "trigger_cadence":"daily_fixed"}' \
+  --source habit-builder \
   --source-advice "多喝水少喝奶茶"
-# → habits.active entry with trigger_cadence → type mapping applied
+# → habits.active entry JSON — write it to habits.active immediately
 ```
+
+Options:
+- `--source <skill>`: origin skill, default `habit-builder`. Use `weight-gain-strategy` for cause-check pacts.
+- `--strict`: enable strict mode (tighter monitoring). Use when cause includes logging_gaps + calorie issue.
+
+Output includes `source` and `strict` fields — no post-patching needed.
 
 ## Action Queue Data Structure
 

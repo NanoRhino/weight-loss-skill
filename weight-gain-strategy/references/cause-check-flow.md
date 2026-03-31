@@ -103,19 +103,21 @@ python3 {habit-builder:baseDir}/scripts/action-pipeline.py activate \
     "description": "<user side of pact>",
     "trigger": "<meal or time>",
     "behavior": "<tiny version>",
-    "trigger_cadence": "<every_meal|daily_fixed|daily_random|weekly|conditional>"
+    "trigger_cadence": "<every_meal|daily_fixed|daily_random|weekly|conditional>",
+    "bound_to_meal": "<breakfast|lunch|dinner|null>"
   }' \
+  --source weight-gain-strategy \
+  [--strict] \
   --source-advice "<AI side of pact + context>"
 ```
 
 Field mapping:
 - `action_id`: derive from cause (e.g., `"swap-afternoon-snack"`, `"log-meals"`, `"restore-wed-run"`)
 - `trigger_cadence`: `daily_fixed` for meal-bound pacts, `weekly` for exercise, `conditional` for situational
-- The script auto-generates `habits.active` entry with `source: "weight-gain-strategy"`, `phase: "week-1"`
+- `--source weight-gain-strategy`: marks this habit as originating from a cause-check pact
+- `--strict`: add when the cause includes `logging_gaps` AND (`calorie_surplus` or `calorie_creep`). See `references/strict-mode.md`.
 
-After activate returns, patch the entry if needed:
-- Set `strict: true` when the cause includes `logging_gaps` AND (`calorie_surplus` or `calorie_creep`). See `references/strict-mode.md`.
-- Set `bound_to_meal` to the specific meal if applicable.
+The script outputs the complete `habits.active` entry JSON. **Write it to `habits.active` immediately.**
 
 **Step 2 — Save strategy metadata:**
 
