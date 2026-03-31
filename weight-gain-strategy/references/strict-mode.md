@@ -8,7 +8,7 @@ detects that the user **both** failed to log meals AND was overeating.
 Activated in `weight-gain-strategy` cause-check (streak 2–3) when the
 `analyze` result includes **both**:
 - `logging_gaps` — user wasn't logging meals consistently
-- `calorie_surplus` or `calorie_creep` — calories were over target
+- `calorie_surplus` — calories were over target
 
 When both conditions are met, the habit written to `habits.active` is marked
 `strict: true`. If only one condition is met → normal mode.

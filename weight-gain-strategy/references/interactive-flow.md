@@ -82,7 +82,7 @@ optimization every time.
      [--strict] \
      --source-advice "<strategy context>"
    ```
-   - `--strict`: add when `logging_gaps` + calorie issue detected (see `references/strict-mode.md`).
+   - `--strict`: add when `logging_gaps` + `calorie_surplus` detected (see `references/strict-mode.md`).
    - The script outputs the complete `habits.active` entry JSON. **Write it to `habits.active` immediately.**
 
 3. **Save strategy metadata:**

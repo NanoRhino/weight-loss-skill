@@ -21,7 +21,7 @@ Deviation-check is bundled into `save-and-check.py` — no separate call needed.
 | Severity | Streak | Action |
 |----------|--------|--------|
 | `none` | 0 | Weight stable or down — just confirm the log. No extra output. |
-| `comfort` | 1 | Append a warm one-liner after log confirmation. Use `weight-gain-strategy/references/diagnosis-templates.md` for templates. If `temporary_causes` present, mention lightly. |
+| `comfort` | 1 | Append a warm one-liner after log confirmation. Use `weight-gain-strategy/references/diagnosis-templates.md` for templates. If `temporary_causes` is non-empty, use the cause's `message` field as the basis for the one-liner (e.g., "Looks like your cycle might be playing a role — totally normal, don't sweat it."). |
 | `cause-check` | 2–3 | **Read `weight-gain-strategy/references/cause-check-flow.md` and follow Steps A→D.** In Step A, also silently run `analyze` (command in that file). |
 | `significant` | 4+ | **Read `weight-gain-strategy/references/interactive-flow.md` and follow Steps 1→3.** Run `analyze` in Step 1. |
 

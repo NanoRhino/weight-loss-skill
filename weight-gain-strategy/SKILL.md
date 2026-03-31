@@ -19,7 +19,7 @@ persistent the trend is.
 
 **Entry paths:**
 - **Auto (post-weigh-in):** `weight-tracking` calls `deviation-check` after every weight log → severity returned → respond per severity table below.
-- **Manual:** User asks about weight gain ("why am I gaining weight", "体重怎么涨了") → skip streak logic → run `analyze` directly → Interactive Flow Step 1.
+- **Manual:** User asks about weight gain ("why am I gaining weight", "体重怎么涨了") → skip streak logic → **check Skip conditions first** (no PLAN.md, health flags, emotional distress — if any skip condition is met, do NOT enter this skill even on manual trigger) → run `analyze` directly → Interactive Flow Step 1.
 
 **Skip — do NOT enter this skill if:**
 - No `PLAN.md` exists (no plan to deviate from)

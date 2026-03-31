@@ -76,6 +76,35 @@ Options:
 
 Output includes `source` and `strict` fields — no post-patching needed.
 
+**Field mapping (input → output):**
+
+| Input field | Output field | Notes |
+|-------------|-------------|-------|
+| `action_id` | `habit_id` | Direct rename |
+| `behavior` | `tiny_version` | Falls back to `description` if `behavior` is absent |
+| `trigger_cadence` | `type` | Mapped via `CADENCE_TO_TYPE`: `every_meal` → `meal-bound`, `daily_fixed` → `post-meal`, `daily_random` → `all-day`, `weekly` → `weekly`, `conditional` → `conditional` |
+
+Example output:
+
+```json
+{
+  "habit_id": "swap-afternoon-snack",
+  "description": "起床后喝水",
+  "tiny_version": "喝一杯温水",
+  "trigger": "起床后",
+  "type": "post-meal",
+  "bound_to_meal": null,
+  "trigger_cadence": "daily_fixed",
+  "created_at": "2026-03-31",
+  "phase": "anchor",
+  "source": "habit-builder",
+  "strict": false,
+  "source_advice": "多喝水少喝奶茶",
+  "mention_log": [],
+  "completion_log": []
+}
+```
+
 ## Action Queue Data Structure
 
 ```json

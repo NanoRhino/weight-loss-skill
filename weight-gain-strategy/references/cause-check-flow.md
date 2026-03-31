@@ -48,6 +48,13 @@ consequence lines, and cause-specific motivation lines.
 **Special cases — end flow here, skip Step D:**
 - **Menstrual cycle:** "Your intake looks fine — timing lines up with your cycle, likely water retention. Let's check again after it passes."
 - **Adaptation period with no actionable cause:** "Still early and your body is adjusting — fluctuation is expected."
+- **Purely temporary causes with no behavioral issue:** If `deviation-check` returned `temporary_causes` and there is no calorie surplus or other actionable behavioral cause, end the flow here. Use the cause's `message` field to explain: "This looks like [temporary cause message] — no action needed, let's check again next time."
+
+**Temporary causes with behavioral issues — continue flow:**
+If `deviation-check` returned `temporary_causes` AND there is also an actionable cause, incorporate the temporary causes into the Step C data reveal to provide context (e.g., "Part of this is water retention from your cycle, but the data also shows [actionable cause]..."). Then proceed to Step D as normal.
+
+**Adaptation period WITH actionable cause:**
+Still show the data (Step C) but soften the tone — "Your body is still adjusting, so some fluctuation is expected. That said, I did notice [cause]..." Proceed to Step D but frame the pact as lighter/optional ("No pressure — but if you want a small experiment...").
 
 ## Step D: Challenge + suspense → reveal pact
 
@@ -76,7 +83,6 @@ Structure: **"I will do X" + "you do Y"**
 | **Exercise decline** | Exercise check-in mid-week | Restore one specific session | "I'll check in Wednesday to see if you ran — just add that one session back. That's it, just the one." |
 | **Late-night eating** | Evening check-in before kitchen-closes time | Move last meal earlier | "I'll ping you at 8 PM to ask if you're done eating — try to wrap up dinner before 8. Sound fair?" |
 | **Logging gaps** | Daily meal-log reminder, gentler tone | Log one specific meal daily | "From now on, tell me everything you eat — start with lunch and dinner, just a photo is fine!" |
-| **Calorie creep** | Calorie summary after each meal log | Slightly smaller portion of one staple | "I'll tally up your calories after every log — you just take slightly less rice at dinner. Deal?" |
 
 ### Pact rules
 
@@ -115,7 +121,7 @@ Field mapping:
 - `action_id`: derive from cause (e.g., `"swap-afternoon-snack"`, `"log-meals"`, `"restore-wed-run"`)
 - `trigger_cadence`: `daily_fixed` for meal-bound pacts, `weekly` for exercise, `conditional` for situational
 - `--source weight-gain-strategy`: marks this habit as originating from a cause-check pact
-- `--strict`: add when the cause includes `logging_gaps` AND (`calorie_surplus` or `calorie_creep`). See `references/strict-mode.md`.
+- `--strict`: add when the cause includes `logging_gaps` AND `calorie_surplus`. See `references/strict-mode.md`.
 
 The script outputs the complete `habits.active` entry JSON. **Write it to `habits.active` immediately.**
 
