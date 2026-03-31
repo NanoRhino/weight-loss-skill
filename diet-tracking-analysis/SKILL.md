@@ -109,21 +109,6 @@ python3 {baseDir}/scripts/nutrition-calc.py load --data-dir {workspaceDir}/data/
 
 Returns all logged meals for the day.
 
-### `weekly-low-cal-check`
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
-  --data-dir {workspaceDir}/data/meals \
-  --bmr <kcal> \
-  [--date 2026-03-04]
-```
-
-Loads the past 7 days of meal records ending on the given date (default today), computes each day's total calorie intake, and compares the weekly average against the calorie floor (`max(BMR, 1000)`).
-
-Returns: `logged_days`, `daily_totals`, `weekly_avg_cal`, `bmr`, `calorie_floor`, `days_below_floor`, `days_below_count`, `below_floor`
-
-**When to run:** Once per week (e.g. every Monday), or whenever reviewing weekly progress. This replaces per-meal below-BMR warnings — the per-meal `evaluate` command focuses on checkpoint-level calorie/macro balance, while this command handles the safety-floor check on a weekly cadence.
-
 ---
 
 ## Workflow
@@ -154,40 +139,6 @@ When user describes what they're about to eat (or what they already ate):
 In the reply, append a note that missed meals were assumed normal and invite the user to provide details for more accurate advice (see `missing-meal-rules.md`).
 
 If the user later reports the missed meal → re-run `log-meal` for that meal (same name overwrites the assumed entry). Backfilled meals are always "already eaten."
-
-### Weekly Low-Calorie Check
-
-The below-BMR safety check runs **weekly** (not per-meal). This avoids noisy daily alerts while still catching sustained under-eating patterns.
-
-**Trigger:** Run `weekly-low-cal-check` once per week — either on a fixed day (e.g. Monday) via the `notification-composer` system, or whenever the user asks for a weekly summary.
-
-**Inputs needed:** `--bmr` from the user's profile (PLAN.md or USER.md). If unavailable, calculate using Mifflin-St Jeor (see `weight-loss-planner/references/formulas.md`).
-
-**When `below_floor` is true** (weekly average < calorie floor):
-1. Gently flag the pattern — never guilt or alarm:
-   > "Looking at this past week, your average daily intake (~X kcal) was below your body's resting energy needs (~Y kcal). Eating below this level consistently can slow your metabolism and make it harder to get enough nutrients. Want to look at some easy ways to add a few hundred calories?"
-2. Show the `days_below_floor` list so the user can see which days were low
-3. Offer concrete suggestions (e.g. add a snack, increase portion at one meal)
-4. Do NOT block or override the user — this is informational, not a hard stop
-
-**When `below_floor` is false:** No action needed. The weekly check passes silently.
-
-### Diet Pattern Detection
-
-Run `detect-diet-pattern` **once per day** after the last meal, only when ≥3 days of data exist.
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py detect-diet-pattern \
-  --data-dir {workspaceDir}/data/meals \
-  --current-mode <mode from health-profile.md> \
-  [--date 2026-03-06]
-```
-
-Returns: `has_pattern`, `detected_mode`, `current_mode`, `avg_split`, `daily_splits`, `pros_cons`
-
-When `has_pattern` is `true`: read `references/diet-pattern-response.md` for the response template. When `false` or `insufficient_data`: no action needed.
-
----
 
 ### Produce Tracking (China Region)
 
@@ -313,23 +264,6 @@ Example format:
 - ✅ "Add some **complex carbs** — like the oatmeal you had yesterday, or a small sweet potato"
 - ❌ "Add 100g chicken breast" (no category, no personalization)
 - ❌ "Try quinoa with salmon" (user may never eat these)
-
----
-
-## Closing the Day
-
-**Trigger:** User signals they're done eating — e.g. "done eating for today", "no more meals today".
-
-**This is NOT a goodnight signal.** The user may still want to chat or log a forgotten snack.
-
-### Workflow
-
-1. **Call `query-day`** — get daily totals with evaluation
-2. **Reply with daily summary** — use the Daily Summary format from `response-schemas.md`
-3. **Calorie check** — if under target, apply Case D logic. If on track or over, add one brief forward-looking suggestion for tomorrow.
-4. **Do NOT add closing sign-offs** — no "goodnight" / 🌙 / "see you tomorrow". The user decides when the conversation is over.
-
-If this is the last meal AND ≥ 3 days of data exist, also run `detect-diet-pattern` (see Diet Pattern Detection).
 
 ---
 
