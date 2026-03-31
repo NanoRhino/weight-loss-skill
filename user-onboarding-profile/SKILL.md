@@ -264,6 +264,10 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 - **Target Weight:** [X kg | —]
 - **Weight to Lose:** [X kg (calculated) | —]
 - **Core Motivation:** [string | —]
+
+## Automation
+- **Onboarding Completed:** —
+- **Pattern Detection Completed:** —
 ```
 
 **Note:** Many fields in health-profile.md start as `—` during onboarding and are filled later by other skills (e.g., `Diet Mode` and `Meal Schedule` are set by weight-loss-planner, `Fitness Level`/`Fitness Goal` by exercise-tracking-planning). Only fill fields that the user actually provided during onboarding.
