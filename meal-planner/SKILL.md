@@ -184,33 +184,15 @@ After the user confirms their diet mode, ask about their meal schedule. **Only a
 
 **Wait for the user to answer.**
 
-After the user provides their meal schedule, **in the same reply**, confirm the reminder and ask Round 3's question together:
+After the user provides their meal schedule, confirm the reminder and move to Round 3:
 
 > 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
->
-> 这几餐里，哪些通常是自己做，哪些是点外卖或在外面吃？（比如"早餐自己做，午餐外卖，晚餐自己做"）
-
-This combines the reminder confirmation with Round 3 in one message to keep the conversation flowing naturally.
 
 English equivalent:
 
 > Got it, I'll remind you 15 minutes before each meal to help you plan ahead.
->
-> Of these meals, which ones do you usually cook at home, and which are takeout or eating out? (e.g., "breakfast at home, lunch is takeout, dinner at home")
 
-**Wait for the user to answer (or skip) before proceeding.**
-
-### Round 3: Meal Preparation Preference (Home-cooked vs. Takeout)
-
-(Already asked above together with the reminder confirmation.)
-
-**Why this matters:** Knowing which meals are home-cooked and which are takeout/eating-out fundamentally changes the plan:
-- **Home-cooked meals** → provide recipes, ingredients, portions, and prep instructions
-- **Takeout/eating-out meals** → provide restaurant ordering guidance, calorie-smart menu choices, and portion tips
-
-A plan that assigns home-cooking to a lunch the user always orders via delivery is useless. Getting this right means the diet template and 7-day plan match the user's actual daily routine.
-
-After the user answers (or skips), ask Round 4 in the next reply (adapt to the user's language):
+Then ask Round 3 in the same reply (adapt to the user's language):
 
 > 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
 
@@ -218,17 +200,16 @@ English equivalent:
 
 > Any foods you can't eat? Taste preferences? (Totally optional — just helps me make a template that suits you better.)
 
-### Round 4: Taste Preferences & Food Restrictions
+### Round 3: Taste Preferences & Food Restrictions
 
-(Already asked above after Round 3.)
+(Already asked above after Round 2.)
 
 (Adapt language to match the user.)
 **Wait for the user to answer (or skip) before proceeding.**
 
-**After collecting all four rounds:** Update the appropriate files silently:
+**After collecting all three rounds:** Update the appropriate files silently:
 - **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
 - **Meal Schedule** → `health-profile.md > Meal Schedule`
-- **Meal Preparation Preference** → `health-profile.md > Meal Schedule` — for each meal slot (Breakfast, Lunch, Dinner), record whether it's home-cooked or takeout/eating-out. Format: append ` (home-cooked)` or ` (takeout)` or ` (eating out)` after the time, e.g., `- **Lunch:** 12:00 (takeout)`. If the user skips this question, omit the annotation (default: treat as home-cooked).
 - **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
 - **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
 
