@@ -90,8 +90,13 @@ CADENCE_TO_TYPE = {
 }
 
 
-def get_phase(days_since_activation: int) -> str:
-    """Return current phase name given days since activation."""
+def get_phase(days_since_activation: int, strict: bool = False) -> str:
+    """Return current phase name given days since activation.
+
+    strict=True extends anchor phase from 7 to 14 days (for weight-gain-strategy pacts).
+    """
+    if strict and days_since_activation <= 14:
+        return "anchor"
     for phase, (start, end) in PHASE_BOUNDARIES.items():
         if end is None:
             if days_since_activation >= start:
@@ -263,7 +268,9 @@ def cmd_should_mention(args):
         return
 
     # Get schedule frequency
-    phase = args.phase or get_phase(days)
+    # Strict habits: stay in anchor phase for 14 days (instead of 7)
+    is_strict = habit.get("strict", False)
+    phase = args.phase or get_phase(days, strict=is_strict)
     if phase == "solidify" and days > 42:
         phase = "autopilot"
     key = (cadence, phase)
