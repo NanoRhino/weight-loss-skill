@@ -1211,7 +1211,7 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
              meal_type: str = None, timestamp: str = None,
              schedule: dict = None, mode: str = "balanced",
              bmr: float = None, region: str = None,
-             eaten: bool = False) -> dict:
+             eaten: bool = False, append: bool = False) -> dict:
     """Log a meal with full pipeline: detect → load → check-missing → save → evaluate → produce.
 
     This is the primary command for food logging. It replaces the need to call
@@ -1284,9 +1284,19 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     # 3. Ensure meal_json has correct name/meal_type
     # meal_json may be a list of food items or a single dict
     if isinstance(meal_json, list):
-        meal_data = {"items": meal_json}
+        new_items = meal_json
     else:
-        meal_data = dict(meal_json)
+        new_items = meal_json.get("items", [meal_json] if "name" in meal_json else [])
+
+    # --append: merge new items into existing meal instead of replacing
+    if append:
+        for m in existing_meals_list:
+            if m.get("name") == current_meal:
+                old_items = m.get("items", [])
+                new_items = old_items + new_items
+                break
+
+    meal_data = {"items": new_items}
     meal_data["name"] = current_meal
     if "meal_type" not in meal_data:
         meal_data["meal_type"] = meal_type or current_meal
@@ -1599,6 +1609,7 @@ def main():
     lm.add_argument("--bmr", type=float, default=None, help="BMR in kcal for Case D check")
     lm.add_argument("--region", type=str, default=None, help="Region code (e.g. CN) for produce-check")
     lm.add_argument("--eaten", action="store_true", default=False, help="Whether the user has already eaten this meal")
+    lm.add_argument("--append", action="store_true", default=False, help="Append items to existing meal instead of replacing")
 
     dm_cmd = sub.add_parser("delete-meal",
                              help="Delete a meal from today's log and optionally re-evaluate")
@@ -1726,7 +1737,7 @@ def main():
             meal_json=meal_json, meal_type=args.meal_type,
             timestamp=args.timestamp, schedule=sched,
             mode=args.mode, bmr=args.bmr, region=args.region,
-            eaten=args.eaten,
+            eaten=args.eaten, append=args.append,
         )
     elif args.cmd == "delete-meal":
         result = delete_meal(
