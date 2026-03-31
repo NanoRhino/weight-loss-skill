@@ -162,7 +162,7 @@ Activity level mapping (internal — based on daily movement/job type ONLY, not 
 
 **Important:** Exercise habits do NOT affect the activity level selection. A desk worker who runs 5x/week is still `sedentary` (×1.2) — their running calories are tracked separately when logged. This prevents double-counting exercise in TDEE.
 
-### Step 2 — Confirm Activity Level & TDEE
+### Step 2 — Confirm Activity Level & TDEE + Open-Ended Check-In
 
 After receiving the user's answer in Round 4, do the following:
 
@@ -179,20 +179,20 @@ After receiving the user's answer in Round 4, do the following:
      --activity <activity_level>
    ```
 
-3. **Confirm work type + TDEE, then ask exercise habits** — State the activity level and TDEE, then ask about exercise habits in the same message. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
+3. **Confirm work type + TDEE, then open-ended check-in** — State the activity level and TDEE, then invite the user to share anything about their situation that might help you coach them better. This is NOT a fixed question — it's a gentle, open-ended prompt. Give a couple of examples to guide them, and make it clear that skipping is totally fine. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
 
-   > Example: "正常通勤属于轻度活跃，你每天基础消耗约 1850 大卡。平时有额外的运动吗？比如健身、跑步、球类……"
+   > Example: "正常通勤属于轻度活跃，你每天基础消耗约 1850 大卡。对了，如果方便的话也可以跟我多聊聊你的情况，比如之前减肥最难的点是什么、平时什么时候最容易乱吃——这些都能帮我更好地帮你。不说也完全没关系，后面慢慢聊也行😊"
 
-4. **Receive exercise habits, then transition to plan** — After the user answers, save their exercise habits to `health-profile.md > Activity & Lifestyle > Exercise Habits`. Mention that exercise calories will be tracked separately, then flow directly into the plan.
+4. **Receive response, then transition to plan** — The user may share detailed context, give a brief answer, or skip entirely. All are fine. If they share useful context (e.g., habits, obstacles, lifestyle details), save it to `health-preferences.md` under the appropriate section(s). Then flow directly into generating the profile and plan.
 
-   > Example (user says "每周跳舞一次，骑车上下班"): "不错，跳舞加骑车——有在动！运动消耗单独算，做完告诉我就行。好，计划来了——"
-   > Example (user says "没有"): "好，那运动这块白纸一张，之后想加随时说 😄 计划来了——"
+   > Example (user shares context): "明白了，外卖容易踩坑 + 压力上来就想吃甜的，这两个我帮你盯着。好，信息都记下了，给你出计划——"
+   > Example (user says "没什么" or skips): "好的，那后面有什么想到的随时告诉我。信息都记下了，给你出计划——"
 
-5. **Generate the Profile** — After the exercise habits are collected, silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
+5. **Generate the Profile** — Silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
 
-5. **Timezone** — Do NOT handle timezone here. It is auto-initialized by the agent's boot sequence (see AGENTS.md). By the time onboarding runs, `timezone.json` should already exist.
+6. **Timezone** — Do NOT handle timezone here. It is auto-initialized by the agent's boot sequence (see AGENTS.md). By the time onboarding runs, `timezone.json` should already exist.
 
-6. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "很好，你的信息已经记录好了！接下来我来给你制定一个减重计划。" The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
+7. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "很好，你的信息已经记录好了！接下来我来给你制定一个减重计划。" The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
 
 ## Health Safety Note
 
