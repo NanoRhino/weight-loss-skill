@@ -8,12 +8,14 @@ is engaged. Each step waits for the user's response before proceeding.
 ## Step A: Hook + opt-in
 
 Open with a playful, light-hearted observation about the streak. Frame it as
-a fun investigation, not a problem. Ask if the user wants to enter "analysis
-mode" — this gives them a chance to opt in rather than being ambushed with data.
+entering **"减重分析模式"** — a special mode name that makes the investigation
+feel structured and fun, not scary. Ask if the user wants to enter this mode
+to give them a chance to opt in.
 
 Examples:
-- "Hmm, the scale's been a bit naughty twice in a row. No rush — want to go into analysis mode and figure it out together?"
-- "Scale's acting up again — two in a row. Want to play detective with me?"
+- "唔，这两次秤有点不太乖哦。先别急，让我们一起来看看是怎么回事。进入减重分析模式吗？"
+- "Hmm, scale's been naughty twice in a row. No rush — want to enter weight-loss analysis mode and figure it out together?"
+- "连着两次往上走了。想开启减重分析模式，一起当回侦探吗？"
 
 **Wait for user response.** If the user says no or ignores → drop it (single-
 ask rule). If yes → proceed.
