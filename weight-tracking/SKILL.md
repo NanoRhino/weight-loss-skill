@@ -103,7 +103,7 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
 3. Read response — both results arrive together:
    - `save.action`: `"created"` → "Logged ✓"; `"updated"` → "Updated ✓". Show value in preferred unit.
    - `deviation` is `null` or `triggered: false` → just the log confirmation.
-   - `deviation.triggered: true` → respond per `severity`. See `references/deviation-workflow.md`.
+   - `deviation.triggered: true` → ⚠️ **STOP. Read `references/deviation-workflow.md` NOW and follow it exactly.** Do NOT freestyle a response.
 
 ### User Asks for Trend / History
 
