@@ -19,15 +19,7 @@ All strict-mode behaviors are executed by `notification-composer`. When
 composing reminders, check `habits.active` for any habit with
 `strict: true` AND `source: "weight-gain-strategy"`.
 
-### 1. Calorie running total after each meal log
-
-Normal: "Logged ✓"
-Strict: "Logged ✓ — about 700 kcal. Today's total: 1,080 / 1,700."
-
-Show approximate calories for the meal + cumulative total vs daily target.
-After every meal log, not just some.
-
-### 2. Proactive meal-log nudge
+### 1. Proactive meal-log nudge
 
 If no meal is logged by **meal time + 1 hour** (derive meal times from
 `health-profile.md > Meal Schedule`), send a nudge:
@@ -37,7 +29,7 @@ If no meal is logged by **meal time + 1 hour** (derive meal times from
 One nudge per missed meal. If user doesn't respond to the nudge, don't
 send a second one for the same meal.
 
-### 3. Morning accountability (first meal reminder only)
+### 2. Morning accountability (first meal reminder only)
 
 In the first meal reminder of the day, check yesterday's meal logs
 (`data/meals/YYYY-MM-DD.json`) against the user's full meal schedule
@@ -50,7 +42,7 @@ yesterday, name the specific meal(s) in the opening line:
 
 Tone: playful strictness — acknowledge the miss, don't guilt-trip.
 
-### 4. Extended week-1 frequency
+### 3. Extended week-1 frequency
 
 Normal habits step down from week-1 frequency (every 2 days) to week-2
 frequency (every 3–4 days) after 1 week.
