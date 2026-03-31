@@ -97,31 +97,6 @@ Any fail → `NO_REPLY`. All pass → `SEND`.
 
 ## Message Templates
 
-### Strict-Mode Behaviors
-
-When `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, the following extra behaviors activate. Check once per session; skip if no strict habit exists.
-
-**(a) Calorie running total after each meal log:**
-After `diet-tracking-analysis` logs the meal, append today's cumulative total vs daily target:
-- `"记了 ✓ — 约 520 kcal。今日累计：800 / 1,600。"`
-- `"Logged ✓ — ~520 kcal. Today's total: 800 / 1,600."`
-
-Read today's logged meals via `nutrition-calc.py load` and daily target from `PLAN.md`.
-This applies to **every** meal log, not just some. Does NOT apply to the recommendation message (only after the user replies with food).
-
-**(b) Proactive meal-log nudge (meal time + 1 hour):**
-If no meal is logged by **meal time + 1 hour** (derive meal times from `health-profile.md > Meal Schedule`), send a single nudge:
-- `"午饭吃了什么？"` / `"What did you have for lunch?"`
-
-One nudge per missed meal. No second nudge if user doesn't respond.
-This requires `notification-manager` to create nudge cron jobs when strict mode activates — see `notification-manager` SKILL.md for setup.
-
-**(c) Morning accountability:** See "Strict-mode accountability" under Message Format below.
-
-**(d) Extended frequency:** Handled by `habit-builder` — `should-mention` keeps anchor phase for 14 days instead of 7.
-
----
-
 ### Meal Reminders — Personalized Meal Recommendations
 
 **Purpose: recommend 2-3 meal options based on the user's eating habits, then invite them to photograph their meal before eating.**
@@ -184,18 +159,7 @@ Adapt the closing to the user's language.
 
 The opening line is optional — use it for context when relevant (time of day, callback to yesterday, etc.), skip it when it adds nothing.
 
-**Strict-mode accountability (first meal of the day only):** If `habits.active`
-contains a habit with `strict: true` AND `source: "weight-gain-strategy"`,
-check yesterday's meal logs (`data/meals/YYYY-MM-DD.json`). If **any** meal
-from the user's schedule (`health-profile.md > Meal Schedule`) was not logged
-yesterday, use the opening line to call it out — name the specific missed
-meal(s). Examples:
-- One meal missed: "Yesterday's lunch went unlogged — don't let it slip again today!" / "昨天午饭没记哦——今天别再漏了！"
-- Multiple missed: "Yesterday you skipped logging lunch and dinner — today let's get back on track!" / "昨天午饭晚饭都没记——今天咱们补回来！"
-- All logged: skip this, normal opening.
-
-Tone: playful strictness, not guilt. Only applies to the first meal reminder
-of the day.
+**Strict mode:** If `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, **read `weight-gain-strategy/references/strict-mode.md` and follow all notification-composer behaviors listed there** (calorie running total, proactive nudge, morning accountability, extended frequency).
 
 #### Examples
 
@@ -306,7 +270,7 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 | User says | Response |
 |-----------|----------|
-| Names food (before or after eating) | Hand off to `diet-tracking-analysis` for logging + response. **If strict mode active:** append calorie running total (see § Strict-Mode Behaviors (a)). |
+| Names food (before or after eating) | Hand off to `diet-tracking-analysis` for logging + response. |
 | Vague: "eating something" | `Logged ✓ Want to add details, or leave it?` |
 | Skipping: "skipping lunch" | `Noted!` |
 | Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk about it?" — do NOT add "no pressure either way" as this over-signals. If purely indifferent (no distress signal), just log and move on. |
