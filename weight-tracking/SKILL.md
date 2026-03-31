@@ -1,6 +1,6 @@
 ---
 name: weight-tracking
-version: 1.0.0
+version: 1.1.0
 description: "Track body weight with full CRUD operations, unit conversion, and trend analysis. Trigger when user reports weight, asks about weight trend, wants to correct a weight entry, or change their unit preference. Trigger phrases: 'I weigh...', '体重...', '称了一下...', 'my weight is...', 'change to pounds', '改成斤', 'weight trend', '体重趋势'."
 metadata:
   openclaw:
@@ -10,48 +10,27 @@ metadata:
 
 # Weight Tracking
 
-> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. Just do it silently and respond with the result.
 
+## Performance
 
-Manage body weight records with full CRUD operations. All data lives in a
-single JSON file; display always uses the user's preferred unit.
+**On first weight message in a session**, parallel-read in ONE tool call:
+- `{workspaceDir}/timezone.json` (for tz_offset)
+- `{workspaceDir}/health-profile.md` (for Unit Preference)
+
+Do NOT read this SKILL.md again if it's already in context from a prior turn.
+
+**After save**, call `deviation-check` and generate the reply in the SAME LLM turn — do not split into separate turns.
 
 ## Data Storage
 
-**File:** `{workspaceDir}/data/weight.json`
-
-**Format:** JSON object keyed by ISO-8601 datetime (with timezone offset):
-
-```json
-{
-  "2026-03-01T08:30:00+08:00": { "value": 80, "unit": "kg" },
-  "2026-03-04T07:45:00+08:00": { "value": 79.5, "unit": "kg" },
-  "2026-03-04T21:00:00+08:00": { "value": 79.8, "unit": "kg" }
-}
-```
-
-- Each entry stores the **original value and original unit** as reported by the user
-- Multiple entries per day are supported (e.g., morning and evening weigh-ins)
-- Keys are sorted chronologically
-
-## Unit Preference
-
-**Stored in:** `health-profile.md > Body > Unit Preference`
-
-```markdown
-## Body
-- **Unit Preference:** kg
-```
-
-- Set during onboarding (inferred from user input: "80kg" → `kg`, "165 lbs" → `lb`, "130斤" → `kg`)
-- User can change at any time via `set-unit` command
-- All display/output uses this preference, with values rounded to 1 decimal place
+**File:** `{workspaceDir}/data/weight.json` — JSON object keyed by ISO-8601 datetime with timezone offset. Each entry: `{ "value": 80, "unit": "kg" }`.
 
 ## Scripts
 
 Script path: `python3 {baseDir}/scripts/weight-tracker.py`
 
-### 1. Save — `save`
+### Save — `save`
 
 ```bash
 python3 {baseDir}/scripts/weight-tracker.py save \
@@ -61,12 +40,11 @@ python3 {baseDir}/scripts/weight-tracker.py save \
   [--correct]
 ```
 
-- Reads `timezone.json` offset to generate local datetime key
-- **Auto-detect new vs correction:** if the last entry is ≤ 30 minutes ago, overwrite it (treat as correction). Otherwise, create a new entry.
-- `--correct` flag: force overwrite the most recent entry regardless of time gap (for when user explicitly says "that was wrong" / "刚才称错了")
-- Returns: `{ "action": "created" | "updated", "key": "<datetime>", "value": <n>, "unit": "<u>" }`
+- Auto-detects new vs correction: if last entry ≤ 30 min ago, overwrites. Otherwise creates new.
+- `--correct`: force overwrite most recent entry (when user explicitly says "that was wrong")
+- Returns: `{ "action": "created"|"updated", "key": "<datetime>", "value": <n>, "unit": "<u>" }`
 
-### 2. Load — `load`
+### Load — `load`
 
 ```bash
 python3 {baseDir}/scripts/weight-tracker.py load \
@@ -76,124 +54,52 @@ python3 {baseDir}/scripts/weight-tracker.py load \
   [--from 2026-02-01 --to 2026-03-06]
 ```
 
-- Returns all matching entries converted to `--display-unit`, rounded to 1 decimal place
-- `--last N`: return the N most recent entries
-- `--from` / `--to`: filter by date range (inclusive)
-- Without filters: returns all entries
+Returns entries converted to `--display-unit`, rounded to 1 decimal.
 
-### 3. Delete — `delete`
+### Other Commands
 
-```bash
-python3 {baseDir}/scripts/weight-tracker.py delete \
-  --data-dir {workspaceDir}/data \
-  --key "2026-03-06T08:30:00+08:00"
-```
-
-- Removes the entry with the exact datetime key
-- Returns confirmation or error if key not found
-
-### 4. Update — `update`
-
-```bash
-python3 {baseDir}/scripts/weight-tracker.py update \
-  --data-dir {workspaceDir}/data \
-  --key "2026-03-06T08:30:00+08:00" \
-  --value 75.0 --unit kg
-```
-
-- Updates the value and unit for an existing entry
-- Returns confirmation or error if key not found
-
-### 5. Set Unit Preference — `set-unit`
-
-```bash
-python3 {baseDir}/scripts/weight-tracker.py set-unit \
-  --health-profile {workspaceDir}/health-profile.md \
-  --unit lb
-```
-
-- Updates `health-profile.md > Body > Unit Preference`
-- Returns confirmation with the new unit
-
-## Timezone Handling
-
-The server runs in UTC. To record the correct local datetime:
-
-1. Read `timezone.json` to get `tz_offset` (seconds)
-2. Pass `--tz-offset <seconds>` to the `save` command
-3. The script calculates the user's local time and formats the key as ISO-8601 with offset (e.g., `2026-03-06T08:30:00+08:00`)
+See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
 
 ## Workflow
 
 ### User Reports Weight
 
-**Phase 1 — Log**
-
-1. Read `health-profile.md > Body > Unit Preference` for display unit
-2. Call `save` with the reported value, unit, and timezone offset
-3. Confirm: `"created"` → "Logged ✓" / `"updated"` → "Updated ✓", display in preferred unit
-
-**Phase 2 — Deviation check (REQUIRED after every save)**
-
-> ⚠️ **ALWAYS run this immediately after Phase 1.** Do NOT respond to the user until this phase completes. Skipping this step means weight gain goes undetected.
-
-Skip only if: `PLAN.md` does not exist, or `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`.
-
-```bash
-python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
-  --data-dir {workspaceDir}/data \
-  --plan-file {workspaceDir}/PLAN.md \
-  --health-profile {workspaceDir}/health-profile.md \
-  --user-file {workspaceDir}/USER.md \
-  --plan-start-date {plan_start_date} \
-  --tz-offset {tz_offset}
-```
-
-Read `开始日期` / `Start date` from `PLAN.md` → pass as `--plan-start-date`.
-
-**Route on `severity`:**
-
-| `severity` | Streak | Action |
-|------------|--------|--------|
-| `none` | 0 | No addition — just the Phase 1 confirmation. |
-| `comfort` | 1 | Append a warm one-liner to confirmation. See `weight-gain-strategy/references/diagnosis-templates.md`. |
-| `cause-check` | 2–3 | Start multi-turn guided discovery (Steps A→D). See `weight-gain-strategy/references/cause-check-flow.md`. |
-| `significant` | 4+ | Run full analysis + strategy options. See `weight-gain-strategy/references/interactive-flow.md`. |
+1. Read `timezone.json` → `tz_offset`; read `health-profile.md` → Unit Preference (parallel, first session only)
+2. Call `save` with value, unit, tz_offset
+3. Confirm: `"created"` → "Logged ✓"; `"updated"` → "Updated ✓". Show value in preferred unit.
+4. Call `deviation-check` — **always call, the script handles skip logic internally** (missing PLAN.md, health flags, insufficient data):
+   ```bash
+   python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
+     --data-dir {workspaceDir}/data \
+     --plan-file {workspaceDir}/PLAN.md \
+     --health-profile {workspaceDir}/health-profile.md \
+     --user-file {workspaceDir}/USER.md \
+     --tz-offset {tz_offset}
+   ```
+   - `triggered: false` → just the log confirmation, no extra output
+   - `triggered: true` → respond per `severity`. See `references/deviation-workflow.md` for severity table and response guide.
 
 ### User Asks for Trend / History
 
-1. Read `health-profile.md > Body > Unit Preference`
-2. Call `load` with appropriate filters and `--display-unit`
-3. Present the data (table, summary, or trend description depending on context)
+1. Call `load` with appropriate filters and `--display-unit`
+2. Present data (table, summary, or trend description)
 
-### User Wants to Correct an Entry
+### User Wants to Correct / Delete / Change Unit
 
-1. If user says "that was wrong" / "刚才称错了" after a recent save → call `save` with `--correct` and the new value
-2. If user references a specific date → call `update` with the matching `--key`
-
-### User Changes Unit Preference
-
-1. Call `set-unit` with the new unit
-2. Confirm the change to the user
+See `references/crud-operations.md`.
 
 ## Interaction Guidelines
 
-- **Record weight whenever mentioned.** Weight recording is NOT limited to scheduled weigh-in days. If the user mentions a specific weight number in any context — casual conversation, progress check-in, replying to a reminder, or unprompted — call `save` to record it. Examples: "今天早上74.5"、"刚称了一下79"、"I was 165 this morning". The only exception is when the user is clearly referring to a past or hypothetical number, not a current reading (e.g., "我以前80公斤"、"if I were 70kg").
-- **Never comment on weight changes unprompted.** Just log and confirm. Emotional reactions to weight (positive or negative) are handled by the `emotional-support` skill.
-- **Always display in preferred unit**, rounded to 1 decimal place.
-- **Accept any common unit** in user input: kg, lb, lbs, 斤 (catty = 0.5 kg), 公斤. Convert to standard kg or lb for storage.
-- **Fasting tag**: if the user mentions they haven't eaten yet, or it's a morning weigh-in before breakfast, note `fasting: true` in the response context (for notification-composer to use). If they've already eaten, note `fasting: false`.
+- **Record weight whenever mentioned.** Not limited to scheduled days. "今天早上74.5", "刚称了一下79" → call `save`. Exception: past/hypothetical ("我以前80公斤").
+- **Never comment on weight changes unprompted.** Just log and confirm. Emotional reactions → `emotional-support` skill.
+- **Always display in preferred unit**, rounded to 1 decimal.
+- **Accept any common unit**: kg, lb, lbs, 斤 (=0.5 kg), 公斤.
+- **Fasting tag**: if user mentions empty stomach / morning weigh-in → note `fasting: true` in context.
 
-## Used By Other Skills
+## References
 
-This skill's script is called by other skills for weight data access:
-
-| Skill | Usage |
-|-------|-------|
-| `notification-composer` | `save` when user replies to weight reminder; `load --last 1` to check if already weighed today |
-| `weekly-report` | `load --from --to` for weekly weight trend |
-| `emotional-support` | `load --last N` for recent weight context |
-| `habit-builder` | `load` for weight trend analysis |
-| `user-onboarding-profile` | `save` to record initial weight during onboarding |
-| `weight-loss-planner` | `load --last 1` to get current weight for calculations |
-| `weight-gain-strategy` | `deviation-check` called after each weigh-in to detect plan deviation |
+| File | Contents |
+|------|----------|
+| `references/crud-operations.md` | Delete, update, set-unit commands + correction workflow |
+| `references/deviation-workflow.md` | Deviation-check severity table, response guide, command |
+| `references/integrations.md` | Which other skills use this skill's scripts |

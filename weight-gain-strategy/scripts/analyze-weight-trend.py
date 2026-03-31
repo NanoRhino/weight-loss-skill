@@ -555,11 +555,28 @@ def detect_temporary_causes(args, local_now, readings, calorie_target):
     return causes
 
 
+def parse_health_flags(user_file):
+    """Check USER.md for health flags that should skip weight analysis."""
+    if not user_file or not os.path.exists(user_file):
+        return []
+    with open(user_file, "r", encoding="utf-8") as f:
+        content = f.read().lower()
+    flags = []
+    if "avoid_weight_focus" in content:
+        flags.append("avoid_weight_focus")
+    if "history_of_ed" in content:
+        flags.append("history_of_ed")
+    return flags
+
+
 def deviation_check(args):
     """Quick post-weigh-in check: has weight been going up consecutively?
 
     Counts how many consecutive weigh-ins show an increase over the previous
     one (streak), and maps that to a graduated severity level.
+
+    Now self-contained: handles PLAN.md existence check, health flag checking,
+    and plan start date parsing internally. The caller just passes file paths.
 
     Returns:
       - triggered: true if the latest weigh-in is higher than the previous
@@ -569,6 +586,29 @@ def deviation_check(args):
     """
     tz_offset = args.tz_offset
     local_now = get_local_now(tz_offset)
+
+    # --- Early exit: check health flags ---
+    health_flags = parse_health_flags(args.user_file)
+    if health_flags:
+        print(json.dumps({
+            "triggered": False,
+            "severity": "none",
+            "reason": "health_flag",
+            "flags": health_flags,
+            "message": "Skipped — user has health flags that preclude weight focus.",
+        }, indent=2, ensure_ascii=False))
+        return
+
+    # --- Early exit: no plan file ---
+    if not args.plan_file or not os.path.exists(args.plan_file):
+        print(json.dumps({
+            "triggered": False,
+            "severity": "none",
+            "reason": "no_plan",
+            "message": "Skipped — no PLAN.md found.",
+        }, indent=2, ensure_ascii=False))
+        return
+
     display_unit = parse_display_unit(args.health_profile)
 
     # Load recent weight readings (last 28 days for streak counting)
