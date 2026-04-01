@@ -122,7 +122,7 @@ Default: assume **before-eating** (enables most useful feedback).
 Backfilled meals from missing-meal handling are always "already eaten."
 
 #### 2.4 Estimate portions
-Default: assume standard portions, prefix with `~`. See `references/default-portions.md` for reference values.
+When user omits portion size, use standard single-serving defaults and prefix with `~`.
 
 Flag any item that appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs") — Step 4 will decide whether to ask for clarification.
 
@@ -186,7 +186,6 @@ If the user message may trigger multiple skills, read `SKILL-ROUTING.md`. This s
 
 ## Reference Files
 
-- `references/default-portions.md` — Standard single-serving portion sizes
 - `references/cooking-oil-rules.md` — Oil estimation for cooked dishes (CN focus)
 - `references/produce-rules.md` — Vegetable/fruit tracking rules (CN region)
 - `response-schemas.md` — ① ② ③ section format templates, suggestion type rules, food suggestion format, and full reply examples
