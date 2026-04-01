@@ -67,7 +67,7 @@ optimization every time.
    - For how long (start date → end date)
    - When to check in (midpoint and end)
 
-2. **Create habit** via `action-pipeline.py activate`:
+2. **Create habit** via `weight-gain-habits`:
    ```bash
    python3 {habit-builder:baseDir}/scripts/action-pipeline.py activate \
      --action '{
@@ -82,7 +82,7 @@ optimization every time.
      [--strict] \
      --source-advice "<strategy context>"
    ```
-   - `--strict`: add when `logging_gaps` + `calorie_surplus` detected (see `references/strict-mode.md`).
+   - `--strict`: add when `logging_gaps` + `calorie_surplus` detected (see `weight-gain-habits/references/strict-mode.md`).
    - The script outputs the complete `habits.active` entry JSON. **Write it to `habits.active` immediately.**
 
 3. **Save strategy metadata:**

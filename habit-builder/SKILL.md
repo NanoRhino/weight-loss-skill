@@ -1,12 +1,13 @@
 ---
 name: habit-builder
 description: >
-  Designs and manages healthy habits for sustainable weight loss.
+  Designs and manages general lifestyle habits for sustainable weight loss.
   Atomic Habits / Tiny Habits methodology. Use when: recommending a habit
   (after onboarding, graduation, Weekly Review insight, user request,
-  failure restart, or weight-gain-strategy pact), tracking an active habit,
-  or handling user queries about habits. Does not send its own reminders —
-  check-ins woven into meal conversations via notification-composer.
+  or failure restart), tracking an active habit, or handling user queries
+  about habits. Does NOT own weight-gain pact habits — those belong to
+  weight-gain-habits. Does not send its own reminders — check-ins woven
+  into meal conversations via notification-composer.
 ---
 
 # Habit Builder
@@ -18,7 +19,7 @@ description: >
 ## Routing Gate
 
 **Entry paths:**
-- **Recommendation trigger:** onboarding complete / habit graduated / Weekly Review insight / user asks / failure restart / `weight-gain-strategy` cause-check pact
+- **Recommendation trigger:** onboarding complete / habit graduated / Weekly Review insight / user asks / failure restart
 - **Check-in:** notification-composer reads `habits.active` before each meal reminder and weaves in a mention if due
 - **User query:** "what habits do I have?" / "how am I doing?" / "can I change my habit?"
 
@@ -37,7 +38,7 @@ description: >
 Habits appear inside meal conversations. No separate reminders. Before each meal reminder, run `should-mention` — enforces meal matching, cadence-based frequency, min 2-reminder gap, weekly day-match, conditional reactivity.
 
 - One sentence max. Tone: casual friend. Record response to `habits.daily_log.{date}`.
-- `strict: true` habits (from weight-gain-strategy): week-1 frequency for 2 weeks. See `weight-gain-strategy/references/strict-mode.md`.
+- Weight-gain pact habits (`source: "weight-gain-strategy"`) are owned by `weight-gain-habits` — see that skill for strict mode and pact-specific lifecycle.
 
 → Full type table, frequency phases, examples: `references/habit-details.md`
 
@@ -117,6 +118,6 @@ Turns advice from any skill into a queue of tiny, trackable actions. Activate wh
 |------|----------|
 | `references/habit-details.md` | Type → timing table, frequency phases, tiny-fy examples, feedback examples, blacklisted phrases, lifestyle gap dimensions |
 | `references/recommendation.md` | How to choose, tiny-fy, present, and handle acceptance/decline |
-| `references/lifecycle.md` | Active tracking, completion signals, graduation, failure/restart, strict-habit failure, scaling, concurrent habits, data schema |
+| `references/lifecycle.md` | Active tracking, completion signals, graduation, failure/restart, scaling, concurrent habits, data schema |
 | `references/action-pipeline.md` | Advice-to-Action Pipeline step details and queue management rules |
 | `references/script-reference.md` | `action-pipeline.py` subcommand syntax and data structures |

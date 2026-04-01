@@ -159,7 +159,7 @@ Adapt the closing to the user's language.
 
 The opening line is optional — use it for context when relevant (time of day, callback to yesterday, etc.), skip it when it adds nothing.
 
-**Strict mode:** If `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, **read `weight-gain-strategy/references/strict-mode.md` and follow all notification-composer behaviors listed there** (calorie running total, proactive nudge, morning accountability, extended frequency).
+**Strict mode:** If `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, **read `weight-gain-habits/references/strict-mode.md` and follow all notification-composer behaviors listed there** (proactive nudge, morning accountability, extended frequency, daily motivation + overshoot tough love).
 
 #### Examples
 
