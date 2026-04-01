@@ -92,28 +92,17 @@ python3 {baseDir}/scripts/nutrition-calc.py load --data-dir {workspaceDir}/data/
 
 ## Workflow — Log Food
 
-### Step 1: Prepare
+### Step 1: Recognize & Log
 
-At the start of each conversation, read these files silently:
+Recognize what the user ate, estimate nutrition, then call `log-meal` to save.
 
-| File | Purpose |
-|------|---------|
-| `health-preferences.md` | Food likes/dislikes, allergies, scheduling habits |
-| `health-profile.md` | Meal schedule, diet mode, unit preference |
-| `locale.json` | Region (CN for produce tracking), timezone |
-| `PLAN.md` | Daily calorie range, macro targets |
-
-### Step 2: Recognize
-
-Understand what the user ate (or is about to eat). Determine all of the following before calling any script:
-
-#### 2.1 Collect input
+#### 1.1 Collect input
 Merge consecutive messages into a single input before proceeding.
 
-#### 2.2 Determine meal type
+#### 1.2 Determine meal type
 If user explicitly states meal type ("breakfast", "this is lunch") → pass as `--meal-type`. Otherwise omit (script auto-detects from timestamp + schedule). User's statement always takes priority, even if it contradicts the time of day.
 
-#### 2.3 Detect meal timing
+#### 1.3 Detect meal timing
 Determine before-eating (default) or already-eaten → pass as `--eaten` to script.
 
 Infer from tense/context. When ambiguous, check:
@@ -121,14 +110,14 @@ Infer from tense/context. When ambiguous, check:
 2. **Scheduling habits** — `health-preferences.md > Scheduling` patterns can shift windows or mark meals as always retroactive.
 
 Default: assume **before-eating** (enables most useful feedback).
-Backfilled meals from missing-meal handling are always "already eaten."
+Backfilled meals from missing-meal handling are always "already eaten" — never use `right_now` suggestion type.
 
-#### 2.4 Estimate portions
+#### 1.4 Estimate portions
 When user omits portion size, use standard single-serving defaults and prefix with `~`.
 
-Flag any item that appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs") — Step 4 will decide whether to ask for clarification.
+Flag any item that appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs") — Step 2 will decide whether to ask for clarification.
 
-#### 2.5 Estimate nutrition
+#### 1.5 Estimate nutrition
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
 
 - China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
@@ -146,11 +135,7 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 - Deep-fried: oil already in standard nutrition data — don't double-count
 - Soups: only count visible floating oil; clear broth → 0g
 
-### Step 3: Call `log-meal`
-
-Call `log-meal` with the recognition results from Step 2 (see Scripts section for full parameter reference).
-
-### Step 4: Respond
+### Step 2: Respond
 
 Use `log-meal` results to generate the reply. **Must follow the format templates in `response-schemas.md`.**
 
@@ -158,7 +143,10 @@ Use `log-meal` results to generate the reply. **Must follow the format templates
 
 **Portion clarification:** If Step 2 flagged any ≥ 2× normal items → ask ONE question using everyday references (palm-sized, half plate) — **never ask for grams**. If multiple items are ≥ 2×, ask about all in one message. If the user doesn't answer, default to the most likely reasonable portion. Never ask more than once per food item.
 
-**Missing meal note:** `log-meal` auto-detects missing meals (assumed normal intake) — do NOT stop to ask about skipped meals. If missing meals were detected, append a note that they were assumed normal and invite the user to provide details (see `missing-meal-rules.md`).
+**Missing meal note:** `log-meal` auto-detects missing meals — do NOT ask about them.
+- `has_missing = true` → append PS: which meals were assumed normal, invite corrections
+- Assumed meals: suggestion calc only, never show in progress display
+- User says "skipped" → mark zero intake, re-run `query-day`; "can't recall" → keep assumed value
 
 ---
 
@@ -185,5 +173,3 @@ If the user message may trigger multiple skills, read `SKILL-ROUTING.md`. This s
 ## Reference Files
 
 - `response-schemas.md` — ① ② ③ section format templates, suggestion type rules, food suggestion format, and full reply examples
-- `missing-meal-rules.md` — Missing meal detection rules and templates
-- `ui-spec.md` — Message formatting guidelines
