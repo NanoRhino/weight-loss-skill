@@ -142,7 +142,13 @@ Use the cron tool directly for listing and removing:
    - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
 4. Also verify the weight reminder cron job exists (Mon & Thu, 30 min before breakfast — see § "Weight reminders" below). Create if missing.
 5. Also verify the weekly report cron job exists (Sunday 21:00 — see § "Weekly report" below). Create if missing.
-5. Do all of this **silently** — do not mention it to the user.
+6. Also verify the daily review cron job exists (dinner + 3h — see § "Daily review" below). Create if missing. If dinner time changed, remove and recreate.
+7. **Diet pattern detection** — special handling:
+   - Read `health-profile.md > Automation > Pattern Detection Completed`
+   - If has a date → job already completed. If job still exists, remove it (stale).
+   - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it.
+   - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
+8. Do all of this **silently** — do not mention it to the user.
 
 ---
 
@@ -193,6 +199,35 @@ bash {baseDir}/scripts/create-reminder.sh \
   --message "Run weekly-report to generate this week's progress report." \
   --cron "0 21 * * 0"
 ```
+
+### Daily review (every day, dinner + 3h)
+
+Daily nutrition summary. Cron time = dinner reminder time + 3 hours. Derive dinner time from `health-profile.md > Meal Schedule`. Example: dinner at 18:00 → daily review cron at 21:00.
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Daily review" \
+  --message "Run daily-review to generate today's nutrition summary." \
+  --cron "0 21 * * *"
+```
+
+Included in auto-sync: when dinner time changes, adjust this cron accordingly.
+
+### Diet pattern detection (self-destructing, onboarding + 3 days)
+
+One-time diet pattern analysis. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = same as daily review (dinner + 3h).
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Diet pattern detection" \
+  --message "Run diet-pattern-detection skill." \
+  --cron "0 21 * * *"
+```
+
+**Not included in normal auto-sync** — this job is managed by its own lifecycle:
+- Created once at onboarding (by notification-manager)
+- Self-deleted by diet-pattern-detection skill after successful execution
+- See auto-sync special handling below
 
 ---
 

@@ -1,22 +1,89 @@
-# Response Examples
+# Response Schemas
 
-## Setting a Target
+## Food Log Reply Format
+
+Every food log reply has up to three sections:
+
+### ① Meal Details
 
 ```
-✅ Target set!
+📝 [Meal type] logged!
 
-📋 Daily targets:
-Calories: 1500 kcal
-Protein: 91g (78–104g)
-Carbs: 181g (140–222g)
-Fat: 46g (33–58g)
-
-Meal allocation: Breakfast 450 / Lunch 600 / Dinner 450 kcal
-
-Start logging your first meal!
+🍽 This meal total: XXX kcal | Protein Xg | Carbs Xg | Fat Xg
+· Food 1 — portion — XXX kcal
+· Food 2 — portion — XXX kcal
 ```
 
-## Food Log Reply
+### ② Nutrition Summary
+
+Cumulative intake evaluation (from `evaluate` output). Always show.
+
+```
+📊 So far today: XXX calories [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+[1-sentence overall comment]
+```
+
+- Show cumulative `actual` values; do NOT show checkpoint target numbers — only status indicators
+- Status: ✅ on track, ⬆️ high, ⬇️ low (from `status` field)
+- 1-sentence comment: summarize overall, can lead into suggestion. Keep complementary with ③, not repetitive
+- Language consistency: do not mix languages (no "蛋白质on track"). Use localized nutrient names
+- Forgotten/assumed meals: only show real recorded values
+- **CN region:** See `references/produce-rules.md` for produce status line format
+
+### ③ Suggestion
+
+Use `evaluation.suggestion_type` from `log-meal`:
+
+**`"right_now"`** — Before eating, adjustment needed:
+```
+⚡ Right now: [specific adjustment for current meal]
+```
+- Reduce/swap items in current meal (not yet eaten). Add items to next occasion, not current (already prepared).
+- When reducing, tell user they can have it later ("skip bread now, save for dinner")
+- Do NOT list per-item calories. Single option → adjusted totals. Multiple → list and ask.
+
+**`"next_meal"`** — Already eaten, adjustment needed:
+```
+💡 Next meal: [forward-looking compensatory advice]
+```
+- Suggest next-meal adjustments. Frame as planning, never fixing a mistake.
+- Last meal + over target: "A bit over today, totally normal — aim for your usual pattern tomorrow."
+
+**`"next_time"`** — On track:
+```
+💡 Next time: [habit tip or next-meal pairing — specific food + amount, no calorie listing]
+```
+
+**`"case_d_snack"`** — Final meal, below BMR: recommend adding a snack. Gentle but clear.
+
+**`"case_d_ok"`** — Final meal, mild deficit (≥ BMR, < target): note they CAN snack if hungry, no need if not.
+
+**✨ Nice work** (optional, between ② and ③):
+```
+✨ [1–2 genuine lines tied to actual food choices, or omit if nothing noteworthy]
+```
+
+---
+
+## Food Suggestion Format
+
+When suggesting food (in any suggestion type):
+
+1. **State the category** — "high-protein food", "complex carbs", "healthy fat"
+2. **Give concrete examples** — prioritize foods from user's recent meal records (`load` with past dates). Falls back to common, easy-to-obtain foods.
+3. **Respect preferences** — never suggest disliked/allergenic foods; favor loved foods
+
+Examples:
+- ✅ "加点**优质蛋白**，比如你常吃的鸡胸肉或水煮蛋"
+- ✅ "Add some **complex carbs** — like the oatmeal you had yesterday"
+- ❌ "Add 100g chicken breast" (no category, no personalization)
+- ❌ "Try quinoa with salmon" (user may never eat these)
+
+---
+
+## Full Examples
+
+### On Track
 
 ```
 📝 Lunch logged!
@@ -32,7 +99,7 @@ Protein and fat are on track, carbs slightly low — adding a bit of grain at di
 💡 Next time: Try adding half a cup of quinoa to your salad for an extra carb boost.
 ```
 
-## Food Log with Adjustment Needed
+### Adjustment Needed (Before Eating)
 
 ```
 📝 Lunch logged!
@@ -47,7 +114,7 @@ Calories and carbs are running high while protein is low — the rice + bubble t
 ⚡ Right now: Swap the bubble tea for unsweetened tea, and rice reduced to half a bowl — the other half can go with dinner. Protein is low, so dinner add some high-protein food, like your usual grilled chicken breast or eggs. After adjustment, this meal would total ~340 kcal, protein 8g, carbs 58g, fat 10g.
 ```
 
-## Food Log with Adjustment Needed — Already Eaten
+### Adjustment Needed (Already Eaten)
 
 ```
 📝 Lunch logged!
@@ -62,9 +129,7 @@ Calories and carbs are running high while protein is low — the fried rice and 
 💡 Next meal: Dinner go heavier on high-protein food — like your usual grilled chicken breast or steamed fish — and lighter on carbs, keep rice to half a bowl or skip it.
 ```
 
-## Daily Summary — Calories On Track or Over
-
-When the user closes the day ("今天都吃完了", "done eating for today", etc.), reply with the daily summary only. **Do NOT add any sign-off** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". "Done eating" ≠ going to sleep. End with the suggestion or summary line — nothing after it.
+### Daily Summary — On Track or Over
 
 ```
 📊 Today's summary:
@@ -76,7 +141,7 @@ Fat 34g ⚠️ Low
 Nice job overall! Carbs and fat are a bit low — try adding half a bowl of rice and a handful of nuts tomorrow 💪
 ```
 
-## Daily Summary — Calories Under Target (Below BMR)
+### Daily Summary — Below BMR
 
 ```
 📊 Today's summary:
@@ -88,7 +153,7 @@ Fat 28g ⚠️ Low
 🍽 Today's total (~980 kcal) is below your resting metabolism (~1280 kcal) — I'd recommend adding a snack. Some healthy fat or protein, like the nuts you had last week or a cup of yogurt.
 ```
 
-## Daily Summary — Calories Under Target (Above BMR)
+### Daily Summary — Mild Deficit
 
 ```
 📊 Today's summary:

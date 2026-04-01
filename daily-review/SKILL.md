@@ -30,24 +30,20 @@ You are a concise, supportive diet coach delivering an end-of-day summary. Short
 
 ## Trigger Strategy
 
-### Auto-trigger
+### Cron Trigger
 
-**1 hour after** the user logs their **last meal of the day** (dinner in 3-meal mode, meal_2 in 2-meal mode). The delay gives the user time to log late snacks or corrections before the review locks in.
+Daily cron job created by `notification-manager` at onboarding. Cron time = dinner reminder time + 3 hours (e.g., dinner at 18:00 → daily review at 21:00).
 
-Implementation: when the last expected meal is logged, set a 1-hour timer via `notification-manager`. If the user logs another meal within that hour (e.g., a snack), reset the timer. After the timer fires, generate and send the review as a standalone message.
-
-Only auto-trigger if at least 2 meals are logged for the day.
+Pre-send checks (run before composing — if any fail, produce no output):
+1. At least 1 meal logged today? → No → skip silently, no message.
+2. Daily review already sent today (check `data/daily-reviews/YYYY-MM-DD.json` exists)? → skip (avoid duplicate if user triggered manually earlier).
+3. Only 1 meal logged? → Generate a mini-review (incomplete data note + encouragement), skip the full format.
 
 ### Manual Trigger
 
 User explicitly asks for a daily review at any time:
 - `"review my day"` / `"how did I eat today"` / `"daily review"`
 - `"日复盘"` / `"今天吃得怎么样"` / `"复盘一下"` / `"今日总结"`
-
-### Pre-send Checks
-
-1. At least 1 meal logged today? If not → `"No meals logged today — nothing to review yet. Log something and I'll review it for you!"`
-2. Only 1 meal logged? → Generate a mini-review (incomplete data note + encouragement), skip the full format.
 
 ---
 
@@ -133,7 +129,17 @@ All on track:
 四项全部达标，今天吃得很均衡。比昨天的结构更合理，继续保持这个节奏。
 ```
 
-### Section 2: Tomorrow's Key Suggestions
+### Section 2: Calorie Safety Check
+
+Compare daily total against BMR (from `PLAN.md` or calculate via Mifflin-St Jeor). Append after the summary, before suggestions.
+
+- **Daily total < BMR** → gentle snack recommendation:
+  `"今天总热量偏低（~X kcal），低于基础代谢（~Y kcal）。如果还没睡，建议加个小餐——比如一杯牛奶或一把坚果。"`
+- **Daily total ≥ BMR but < target** → mild note:
+  `"今天热量比目标少了一些，不过还在安全范围。饿了可以加个小零食，不饿就不用刻意吃。"`
+- **On track or over** → no extra note (Section 3 suggestions handle forward-looking advice).
+
+### Section 3: Tomorrow's Key Suggestions
 
 2-3 bullet actionable suggestions for tomorrow, based on today's diet log — what to watch out for and adjust:
 
@@ -182,8 +188,8 @@ Skip status indicators (✅/⬆️/⬇️). Show absolute numbers only. Replace 
 **User asks for a different date:**
 Support `"review yesterday"` / `"复盘昨天"` / `"review March 15"`. Load that date's data instead.
 
-**Auto-trigger timing:**
-The review is sent as a standalone message 1 hour after the last meal log. If quiet hours have started by then (after 9 PM per `notification-composer` rules), still send — the review is expected content, not a cold outreach. But if the 1-hour window extends past 11 PM, skip and generate next morning on request.
+**Cron timing:**
+The review is sent via daily cron (dinner + 3h). If the cron fires past 11 PM (e.g., late dinner schedule), still send — the review is expected content. The user can also trigger manually at any time.
 
 ---
 
@@ -230,7 +236,7 @@ Stored to `data/daily-reviews/YYYY-MM-DD.json` after generation:
 **See `SKILL-ROUTING.md` for the full conflict resolution system.** This skill is **Priority Tier P4 (Reporting)**.
 
 - **Daily review + weekly report on same day:** Weekly report takes precedence. Skip daily review if the weekly report already covers today.
-- **Auto-trigger after last meal:** Sends as a standalone message 1 hour after the last meal log. Not appended to the diet-tracking response.
+- **Auto-trigger via cron:** Sends as a standalone message at dinner + 3h. Not appended to the diet-tracking response.
 - **User asks for review mid-day:** Generate a partial review for logged meals so far, with a note that the day isn't over.
 - **Emotional distress detected:** Defer to `emotional-support` (P1). Do not deliver a review during emotional episodes.
 
