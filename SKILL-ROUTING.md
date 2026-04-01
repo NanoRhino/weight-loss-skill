@@ -90,6 +90,8 @@ I just said?"
 | "make me a workout plan and a meal plan" | exercise-planning + meal-planning | exercise-tracking + meal-planner |
 | "I'm having oatmeal, feeling great today!" | food-log + positive-emotion | diet-tracking + emotional-support |
 | "skipped lunch, don't care anymore" | food-skip + emotional-distress | diet-tracking + emotional-support |
+| "我吃了所有小零食🥹" | food-log + emotional-distress (emoji signal) | diet-tracking + emotional-support |
+| "ate the whole cake 😭" | food-log + emotional-distress (emoji signal) | diet-tracking + emotional-support |
 | "中午外面吃什么好？" | restaurant-recommendation | restaurant-meal-finder |
 | "I'm at Chipotle, what should I order?" | restaurant-recommendation | restaurant-meal-finder |
 | "附近有什么能吃的，帮我推荐一下" | restaurant-recommendation | restaurant-meal-finder |
@@ -130,7 +132,7 @@ the daily calorie target, not against net calories.
 
 **Resolution: Emotion leads. Data follows silently.**
 
-**Case A: Negative emotion** ("ate too much again, I'm so fat")
+**Case A: Negative emotion** ("ate too much again, I'm so fat", or food message + distress emoji like 🥹😭😢)
 1. `emotional-support` takes the lead — acknowledge the feeling first
 2. Do NOT log the food or respond with nutrition data in the first reply
 3. If the user later provides specifics or calms down, log then
@@ -375,6 +377,24 @@ three cases, asking again makes things worse. Move forward with what you have.
 If a user starts logging food but pivots to emotional distress, the
 routing system re-evaluates on every message. The new intent takes
 priority per the tier rules. Partially collected data is preserved.
+
+**Minimal / follow-up messages (emoji-only, "?", stickers, single-word reactions):**
+When the user sends a message with no clear standalone intent — such as a
+single emoji (🤔, 😋, 👍), a question mark, a sticker, or a brief reaction
+("哈哈", "嗯?", "啊?") — treat it as a **continuation of the immediately
+preceding conversation topic**, not as a new intent to be routed from scratch.
+
+1. **Identify the active topic** from the most recent exchange (e.g., if the
+   bot just asked a question about a photo, the follow-up emoji is a response
+   to that question)
+2. **Route to the same skill** that handled the previous turn — do not
+   re-evaluate routing as if this were a fresh message
+3. **Interpret in context:** a "?" after the bot asked "你是要从里面挑东西吃吗？"
+   means the user is confused about that question or wants more info — not
+   that they are starting a new topic
+4. **Never ignore recent context** to fall back on older conversation history.
+   If the bot just discussed Topic A and the user sends a minimal follow-up,
+   it refers to Topic A — even if Topic B was discussed earlier in the session
 
 **Ambiguous intent:**
 When it's genuinely unclear which skill should handle a message, prefer

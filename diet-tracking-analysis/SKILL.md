@@ -641,7 +641,7 @@ Read `SKILL-ROUTING.md` for the full conflict resolution rules. Key scenarios
 for this skill:
 
 - **Exercise + food in one message** (Pattern 1): Merge — log both in a single response. Exercise summary first, then meal details.
-- **Food log + emotional distress** (Pattern 2A): Emotional support leads. Do NOT log food in the first reply.
+- **Food log + emotional distress** (Pattern 2A): Emotional support leads. Do NOT log food in the first reply. **This includes emoji-based distress signals** — a food message with 🥹, 😭, 😢, 😩, or other distress emojis is Pattern 2A, even if the text itself is neutral (e.g., "我吃了所有小零食🥹"). See `emotional-support/SKILL.md > Emoji-based signals` for the full list.
 - **Food log + positive emotion** (Pattern 2B): Log food normally, add brief warm acknowledgment.
 - **Habit mention in reply** (Pattern 7): Log food as primary, record habit inline.
 
