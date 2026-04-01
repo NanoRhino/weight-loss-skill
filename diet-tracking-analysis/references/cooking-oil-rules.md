@@ -1,20 +1,17 @@
-# Cooking Oil Estimation Rules
+# Cooking Oil Estimation
 
-When estimating calories for cooked dishes (especially Chinese-style stir-fries, braised dishes, etc.), cooking oil is a major hidden calorie source that is commonly underestimated. Apply the following rules:
+Cooking oil is a hidden calorie source in cooked dishes. 1g oil ≈ 9 kcal (pure fat).
 
-## Visual assessment
+## Oil level (per 200g dish)
+| Level | Visual cue | Oil estimate |
+|-------|-----------|-------------|
+| None | Matte, no sheen | 5g |
+| Light | Slight gloss | 8–10g |
+| Moderate | Oil film, pooling at edges | 12–15g |
+| Heavy | Oil pooling, heavy glisten | 18–25g |
 
-1. **No visible oil** (matte surface, no pooling, no sheen) — estimate **5g cooking oil per 200g of dish** as a baseline. This covers absorbed oil in standard home-cooked or canteen-style dishes.
-2. **Light sheen** (slight reflective gloss on food surfaces) — estimate **8–10g cooking oil per 200g of dish**.
-3. **Moderate oil** (visible oil film, some pooling at edges, noticeable reflection under light) — estimate **12–15g cooking oil per 200g of dish**.
-4. **Heavy oil** (oil pooling on the plate/bowl, food glistening heavily, strong light reflection) — estimate **18–25g cooking oil per 200g of dish**.
-
-## Application rules
-
-- **Always include cooking oil** in the calorie and fat calculation for cooked dishes — do not ignore it.
-- **Fold oil into each dish's calories** — add the estimated cooking oil calories and fat directly into that dish's total. Do NOT list cooking oil as a separate line item in the meal details. For example, if stir-fried greens (200g) is 60 kcal before oil and the estimated oil is 5g (45 kcal), report the dish as ~105 kcal total.
-- For photo-based logging, judge the oil level by the **reflective sheen and pooling** visible in the image under ambient lighting conditions.
-- For text-based logging with no photo, default to the **"no visible oil" baseline** (5g per 200g) unless the user describes the dish as oily, deep-fried, or swimming in oil.
-- Deep-fried foods already have oil absorption factored into standard USDA/nutrition data — do not double-count.
-- Soups and broths: estimate oil from any visible oil droplets floating on the surface; clear broth with no oil film → 0g added oil.
-- Each 1g of cooking oil ≈ 9 kcal, counted entirely as fat.
+## Rules
+- Fold oil into each dish's calories (not as separate line item)
+- Photo: judge by sheen/pooling; Text with no photo: default "None" (5g/200g) unless described as oily
+- Deep-fried: oil already in standard nutrition data — don't double-count
+- Soups: only count visible floating oil; clear broth → 0g
