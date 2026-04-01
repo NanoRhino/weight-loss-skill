@@ -1,30 +1,18 @@
-# Produce Tracking Rules (China Region)
+# Produce Tracking (China Region)
 
-## Estimating produce amounts
+## Estimation
+- Log `vegetables_g`/`fruits_g` in `--meal-json`; prefix with `~`
+- Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
 
-When logging a meal, estimate vegetable and fruit gram weights and include `vegetables_g`/`fruits_g` in `--meal-json`:
-- Standard portions: a plate of stir-fried greens ≈ 200g, one medium apple ≈ 180g, half a cucumber ≈ 100g
-- Prefix estimates with `~` in the response
-- Starchy vegetables (potato, sweet potato, taro, corn) count toward carbs/calories but **not** toward the vegetable target
-
-## Response format
-
-After the macro status line in ② Nutrition Summary, add a produce status line when `has_vegetable_target` is true or `is_final_meal` is true:
+## Response line (after macro summary)
+Show when `has_vegetable_target` or `is_final_meal`:
 ```
-🥦 Vegetables: ~XXXg ✅ / ⬇️ still need XXg   🍎 Fruit: ~XXXg ✅ / ⬇️ none today (only at final meal)
+🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~XXXg ✅/⬇️ (fruit only at final meal)
 ```
-Use ✅ for `on_track`, ⬇️ for `low`, ⬆️ for `high`. Omit when `has_vegetable_target` is false and `is_final_meal` is false (i.e. breakfast checkpoint).
+✅ on_track | ⬇️ low | ⬆️ high. Omit at breakfast if no vegetable target.
 
-## Priority rules
-
-Produce targets have **lower priority** than calories and macros:
-- Never suggest reducing vegetables unless they cause calorie/macro excess (e.g. oily stir-fry)
-- If adding vegetables conflicts with calorie targets, calorie target takes precedence
-
-## Suggestions (based on `produce` in log-meal results)
-
-- `vegetable_status: "low"` at non-final meal → suggest adding vegetables at the next meal
-- `vegetable_status: "low"` at final meal → suggest a side of low-calorie vegetables now
-- `fruit_status: "low"` at final meal → suggest a fruit as snack/dessert if calories allow
-- `fruit_status: "high"` → briefly mention, no strong push
-- On track → brief positive note
+## Rules
+- Produce targets < calorie/macro targets in priority
+- Low vegetables → suggest adding at next meal; at final meal → suggest now
+- Low fruit at final meal → suggest if calories allow
+- Never reduce vegetables unless causing calorie excess
