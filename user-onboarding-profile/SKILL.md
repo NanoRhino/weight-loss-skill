@@ -181,7 +181,7 @@ After receiving the user's answer in Round 4, do the following:
 
 3. **Confirm work type + TDEE, then open-ended check-in** — State the activity level and TDEE, then invite the user to share anything about their situation that might help you coach them better. This is NOT a fixed question — it's a gentle, open-ended prompt. Give a couple of examples to guide them, and make it clear that skipping is totally fine. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
 
-   > Example: "正常通勤属于轻度活跃，你每天基础消耗约 1850 大卡。对了，如果方便的话也可以跟我多聊聊你的情况，比如之前减肥最难的点是什么、平时什么时候最容易乱吃——这些都能帮我更好地帮你。不说也完全没关系，后面慢慢聊也行😊"
+   > Example: "正常通勤属于轻度活跃，你每天基础消耗约 1850 大卡。如果你愿意的话，也可以多跟我聊聊减脂相关的个人情况，比如饮食偏好、生活习惯之类的，聊得越多计划越贴合你。当然，如果不想聊，直接说"生成方案"我就帮你出计划😊"
 
 4. **Receive response, then transition to plan** — The user may share detailed context, give a brief answer, or skip entirely. All are fine. If they share useful context (e.g., habits, obstacles, lifestyle details), save it to `health-preferences.md` under the appropriate section(s). Then flow directly into generating the profile and plan.
 
@@ -192,7 +192,7 @@ After receiving the user's answer in Round 4, do the following:
 
 6. **Timezone** — Do NOT handle timezone here. It is auto-initialized by the agent's boot sequence (see AGENTS.md). By the time onboarding runs, `timezone.json` should already exist.
 
-7. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "很好，你的信息已经记录好了！接下来我来给你制定一个减重计划。" The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
+7. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "很好，你的信息已经记录好了！接下来我来给你制定一个减脂计划。" The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
 
 ## Health Safety Note
 
