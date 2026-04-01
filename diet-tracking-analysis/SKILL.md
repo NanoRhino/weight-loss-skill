@@ -130,8 +130,19 @@ Flag any item that appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs") 
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
 
 - China region: also estimate `vegetables_g` and `fruits_g`
-- Cooked dishes (especially Chinese-style): read `references/cooking-oil-rules.md` for oil estimation — fold oil into each dish's calorie total, never list as separate line item
 - Data source: USDA FoodData Central primary; for regional foods, use local databases (e.g. China CDC)
+
+**Cooking oil** (1g ≈ 9 kcal, pure fat) — fold into each dish's calories, never list separately:
+| Visual cue | Oil/200g |
+|-----------|---------|
+| Matte, no sheen | 5g |
+| Slight gloss | 8–10g |
+| Oil film, pooling at edges | 12–15g |
+| Heavy pooling, glisten | 18–25g |
+
+- Photo: judge by sheen/pooling; Text with no photo: default 5g/200g unless described as oily
+- Deep-fried: oil already in standard nutrition data — don't double-count
+- Soups: only count visible floating oil; clear broth → 0g
 
 ### Step 3: Call `log-meal`
 
@@ -170,7 +181,6 @@ If the user message may trigger multiple skills, read `SKILL-ROUTING.md`. This s
 
 ## Reference Files
 
-- `references/cooking-oil-rules.md` — Oil estimation for cooked dishes (CN focus)
 - `references/produce-rules.md` — Vegetable/fruit tracking rules (CN region)
 - `response-schemas.md` — ① ② ③ section format templates, suggestion type rules, food suggestion format, and full reply examples
 - `missing-meal-rules.md` — Missing meal detection rules and templates
