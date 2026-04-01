@@ -104,7 +104,7 @@ Structure: **"I will do X" + "you do Y"**
 
 > ⚠️ **MUST execute both script calls below before replying.** Do not skip.
 
-**Step 1 — Create habit** via `weight-gain-habits`:
+**Step 1 — Create habit** via `action-pipeline.py activate`:
 
 ```bash
 python3 {habit-builder:baseDir}/scripts/action-pipeline.py activate \
@@ -125,7 +125,7 @@ Field mapping:
 - `action_id`: derive from cause (e.g., `"swap-afternoon-snack"`, `"log-meals"`, `"restore-wed-run"`)
 - `trigger_cadence`: `daily_fixed` for meal-bound pacts, `weekly` for exercise, `conditional` for situational
 - `--source weight-gain-strategy`: marks this habit as originating from a cause-check pact
-- `--strict`: add when the cause includes `logging_gaps` AND `calorie_surplus`. See `weight-gain-habits/references/strict-mode.md`.
+- `--strict`: add when the cause includes `logging_gaps` AND `calorie_surplus`. See `references/strict-mode.md`.
 
 The script outputs the complete `habits.active` entry JSON. **Write it to `habits.active` immediately.**
 

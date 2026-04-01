@@ -127,9 +127,9 @@ When a `strict: true` habit fails (3 consecutive misses):
 
 | Aspect | Owner |
 |--------|-------|
-| **Trigger condition** (logging_gaps + calorie_surplus) | `weight-gain-strategy` cause-check-flow.md |
-| **Writing `strict: true`** to habits.active | `weight-gain-habits` (at pact creation) |
-| **Executing strict behaviors** (nudges, morning accountability, tough love) | `notification-composer` (reads this file) |
-| **Frequency adjustment** (week-1 for 2 weeks) | `habit-builder` script (`get_phase(strict=True)`) |
-| **Lifecycle** (graduation, failure, opt-out) | `weight-gain-habits` |
-| **Failure escalation** (back to weight-gain-strategy if streak 4+) | `weight-gain-habits` → `weight-gain-strategy` |
+| **Trigger condition** (logging_gaps + calorie issue) | `weight-gain-strategy` cause-check-flow.md |
+| **Writing `strict: true`** to habits.active | `weight-gain-strategy` (at pact creation) |
+| **Executing strict behaviors** (nudges, morning accountability, tough love) | `notification-composer` + `diet-tracking-analysis` |
+| **Frequency adjustment** (week-1 for 2 weeks) | `habit-builder` check-in logic |
+| **Lifecycle** (graduation, failure, opt-out) | `habit-builder` |
+| **Failure escalation** (back to weight-gain-strategy if streak 4+) | `habit-builder` → `weight-gain-strategy` |

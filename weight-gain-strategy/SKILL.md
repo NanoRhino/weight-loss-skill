@@ -42,7 +42,7 @@ persistent the trend is.
 |----------|--------|----------|
 | `none` | 0 | Weight stable or down — just confirm the log. |
 | `comfort` | 1 | Comfort and encourage. Mention temporary causes lightly. See `references/diagnosis-templates.md` for examples. |
-| `cause-check` | 2–3 | Multi-step guided discovery: hook → user guesses → data + challenge → mutual pact → habit created via `weight-gain-habits`. See `references/cause-check-flow.md`. |
+| `cause-check` | 2–3 | Multi-step guided discovery: hook → user guesses → data + challenge → mutual pact → habit created in `habit-builder`. See `references/cause-check-flow.md`. |
 | `significant` | 4+ | Full analysis → strategy options. See `references/interactive-flow.md`. |
 
 ---
@@ -72,5 +72,5 @@ See `references/script-api.md` for full usage, parameters, and return schemas.
 | `references/interactive-flow.md` | Interactive Flow Steps 1–3, strategy types, ranking rules |
 | `references/diagnosis-templates.md` | Per-factor diagnosis lines, consequence lines, motivation lines |
 | `references/script-api.md` | Script commands, parameters, return schemas |
-| `weight-gain-habits/references/strict-mode.md` | Strict mode: trigger, behavior rules, duration, failure escalation, ownership (owned by `weight-gain-habits`) |
+| `references/strict-mode.md` | Strict mode: trigger, behavior rules, duration, failure escalation, ownership |
 | `references/data-schemas.md` | Data sources, strategy JSON schema, skill integration, routing conflicts, edge cases |
