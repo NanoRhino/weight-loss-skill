@@ -28,7 +28,7 @@ when conflicts arise.
 | **P0 — Safety** | `emotional-support` (Category 5: escalation signals) | Crisis intervention. Overrides everything. |
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
-| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder` | Designing programs and plans. |
+| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder`, `buddy` | Designing programs, plans, and engagement features. |
 | **P4 — Reporting** | `weekly-report`, `daily-review`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
@@ -300,6 +300,35 @@ build a habit or get exercise programming.
 2. Handle the foundational one first
 3. Transition naturally to the next
 4. Each planning skill's output can inform the next
+
+---
+
+### Pattern 11: Buddy + Emotional Support (P3 vs P1)
+
+**Trigger:** User triggers buddy skill while emotional distress is detected,
+or a buddy reaction would appear during an emotional support conversation.
+
+**Resolution: Buddy stays silent.**
+
+1. `emotional-support` takes full control — no buddy reactions, no ticket
+   announcements, no gacha prompts
+2. If the user explicitly asks about their buddy during distress, respond
+   briefly and gently, then return focus to emotional support
+3. Ticket-earning events that occur during emotional conversations are
+   still recorded silently — announce them at the next natural opportunity
+
+---
+
+### Pattern 12: Buddy + Data Logging (P3 vs P2)
+
+**Trigger:** User logs food/exercise AND has an active buddy that could react.
+
+**Resolution: Data logging leads. Buddy reaction is optional garnish.**
+
+1. Process the food/exercise log as primary (full checkpoint, evaluation)
+2. Optionally append a one-sentence buddy reaction at the end — max once
+   per day, and only if the response doesn't already have a suggestion
+3. Never let the buddy reaction replace or delay nutritional feedback
 
 ---
 
