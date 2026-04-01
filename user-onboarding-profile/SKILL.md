@@ -179,7 +179,7 @@ After receiving the user's answer in Round 4, do the following:
      --activity <activity_level>
    ```
 
-3. **Confirm work type + TDEE, then open-ended check-in** — State the activity level and TDEE, then invite the user to share anything about their situation that might help you coach them better. This is NOT a fixed question — it's a gentle, open-ended prompt. Give a couple of examples to guide them, and make it clear that skipping is totally fine. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering.
+3. **Confirm work type + TDEE, then open-ended check-in** — State the activity level and TDEE, then invite the user to share anything about their situation that might help you coach them better. This is NOT a fixed question — it's a gentle, open-ended prompt. Give a couple of examples to guide them, and make it clear that skipping is totally fine. Use plain text only — no Markdown formatting (no bold `**`, no tables `||`, no headers `#`). Some channels don't support Markdown rendering. **Do NOT mention 饮食习惯 as an example topic** — dietary preferences are collected separately in a later step.
 
    > Example: "正常通勤属于轻度活跃，你每天基础消耗约 1850 大卡。如果你愿意的话，也可以多跟我聊聊减脂相关的个人情况，比如减脂的难点、过往的减脂经历之类的，聊得越多计划越贴合你。当然，如果不想聊，直接说"生成方案"我就帮你出计划😊"
 
