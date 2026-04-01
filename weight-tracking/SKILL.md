@@ -102,8 +102,24 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
    ```
 3. Read response — both results arrive together:
    - `save.action`: `"created"` → "Logged ✓"; `"updated"` → "Updated ✓". Show value in preferred unit.
+   - `tools_updated: true` → TOOLS.md `current_weight` was auto-updated by the script. **Do NOT manually edit TOOLS.md** — it's already done.
    - `deviation` is `null` or `triggered: false` → just the log confirmation.
-   - `deviation.triggered: true` → ⚠️ **STOP. Read `references/deviation-workflow.md` NOW and follow it exactly.** Do NOT freestyle a response.
+   - `deviation.triggered: true` → ⚠️ **STOP.** Read BOTH files **in parallel in one tool call:**
+     - `references/deviation-workflow.md`
+     - `weight-gain-strategy/references/cause-check-flow.md` (for cause-check/significant severity)
+     
+     Then follow the workflow exactly. Do NOT freestyle a response.
+     
+     For `cause-check` severity, run analyze silently (Step A):
+     ```bash
+     python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py analyze \
+       --data-dir {workspaceDir}/data \
+       --weight-script {baseDir}/scripts/weight-tracker.py \
+       --nutrition-script {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py \
+       --plan-file {workspaceDir}/PLAN.md \
+       --health-profile {workspaceDir}/health-profile.md \
+       --tz-offset <tz>
+     ```
 
 ### User Asks for Trend / History
 

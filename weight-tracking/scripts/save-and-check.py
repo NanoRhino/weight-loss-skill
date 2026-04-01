@@ -89,9 +89,35 @@ def main():
 
         deviation_result, _ = run_script(dev_cmd)
 
+    # --- Step 3: Auto-update TOOLS.md current_weight (best-effort) ---
+    tools_updated = False
+    try:
+        tools_path = os.path.join(os.path.dirname(args.data_dir), "TOOLS.md")
+        if os.path.exists(tools_path):
+            import re
+            with open(tools_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Extract date from save result key
+            save_date = save_result.get("key", "")[:10]
+            display_val = save_result.get("value", args.value)
+            display_unit = save_result.get("unit", args.unit)
+            new_line = f"- **current_weight:** {display_val} {display_unit} ({save_date})"
+            updated = re.sub(
+                r"- \*\*current_weight:\*\*.*",
+                new_line,
+                content
+            )
+            if updated != content:
+                with open(tools_path, "w", encoding="utf-8") as f:
+                    f.write(updated)
+                tools_updated = True
+    except Exception:
+        pass  # Best-effort, don't break the main flow
+
     print(json.dumps({
         "save": save_result,
         "deviation": deviation_result,
+        "tools_updated": tools_updated,
     }, indent=2, ensure_ascii=False))
 
 
