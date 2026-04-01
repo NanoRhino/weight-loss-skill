@@ -59,7 +59,7 @@ User explicitly asks for a daily review at any time:
 | `health-preferences.md` | direct read | User food preferences (for personalized suggestions) |
 | `MEAL-PLAN.md` | direct read (if exists) | Planned meals for comparison |
 | `data/meals/{yesterday}.json` | `nutrition-calc.py load --date {yesterday}` | Yesterday's data for trend comparison (optional) |
-| `timezone.json` | direct read | Calculate correct local date |
+| `USER.md > TZ Offset` | already in context | Calculate correct local date |
 
 ### Writes
 

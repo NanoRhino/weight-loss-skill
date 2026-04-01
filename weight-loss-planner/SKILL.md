@@ -61,7 +61,7 @@ Calculate the following using the planner-calc script — do not ask the user fo
 
 **Use the calculation script** (`python3 {baseDir}/scripts/planner-calc.py`) instead of computing manually. Available commands:
 
-> 📅 **Date handling:** Read `timezone.json` to get `tz_offset`. Pass `--tz-offset {tz_offset}` to `forward-calc` and `reverse-calc` so completion dates are computed from the user's local date. **Never compute dates yourself.**
+> 📅 **Date handling:** Read `TZ Offset` from USER.md (already in context). Pass `--tz-offset {tz_offset}` to `forward-calc` and `reverse-calc` so completion dates are computed from the user's local date. **Never compute dates yourself.**
 
 ```bash
 # Individual calculations:

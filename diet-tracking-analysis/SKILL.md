@@ -43,7 +43,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 | Param | Source | Description |
 |-------|--------|-------------|
 | `--data-dir` | fixed | `{workspaceDir}/data/meals` |
-| `--tz-offset` | `timezone.json > tz_offset` | Seconds from UTC (e.g. 28800 = UTC+8) |
+| `--tz-offset` | `USER.md > TZ Offset` | Seconds from UTC (e.g. 28800 = UTC+8) |
 | `--meals` | `health-profile.md > Meals per Day` | 2 or 3 |
 | `--weight` | `PLAN.md` or `health-profile.md` | User's current weight in kg |
 | `--cal` | `PLAN.md > Daily Calorie Range` | Daily calorie target in kcal |
@@ -55,7 +55,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 | `--mode` | `health-profile.md > Diet Mode` | `balanced` (default), `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2` |
 | `--bmr` | `PLAN.md` | BMR in kcal (for case_d evaluation) |
 | `--append` | context | **Adding food to an already-logged meal.** Only pass NEW items in `--meal-json`; script auto-merges with existing items. |
-| `--region` | `locale.json > region` | Pass `CN` for China (enables produce tracking) |
+| `--region` | `USER.md > Language` | Pass `CN` for China (enables produce tracking) |
 
 **`--meal-json` format** (single-line JSON array):
 ```json

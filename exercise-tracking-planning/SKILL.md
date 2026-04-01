@@ -47,7 +47,7 @@ Read from `USER.md` and `health-profile.md` at conversation start. Required fiel
 | `height` | `USER.md > Basic Info > Height` | Optional | BMR refinement |
 | `fitness_level` | `health-profile.md > Fitness > Fitness Level` | Recommended | `beginner` / `intermediate` / `advanced` — adjusts feedback |
 | `fitness_goal` | `health-profile.md > Fitness > Fitness Goal` | Recommended | `lose_fat` / `build_muscle` / `stay_healthy` / `improve_endurance` — shapes suggestions |
-| `unit_preference` | Infer from `locale.json` (`zh-CN` → metric, `en` → check context) | Optional | `metric` (default) / `imperial` |
+| `unit_preference` | Infer from `USER.md > Language` (`zh-CN` → metric, `en` → check context) | Optional | `metric` (default) / `imperial` |
 
 If `weight` is missing on first trigger, ask the user. If `fitness_level` or `fitness_goal` are missing (shown as `—`), ask the user and **silently update `health-profile.md > Fitness`** with their answers.
 
@@ -366,7 +366,7 @@ The core design principles are:
      --key exercise-plan)
    ```
 3. **Send the presigned URL to the user** via the message tool, with a brief summary.
-4. Adapt all content (exercise names, day names, instructions, notes) to the locale from `locale.json`.
+4. Adapt all content (exercise names, day names, instructions, notes) to the locale from `USER.md > Language`.
 
 Send this message **immediately** after confirming the user's profile info, **before** you begin generating the file:
 
@@ -513,7 +513,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 ## Language Strategy
 
 - Field names in JSON remain in English (machine-readable)
-- Unit display: infer from `locale.json` (`zh-CN` → metric, `en` → check context). Default to metric if unclear.
+- Unit display: infer from `USER.md > Language` (`zh-CN` → metric, `en` → check context). Default to metric if unclear.
 
 ---
 
@@ -528,7 +528,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 | `health-profile.md > Fitness` | Fitness level, fitness goal — feedback tone, program design |
 | `health-preferences.md > Exercise` | Preferred/disliked activities — tailor feedback, skip redundant questions in planning |
 | `health-preferences.md > Scheduling & Lifestyle` | Schedule constraints for weekly summary suggestions and program scheduling |
-| `locale.json` | Unit preference (metric/imperial) |
+| `USER.md > Language` | Unit preference (metric/imperial) |
 | `data/exercise.json` | Previous exercise logs via `exercise-calc.py load` — weekly summary, trend comparison, risk alerts |
 | `logs.exercise_weekly_summary.{week}` | Previous weekly summaries — week-over-week trend comparison |
 | `training_plan.active` | Current active training plan — context for tracking feedback, plan adjustments |

@@ -510,7 +510,7 @@ Generate a self-contained HTML file using the template at
 - Replace all `{{PLACEHOLDER}}` values with actual data
 - The file must be fully self-contained (all CSS inline, no external dependencies)
 - Follow the template structure — do not add or remove sections
-- Adapt language to user's locale (read from `locale.json`)
+- Adapt language to user's locale (from USER.md (already in context))
 - Skip sections with no data (remove the entire card, do not show empty cards)
 - For the calorie bar chart: calculate bar widths as percentage of the max value in the week
 

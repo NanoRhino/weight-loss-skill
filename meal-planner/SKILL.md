@@ -97,7 +97,7 @@ When planning meals, use the **midpoint** of each range as the planning target. 
 
 1. **User tells you directly** — "I'm in Tokyo" / "I live in Texas" / "I'm Chinese" → always takes priority
 2. **USER.md / health-profile.md** — May contain country, city, or cultural background
-3. **Language inference** — If neither of the above is available, infer from `locale.json > lang`:
+3. **Language inference** — If neither of the above is available, infer from `USER.md > Language`:
    - `en` → default to US (American foods, imperial units)
    - `zh-CN` → default to China (Chinese foods, metric units)
    - `ja` → default to Japan

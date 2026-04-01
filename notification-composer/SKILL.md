@@ -70,7 +70,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
   --tz-offset {tz_offset}
 ```
 
-Read `timezone.json` to get `tz_offset` (seconds from UTC), then run the script with the correct `--meal-type` for this reminder.
+Read `TZ Offset` from USER.md (already in context), then run the script with the correct `--meal-type` for this reminder.
 
 ### Step 2: Check output
 

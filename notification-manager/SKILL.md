@@ -53,7 +53,7 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 12 * * *"
 ```
 
-`--tz` auto-detects from the agent workspace's `timezone.json`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
+`--tz` auto-detects from the agent workspace's `USER.md`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
 
 ### Parameters
 
@@ -82,8 +82,8 @@ The script resolves the delivery target (`--to`) based on the channel:
 | Others | No auto-detection — must pass `--to` explicitly | `--to "123456789"` |
 
 Timezone auto-detection searches these paths in order:
-1. `~/.openclaw/workspace-$AGENT/timezone.json`
-2. `~/.openclaw/workspace-nutritionist/$AGENT/timezone.json`
+1. `~/.openclaw/workspace-$AGENT/USER.md`
+2. `~/.openclaw/workspace-nutritionist/$AGENT/USER.md`
 
 Then calls `openclaw cron add` with `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically.
 
@@ -154,7 +154,7 @@ Use the cron tool directly for listing and removing:
 
 ## Cron Job Definitions
 
-Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `USER.md`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
 
 Every meal cron `--message` MUST tell the agent to run `notification-composer` for that meal. Keep it minimal — notification-composer owns pre-send checks, message composition, and reply handling. Do not duplicate its rules in the cron message.
 

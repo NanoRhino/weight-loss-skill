@@ -61,7 +61,7 @@ python3 {baseDir}/scripts/weight-tracker.py save \
   [--correct]
 ```
 
-- Reads `timezone.json` offset to generate local datetime key
+- Reads TZ Offset from USER.md to generate local datetime key
 - **Auto-detect new vs correction:** if the last entry is ≤ 30 minutes ago, overwrite it (treat as correction). Otherwise, create a new entry.
 - `--correct` flag: force overwrite the most recent entry regardless of time gap (for when user explicitly says "that was wrong" / "刚才称错了")
 - Returns: `{ "action": "created" | "updated", "key": "<datetime>", "value": <n>, "unit": "<u>" }`
@@ -119,7 +119,7 @@ python3 {baseDir}/scripts/weight-tracker.py set-unit \
 
 The server runs in UTC. To record the correct local datetime:
 
-1. Read `timezone.json` to get `tz_offset` (seconds)
+1. Read `TZ Offset` from USER.md (already in context)
 2. Pass `--tz-offset <seconds>` to the `save` command
 3. The script calculates the user's local time and formats the key as ISO-8601 with offset (e.g., `2026-03-06T08:30:00+08:00`)
 

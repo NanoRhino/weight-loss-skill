@@ -47,8 +47,7 @@ workspace-root/
 
 ### Rules
 - **Transactional data goes under `data/`** — not in the workspace root.
-- **System config JSON stays at workspace root** — files like timezone.json
-  and locale.json that the platform reads directly.
+- **Locale & timezone are in USER.md** — under the `## Locale & Timezone` section
 - **Don't create new top-level directories** without good reason. If new
   data needs a home, prefer a subdirectory under `data/` or an existing
   location.
@@ -160,7 +159,7 @@ Skills frequently read data owned by other skills. To keep this manageable:
 **Do NOT add language selection logic to any skill.** Language is managed
 centrally:
 
-- `locale.json` is the **sole source of truth** for reply language
+- `USER.md > Language` is the **sole source of truth** for reply language
 - `AGENTS.md` contains the mandatory locale check rule (read before every reply)
 - Skills must **never** include directives like "reply in the user's language",
   "adapt language to match the user", or "if the user switches language, switch too"
@@ -168,7 +167,7 @@ centrally:
   imperial) is fine — that's locale awareness, not language selection
 - Format rules like "don't mix languages in one reply" are fine — that's
   output quality, not language selection
-- If a skill needs locale info (e.g., for unit preference), read `locale.json`
+- If a skill needs locale info (e.g., for unit preference), read from USER.md (already in context)
   directly — don't infer language from user messages
 
 ---

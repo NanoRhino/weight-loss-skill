@@ -72,23 +72,24 @@ if [[ -z "$MESSAGE" ]]; then echo "ERROR: --message is required" >&2; exit 1; fi
 if [[ -z "$AT" && -z "$CRON_EXPR" ]]; then echo "ERROR: --at or --cron is required" >&2; exit 1; fi
 
 # --- Timezone auto-detection ---
-# Try multiple workspace path conventions
+# Read from USER.md in workspace
 if [[ "$TZ_EXPLICIT" == "false" && -n "$CRON_EXPR" ]]; then
-  TZ_CANDIDATES=(
-    "$HOME/.openclaw/workspace-$AGENT/timezone.json"
-    "$HOME/.openclaw/workspace-nutritionist/$AGENT/timezone.json"
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  HELPERS="$HOME/.openclaw/backend-service/scripts/usermd-helpers.sh"
+  if [[ -f "$HELPERS" ]]; then
+    source "$HELPERS"
+  fi
+
+  WS_CANDIDATES=(
+    "$HOME/.openclaw/workspace-$AGENT"
+    "$HOME/.openclaw/workspace-nutritionist/$AGENT"
   )
-  for TZ_FILE in "${TZ_CANDIDATES[@]}"; do
-    if [[ -f "$TZ_FILE" ]]; then
-      AUTO_TZ=$(python3 -c "
-import json
-with open('$TZ_FILE') as f:
-    d = json.load(f)
-    print(d.get('tz', '') or d.get('tz_name', ''))
-" 2>/dev/null || echo "")
+  for WS_DIR in "${WS_CANDIDATES[@]}"; do
+    if [[ -f "$WS_DIR/USER.md" ]] && type usermd_read &>/dev/null; then
+      AUTO_TZ=$(usermd_read "$WS_DIR" "Timezone" 2>/dev/null || echo "")
       if [[ -n "$AUTO_TZ" ]]; then
         TZ="$AUTO_TZ"
-        echo "Auto-detected timezone from $TZ_FILE: $TZ"
+        echo "Auto-detected timezone from $WS_DIR/USER.md: $TZ"
         break
       fi
     fi
@@ -96,7 +97,7 @@ with open('$TZ_FILE') as f:
   # Fallback if still empty
   if [[ -z "$TZ" ]]; then
     TZ="Asia/Shanghai"
-    echo "WARNING: No timezone.json found, falling back to $TZ"
+    echo "WARNING: No timezone found in USER.md, falling back to $TZ"
   fi
 fi
 
