@@ -66,6 +66,8 @@ Calories and carbs are running high while protein is low — the fried rice and 
 
 When the user closes the day ("今天都吃完了", "done eating for today", etc.), reply with the daily summary only. **Do NOT add any sign-off** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". "Done eating" ≠ going to sleep. End with the suggestion or summary line — nothing after it.
 
+When the user closes the day ("今天都吃完了", "done eating for today", etc.), reply with the daily summary only. **Do NOT add any sign-off** — no "晚安" / "goodnight" / 🌙 / 💤 / "明天见" / "see you tomorrow". "Done eating" ≠ going to sleep. End with the suggestion or summary line — nothing after it.
+
 ```
 📊 Today's summary:
 Calories 1259 kcal ✅
