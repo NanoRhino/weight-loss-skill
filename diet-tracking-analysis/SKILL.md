@@ -145,13 +145,14 @@ python3 {baseDir}/scripts/nutrition-calc.py analyze --weight <kg> --cal <kcal> -
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py evaluate --weight <kg> --cal <kcal> --meals <2|3> \
   --current-meal "lunch" \
+  --data-dir {workspaceDir}/data/meals \
   --log '[...]' \
   [--assumed '[{"name":"breakfast","calories":450,"protein":27,"carbs":22,"fat":14}]']
 ```
 
 Evaluates cumulative intake at the current checkpoint against range-based targets. Uses min/max ranges for each macro.
 
-Returns: `checkpoint_pct`, `checkpoint_target`, `checkpoint_range`, `actual`, `adjusted` (if any), `status`, `needs_adjustment`, `diff_for_suggestions`, `missing_meals`
+Returns: `checkpoint_pct`, `checkpoint_target`, `checkpoint_range`, `actual`, `adjusted` (if any), `status`, `needs_adjustment`, `diff_for_suggestions`, `missing_meals`, `strict_mode`
 
 All JSON fields use full names: `calories`, `protein`, `carbs`, `fat`. Old short names (`cal`, `p`, `c`, `f`) are auto-migrated on read for backward compatibility.
 
@@ -707,6 +708,21 @@ All reference content is inlined in this SKILL.md. These files exist only for ma
 - Tone: friendly, concise, encouraging — no lecturing
 - Reply in user's language; do not mix languages (no "蛋白质on track")
 - **Never add "晚安"/"goodnight"/🌙/💤** to meal log responses — logging dinner ≠ end of conversation
+
+### Strict Mode Override
+
+When `evaluate` returns `strict_mode: true` AND calories are over target (`status.calories: "high"`):
+
+- ❌ **NEVER** say: 没关系、不要紧、也还好、问题不大、don't worry、no big deal、也是正常的
+- ✅ **MUST do all three:**
+  1. **点名超标食物** — name the specific food(s) that pushed calories over
+  2. **说出超了多少** — state the exact overshoot amount (e.g. "超了 250 kcal")
+  3. **给一句有力的话** — firm, caring, no sugarcoating. Examples:
+     - "那碗炒饭直接把今天顶超了，明天午饭换个轻一点的？"
+     - "超了 300，连着两天了。咱俩的约定还算数吗？明天拉回来。"
+     - "Over by 250 — that bubble tea pushed you past. Tomorrow, swap it."
+
+- When `strict_mode: false` or calories on track → normal friendly tone, no change.
 
 ---
 

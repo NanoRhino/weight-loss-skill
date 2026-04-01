@@ -43,6 +43,7 @@ import json
 import os
 import sys
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 
 def _local_date(tz_offset: int = None) -> str:
@@ -337,10 +338,28 @@ def load_meals(data_dir: str, day: str = None, tz_offset: int = None) -> dict:
     return {"date": resolved_day, "meals": meals, "meals_count": len(meals)}
 
 
+def _check_strict_mode(data_dir: str) -> bool:
+    """Check if strict mode is active by reading habits.active in the workspace data dir."""
+    # data_dir is typically {workspaceDir}/data/meals, habits.active is at {workspaceDir}/data/habits.active
+    try:
+        habits_path = Path(data_dir).parent / "habits.active"
+        if not habits_path.exists():
+            return False
+        with open(habits_path, "r", encoding="utf-8") as f:
+            habits = json.load(f)
+        return any(
+            h.get("strict") is True and h.get("source") == "weight-gain-strategy"
+            for h in habits
+        )
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
 def evaluate(weight: float, daily_cal: int, meals: int,
              current_meal: str, log: list,
              assumed_meals: list = None,
-             mode: str = "balanced") -> dict:
+             mode: str = "balanced",
+             data_dir: str = None) -> dict:
     """Evaluate cumulative intake at the checkpoint for *current_meal*.
 
     Uses range-based evaluation:
@@ -424,6 +443,8 @@ def evaluate(weight: float, daily_cal: int, meals: int,
         "fat": round(cp_target["fat"] - suggestion_base["fat"], 1),
     }
 
+    strict_mode = _check_strict_mode(data_dir) if data_dir else False
+
     return {
         "current_meal": current_meal,
         "checkpoint_pct": checkpoint_pct,
@@ -437,6 +458,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
         "missing_meals": missing_meals,
         "meals_included": [m.get("name") for m in checkpoint_log],
         "resolved_meal": resolve_meal_name(current_meal, meals),
+        "strict_mode": strict_mode,
     }
 
 
@@ -1235,6 +1257,8 @@ def main():
                    help="JSON array of all logged meals today")
     e.add_argument("--assumed", type=str, default=None,
                    help="JSON array of assumed meals (for forgotten meals)")
+    e.add_argument("--data-dir", type=str, default=None,
+                   help="Meals data dir — used to auto-detect strict mode from habits.active")
 
     cm = sub.add_parser("check-missing", help="Check for missing meals before current meal")
     cm.add_argument("--meals", type=int, default=3, choices=[2, 3])
@@ -1355,7 +1379,8 @@ def main():
                 print(f"Error: invalid --assumed JSON: {e}", file=sys.stderr)
                 sys.exit(1)
         result = evaluate(args.weight, args.cal, args.meals,
-                          args.current_meal, log, assumed, args.mode)
+                          args.current_meal, log, assumed, args.mode,
+                          data_dir=args.data_dir)
     elif args.cmd == "check-missing":
         try:
             log = json.loads(args.log)
