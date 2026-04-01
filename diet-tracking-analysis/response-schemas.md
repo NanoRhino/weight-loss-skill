@@ -38,8 +38,9 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Show cumulative actuals only, n
 Optional: `✨ Nice work` between ② and ③ — 1 line on actual food choices, omit if nothing noteworthy.
 
 ## Food Suggestions
-- State category ("high-protein", "complex carbs") + concrete examples from user's recent meals
-- Respect preferences; fallback to common easy-to-obtain foods
+- State category ("high-protein", "complex carbs") + concrete examples from user's recent meals (use `load` with past dates)
+- Respect preferences: never suggest disliked/allergenic foods (check `health-preferences.md`); favor loved foods
+- Fallback to common easy-to-obtain foods if no meal history
 - ✅ "Add some **lean protein** — like the chicken breast you had yesterday"
 - ❌ "Add 100g chicken breast" (no category, no personalization)
 

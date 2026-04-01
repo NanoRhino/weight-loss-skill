@@ -147,22 +147,6 @@ Use `log-meal` results to generate the reply. **Must follow the format templates
 
 **Missing meal note:** `log-meal` auto-detects missing meals (assumed normal intake) — do NOT stop to ask about skipped meals. If missing meals were detected, append a note that they were assumed normal and invite the user to provide details (see `missing-meal-rules.md`).
 
-Every food log reply has three sections:
-
-1. **① Meal Details** — meal type, per-item breakdown, meal total (calories + protein + carbs + fat)
-2. **② Nutrition Summary** — cumulative daily intake with status indicators (✅ ⬆️ ⬇️) + 1-sentence comment
-3. **③ Suggestion** — based on `evaluation.suggestion_type`: `right_now` (⚡ adjust current meal), `next_meal` (💡 forward-looking), `next_time` (💡 on-track tip), `case_d_snack` (below BMR → snack), `case_d_ok` (mild deficit → optional snack)
-
-Optional: **✨ Nice work** (between ② and ③) — 1-2 genuine lines tied to actual food choices.
-
-### Food Suggestion Format
-
-When suggesting food (in any suggestion type):
-
-1. **State the category** — "high-protein food", "complex carbs", "healthy fat"
-2. **Give concrete examples** — prioritize foods from user's recent meal records (`load` with past dates). Falls back to common, easy-to-obtain foods.
-3. **Respect preferences** — never suggest disliked/allergenic foods; favor loved foods
-
 ---
 
 ## Workflow — Query Progress
