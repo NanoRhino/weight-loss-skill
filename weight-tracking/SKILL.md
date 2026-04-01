@@ -90,7 +90,7 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
 ### User Reports Weight
 
 1. Read `timezone.json` → `tz_offset`; read `health-profile.md` → Unit Preference (parallel, first session only)
-2. Call `save-and-check.py` — **one call does both save and deviation-check:**
+2. Call `save-and-check.py` — **one call does save + deviation-check + analyze:**
    ```bash
    python3 {baseDir}/scripts/save-and-check.py \
      --data-dir {workspaceDir}/data \
@@ -98,9 +98,11 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
      --plan-file {workspaceDir}/PLAN.md \
      --health-profile {workspaceDir}/health-profile.md \
      --user-file {workspaceDir}/USER.md \
-     --wgs-script {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py
+     --wgs-script {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py \
+     --weight-script {baseDir}/scripts/weight-tracker.py \
+     --nutrition-script {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py
    ```
-3. Read response — both results arrive together:
+3. Read response — all results arrive together:
    - `save.action`: `"created"` → "Logged ✓"; `"updated"` → "Updated ✓". Show value in preferred unit.
    - `tools_updated: true` → TOOLS.md `current_weight` was auto-updated by the script. **Do NOT manually edit TOOLS.md** — it's already done.
    - `deviation` is `null` or `triggered: false` → just the log confirmation.
@@ -110,16 +112,7 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
      
      Then follow the workflow exactly. Do NOT freestyle a response.
      
-     For `cause-check` severity, run analyze silently (Step A):
-     ```bash
-     python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py analyze \
-       --data-dir {workspaceDir}/data \
-       --weight-script {baseDir}/scripts/weight-tracker.py \
-       --nutrition-script {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py \
-       --plan-file {workspaceDir}/PLAN.md \
-       --health-profile {workspaceDir}/health-profile.md \
-       --tz-offset <tz>
-     ```
+     `analyze` result is already included in the script output — **do NOT run analyze separately.** Use `analyze` field directly in Step C (data reveal).
 
 ### User Asks for Trend / History
 

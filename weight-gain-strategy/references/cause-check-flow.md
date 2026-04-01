@@ -1,9 +1,10 @@
 # cause-check Guided Discovery Flow (streak 2–3)
 
 A multi-turn conversational flow with **push-pull rhythm** — playful teasing,
-user opt-in at each step, suspense before the reveal. Run `analyze` silently
-at the very start so data is ready, but don't reveal findings until the user
-is engaged. Each step waits for the user's response before proceeding.
+user opt-in at each step, suspense before the reveal. The `analyze` result is
+already available from `save-and-check.py` output — **do NOT run analyze again.**
+Use the `analyze` field from the script response directly. Each step waits for
+the user's response before proceeding.
 
 ## Step A: Hook + opt-in
 
