@@ -129,7 +129,7 @@ Flag any item that appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs") 
 #### 2.5 Estimate nutrition
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
 
-- China region: also estimate `vegetables_g` and `fruits_g`
+- China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
 - Data source: USDA FoodData Central primary; for regional foods, use local databases (e.g. China CDC)
 
 **Cooking oil** (1g ≈ 9 kcal, pure fat) — fold into each dish's calories, never list separately:
@@ -181,7 +181,6 @@ If the user message may trigger multiple skills, read `SKILL-ROUTING.md`. This s
 
 ## Reference Files
 
-- `references/produce-rules.md` — Vegetable/fruit tracking rules (CN region)
 - `response-schemas.md` — ① ② ③ section format templates, suggestion type rules, food suggestion format, and full reply examples
 - `missing-meal-rules.md` — Missing meal detection rules and templates
 - `ui-spec.md` — Message formatting guidelines

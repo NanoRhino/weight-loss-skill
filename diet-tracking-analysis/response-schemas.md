@@ -17,6 +17,9 @@
 ```
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Show cumulative actuals only, no target numbers.
 
+**CN produce** (after macro line): `🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~XXXg ✅/⬇️`
+Low → suggest adding at next meal (final meal → suggest now). Fruit: only track at final meal. Produce targets never override calorie/macro targets.
+
 ### ③ Suggestion (by `suggestion_type`)
 
 **`"right_now"`** — Before eating, adjustment needed:
