@@ -369,6 +369,41 @@ three cases, asking again makes things worse. Move forward with what you have.
 
 ---
 
+### Pattern 11: Behavior Self-Report vs Food Logging (P3 vs P2)
+
+**Trigger:** User describes a long-term behavioral pattern — a habit they
+want to change or a problem they recognize — without logging specific food
+for a specific meal.
+
+**Examples:**
+- "我喝水很少" / "I don't drink enough water"
+- "我吃饭太快了" / "I snack too much at night"
+- "我不吃早餐" / "I skip breakfast a lot"
+- "我想养成XX的习惯" / "I want to build a habit of..."
+- "I eat too fast" / "I always eat out"
+
+**Resolution: Intent determines routing.**
+
+1. **Behavior self-report only** (describes a long-term pattern/problem,
+   no concrete food to record for a specific meal) → `habit-builder`
+   handles it. `diet-tracking-analysis` does NOT trigger.
+
+2. **Behavior self-report + food log in same message** ("我喝水很少，午饭
+   吃了炒饭") → `diet-tracking-analysis` logs the food (P2),
+   `habit-builder` handles the behavioral part (P3). Merge into one
+   response: food log first, then habit suggestion.
+
+3. **判断标准:** Does the message contain **concrete, specific food to
+   record for a current/recent meal**? If no → `habit-builder`. If yes →
+   `diet-tracking-analysis` leads + habit handoff for the behavioral part.
+
+**Key distinction from Pattern 7 (Habit Check-in + Diet Logging):**
+Pattern 7 handles user *responding* to a habit mention during meal logging.
+Pattern 11 handles user *proactively* describing a behavioral problem —
+these are different entry points into `habit-builder`.
+
+---
+
 ## Edge Cases
 
 **User switches intent mid-conversation:**

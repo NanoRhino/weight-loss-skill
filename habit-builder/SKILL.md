@@ -8,10 +8,14 @@ description: >
   fails, the user asks about building habits, or Weekly Review identifies
   a behavioral pattern worth addressing. Also use when evaluating habit
   progress, deciding when a habit has "graduated," or handling a restart
-  after the user falls off. This skill does not send its own reminders —
-  habit check-ins are woven into meal conversations managed by Notification
-  Composer. This skill owns the check-in logic (when, how often, tone);
-  Notification Composer provides the conversation vehicle.
+  after the user falls off. Also trigger when user describes a behavioral
+  pattern they want to change — e.g. "我喝水很少", "I eat too fast",
+  "I skip breakfast", "I snack at night", "我吃饭太快了", "我不爱吃早餐",
+  "我想养成XX的习惯". These are behavior-self-reports, not food logs —
+  see SKILL-ROUTING.md Pattern 11. This skill does not send its own
+  reminders — habit check-ins are woven into meal conversations managed
+  by Notification Composer. This skill owns the check-in logic (when, how
+  often, tone); Notification Composer provides the conversation vehicle.
 ---
 
 # Habit Builder
@@ -103,6 +107,7 @@ Bad: `"Did you complete your habit today?"` · `"Remember your commitment!"`
 | Previous habit graduated | User is ready for the next step. |
 | Weekly Review insight | Data shows a pattern worth addressing (e.g., user always overeats at night). |
 | User asks | "I want to build a new habit" or similar. |
+| Behavior self-report | User proactively describes a problematic pattern ("我喝水很少", "I eat too fast", "I skip breakfast") without logging food. Enter at Step 2 (Tiny-fy) — the gap is already identified by the user. |
 | Failure restart | Current habit isn't working — offer to swap. |
 
 ### How to choose the right habit
