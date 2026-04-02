@@ -326,6 +326,29 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None)
     return {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
 
 
+def _save_evaluation_to_meal(data_dir: str, day: str, meal_name: str, eval_result: dict):
+    """Persist evaluation summary into the saved meal record.
+
+    Stores only the fields notification-composer needs for next-meal guidance.
+    """
+    path = get_log_path(data_dir, day)
+    if not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as f:
+        meals = json.load(f)
+    for m in meals:
+        if m.get("name") == meal_name:
+            m["evaluation"] = {
+                "suggestion_type": eval_result.get("suggestion_type"),
+                "needs_adjustment": eval_result.get("needs_adjustment"),
+                "diff_for_suggestions": eval_result.get("diff_for_suggestions"),
+                "status": eval_result.get("status"),
+            }
+            break
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(meals, f, ensure_ascii=False, indent=2)
+
+
 def load_meals(data_dir: str, day: str = None, tz_offset: int = None) -> dict:
     """Load all meals for a given day, migrating old format if needed."""
     path = get_log_path(data_dir, day, tz_offset)
@@ -883,6 +906,22 @@ def meal_history(data_dir: str, meal_type: str, days: int = 30,
                 "picked": entry.get("picked"),
             })
 
+    # Same weekday last week (fallback for notification-composer)
+    same_weekday_date = (end - timedelta(days=7)).isoformat()
+    same_weekday_meal = None
+    sw_path = get_log_path(data_dir, same_weekday_date)
+    if os.path.exists(sw_path):
+        with open(sw_path, "r", encoding="utf-8") as f:
+            sw_meals = _migrate_meals(json.load(f))
+        matched_sw = [m for m in sw_meals if m.get("meal_type") == meal_type
+                      or m.get("name") == meal_type]
+        if matched_sw:
+            sw_foods = []
+            for m in matched_sw:
+                sw_foods.extend(f.get("name", "") for f in m.get("foods", [])
+                                if f.get("name"))
+            same_weekday_meal = {"date": same_weekday_date, "foods": sw_foods}
+
     return {
         "meal_type": meal_type,
         "data_level": data_level,
@@ -891,6 +930,7 @@ def meal_history(data_dir: str, meal_type: str, days: int = 30,
         "avg_macros": avg_macros,
         "recent_3_days": recent_3,
         "recent_recommendations": recent_recs,
+        "same_weekday_last_week": same_weekday_meal,
     }
 
 
@@ -1330,6 +1370,9 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
 
     result["evaluation"] = eval_result
 
+    # 5b. Persist evaluation into saved meal record for notification-composer
+    _save_evaluation_to_meal(data_dir, local_date, current_meal, eval_result)
+
     # 6. Produce check (China region only)
     if region and region.upper() == "CN":
         result["produce"] = produce_check(meals, current_meal, all_meals)
@@ -1390,8 +1433,10 @@ def delete_meal(data_dir: str, tz_offset: int, meal_name: str,
     if weight is not None and daily_cal is not None and meals is not None and remaining:
         # Use the last remaining meal as the checkpoint
         last_meal = remaining[-1].get("name", "breakfast")
-        result["evaluation"] = evaluate(weight, daily_cal, meals,
-                                        last_meal, remaining, None, mode)
+        eval_result = evaluate(weight, daily_cal, meals,
+                               last_meal, remaining, None, mode)
+        result["evaluation"] = eval_result
+        _save_evaluation_to_meal(data_dir, resolved_day, last_meal, eval_result)
         if region and region.upper() == "CN":
             result["produce"] = produce_check(meals, last_meal, remaining)
         else:
