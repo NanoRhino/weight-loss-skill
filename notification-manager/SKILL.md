@@ -256,14 +256,14 @@ bash {baseDir}/scripts/create-reminder.sh \
 ## Lifecycle: Active → Recall → Silent
 
 ```
-Stage 1: ACTIVE — normal reminders
+Stage 1: ACTIVE — normal reminders (Day 2-3: morning nudge + normal recommendation)
     │
-    └── 3 full calendar days: zero replies + zero messages
+    └── 4 full calendar days: zero replies + zero messages
            │
 Stage 2: PAUSE — stop all reminders, send first recall
     │
     ├── User replies → back to Stage 1
-    └── 3 days, no reply
+    └── 2 days, no reply
            │
 Stage 3: SECOND RECALL — one final message
     │

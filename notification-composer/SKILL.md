@@ -176,15 +176,16 @@ The opening line is optional — use it for context when relevant (time of day, 
 
 #### Gentle Nudge (1-day silence)
 
-When composing **the first meal reminder of the day** (breakfast / meal_1) and Stage = 1, read `data/engagement.json > last_interaction`. If the user has been silent for **1–2 full calendar days** (interacted the day before yesterday but not yesterday), prepend a gentle nudge line before the normal meal recommendations.
+When composing **the first meal reminder of the day** (breakfast / meal_1) and Stage = 1, read `data/engagement.json > last_interaction`. If the user has been silent for **1–3 full calendar days**, prepend a gentle nudge line before the normal meal recommendations.
 
-**Purpose:** 小犀牛撒娇地提一嘴，然后继续正常推荐。不是召回，只是"我注意到你昨天没来"的小情绪，让用户感觉被惦记着。
+**Purpose:** 小犀牛撒娇地提一嘴，然后继续正常推荐。不是召回，只是"我注意到你没来"的小情绪，让用户感觉被惦记着。
 
 **Rules:**
 - Only on the **morning's first meal** — lunch/dinner 不加，避免重复
-- Only when **1 ≤ days_silent < 2** — 昨天没互动。超过 2 天就不加了（接近召回阶段，正常提醒照发即可）
+- Only when **1 ≤ days_silent < 4** — 沉默 1-3 天。第 4 天进入召回阶段，由 recall 接管
 - Nudge line + normal recommendation 一起发，不是两条消息
 - 语气：撒娇 + 营养师式关心，轻轻带过，不深究
+- Day 2 和 Day 3 的 nudge 要有变化，不要重复同一句
 
 **Nudge examples (Chinese):**
 
