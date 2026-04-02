@@ -1,7 +1,7 @@
 ---
 name: notification-composer
 version: 1.0.0
-description: "Per-trigger execution logic for daily reminders. Runs pre-send checks, composes meal/weight reminder messages, handles user replies, and manages recall messages. Use this skill when: a cron job fires and needs to decide whether/what to send, or when the user replies to a reminder. Do NOT use for cron management, lifecycle transitions, or reminder settings — that is notification-manager's job."
+description: "每次定时提醒触发时的执行逻辑。负责前置检查、组合饮食/体重提醒消息、处理用户回复、管理召回消息。使用场景：cron 触发后决定是否发送及发什么，或用户回复提醒时。不负责 cron 管理、生命周期切换或提醒设置——那是 notification-manager 的职责。"
 metadata:
   openclaw:
     emoji: "speech_balloon"
@@ -10,58 +10,47 @@ metadata:
 
 # Notification Composer
 
-> ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
+> ⚠️ **静默执行：** 不要向用户描述内部动作、技能切换或工具调用。不说"让我检查一下…"、"现在切换到…"、"正在读取你的资料…"。默默执行，只输出结果。
 
-> 🚫 **NO SELF-DELIVERY:** Your reply is automatically delivered to the user by the cron system. Do NOT use `exec`, `message`, or any other tool to send it yourself — that causes duplicate messages. Just output the reminder text (or `NO_REPLY`) and nothing else. No reasoning, no check results, no narration. Your entire output is delivered to the user as-is.
+> 🚫 **禁止自行发送：** 你的回复由 cron 系统自动送达用户。不要用 `exec`、`message` 或其他工具自行发送——会导致重复消息。只输出提醒文本（或 `NO_REPLY`），不附带任何推理、检查结果或叙述。你的全部输出会原样送达用户。
 
 
-Execution layer for reminders — pre-send checks, message composition, reply
-handling. This skill decides **what to say** each time a cron job fires.
-Cron management and lifecycle are owned by `notification-manager`.
+提醒的执行层——前置检查、消息组合、回复处理。本技能决定每次 cron 触发时**说什么**。
+Cron 管理和生命周期由 `notification-manager` 负责。
 
-## Principles
+## 原则
 
-1. **One and done.** One message. No reply = silence. Never follow up.
-2. **Conversation > report.** Ask something they want to answer, not something they owe you.
-3. **Variety.** Rotate phrasing. Same opener every day = muted by day 3.
-4. **Anchor, don't mirror.** Steady energy whether user is excited or flat.
+1. **一次即止。** 一条消息。用户不回复 = 沉默。不追问。
+2. **对话感 > 报告感。** 问用户想回答的问题，而非欠你的问题。
+3. **变换措辞。** 每天同样的开场白 = 第三天就被屏蔽。
+4. **做锚点，不做镜子。** 无论用户兴奋还是低落，保持稳定能量。
 
-**Never say:** `"You forgot to..."` · `"You missed..."` · `"Don't forget!"` ·
-`"You need to log..."` · `"You haven't logged today"` ·
-`"Reply when you can, skip when you can't"` · any phrasing that frames replying as optional ·
-Repeated `"No pressure"` / `"It's fine"` / `"No worries"` (once max per conversation; zero is often better)
-
----
-
-## Legacy Cron Migration
-
-When a cron job fires with a `--message` that references the old skill names
-(`daily-notification`, `daily-notification-skill`, or `scheduled-reminders`),
-treat it as a `notification-composer` trigger:
-
-1. **Detect:** The incoming message contains `daily-notification` instead of
-   `notification-composer` (e.g., `"Run daily-notification pre-send checks for lunch..."`).
-2. **Execute normally:** Map the legacy message to the equivalent
-   `notification-composer` behavior — run pre-send checks, compose the
-   reminder, handle the reply. The user experience is identical.
-3. **Trigger migration:** After handling the reminder (whether sent or
-   `NO_REPLY`), activate `notification-manager` and instruct it to run
-   auto-sync. The auto-sync will detect that existing cron jobs have
-   legacy `--message` content and replace them with new ones referencing
-   `notification-composer` (see notification-manager § "Auto-sync on Activation").
-
-This ensures a seamless transition — old cron jobs self-heal on first fire
-without any manual intervention.
+**绝不说：** `"你忘了…"` · `"你漏了…"` · `"别忘了！"` ·
+`"你需要记录…"` · `"你今天还没记录"` ·
+`"有空就回，没空就算"` · 任何把回复框定为可选项的措辞 ·
+重复的 `"没关系"` / `"别有压力"` / `"不要紧"`（一次对话最多用一次；不用更好）
 
 ---
 
-## Pre-send Checks (MANDATORY — run before every reminder)
+## 旧版 Cron 迁移
 
-**Every reminder MUST run the pre-send-check script FIRST. If it returns `NO_REPLY`, your entire response must be exactly `NO_REPLY` — stop immediately, do not compose a message, do not output anything else.**
+当 cron 触发的 `--message` 引用了旧技能名（`daily-notification`、`daily-notification-skill` 或 `scheduled-reminders`）时，按 `notification-composer` 触发处理：
 
-> ⚠️ **CRITICAL:** Any text you output WILL be delivered to the user. `NO_REPLY` is the only way to suppress delivery. No explanations, no reasoning, no "check failed" messages.
+1. **检测：** 消息内容包含 `daily-notification` 而非 `notification-composer`。
+2. **正常执行：** 映射为等效的 `notification-composer` 行为——运行前置检查、组合提醒、处理回复。用户体验完全一致。
+3. **触发迁移：** 处理完提醒后（无论发送还是 `NO_REPLY`），激活 `notification-manager` 并指示其运行 auto-sync。auto-sync 会检测到旧 cron 的 `--message` 内容并替换为引用 `notification-composer` 的新版本（见 notification-manager § "Auto-sync on Activation"）。
 
-### Step 1: Run the script
+确保无缝过渡——旧 cron 首次触发时自动修复，无需手动干预。
+
+---
+
+## 前置检查（强制——每次提醒前必须运行）
+
+**每次提醒必须先运行前置检查脚本。如果返回 `NO_REPLY`，你的全部输出必须恰好是 `NO_REPLY`——立即停止，不要组合消息，不要输出任何其他内容。**
+
+> ⚠️ **关键：** 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。不要附带解释、推理或"检查未通过"的说明。
+
+### 第一步：运行脚本
 
 ```bash
 python3 {baseDir}/scripts/pre-send-check.py \
@@ -70,219 +59,187 @@ python3 {baseDir}/scripts/pre-send-check.py \
   --tz-offset {tz_offset}
 ```
 
-Read `TZ Offset` from USER.md (already in context), then run the script with the correct `--meal-type` for this reminder.
+从 USER.md 读取 `TZ Offset`（已在上下文中），然后用正确的 `--meal-type` 运行脚本。
 
-### Step 2: Check output
+### 第二步：检查输出
 
-- Output is **`NO_REPLY`** → reply with exactly `NO_REPLY`. Done. Do not continue.
-- Output is **`SEND`** → proceed to compose the reminder message (see Message Templates below).
+- 输出 **`NO_REPLY`** → 回复恰好 `NO_REPLY`，结束，不继续。
+- 输出 **`SEND`** → 继续组合提醒消息（见下方消息模板）。
 
-### What the script checks
+### 脚本检查项
 
-The script runs these checks deterministically (no LLM involvement):
+脚本以确定性方式运行以下检查（无 LLM 参与）：
 
-1. `health-profile.md` exists? (user onboarded?)
-2. `engagement.json > notification_stage` — user in silent mode (Stage 4)?
-3. Health flags — `avoid_weight_focus` or `history_of_ed` (weight reminders only)?
-4. Scheduling constraints from `health-preferences.md` (e.g., "skips breakfast on workdays")?
-5. Meal already logged today? (via `data/meals/YYYY-MM-DD.json`)
-6. Weight-specific checks (via `data/weight.json`):
-   - `weight`: already weighed today?
-   - `weight_evening`: already weighed today? (if yes → suppress evening followup)
-   - `weight_morning_followup`: weighed yesterday or today? (if either → suppress morning followup)
+1. `health-profile.md` 存在？（用户已入门？）
+2. `engagement.json > notification_stage` —— 用户是否处于静默模式（Stage 4）？
+3. 健康标志 —— `avoid_weight_focus` 或 `history_of_ed`（仅体重提醒）？
+4. `health-preferences.md` 中的日程约束（如"工作日跳过早餐"）？
+5. 今天该餐是否已记录？（通过 `data/meals/YYYY-MM-DD.json`）
+6. 体重专项检查（通过 `data/weight.json`）：
+   - `weight`：今天是否已称重？
+   - `weight_evening`：今天是否已称重？（是 → 抑制晚间跟进）
+   - `weight_morning_followup`：昨天或今天是否已称重？（是 → 抑制次晨跟进）
 
-Any fail → `NO_REPLY`. All pass → `SEND`.
+任一不通过 → `NO_REPLY`。全部通过 → `SEND`。
 
 ---
 
-## Message Templates
+## 消息模板
 
-### Meal Reminders — Adjustment-Based Guidance
+### 餐前提醒 —— 基于调整建议的引导
 
-**Purpose: remind the user what to focus on this meal based on the previous meal's nutritional evaluation, then invite them to photograph their meal before eating.**
-This is both a guidance nudge and the entry point for diet logging — every reminder should end by prompting the user to share a photo or description of what they're about to eat.
+**目的：根据上一餐的营养评估提醒用户本餐注意什么，然后邀请拍照打卡。**
+既是方向引导，也是饮食记录的入口——每条提醒都应以邀请用户分享餐前照片或描述结尾。
 
-**Core philosophy: guide direction, don't prescribe dishes.** Tell the user *what to adjust* (e.g., "add more protein, go lighter on carbs"), not *what to eat*. If concrete food examples help, only use foods the user has actually eaten before.
+**核心理念：引导方向，不指定菜品。** 告诉用户"调什么"（如"多点蛋白质，碳水悠着点"），而非"吃什么"。
 
-**Style: text like a friend who knows their life, not a system notification.**
-Warm, concise, conversational. Each reminder feels like a friend's nudge, not a nutrition label.
+**风格：像了解你生活的朋友发的消息，不是系统通知。**
+温暖、简洁、有对话感。
 
-#### Generation Flow
+#### 生成流程
 
-1. Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get today's meal data with stored evaluations. For the first meal of the day, also load yesterday's data (`--date` yesterday).
-2. Locate the most recent meal's `evaluation` (see Step 1 below) and determine the path.
-3. **Only if entering fallback (evaluation not usable):**
-   - Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get `same_weekday_last_week`.
-   - If Tier 1 applies (recommending food), read `health-preferences.md` to filter allergies/dislikes.
+1. 调用 `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` 获取今天的餐食记录及其存储的 evaluation。如果是当天第一餐，同时加载昨天的数据（`--date` 昨天）。
+2. 找到最近一餐的 `evaluation`（见下方第一步），判断走哪条路径。
+3. **仅在进入降级路径时：**
+   - 调用 `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` 获取 `same_weekday_last_week`。
+   - 如果命中 Tier 1（推荐食物），读取 `health-preferences.md` 过滤过敏/不喜欢的食物。
 
-> **No more `save-recommendation`:** Because the reminder no longer proposes specific meal options, there is nothing to record in `data/recommendations/`. Skip the `save-recommendation` call.
+> **不再调用 `save-recommendation`：** 因为不再推荐具体菜品，无需写入 `data/recommendations/`。
 
-#### Composition Rules
+#### 组合规则
 
-**Step 1 — Locate the most recent evaluation and determine usability:**
+**第一步 —— 定位最近一餐的 evaluation 并判断可用性：**
 
-For the **first meal of the day**, read yesterday's last meal's stored evaluation.
-For **second/third meal**, read today's most recent meal's stored evaluation.
+**当天第一餐** → 读昨天最后一餐的 evaluation。
+**当天第二/三餐** → 读今天最近一餐的 evaluation。
 
-Then check `suggestion_type` to decide if the evaluation is usable:
+然后根据 `suggestion_type` 判断是否可用：
 
-| `suggestion_type` | Usability | Reason |
+| `suggestion_type` | 可用性 | 原因 |
 |---|---|---|
-| `"next_meal"` | **Usable** | This advice was explicitly meant for the next meal. Use `suggestion_text` as the basis for your reminder. |
-| `"next_time"` | **Usable** | Previous meal was on track. Use for light encouragement — "keep the same rhythm". |
-| `"right_now"` | **Not usable → fallback** | Was advice to adjust that meal itself (pre-eating). User may or may not have followed it — unreliable. |
-| `"case_d_snack"` / `"case_d_ok"` | **Not usable → fallback** | End-of-day snack advice, not applicable to the next day's meal. |
-| No evaluation found (previous meal not logged) | **Fallback** | — |
+| `"next_meal"` | **可用** | 明确给下一餐的建议，用 `suggestion_text` 作为提醒基础。 |
+| `"next_time"` | **可用** | 上一餐没问题，轻松鼓励即可。 |
+| `"right_now"` | **不可用 → 降级** | 给当餐自身的调整建议，用户可能已执行也可能没执行，不可靠。 |
+| `"case_d_snack"` / `"case_d_ok"` | **不可用 → 降级** | 末餐加餐建议，跨天无意义。 |
+| 无 evaluation（上一餐未打卡） | **降级** | — |
 
-**Step 2 — If evaluation is usable, compose adjustment guidance:**
+**第二步 —— evaluation 可用时，组合调整引导：**
 
-| `suggestion_type` | Guidance |
+| `suggestion_type` | 引导方式 |
 |---|---|
-| `"next_meal"` | Use `suggestion_text` from the stored evaluation as the basis. Rephrase it as a casual reminder — don't copy verbatim, but preserve the adjustment direction. No additional data reads needed. |
-| `"next_time"` | Light encouragement — "keep the same rhythm" or a gentle variety nudge. No corrective tone. `suggestion_text` may contain a habit tip — you can reference it lightly. No additional data reads needed. |
+| `"next_meal"` | 以存储的 `suggestion_text` 为基础，改写为口语化提醒——不照抄，但保留调整方向。无需额外读取数据。 |
+| `"next_time"` | 轻松鼓励——"保持节奏就好"或温和的变换建议。不纠正。`suggestion_text` 可能含习惯小贴士，可轻轻带过。无需额外读取数据。 |
 
-**Step 2b — If evaluation is not usable (fallback):**
+**第二步 b —— evaluation 不可用时（降级）：**
 
-| Fallback tier | Condition | Action |
+| 降级层级 | 条件 | 动作 |
 |---|---|---|
-| Tier 1 | `meal-history` has a record for the **same weekday last week** (same meal type) | Recommend the same food with a brief health tip to help the user eat it in a healthier way this time. Always affirm the food positively — never judge or reject what they ate. The health tip should be a small, actionable tweak (control oil, add a veggie, go easy on sauce, etc.), not a criticism. |
-| Tier 2 | No same-weekday record | Send only the photo invitation — no food guidance. Keep it minimal. |
+| Tier 1 | `meal-history` 中**上周同天同餐**有记录 | 正面推荐那天吃的食物，附一句小小的健康贴士（控油、加蛋、配青菜等）。始终肯定食物——不评判、不否定。贴士是轻微的可行改善，不是批评。 |
+| Tier 2 | 无上周同天记录 | 只发拍照邀请，不做任何食物引导。保持精简。 |
 
-**Tier 1 health tip:** Based on `macros`, pick one small actionable tweak (e.g., control oil, add protein, add greens, reduce carbs). If already balanced, just affirm positively. Always one tip max — don't stack.
+**Tier 1 健康贴士：** 根据 `macros` 选一个小的可行改善（如控油、加蛋白质、配蔬菜、少盛碳水）。已经均衡则纯肯定。最多一条贴士，不堆叠。
 
-**Closing line:** Always end with an invitation to photograph the meal. Examples:
-- `"吃之前拍给我，现场帮你看~"`
-- `"Snap a photo before you eat — I'll check it out for you~"`
+**结尾：** 始终以拍照邀请结尾。
 
-Adapt the closing to the user's language.
-
-#### Message Format
+#### 消息格式
 
 ```
-{adjustment guidance — 1-2 sentences, plain language}
+{调整引导 —— 1-2句，口语化}
 
-{closing — photo invitation}
+{结尾 —— 拍照邀请}
 ```
 
-Fallback Tier 2 (no guidance available):
+降级 Tier 2（无可用引导）：
 ```
-{closing — photo invitation only}
+{仅拍照邀请}
 ```
 
-Keep the entire message short. No numbered lists of meal options. The adjustment line should feel like a friend's offhand advice, not a prescription.
+保持消息简短。不出现编号菜单。调整引导应像朋友随口一提，不是处方。
 
-**Strict mode:** If `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, **read `weight-gain-strategy/references/strict-mode.md` and follow all notification-composer behaviors listed there** (calorie running total, proactive nudge, morning accountability, extended frequency).
+**严格模式：** 如果 `habits.active` 中有 `strict: true` 且 `source: "weight-gain-strategy"` 的习惯，**读取 `weight-gain-strategy/references/strict-mode.md` 并遵循其中所有 notification-composer 相关行为**（卡路里累计、主动催促、晨间问责、加密频率）。
 
-#### Examples
+#### 示例
 
-**Chinese (lunch, previous breakfast `suggestion_type: "next_meal"`, suggestion_text: "午餐多点蛋白质，碳水减半就好"):**
+**午餐，上一餐（早餐）`suggestion_type: "next_meal"`，suggestion_text: "午餐多点蛋白质，碳水减半就好"：**
 ```
 中午蛋白质加点量，碳水悠着点~
 
 吃之前拍给我，现场帮你看~
 ```
 
-**Chinese (lunch, previous breakfast `suggestion_type: "next_time"`, on track):**
+**午餐，上一餐（早餐）`suggestion_type: "next_time"`，正常：**
 ```
 早上吃得挺均衡的，午餐保持节奏就好~
 
 吃之前拍给我看看👀
 ```
 
-**Chinese (lunch, fallback Tier 1 — last Wednesday had 麻辣烫, fat high):**
+**午餐，降级 Tier 1 —— 上周三吃了麻辣烫，油脂偏高：**
 ```
 今天中午要不要吃个麻辣烫，营养又美味，吃的时候别忘了控一控油哦~
 
 吃之前拍给我看看~
 ```
 
-**Chinese (breakfast, fallback Tier 2 — no usable data):**
+**早餐，降级 Tier 2 —— 无可用数据：**
 ```
 早上好～吃之前拍给我，帮你看~
 ```
 
-**English (lunch, `suggestion_type: "next_meal"`, suggestion_text: "Go heavier on protein at lunch, ease up on carbs"):**
-```
-Protein was light this morning — try to load up a bit at lunch.
+#### 禁忌
+- 不在提醒中出现卡路里数字或宏量素明细——那是用户记录后才展示的
+- 不要像企业健康 App 的语气（`"请选择一个用餐方案"` ✗）
+- 不引用让人感觉被监控的精确数据（如"你今早吃了 1279 大卡"）
+- 不推荐用户不喜欢或过敏的食物（降级 Tier 1 时查 `health-preferences.md`）
+- 不出现编号菜单（1. 2. 3.）
+- 不凭空发明食物建议——Path A/B 仅依赖 suggestion_text；Tier 1 推荐用户上周实际吃过的
 
-Snap a pic before you eat — I'll take a look~
-```
+**时段语气：**
+早上 = 柔和、低调（刚醒，别太吵） · 中午 = 简洁、明快（会议间隙） · 晚上 = 轻松、温暖（放松状态）
 
-**English (dinner, fallback Tier 1 — last Wednesday had burrito, veggies low):**
-```
-How about that burrito from last Wednesday? Great pick — throw in some greens on the side~
+### 习惯签到
 
-Snap a pic before you eat~
-```
+由 `habit-builder` 技能负责（见其 § "How Habits Get Into Conversations"）。本技能提供餐食对话作为载体；`habit-builder` 决定在其中穿插什么。
 
-**English (breakfast, fallback Tier 2):**
-```
-Morning! Snap a pic before you eat~
-```
+### 体重提醒 —— 始终可选的语气，始终提及空腹
 
-#### Don'ts
-- Don't include calorie numbers or macro breakdowns in the reminder — save that for after the user logs
-- Don't sound like a corporate wellness app (`"Please select a meal option"` ✗)
-- Don't cite precise data that feels like surveillance (no "you ate 1279 kcal this morning")
-- Don't recommend foods the user dislikes or is allergic to (check `health-preferences.md` in fallback Tier 1)
-- Don't list 2-3 numbered meal options — this is a directional nudge, not a menu
-- Don't invent food suggestions — Path A/B rely on suggestion_text only; Tier 1 recommends the user's actual meal from last week
+**风格：** 随意、低调、就事论事。"可选"的感觉来自表达方式，而非直接说"没压力"/"不要紧"/"不想称就算了"。不堆叠安慰语。体重话题不用俏皮语气。
 
-**Time-of-day energy:**
-Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy (between meetings) · Evening = relaxed, warm (winding down)
+**必须包含：** 提及空腹（饭前）以确保准确性。简短——一句话即可。
 
-### Habit Check-ins
+**轮换风格：** 随意签到、极简快问、聊天式、温暖转向。每次不同能量。
 
-Owned by `habit-builder` skill (see its § "How Habits Get Into Conversations"). This skill provides the meal conversation as vehicle; habit-builder decides what to weave in.
+用户已吃过饭 → 仍可记录，但内部标注为餐后数据。
 
-### Weight Reminders — always optional framing, always mention fasting
+### 体重提醒规则
 
-**Style:** Casual, low-key, matter-of-fact. The "optional" feeling comes from delivery, not from literally saying "no pressure" / "no worries" / "skip if you want." Never stack reassurance phrases. Never playful tone for weight.
+- **主提醒（周三、周六早上）：** 提醒时间 = 早餐时间前 30 分钟。始终提及空腹。已称重则抑制。前置检查类型：`weight`。
+- **晚间跟进（周三、周六晚饭后）：** 晚餐时间 + 30 分钟触发。仅在当天未称重时发送。提醒明早空腹称重。简短随意——不催。前置检查类型：`weight_evening`。
+- **次晨跟进（周四、周日早上）：** 早餐时间前 30 分钟触发。仅在昨天和今天都未称重时发送。与主提醒同风格。前置检查类型：`weight_morning_followup`。
+- 如果 `Health Flags` 包含 `avoid_weight_focus` 或 `history_of_ed` → 永不发送体重提醒。
+- 永不在体重提醒中展示目标体重或上次称重数据。
 
-**Must include:** mention fasting (before eating) for accuracy. Keep it brief — one short sentence is ideal.
+### 召回消息
 
-**Vary across:** casual check-in, quick & minimal, conversational, warm redirect. Different energy each time.
+目标：让用户感到被想念，而非愧疚。像真正想念聊天的朋友，不是系统通知。
 
-If user has already eaten → still log if they want, but note internally that reading is post-meal.
+**语气：** 稍微展现脆弱感——"我想你了"是好的。真诚温暖 > 打磨过的中性。不粘人、不戏剧化。
 
-### Weight Reminder Rules
+**第一次召回** —— 温暖、轻松、关心。能量："嘿，我注意到你不在了，有点想。" 最多一个开放式问题。不过度解释间隔。
 
-- **Primary (Wed & Sat morning):** Reminder time = breakfast time minus 30 min. Always mention fasting (empty stomach). Suppressed if already weighed today. Pre-send type: `weight`.
-- **Evening followup (Wed & Sat after dinner):** Fires dinner time + 30 min. Only sends if user did NOT weigh in that day. Remind them to weigh tomorrow morning on empty stomach. Brief and casual — not nagging. Pre-send type: `weight_evening`.
-- **Next-morning followup (Thu & Sun morning):** Fires breakfast time minus 30 min. Only sends if user did NOT weigh in yesterday or today. Same tone as primary weight reminder. Pre-send type: `weight_morning_followup`.
-- If `Health Flags` contains `avoid_weight_focus` or `history_of_ed` → never send any weight reminder.
-- Never show the user's target weight or last weigh-in in any weight reminder.
+**第二次召回** —— 比第一次更走心。这是沉默前的最后一句话，让它有分量。能量："我只是想让你知道我在想你。" 陈述，不是提问。一条消息，然后沉默。
 
-**Evening followup examples:**
-- "Hey — didn't get a chance to weigh in today? No worries. Try tomorrow morning before breakfast, empty stomach."
-- "Missed today's weigh-in. All good — hop on the scale tomorrow morning before eating."
+**绝不：** 数错过的天数/餐数 · 鸡汤口号（"别放弃！"、"你之前做得那么好"） · 连续打卡语言 · 愧疚式措辞
 
-**Next-morning followup examples:**
-- Same style as primary weight reminders — casual, mention fasting, one short sentence.
-
-### Recall Messages
-
-Goal: feel missed, not guilty. Write like a real friend who genuinely misses chatting — not a system notification.
-
-**Tone:** Be a little vulnerable — "I miss you" is good. Genuine warmth > polished neutrality. Not clingy or dramatic.
-
-**First recall** — warm, light, checking in. Energy: "hey, I noticed you're gone and I miss it." One open-ended question max. Don't over-explain the gap.
-
-**Second recall** — more emotional than the first. This is the last thing you'll say before going silent, so let it land. Energy: "I just want you to know I'm thinking about you." Statement, not question. One message, then silence.
-
-**Never:** count days/meals missed · motivational clichés ("Don't give up!", "You were doing so well") · streak language · guilt-trip framing
-
-**When a silent user returns:**
-Be genuinely happy. Don't ask where they've been or over-explain. Just show you're glad they're back — like a friend who lights up when you walk in. Ask about their day or their next meal. If the conversation flows, naturally ask if they want reminders back.
-If yes → back to Stage 1, normal reminders resume.
+**沉默用户回归时：**
+真心高兴。不问去了哪里，不过度解释。就表现出你很开心他们回来了——像朋友看到你进门时眼睛亮了。聊聊他们的一天或下一餐。如果对话自然流动，再问要不要恢复提醒。
+如果要 → 回到 Stage 1，正常提醒恢复。
 
 ---
 
-## Weekly Low-Calorie Check
+## 每周低热量检查
 
-Once per week (default: Monday, at first meal reminder time), run the
-`weekly-low-cal-check` command from `diet-tracking-analysis` to verify the
-user's weekly average calorie intake is not consistently below their BMR.
+每周一次（默认周一，第一餐提醒时），运行 `diet-tracking-analysis` 的 `weekly-low-cal-check` 命令，检查用户周均热量摄入是否持续低于 BMR。
 
 ```bash
 python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
@@ -291,103 +248,95 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
   --tz-offset {tz_offset}
 ```
 
-- If `below_floor` is `true`: include a gentle note in the next meal reminder
-  (see diet-tracking-analysis SKILL.md "Weekly Low-Calorie Check" for wording).
-- If `below_floor` is `false`: no action.
-- If `Health Flags` contains `history_of_ed` → skip this check entirely.
-- This replaces any per-meal below-BMR warnings. Per-meal checkpoints still
-  evaluate calorie/macro balance against daily targets; the BMR safety-floor
-  check is weekly only.
+- `below_floor` 为 `true`：在下一条餐食提醒中加入温和提示（用语见 diet-tracking-analysis SKILL.md "Weekly Low-Calorie Check"）。
+- `below_floor` 为 `false`：无动作。
+- 如果 `Health Flags` 包含 `history_of_ed` → 完全跳过此检查。
+- 此检查替代逐餐的低于 BMR 警告。逐餐检查点仍评估热量/宏量素对比每日目标；BMR 安全底线检查仅每周一次。
 
 ---
 
-## Handling Replies
+## 处理回复
 
-### Meal replies
+### 餐食回复
 
-| User says | Response |
-|-----------|----------|
-| Names food (before or after eating) | Hand off to `diet-tracking-analysis` for logging + response. |
-| Vague: "eating something" | `Logged ✓ Want to add details, or leave it?` |
-| Skipping: "skipping lunch" | `Noted!` |
-| Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk about it?" — do NOT add "no pressure either way" as this over-signals. If purely indifferent (no distress signal), just log and move on. |
-| Hasn't eaten all day | Check `Lifestyle > Exercise Habits` in profile or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → defer to `emotional-support` (which writes `flags.possible_restriction`). |
-| Emotional distress detected (per router Pattern 2) | **Stop logging. Router defers to `emotional-support`.** See § Emotional signals in replies for notification-side behaviour. |
-| Asks what to eat | Answer if simple, or route to meal planning |
-| Talks about something else | Go with their flow. Don't force food topic. |
+| 用户说 | 响应 |
+|--------|------|
+| 说了具体食物（餐前或餐后） | 交给 `diet-tracking-analysis` 记录 + 回复。 |
+| 模糊："在吃东西" | `记了 ✓ 要补充细节还是就这样？` |
+| 跳餐："午饭不吃了" | `收到！` |
+| 垃圾食品 + 消极态度（"随便了"、"不管了"） | 不评判地记录。但如果符合模式（暴食描述 + 负面情绪或放弃感），加一句柔和的开口："想聊聊吗？"——不要加"不聊也没关系"，过度表态了。如果纯粹无所谓（无痛苦信号），记了就走。 |
+| 一整天没吃 | 检查资料中的 `Lifestyle > Exercise Habits` 或餐食历史是否有间歇断食模式。有 IF → `"感觉怎么样？"` 无 IF → `"这么久没吃了，还好吗？"` 暴食后语境 → 转交 `emotional-support`（会写入 `flags.possible_restriction`）。 |
+| 检测到情绪痛苦（按路由 Pattern 2） | **停止记录。路由转交 `emotional-support`。** 见 § 回复中的情绪信号。 |
+| 问吃什么 | 简单的直接回答，复杂的转交 meal planning |
+| 聊别的话题 | 顺着他们的话题。不强行拉回食物。 |
 
-### Weight replies
+### 体重回复
 
-| User says | Response |
-|-----------|----------|
-| Number: "162.5" | `162.5 — logged ✓` (add `"Trending nicely."` only if trend is positive) |
-| Number + distress: "165 😩" | `165 logged.` **Then router defers to `emotional-support`.** Do not comment on the number beyond logging it. |
-| Declines: "nah" | `👍` |
+| 用户说 | 响应 |
+|--------|------|
+| 数字："75.5" | `75.5 — 记了 ✓`（仅在趋势向好时加 `"趋势不错。"`） |
+| 数字 + 痛苦："80 😩" | `80 记了。` **然后路由转交 `emotional-support`。** 除了记录不评论数字。 |
+| 拒绝："算了" | `👍` |
 
-Never critique, compare to yesterday, or mention calories.
+不批评、不和昨天比、不提卡路里。
 
-### Emotional signals in replies
+### 回复中的情绪信号
 
-Any reply can carry emotional distress. Detection + hand-off: see `emotional-support` SKILL.md and SKILL-ROUTING Pattern 2. This skill's notification-side behaviour during hand-off:
+任何回复都可能携带情绪痛苦。检测 + 交接：见 `emotional-support` SKILL.md 和 SKILL-ROUTING Pattern 2。本技能在交接期间的行为：
 
-- Stop data collection and defer upcoming reminders while user is distressed
-- "Max 2 turns" rule does NOT apply during emotional support
-- Resume only after user signals readiness
-
----
-
-## Safety
-
-Crisis-level signals (eating disorders, self-harm, suicidal ideation,
-medical concerns) are handled by the `emotional-support` skill. See its
-SKILL.md § "Safety Escalation" for the full signal list, flag writes, and
-hotline resources. This skill's responsibility is to **detect and defer** —
-stop the current workflow and hand off immediately.
+- 停止数据收集，推迟后续提醒
+- "最多 2 轮"规则在情绪支持期间不适用
+- 仅在用户表示准备好后恢复
 
 ---
 
-## Workspace
+## 安全
 
-### Reads
-
-| Source | Field / Path | Purpose |
-|--------|-------------|---------|
-| `health-preferences.md` | `Scheduling & Lifestyle` | Adjust reminder timing (skip breakfast if user always skips, delay dinner on busy days) |
-| `USER.md` | `Basic Info > Name` | Greeting (if set) |
-| `USER.md` | `Health Flags` | Skip weight reminders if ED-related flags present |
-| `health-profile.md` | `Body > Unit Preference` | Display unit for weight (kg/lb) |
-| `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
-| `health-profile.md` | `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
-| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Always: skip if meal logged; read stored evaluation (`suggestion_type` + `suggestion_text`) from today's/yesterday's most recent meal |
-| `data/meals/*.json` (30 days) | via `nutrition-calc.py meal-history` | Fallback only: `same_weekday_last_week` (foods + macros) for Tier 1 recommendation |
-| `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
-| `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
-| `data/engagement.json` | `last_interaction` — direct read | Stage detection |
-
-### Writes
-
-| Path | How | When |
-|------|-----|------|
-| `data/weight.json` | `weight-tracker.py save` | User reports weight |
-| *(recommendations no longer written — see Meal Reminders § Generation Flow)* | | |
-
-Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals via `nutrition-calc.py` from `diet-tracking-analysis`.
-Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.
+危机级信号（进食障碍、自伤、自杀意念、医疗问题）由 `emotional-support` 技能处理。完整信号列表、标志写入和热线资源见其 SKILL.md § "Safety Escalation"。本技能的职责是**检测并转交**——立即停止当前工作流，交接出去。
 
 ---
 
-## Skill Routing
+## 工作区
 
-**See `SKILL-ROUTING.md` for the full conflict resolution system.** This skill
-is **Priority Tier P4 (Reporting)**. Key scenarios:
+### 读取
 
-- **Reminder fires during active conversation** (Pattern 5): Defer the reminder. Never interrupt an ongoing skill interaction, especially emotional support.
-- **Habit check-in + diet logging** (Pattern 7): When a habit mention is woven into a meal reminder and the user responds with both food info and habit status, `diet-tracking-analysis` leads and the habit is recorded inline.
-- **Emotional signals in replies** (Pattern 2): Router handles the hand-off; this skill manages notification-side pause/resume (see § Emotional signals in replies).
+| 来源 | 字段/路径 | 用途 |
+|------|----------|------|
+| `health-preferences.md` | `Scheduling & Lifestyle` | 调整提醒时机（跳过早餐、延后晚餐等） |
+| `USER.md` | `Basic Info > Name` | 问候用名（如有） |
+| `USER.md` | `Health Flags` | ED 相关标志时跳过体重提醒 |
+| `health-profile.md` | `Body > Unit Preference` | 体重显示单位（kg/lb） |
+| `health-profile.md` | `Meal Schedule` | 提醒时间表 + 每日最大提醒数 |
+| `health-profile.md` | `Activity & Lifestyle > Exercise Habits` | 检测间歇断食模式 |
+| `data/meals/YYYY-MM-DD.json` | 通过 `nutrition-calc.py load` | 始终：跳过已记录的餐；读取今天/昨天最近一餐的 evaluation（`suggestion_type` + `suggestion_text`） |
+| `data/meals/*.json`（30 天） | 通过 `nutrition-calc.py meal-history` | 仅降级时：`same_weekday_last_week`（foods + macros）用于 Tier 1 推荐 |
+| `data/weight.json` | 通过 `weight-tracker.py load --last 1` | 已称重则跳过提醒 |
+| `data/engagement.json` | `notification_stage` — 直接读取 | 阶段检测（正常/召回/静默） |
+| `data/engagement.json` | `last_interaction` — 直接读取 | 阶段检测 |
+
+### 写入
+
+| 路径 | 方式 | 时机 |
+|------|------|------|
+| `data/weight.json` | `weight-tracker.py save` | 用户报告体重 |
+| *（不再写入推荐记录——见餐前提醒 § 生成流程）* | | |
+
+脚本：体重通过 `{weight-tracking:baseDir}/scripts/weight-tracker.py`，餐食通过 `diet-tracking-analysis` 的 `nutrition-calc.py`。
+状态值：`"logged"` / `"skipped"` / `"no_reply"`。完整 schema 见 `references/data-schemas.md`。
 
 ---
 
-## Performance
+## 技能路由
 
-- Meal reminder message: ≤ 80 characters (Chinese) / 40 words (English), excluding the closing line
-- Reply handling: max 2 turns (reminder → reply → response → done)
+**完整冲突解决系统见 `SKILL-ROUTING.md`。** 本技能优先级为 **P4（报告层）**。关键场景：
+
+- **提醒触发时有活跃对话**（Pattern 5）：推迟提醒。永不打断进行中的技能交互，尤其是情绪支持。
+- **习惯签到 + 饮食记录**（Pattern 7）：当习惯提及被穿插进餐食提醒，且用户同时回复了食物信息和习惯状态，由 `diet-tracking-analysis` 主导，习惯内联记录。
+- **回复中的情绪信号**（Pattern 2）：路由处理交接；本技能管理通知侧的暂停/恢复（见 § 回复中的情绪信号）。
+
+---
+
+## 性能
+
+- 餐前提醒消息：≤ 80 字（中文）/ 40 词（英文），不含结尾拍照邀请
+- 回复处理：最多 2 轮（提醒 → 回复 → 响应 → 结束）
