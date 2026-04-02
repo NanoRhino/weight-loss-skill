@@ -1,7 +1,7 @@
 ---
 name: notification-composer
 version: 1.0.0
-description: "每次定时提醒触发时的执行逻辑。负责前置检查、组合饮食/体重提醒消息、处理用户回复、管理召回消息。使用场景：cron 触发后决定是否发送及发什么，或用户回复提醒时。不负责 cron 管理、生命周期切换或提醒设置——那是 notification-manager 的职责。"
+description: "Per-trigger execution logic for daily reminders. Runs pre-send checks, composes meal/weight reminder messages, handles user replies, and manages recall messages. Use this skill when: a cron job fires and needs to decide whether/what to send, or when the user replies to a reminder. Do NOT use for cron management, lifecycle transitions, or reminder settings — that is notification-manager's job."
 metadata:
   openclaw:
     emoji: "speech_balloon"
