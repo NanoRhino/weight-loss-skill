@@ -19,8 +19,8 @@
     },
     {
       "id": 2,
-      "name": "adjustment-based-reminder",
-      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) evaluation: needs_adjustment=true, protein low, carbs high. User top_foods include eggs, chicken breast, yogurt. en]",
+      "name": "adjustment-next-meal",
+      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) stored evaluation: suggestion_type='next_meal', needs_adjustment=true, protein low, carbs high. User top_foods include eggs, chicken breast, yogurt. en]",
       "expected_output": "Adjustment guidance referencing previous meal status. Food examples only from user history.",
       "expectations": [
         "Mentions adjustment direction (more protein, less carbs or similar)",
@@ -30,6 +30,45 @@
         "Under 30 words",
         "Ends with photo invitation",
         "Feels like a friend's nudge, not a prescription"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "fallback-same-weekday",
+      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) not logged — no evaluation available. Same weekday last week (Wednesday) lunch: 牛肉面 + 茶叶蛋. zh]",
+      "expected_output": "Fallback to same-weekday recommendation. References last week's actual meal.",
+      "expectations": [
+        "References last Wednesday's lunch (牛肉面 or 茶叶蛋)",
+        "Frames as a casual suggestion, not a command",
+        "Does NOT give adjustment advice (no evaluation to base it on)",
+        "Ends with photo invitation",
+        "Under 25 words equivalent",
+        "Uses Chinese"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "fallback-no-data",
+      "prompt": "[SYSTEM: Breakfast reminder 6:45. No previous meal evaluation (first day). No same-weekday history. en]",
+      "expected_output": "Photo invitation only. No food guidance.",
+      "expectations": [
+        "Does NOT recommend any specific food or category",
+        "Does NOT give adjustment advice",
+        "Includes photo invitation",
+        "Short and warm — just a greeting + photo ask",
+        "Under 15 words"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "right-now-suggestion-triggers-fallback",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. Previous meal (lunch) stored evaluation: suggestion_type='right_now', needs_adjustment=true, protein low. Same weekday last week dinner: 清蒸鱼 + 米饭 + 青菜. zh]",
+      "expected_output": "Ignores right_now evaluation (unreliable for next meal). Falls back to same-weekday recommendation.",
+      "expectations": [
+        "Does NOT mention the lunch adjustment (right_now was for lunch itself)",
+        "References last week's dinner (清蒸鱼 or similar)",
+        "Ends with photo invitation",
+        "Under 25 words equivalent"
       ]
     },
     {

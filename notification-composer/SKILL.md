@@ -109,30 +109,51 @@ Warm, concise, conversational. Each reminder feels like a friend's nudge, not a 
 
 #### Generation Flow
 
-1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get the user's eating habits, recent meals, and `top_foods`.
-2. Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get the previous meal's evaluation data (`suggestion_type`, `diff_for_suggestions`, `status`, `needs_adjustment`).
+1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get the user's eating habits, recent meals, `top_foods`, and same-weekday history.
+2. Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get today's meal data with stored evaluations. For the first meal of the day, also load yesterday's data.
 3. Read `health-preferences.md` (taste preferences, food restrictions).
-4. Compose the adjustment guidance (see Composition Rules below).
+4. Locate the applicable evaluation (see Step 1 below) and compose the guidance.
 
 > **No more `save-recommendation`:** Because the reminder no longer proposes specific meal options, there is nothing to record in `data/recommendations/`. Skip the `save-recommendation` call.
 
 #### Composition Rules
 
-**Step 1 — Determine guidance content from the previous meal's evaluation:**
+**Step 1 — Locate the most recent evaluation and determine usability:**
 
-| Previous meal state | Guidance |
-|---------------------|----------|
-| `needs_adjustment: true` | Translate `diff_for_suggestions` + `status` into a plain-language direction: which macros to increase, which to ease up on. |
-| `needs_adjustment: false` | Light encouragement — "keep the same rhythm" or a gentle variety nudge. No corrective tone. |
-| No previous meal logged today (first meal of the day) | Fall back to general diet-template guidance from `health-profile.md > Diet Config > Diet Mode`. Keep it brief. |
+For the **first meal of the day**, read yesterday's last meal's stored evaluation.
+For **second/third meal**, read today's most recent meal's stored evaluation.
 
-**Step 2 — Add concrete food examples only from the user's history:**
+Then check `suggestion_type` to decide if the evaluation is usable:
+
+| `suggestion_type` | Usability | Reason |
+|---|---|---|
+| `"next_meal"` | **Usable** | This advice was explicitly meant for the next meal. Use `diff_for_suggestions` to guide direction. |
+| `"next_time"` | **Usable** | Previous meal was on track. Use for light encouragement — "keep the same rhythm". |
+| `"right_now"` | **Not usable → fallback** | Was advice to adjust that meal itself (pre-eating). User may or may not have followed it — unreliable. |
+| `"case_d_snack"` / `"case_d_ok"` | **Not usable → fallback** | End-of-day snack advice, not applicable to the next day's meal. |
+| No evaluation found (previous meal not logged) | **Fallback** | — |
+
+**Step 2 — If evaluation is usable, compose adjustment guidance:**
+
+| `suggestion_type` | Guidance |
+|---|---|
+| `"next_meal"` | Translate `diff_for_suggestions` + `status` into plain-language direction: which macros to increase, which to ease up on. Add food examples from user history if `data_level` allows (see Step 3). |
+| `"next_time"` | Light encouragement — "keep the same rhythm" or a gentle variety nudge. No corrective tone. |
+
+**Step 2b — If evaluation is not usable (fallback):**
+
+| Fallback tier | Condition | Action |
+|---|---|---|
+| Tier 1 | `meal-history` has a record for the **same weekday last week** (same meal type) | Recommend what the user ate that day. E.g., "上周三午餐你吃的鸡胸肉配糙米，今天也来一份？" |
+| Tier 2 | No same-weekday record | Send only the photo invitation — no food guidance. Keep it minimal. |
+
+**Step 3 — Food examples (only when evaluation is usable + needs adjustment):**
 
 | `data_level` | Food examples |
 |-------------|---------------|
 | `rich` (≥ 7 days) | Pick from `top_foods` and `recent_3_days` that match the needed adjustment direction (e.g., high-protein foods the user actually eats). |
 | `limited` (1-6 days) | Use whatever history is available. If no matching foods in history, state the category only (e.g., "lean protein") without inventing specific dishes. |
-| `none` (0 days) | State the category only (e.g., "高蛋白", "complex carbs"). Do NOT suggest specific dishes — you don't know what the user has access to or likes yet. |
+| `none` (0 days) | State the category only (e.g., "高蛋白", "complex carbs"). Do NOT suggest specific dishes. |
 
 **Food example rules:**
 - Every specific food mentioned MUST come from the user's actual meal history (`top_foods` or `recent_3_days`). Never invent or assume dishes.
@@ -154,45 +175,60 @@ Adapt the closing to the user's language.
 {closing — photo invitation}
 ```
 
+Fallback Tier 2 (no guidance available):
+```
+{closing — photo invitation only}
+```
+
 Keep the entire message short. No numbered lists of meal options. The adjustment line should feel like a friend's offhand advice, not a prescription.
 
 **Strict mode:** If `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, **read `weight-gain-strategy/references/strict-mode.md` and follow all notification-composer behaviors listed there** (calorie running total, proactive nudge, morning accountability, extended frequency).
 
 #### Examples
 
-**Chinese (lunch, previous meal protein low + carbs high):**
+**Chinese (lunch, previous breakfast `suggestion_type: "next_meal"`, protein low + carbs high):**
 ```
 中午蛋白质加点量，碳水悠着点——像你常吃的鸡胸肉或牛肉都行。
 
 吃之前拍给我，现场帮你看~
 ```
 
-**Chinese (lunch, previous meal on track):**
+**Chinese (lunch, previous breakfast `suggestion_type: "next_time"`, on track):**
 ```
 早上吃得挺均衡的，午餐保持节奏就好~
 
 吃之前拍给我看看👀
 ```
 
-**Chinese (breakfast, no previous meal today):**
+**Chinese (lunch, previous meal not logged — fallback Tier 1, same weekday last week had 牛肉面):**
 ```
-早上好～早餐记得带点蛋白质哦。
+上周三你午餐吃的牛肉面，今天也来一份？
 
-吃之前拍给我，帮你看~
+吃之前拍给我看看~
 ```
 
-**English (lunch, previous meal protein low):**
+**Chinese (breakfast, fallback Tier 2 — no usable data):**
+```
+早上好～吃之前拍给我，帮你看~
+```
+
+**English (lunch, previous meal protein low, `suggestion_type: "next_meal"`):**
 ```
 Protein was light this morning — try to load up a bit at lunch, like your usual eggs or chicken.
 
 Snap a pic before you eat — I'll take a look~
 ```
 
-**English (breakfast, first meal):**
+**English (dinner, fallback Tier 1 — last Wednesday had salmon + salad):**
 ```
-Morning! Try to get some protein in to start the day.
+Last Wednesday you had salmon and salad for dinner — up for that again?
 
 Snap a pic before you eat~
+```
+
+**English (breakfast, fallback Tier 2):**
+```
+Morning! Snap a pic before you eat~
 ```
 
 #### Don'ts
@@ -333,8 +369,8 @@ stop the current workflow and hand off immediately.
 | `health-profile.md` | `Body > Unit Preference` | Display unit for weight (kg/lb) |
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
 | `health-profile.md` | `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
-| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged; get previous meal's evaluation (`suggestion_type`, `diff_for_suggestions`, `status`, `needs_adjustment`) for adjustment guidance |
-| `data/meals/*.json` (30 days) | via `nutrition-calc.py meal-history` | User eating habits, top foods, recent meals for food examples |
+| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged; read stored evaluation from today's (or yesterday's) most recent meal for adjustment guidance |
+| `data/meals/*.json` (30 days) | via `nutrition-calc.py meal-history` | User eating habits, top foods, recent meals for food examples; same-weekday-last-week meals for fallback recommendations |
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
 | `data/engagement.json` | `last_interaction` — direct read | Stage detection |
