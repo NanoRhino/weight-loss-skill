@@ -7,7 +7,7 @@ jobs and finds a nearby minute where fewer than MAX_PER_MINUTE jobs are schedule
 
 Usage:
   python3 find-slot.py --cron "45 11 * * *" --tz "Asia/Shanghai" --type meal
-  python3 find-slot.py --cron "30 7 * * 1,4" --tz "Asia/Shanghai" --type weight
+  python3 find-slot.py --cron "30 7 * * 3,6" --tz "Asia/Shanghai" --type weight
 
 Output (stdout): adjusted cron expression (e.g. "47 11 * * *")
 If no adjustment needed, outputs the original expression unchanged.

@@ -140,7 +140,7 @@ Use the cron tool directly for listing and removing:
    - **Stale jobs** (cron exists but its time doesn't match any current meal time) → remove then recreate.
    - **Legacy jobs** (cron exists and time matches, but `--message` references `daily-notification` or `daily-notification-skill` instead of `notification-composer`) → remove then recreate with the correct `notification-composer` message. This ensures old cron jobs from before the skill split are automatically migrated.
    - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
-4. Also verify the weight reminder cron job exists (Mon & Thu, 30 min before breakfast — see § "Weight reminders" below). Create if missing.
+4. Also verify weight reminder cron jobs exist — see § "Weight reminders" below. This includes the primary (Wed & Sat morning), evening followup (Wed & Sat after dinner), and next-morning followup (Thu & Sun morning). Create any that are missing.
 5. Also verify the weekly report cron job exists (Sunday 21:00 — see § "Weekly report" below). Create if missing.
 6. Also verify the daily review cron job exists (dinner + 3h — see § "Daily review" below). Create if missing. If dinner time changed, remove and recreate.
 7. **Diet pattern detection** — special handling:
@@ -179,16 +179,36 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "45 17 * * *"
 ```
 
-### Weight reminders (2x/week)
+### Weight reminders (2x/week + followups)
 
-Cron time = breakfast time minus **30 min** (not 15 min like meals). Derive from `health-profile.md > Meal Schedule`.
+**Primary reminder:** Cron time = breakfast time minus **30 min**. Fires Wed & Sat.
 
 ```bash
 # Example assumes breakfast at 07:00 → weight cron at 06:30
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --type weight --name "Weight check-in reminder" \
   --message "Run notification-composer for weight." \
-  --cron "30 6 * * 1,4"
+  --cron "30 6 * * 3,6"
+```
+
+**Evening followup:** Cron time = dinner time plus **30 min**. Fires same days (Wed & Sat). Only sends if the user did NOT weigh in that day — reminds them to weigh tomorrow morning. Pre-send-check uses `weight_evening` type.
+
+```bash
+# Example assumes dinner at 18:30 → evening followup at 19:00
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --type weight --name "Weight evening followup" \
+  --message "Run notification-composer for weight_evening." \
+  --cron "0 19 * * 3,6"
+```
+
+**Next-morning followup:** Cron time = breakfast time minus **30 min**. Fires Thu & Sun (day after primary). Only sends if the user did NOT weigh in yesterday OR today. Pre-send-check uses `weight_morning_followup` type.
+
+```bash
+# Example assumes breakfast at 07:00 → morning followup at 06:30
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --type weight --name "Weight morning followup" \
+  --message "Run notification-composer for weight_morning_followup." \
+  --cron "30 6 * * 4,0"
 ```
 
 ### Weekly report (Sunday 9 PM)
