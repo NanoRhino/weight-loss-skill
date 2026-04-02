@@ -75,13 +75,7 @@ Read `TZ Offset` from USER.md (already in context), then run the script with the
 ### Step 2: Check output
 
 - Output is **`NO_REPLY`** → reply with exactly `NO_REPLY`. Done. Do not continue.
-- Output starts with **`SEND`** → proceed to compose the reminder message (see Message Templates below).
-- If output contains **`HABIT_CHECKIN: <text>`** on the second line → append this text to your meal reminder message, after the meal recommendations and before the closing photo invitation. The text is ready to use — do not rewrite or rephrase it. Example output:
-  ```
-  SEND
-  HABIT_CHECKIN: 对了，起床后有喝一杯温水吗？
-  ```
-  In this case, include "对了，起床后有喝一杯温水吗？" in your message.
+- Output is **`SEND`** → proceed to compose the reminder message (see Message Templates below).
 
 ### What the script checks
 
@@ -200,34 +194,9 @@ Snap a pic before you eat — I'll take a look~
 **Time-of-day energy:**
 Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy (between meetings) · Evening = relaxed, warm (winding down)
 
-### Habit Check-ins (embedded in meal reminders)
+### Habit Check-ins
 
-Before composing each meal reminder, check for active habits and weave in a check-in if due:
-
-1. **Read habits data:** Look for `habits.active` in the workspace (check common locations: `data/habits.json`, `habits.json`, or any file containing `habits.active`). If no habits file or no active habits → skip to meal recommendations.
-
-2. **Run should-mention for each active habit:**
-   ```bash
-   python3 {habit-builder:baseDir}/scripts/action-pipeline.py should-mention \
-     --habit '<habit JSON>' \
-     --meal <current_meal_type> \
-     --days <days_since_created_at> \
-     --days-since-last-mention <N> \
-     --reminders-since-last-mention <N>
-   ```
-   If `mention: true` → include a check-in. If `mention: false` → skip.
-
-3. **Compose the check-in:** Add ONE sentence (max) after the meal recommendations, before the closing photo invitation. Tone: casual friend, not a checklist item.
-
-   Examples:
-   - "对了，今早刷牙后有喝杯水吗？💧"
-   - "By the way — did you have that glass of water this morning?"
-
-4. **Record the mention:** After sending, update the habit's `mention_log` in the habits file with today's date.
-
-5. **Handle replies:** If the user responds with habit status (e.g., "喝了" / "忘了"), record to `completion_log` as `completed` or `missed`. Keep it brief — "nice 👍" or "没事，明天继续" — then continue with meal logging if they also sent food info.
-
-**Important:** This step is additive — it does NOT replace or modify the meal recommendation flow. Habit check-in is a short append between recommendations and the closing line. If no habits are active or none are due, the meal reminder is unchanged.
+Owned by `habit-builder` skill (see its § "How Habits Get Into Conversations"). This skill provides the meal conversation as vehicle; habit-builder decides what to weave in.
 
 ### Weight Reminders — always optional framing, always mention fasting
 

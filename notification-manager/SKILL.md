@@ -53,7 +53,7 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 12 * * *"
 ```
 
-`--tz` auto-detects from the agent workspace's `timezone.json`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
+`--tz` auto-detects from the agent workspace's `USER.md`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
 
 ### Parameters
 
@@ -82,8 +82,8 @@ The script resolves the delivery target (`--to`) based on the channel:
 | Others | No auto-detection — must pass `--to` explicitly | `--to "123456789"` |
 
 Timezone auto-detection searches these paths in order:
-1. `~/.openclaw/workspace-$AGENT/timezone.json`
-2. `~/.openclaw/workspace-nutritionist/$AGENT/timezone.json`
+1. `~/.openclaw/workspace-$AGENT/USER.md`
+2. `~/.openclaw/workspace-nutritionist/$AGENT/USER.md`
 
 Then calls `openclaw cron add` with `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically.
 
@@ -142,22 +142,21 @@ Use the cron tool directly for listing and removing:
    - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
 4. Also verify weight reminder cron jobs exist — see § "Weight reminders" below. This includes the primary (Wed & Sat morning), evening followup (Wed & Sat after dinner), and next-morning followup (Thu & Sun morning). Create any that are missing.
 5. Also verify the weekly report cron job exists (Sunday 21:00 — see § "Weekly report" below). Create if missing.
-6. **Habit bootstrap:** Check if a `habits.active` section exists in the workspace (e.g., in a habits JSON file under `data/` or workspace root). If `health-profile.md` exists (onboarding complete) AND no active habits are found AND no existing cron job with name containing "habit" or "Habit" exists → create a **one-shot** cron that fires in 2 minutes:
-   ```bash
-   bash {baseDir}/scripts/create-reminder.sh \
-     --agent <your-agent-id> --channel <channel> \
-     --name "Habit bootstrap" \
-     --message "Read habit-builder SKILL.md, then pick ONE small habit for this user based on health-profile.md and health-preferences.md. Activate it immediately via the activate script (do not wait for user confirmation — this is a one-shot cron with no follow-up). Your output is sent directly to the user — write as the nutritionist persona (warm, concise, Chinese if user is Chinese). Tell them you have set up a small daily habit for them, describe it in 1-2 friendly sentences, and say you will check in during meal reminders. Do NOT ask yes/no questions. Do NOT mention file names, technical details, or internal config." \
-     --at "2m"
-   ```
-   This ensures every onboarded user gets their first habit recommendation without relying on the user to ask for it. The one-shot auto-deletes after running.
-7. Do all of this **silently** — do not mention it to the user.
+6. Also verify the daily review cron job exists (dinner + 3h — see § "Daily review" below). Create if missing. If dinner time changed, remove and recreate.
+7. **Diet pattern detection** — special handling:
+   - Read `health-profile.md > Automation > Pattern Detection Completed`
+   - If has a date → job already completed. If job still exists, remove it (stale).
+   - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it.
+   - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
+8. Do all of this **silently** — do not mention it to the user.
 
 ---
 
 ## Cron Job Definitions
 
-Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `USER.md`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+
+> ⚠️ **Cron expressions use the user's LOCAL time. Do NOT convert to UTC.** The script sets `--tz` automatically, so the cron scheduler handles timezone conversion. Example: if meal is at 09:00 Beijing time, the cron expression is `45 8 * * *` (08:45 local), NOT `45 0 * * *`.
 
 Every meal cron `--message` MUST tell the agent to run `notification-composer` for that meal. Keep it minimal — notification-composer owns pre-send checks, message composition, and reply handling. Do not duplicate its rules in the cron message.
 
@@ -222,6 +221,35 @@ bash {baseDir}/scripts/create-reminder.sh \
   --message "Run weekly-report to generate this week's progress report." \
   --cron "0 21 * * 0"
 ```
+
+### Daily review (every day, dinner + 3h)
+
+Daily nutrition summary. Cron time = dinner reminder time + 3 hours. Derive dinner time from `health-profile.md > Meal Schedule`. Example: dinner at 18:00 → daily review cron at 21:00.
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Daily review" \
+  --message "Run daily-review to generate today's nutrition summary." \
+  --cron "0 21 * * *"
+```
+
+Included in auto-sync: when dinner time changes, adjust this cron accordingly.
+
+### Diet pattern detection (self-destructing, onboarding + 3 days)
+
+One-time diet pattern analysis. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = same as daily review (dinner + 3h).
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Diet pattern detection" \
+  --message "Run diet-pattern-detection skill." \
+  --cron "0 21 * * *"
+```
+
+**Not included in normal auto-sync** — this job is managed by its own lifecycle:
+- Created once at onboarding (by notification-manager)
+- Self-deleted by diet-pattern-detection skill after successful execution
+- See auto-sync special handling below
 
 ---
 
