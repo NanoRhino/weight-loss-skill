@@ -148,19 +148,7 @@ Then check `suggestion_type` to decide if the evaluation is usable:
 | Tier 1 | `meal-history` has a record for the **same weekday last week** (same meal type) | Recommend the same food with a brief health tip to help the user eat it in a healthier way this time. Always affirm the food positively — never judge or reject what they ate. The health tip should be a small, actionable tweak (control oil, add a veggie, go easy on sauce, etc.), not a criticism. |
 | Tier 2 | No same-weekday record | Send only the photo invitation — no food guidance. Keep it minimal. |
 
-**Tier 1 health tip sources** (pick one that fits, based on `macros`):
-- Oil/fat high → "控一控油" / "go easy on the oil"
-- Protein low → "加个蛋" / "add an egg or some protein on the side"
-- Veggies low → "配点青菜" / "throw in some greens"
-- Carbs heavy → "米饭少盛点" / "go lighter on the rice"
-- Already balanced → pure positive: "营养又好吃" / "solid choice"
-
-**Tier 1 examples:**
-
-- "今天中午要不要吃个麻辣烫，营养又美味，吃的时候别忘了控一控油哦~"
-- "上周三你吃的牛肉面挺好的，今天再来一碗？加个蛋更完美~"
-- "Last Wednesday's burrito was great — have it again? Maybe add some greens on the side~"
-- "How about that salmon bowl from last week? Solid pick, delicious and balanced~"
+**Tier 1 health tip:** Based on `macros`, pick one small actionable tweak (e.g., control oil, add protein, add greens, reduce carbs). If already balanced, just affirm positively. Always one tip max — don't stack.
 
 **Closing line:** Always end with an invitation to photograph the meal. Examples:
 - `"吃之前拍给我，现场帮你看~"`
@@ -208,13 +196,6 @@ Keep the entire message short. No numbered lists of meal options. The adjustment
 吃之前拍给我看看~
 ```
 
-**Chinese (lunch, fallback Tier 1 — last Wednesday had 牛肉面, protein could be higher):**
-```
-上周三你吃的牛肉面挺好的，今天再来一碗？加个蛋更完美~
-
-吃之前拍给我看看~
-```
-
 **Chinese (breakfast, fallback Tier 2 — no usable data):**
 ```
 早上好～吃之前拍给我，帮你看~
@@ -230,13 +211,6 @@ Snap a pic before you eat — I'll take a look~
 **English (dinner, fallback Tier 1 — last Wednesday had burrito, veggies low):**
 ```
 How about that burrito from last Wednesday? Great pick — throw in some greens on the side~
-
-Snap a pic before you eat~
-```
-
-**English (lunch, fallback Tier 1 — last Wednesday had salmon bowl, balanced):**
-```
-Last Wednesday's salmon bowl was a solid choice — have it again today?
 
 Snap a pic before you eat~
 ```
