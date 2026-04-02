@@ -258,7 +258,7 @@ bash {baseDir}/scripts/create-reminder.sh \
 ```
 Stage 1: ACTIVE — normal reminders
     │
-    └── 5 full calendar days: zero replies + zero messages
+    └── 3 full calendar days: zero replies + zero messages
            │
 Stage 2: PAUSE — stop all reminders, send first recall
     │

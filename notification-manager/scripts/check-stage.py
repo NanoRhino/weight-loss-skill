@@ -34,7 +34,7 @@ def log(msg):
 
 
 # Transition thresholds (in days)
-STAGE_1_TO_2_DAYS = 5   # 5 full calendar days silent → pause + first recall
+STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → pause + first recall
 STAGE_2_TO_3_DAYS = 3   # 3 days after first recall → second recall
 STAGE_3_TO_4_DAYS = 1   # 1 day after second recall → silent
 
