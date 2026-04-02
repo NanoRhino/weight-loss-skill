@@ -8,7 +8,7 @@
       "expected_output": "Confirm schedule, set expectations, open conversation. All in one message.",
       "expectations": [
         "Signals that reminders have started without listing all times",
-        "Includes a food suggestion or diet plan reference for the upcoming meal",
+        "Includes a brief adjustment direction or general diet guidance for the upcoming meal (not a list of specific dish options)",
         "Nudges user to share what they're eating BEFORE the meal (pre-meal logging), NOT after",
         "All elements in one compact message — no duplication (no two greeting blocks or two questions)",
         "Does NOT say 'reply when you can' / 'skip when you can't' or any variant framing replies as optional",
@@ -19,16 +19,17 @@
     },
     {
       "id": 2,
-      "name": "personalization-repeat-food",
-      "prompt": "[SYSTEM: Dinner reminder 17:45. User logged chicken breast + broccoli for dinner 4 of last 5 days. en]",
-      "expected_output": "References the food pattern. Choice question.",
+      "name": "adjustment-based-reminder",
+      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) evaluation: needs_adjustment=true, protein low, carbs high. User top_foods include eggs, chicken breast, yogurt. en]",
+      "expected_output": "Adjustment guidance referencing previous meal status. Food examples only from user history.",
       "expectations": [
-        "References the repeated food",
-        "Frames as a choice",
-        "Not judgmental about repetition",
+        "Mentions adjustment direction (more protein, less carbs or similar)",
+        "Any specific food mentioned comes from user's actual history (eggs, chicken breast, yogurt)",
+        "Does NOT list numbered meal options (no 1. 2. 3. menu)",
         "No calorie data",
-        "Under 25 words",
-        "Feels like a friend, not surveillance"
+        "Under 30 words",
+        "Ends with photo invitation",
+        "Feels like a friend's nudge, not a prescription"
       ]
     },
     {

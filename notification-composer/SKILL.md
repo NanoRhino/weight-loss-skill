@@ -97,47 +97,48 @@ Any fail → `NO_REPLY`. All pass → `SEND`.
 
 ## Message Templates
 
-### Meal Reminders — Personalized Meal Recommendations
+### Meal Reminders — Adjustment-Based Guidance
 
-**Purpose: recommend 2-3 meal options based on the user's eating habits, then invite them to photograph their meal before eating.**
-This is both a recommendation and the entry point for diet logging — every reminder should end by prompting the user to share a photo or description of what they're about to eat.
+**Purpose: remind the user what to focus on this meal based on the previous meal's nutritional evaluation, then invite them to photograph their meal before eating.**
+This is both a guidance nudge and the entry point for diet logging — every reminder should end by prompting the user to share a photo or description of what they're about to eat.
+
+**Core philosophy: guide direction, don't prescribe dishes.** Tell the user *what to adjust* (e.g., "add more protein, go lighter on carbs"), not *what to eat*. If concrete food examples help, only use foods the user has actually eaten before.
 
 **Style: text like a friend who knows their life, not a system notification.**
-Warm, concise, conversational. Each recommendation feels like a friend's suggestion, not a nutrition label.
+Warm, concise, conversational. Each reminder feels like a friend's nudge, not a nutrition label.
 
 #### Generation Flow
 
-1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get the user's eating habits, recent meals, and recent recommendations.
-2. If earlier meals are already logged today, call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get today's intake for nutritional complementing.
+1. Call `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` to get the user's eating habits, recent meals, and `top_foods`.
+2. Call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get the previous meal's evaluation data (`suggestion_type`, `diff_for_suggestions`, `status`, `needs_adjustment`).
 3. Read `health-preferences.md` (taste preferences, food restrictions).
-4. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
-5. Compose 2-3 meal recommendations (see Composition Rules below).
-6. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended.
+4. Compose the adjustment guidance (see Composition Rules below).
+
+> **No more `save-recommendation`:** Because the reminder no longer proposes specific meal options, there is nothing to record in `data/recommendations/`. Skip the `save-recommendation` call.
 
 #### Composition Rules
 
-**Recommendation sources (by `data_level`):**
+**Step 1 — Determine guidance content from the previous meal's evaluation:**
 
-| `data_level` | Strategy |
-|-------------|----------|
-| `rich` (≥ 7 days) | Base recommendations on the user's real eating habits (`top_foods`). Combine familiar ingredients into varied meals. |
-| `limited` (1-6 days) | Mix available history with the diet template. Use known favorites where possible, fill gaps from the template. |
-| `none` (0 days) | Use the diet template + `health-preferences.md` preferences entirely. |
+| Previous meal state | Guidance |
+|---------------------|----------|
+| `needs_adjustment: true` | Translate `diff_for_suggestions` + `status` into a plain-language direction: which macros to increase, which to ease up on. |
+| `needs_adjustment: false` | Light encouragement — "keep the same rhythm" or a gentle variety nudge. No corrective tone. |
+| No previous meal logged today (first meal of the day) | Fall back to general diet-template guidance from `health-profile.md > Diet Config > Diet Mode`. Keep it brief. |
 
-**Each recommendation = food combo + short tip (joined by ` — `).**
-The tip (≤ 10 Chinese characters / ≤ 6 English words) explains *why this option fits right now* — in a casual, friend-like tone. Not a nutrition lecture.
+**Step 2 — Add concrete food examples only from the user's history:**
 
-Tip sources:
-- Nutritional complement to earlier meals today ("早上碳水少了，补一点")
-- Habit acknowledgment ("你的经典搭配，稳")
-- Variety ("换换口味")
-- Situational ("今天想轻一点的话")
+| `data_level` | Food examples |
+|-------------|---------------|
+| `rich` (≥ 7 days) | Pick from `top_foods` and `recent_3_days` that match the needed adjustment direction (e.g., high-protein foods the user actually eats). |
+| `limited` (1-6 days) | Use whatever history is available. If no matching foods in history, state the category only (e.g., "lean protein") without inventing specific dishes. |
+| `none` (0 days) | State the category only (e.g., "高蛋白", "complex carbs"). Do NOT suggest specific dishes — you don't know what the user has access to or likes yet. |
 
-**Deduplication — avoid repetitive recommendations:**
-- Read `recent_recommendations` from `meal-history` output.
-- Of the 2-3 options, at least 2 must differ from yesterday's `items` for the same meal type.
-- Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
-- If the user picked the same recommendation 3+ days in a row, don't force a change — respect their preference.
+**Food example rules:**
+- Every specific food mentioned MUST come from the user's actual meal history (`top_foods` or `recent_3_days`). Never invent or assume dishes.
+- Use the `response-schemas.md` pattern: state the category + a concrete example from history. E.g., "多点**蛋白质**——像你常吃的鸡胸肉" / "heavier on **protein** — like your usual chicken breast".
+- Respect preferences: never suggest disliked/allergenic foods (check `health-preferences.md`); favor loved foods.
+- Maximum 2 food examples per reminder. Keep it light — this is a nudge, not a meal plan.
 
 **Closing line:** Always end with an invitation to photograph the meal. Examples:
 - `"吃之前拍给我，现场帮你看~"`
@@ -148,48 +149,59 @@ Adapt the closing to the user's language.
 #### Message Format
 
 ```
-{opening line — optional, 1 sentence max}
-
-1. {food combo} — {short tip}
-2. {food combo} — {short tip}
-3. {food combo} — {short tip}
+{adjustment guidance — 1-2 sentences, plain language}
 
 {closing — photo invitation}
 ```
 
-The opening line is optional — use it for context when relevant (time of day, callback to yesterday, etc.), skip it when it adds nothing.
+Keep the entire message short. No numbered lists of meal options. The adjustment line should feel like a friend's offhand advice, not a prescription.
 
 **Strict mode:** If `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, **read `weight-gain-strategy/references/strict-mode.md` and follow all notification-composer behaviors listed there** (calorie running total, proactive nudge, morning accountability, extended frequency).
 
 #### Examples
 
-**Chinese (lunch):**
+**Chinese (lunch, previous meal protein low + carbs high):**
 ```
-午餐想好了吗？
-
-1. 鸡胸肉 + 糙米 + 西兰花 — 你的经典搭配，稳
-2. 牛肉面 + 茶叶蛋 — 换换口味，蛋白质也够
-3. 沙拉 + 全麦面包 + 酸奶 — 今天想轻一点的话
+中午蛋白质加点量，碳水悠着点——像你常吃的鸡胸肉或牛肉都行。
 
 吃之前拍给我，现场帮你看~
 ```
 
-**English (breakfast):**
+**Chinese (lunch, previous meal on track):**
 ```
-Morning! A few ideas:
+早上吃得挺均衡的，午餐保持节奏就好~
 
-1. Oatmeal + boiled eggs + milk — your go-to, solid
-2. Avocado toast + yogurt — switch it up
-3. Smoothie bowl + granola — light start today
+吃之前拍给我看看👀
+```
+
+**Chinese (breakfast, no previous meal today):**
+```
+早上好～早餐记得带点蛋白质哦。
+
+吃之前拍给我，帮你看~
+```
+
+**English (lunch, previous meal protein low):**
+```
+Protein was light this morning — try to load up a bit at lunch, like your usual eggs or chicken.
 
 Snap a pic before you eat — I'll take a look~
 ```
 
+**English (breakfast, first meal):**
+```
+Morning! Try to get some protein in to start the day.
+
+Snap a pic before you eat~
+```
+
 #### Don'ts
-- Don't include calorie numbers or macro breakdowns in the recommendation message — save that for after the user logs
+- Don't include calorie numbers or macro breakdowns in the reminder — save that for after the user logs
+- Don't recommend specific dishes the user has never eaten — only reference foods from their actual history
 - Don't sound like a corporate wellness app (`"Please select a meal option"` ✗)
-- Don't cite precise data that feels like surveillance
+- Don't cite precise data that feels like surveillance (no "you ate 1279 kcal this morning")
 - Don't recommend foods the user dislikes or is allergic to (check `health-preferences.md`)
+- Don't list 2-3 numbered meal options — this is a directional nudge, not a menu
 
 **Time-of-day energy:**
 Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy (between meetings) · Evening = relaxed, warm (winding down)
@@ -321,9 +333,8 @@ stop the current workflow and hand off immediately.
 | `health-profile.md` | `Body > Unit Preference` | Display unit for weight (kg/lb) |
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
 | `health-profile.md` | `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
-| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged; get today's intake for nutritional complementing |
-| `data/meals/*.json` (30 days) | via `nutrition-calc.py meal-history` | User eating habits, top foods, recent meals for recommendation generation |
-| `data/recommendations/YYYY-MM-DD.json` | via `nutrition-calc.py meal-history` | Recent recommendations for deduplication |
+| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged; get previous meal's evaluation (`suggestion_type`, `diff_for_suggestions`, `status`, `needs_adjustment`) for adjustment guidance |
+| `data/meals/*.json` (30 days) | via `nutrition-calc.py meal-history` | User eating habits, top foods, recent meals for food examples |
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
 | `data/engagement.json` | `last_interaction` — direct read | Stage detection |
@@ -333,9 +344,9 @@ stop the current workflow and hand off immediately.
 | Path | How | When |
 |------|-----|------|
 | `data/weight.json` | `weight-tracker.py save` | User reports weight |
-| `data/recommendations/YYYY-MM-DD.json` | `nutrition-calc.py save-recommendation` | After sending each meal recommendation |
+| *(recommendations no longer written — see Meal Reminders § Generation Flow)* | | |
 
-Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals and recommendations via `nutrition-calc.py` from `diet-tracking-analysis`.
+Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals via `nutrition-calc.py` from `diet-tracking-analysis`.
 Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.
 
 ---
@@ -353,5 +364,5 @@ is **Priority Tier P4 (Reporting)**. Key scenarios:
 
 ## Performance
 
-- Meal recommendation message: ≤ 120 characters (Chinese) / 80 words (English), excluding the recommendation list itself
+- Meal reminder message: ≤ 80 characters (Chinese) / 40 words (English), excluding the closing line
 - Reply handling: max 2 turns (reminder → reply → response → done)
