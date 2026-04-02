@@ -29,18 +29,6 @@ Cron 管理和生命周期由 `notification-manager` 负责。
 
 ---
 
-## 旧版 Cron 迁移
-
-当 cron 触发的 `--message` 引用了旧技能名（`daily-notification`、`daily-notification-skill` 或 `scheduled-reminders`）时，按 `notification-composer` 触发处理：
-
-1. **检测：** 消息内容包含 `daily-notification` 而非 `notification-composer`。
-2. **正常执行：** 映射为等效的 `notification-composer` 行为——运行前置检查、组合提醒、处理回复。用户体验完全一致。
-3. **触发迁移：** 处理完提醒后（无论发送还是 `NO_REPLY`），激活 `notification-manager` 并指示其运行 auto-sync。auto-sync 会检测到旧 cron 的 `--message` 内容并替换为引用 `notification-composer` 的新版本（见 notification-manager § "Auto-sync on Activation"）。
-
-确保无缝过渡——旧 cron 首次触发时自动修复，无需手动干预。
-
----
-
 ## 前置检查（强制——每次提醒前必须运行）
 
 **每次提醒必须先运行前置检查脚本。如果返回 `NO_REPLY`，你的全部输出必须恰好是 `NO_REPLY`——立即停止，不要组合消息，不要输出任何其他内容。**
