@@ -144,18 +144,22 @@ Then check `suggestion_type` to decide if the evaluation is usable:
 
 | Fallback tier | Condition | Action |
 |---|---|---|
-| Tier 1 | `meal-history` has a record for the **same weekday last week** (same meal type) | Review that meal's nutritional balance and give health-based guidance. If the meal was balanced → recommend repeating it. If it had issues (e.g., high carbs, low protein) → point out what to improve this time. Never blindly recommend repeating an unbalanced meal. |
+| Tier 1 | `meal-history` has a record for the **same weekday last week** (same meal type) | Recommend the same food with a brief health tip to help the user eat it in a healthier way this time. Always affirm the food positively — never judge or reject what they ate. The health tip should be a small, actionable tweak (control oil, add a veggie, go easy on sauce, etc.), not a criticism. |
 | Tier 2 | No same-weekday record | Send only the photo invitation — no food guidance. Keep it minimal. |
+
+**Tier 1 health tip sources** (pick one that fits, based on `macros`):
+- Oil/fat high → "控一控油" / "go easy on the oil"
+- Protein low → "加个蛋" / "add an egg or some protein on the side"
+- Veggies low → "配点青菜" / "throw in some greens"
+- Carbs heavy → "米饭少盛点" / "go lighter on the rice"
+- Already balanced → pure positive: "营养又好吃" / "solid choice"
 
 **Tier 1 examples:**
 
-Balanced last week → recommend:
-- "上周三你午餐吃的鸡胸配糙米挺好的，今天也可以这么来~"
-- "Last Wednesday's salmon + salad was solid — same vibe today?"
-
-Unbalanced last week → suggest adjustment:
-- "上周三午餐碳水偏多了，今天试试多加点蛋白质~"
-- "Last Wednesday's lunch was carb-heavy — try adding more protein today."
+- "今天中午要不要吃个麻辣烫，营养又美味，吃的时候别忘了控一控油哦~"
+- "上周三你吃的牛肉面挺好的，今天再来一碗？加个蛋更完美~"
+- "Last Wednesday's burrito was great — have it again? Maybe add some greens on the side~"
+- "How about that salmon bowl from last week? Solid pick, delicious and balanced~"
 
 **Step 3 — Food examples (only when evaluation is usable + needs adjustment):**
 
@@ -210,16 +214,16 @@ Keep the entire message short. No numbered lists of meal options. The adjustment
 吃之前拍给我看看👀
 ```
 
-**Chinese (lunch, fallback Tier 1 — last Wednesday had 鸡胸肉+糙米, balanced):**
+**Chinese (lunch, fallback Tier 1 — last Wednesday had 麻辣烫, fat high):**
 ```
-上周三你午餐吃的鸡胸配糙米挺好的，今天也可以这么来~
+今天中午要不要吃个麻辣烫，营养又美味，吃的时候别忘了控一控油哦~
 
 吃之前拍给我看看~
 ```
 
-**Chinese (lunch, fallback Tier 1 — last Wednesday had 炒饭+奶茶, carb-heavy):**
+**Chinese (lunch, fallback Tier 1 — last Wednesday had 牛肉面, protein could be higher):**
 ```
-上周三午餐碳水偏多了，今天试试多加点蛋白质~
+上周三你吃的牛肉面挺好的，今天再来一碗？加个蛋更完美~
 
 吃之前拍给我看看~
 ```
@@ -236,16 +240,16 @@ Protein was light this morning — try to load up a bit at lunch, like your usua
 Snap a pic before you eat — I'll take a look~
 ```
 
-**English (dinner, fallback Tier 1 — last Wednesday had salmon + salad, balanced):**
+**English (dinner, fallback Tier 1 — last Wednesday had burrito, veggies low):**
 ```
-Last Wednesday's salmon and salad was a great combo — same vibe tonight?
+How about that burrito from last Wednesday? Great pick — throw in some greens on the side~
 
 Snap a pic before you eat~
 ```
 
-**English (lunch, fallback Tier 1 — last Wednesday had pasta + soda, carb-heavy):**
+**English (lunch, fallback Tier 1 — last Wednesday had salmon bowl, balanced):**
 ```
-Last Wednesday's lunch was pretty carb-heavy — try adding more protein today.
+Last Wednesday's salmon bowl was a solid choice — have it again today?
 
 Snap a pic before you eat~
 ```

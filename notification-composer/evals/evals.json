@@ -34,27 +34,27 @@
     },
     {
       "id": 10,
-      "name": "fallback-same-weekday-balanced",
-      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) not logged — no evaluation available. Same weekday last week (Wednesday) lunch: 鸡胸肉 + 糙米 + 西兰花 (balanced, protein adequate, carbs on track). zh]",
-      "expected_output": "Fallback to same-weekday. Last week's meal was balanced — recommend repeating.",
+      "name": "fallback-same-weekday-with-tip",
+      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) not logged — no evaluation available. Same weekday last week (Wednesday) lunch: 麻辣烫 (fat high, protein ok, veggies low). zh]",
+      "expected_output": "Recommend the same food positively with a small health tip.",
       "expectations": [
-        "References last Wednesday's lunch positively (鸡胸肉/糙米/西兰花)",
-        "Suggests repeating or similar approach since it was balanced",
-        "Frames as a casual suggestion, not a command",
+        "Recommends 麻辣烫 positively (does NOT reject or judge it)",
+        "Includes a brief, actionable health tip (e.g., control oil, add veggies)",
+        "Frames as a casual, friendly suggestion",
+        "Does NOT lecture or list nutritional problems",
         "Ends with photo invitation",
-        "Under 25 words equivalent",
+        "Under 30 words equivalent",
         "Uses Chinese"
       ]
     },
     {
       "id": 13,
-      "name": "fallback-same-weekday-unbalanced",
-      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal not logged — no evaluation. Same weekday last week (Wednesday) lunch: 炒饭 + 奶茶 (carb-heavy, protein low). zh]",
-      "expected_output": "Fallback to same-weekday. Last week's meal was unbalanced — suggest improvement.",
+      "name": "fallback-same-weekday-balanced",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. Previous meal not logged — no evaluation. Same weekday last week (Thursday) dinner: 清蒸鱼 + 米饭 + 青菜 (balanced). zh]",
+      "expected_output": "Recommend the same food with pure positive framing.",
       "expectations": [
-        "Does NOT recommend repeating last week's meal as-is",
-        "Gives health-based direction (e.g., add protein, reduce carbs)",
-        "May reference last week's meal as context but not as a recommendation",
+        "Recommends the meal positively",
+        "No corrective tip needed (already balanced) — just affirms",
         "Ends with photo invitation",
         "Under 25 words equivalent",
         "Uses Chinese"
@@ -76,13 +76,14 @@
     {
       "id": 12,
       "name": "right-now-suggestion-triggers-fallback",
-      "prompt": "[SYSTEM: Dinner reminder 17:45. Previous meal (lunch) stored evaluation: suggestion_type='right_now', needs_adjustment=true, protein low. Same weekday last week dinner: 清蒸鱼 + 米饭 + 青菜 (balanced, good protein). zh]",
-      "expected_output": "Ignores right_now evaluation (unreliable for next meal). Falls back to same-weekday with health evaluation.",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. Previous meal (lunch) stored evaluation: suggestion_type='right_now', needs_adjustment=true, protein low. Same weekday last week dinner: 烤鸡腿饭 (protein ok, veggies low). zh]",
+      "expected_output": "Ignores right_now evaluation (unreliable). Falls back to same-weekday with positive recommendation + health tip.",
       "expectations": [
         "Does NOT mention the lunch adjustment (right_now was for lunch itself)",
-        "References last week's dinner positively (清蒸鱼 or similar) and suggests repeating",
+        "Recommends 烤鸡腿饭 positively with a small health tip (e.g., add veggies)",
+        "Does NOT judge or reject the food",
         "Ends with photo invitation",
-        "Under 25 words equivalent"
+        "Under 30 words equivalent"
       ]
     },
     {
