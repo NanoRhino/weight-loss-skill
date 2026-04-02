@@ -34,15 +34,15 @@ def log(msg):
 
 
 # Transition thresholds (in days)
-STAGE_1_TO_2_DAYS = 4   # 4 full calendar days silent → pause + first recall
-STAGE_2_TO_3_DAYS = 2   # 2 days after first recall → second recall
+STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → pause + first recall
+STAGE_2_TO_3_DAYS = 3   # 3 days of recall messages (Day 4-6) → second recall
 STAGE_3_TO_4_DAYS = 1   # 1 day after second recall → silent
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
     "last_interaction": None,
     "stage_changed_at": None,
-    "recall_1_sent": False,
+    "last_recall_date": None,
     "recall_2_sent": False,
     "reminder_config": {},
 }
@@ -131,7 +131,7 @@ def main():
         stage = 1
         data["notification_stage"] = 1
         data["stage_changed_at"] = now.isoformat()
-        data["recall_1_sent"] = False
+        data["last_recall_date"] = None
         data["recall_2_sent"] = False
         changed = True
         log(f"RESET to stage 1 (user returned, silent only {days_silent:.1f} days)")
@@ -142,7 +142,7 @@ def main():
             stage = 2
             data["notification_stage"] = 2
             data["stage_changed_at"] = now.isoformat()
-            data["recall_1_sent"] = False
+            data["last_recall_date"] = None
             data["recall_2_sent"] = False
             changed = True
             log(f"TRANSITION 1 → 2 (silent {days_silent:.1f} days)")

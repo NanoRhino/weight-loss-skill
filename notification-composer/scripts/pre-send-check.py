@@ -49,12 +49,13 @@ def check_health_profile(workspace_dir):
     return True, None
 
 
-def check_engagement_stage(workspace_dir):
+def check_engagement_stage(workspace_dir, meal_type, tz_offset):
     """Check 2: engagement stage gating.
 
     Stage 1 (ACTIVE):  SEND — normal reminder
-    Stage 2 (PAUSE):   SEND only if recall_1 not yet sent (composer sends recall)
-    Stage 3 (RECALL):  SEND only if recall_2 not yet sent (composer sends recall)
+    Stage 2 (RECALL):  SEND once per day (morning first meal only, suppress lunch/dinner)
+                        Each day gets a different recall message (Day 4→5→6)
+    Stage 3 (FINAL):   SEND only if final recall not yet sent
     Stage 4 (SILENT):  NO_REPLY — suppress everything
     """
     path = os.path.join(workspace_dir, "data", "engagement.json")
@@ -71,10 +72,19 @@ def check_engagement_stage(workspace_dir):
             stage = stage_map.get(stage.lower(), 1)
         if stage >= 4:
             return False, f"notification_stage={stage} — user is in silent mode"
-        if stage == 2 and data.get("recall_1_sent", False):
-            return False, "notification_stage=2, first recall already sent — waiting for reply"
+        if stage == 2:
+            # Stage 2: one recall per day, morning first meal only
+            is_morning = meal_type in ("breakfast", "meal_1")
+            if not is_morning:
+                return False, "notification_stage=2 — only morning recall, suppressing lunch/dinner"
+            # Check if recall already sent today
+            local_date = get_local_date(tz_offset)
+            last_recall_date = data.get("last_recall_date", "")
+            if last_recall_date == local_date:
+                return False, f"notification_stage=2, recall already sent today ({local_date})"
+            return True, None
         if stage == 3 and data.get("recall_2_sent", False):
-            return False, "notification_stage=3, second recall already sent — waiting for reply"
+            return False, "notification_stage=3, final recall already sent — waiting for reply"
         return True, None
     except (json.JSONDecodeError, IOError) as e:
         log(f"Warning: could not read engagement.json: {e}")
@@ -263,7 +273,8 @@ def main():
 
     checks = [
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
-        ("engagement_stage", lambda: check_engagement_stage(args.workspace_dir)),
+        ("engagement_stage", lambda: check_engagement_stage(
+            args.workspace_dir, args.meal_type, args.tz_offset)),
         ("health_flags", lambda: check_health_flags(args.workspace_dir, args.meal_type)),
         ("scheduling", lambda: check_scheduling_constraints(
             args.workspace_dir, args.meal_type, args.tz_offset)),

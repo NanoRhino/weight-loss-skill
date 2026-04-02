@@ -258,14 +258,17 @@ bash {baseDir}/scripts/create-reminder.sh \
 ```
 Stage 1: ACTIVE — normal reminders (Day 2-3: morning nudge + normal recommendation)
     │
-    └── 4 full calendar days: zero replies + zero messages
+    └── 3 full calendar days: zero replies + zero messages
            │
-Stage 2: PAUSE — stop all reminders, send first recall
+Stage 2: RECALL — stop normal reminders, send daily recall (Day 4-6)
+    │       Each morning: one recall message (no meal recommendations)
+    │       Lunch/dinner: suppressed
+    │       Tone escalation: Day 4 撒娇 → Day 5 假装生气 → Day 6 委屈卖萌
     │
     ├── User replies → back to Stage 1
-    └── 2 days, no reply
+    └── 3 days, no reply
            │
-Stage 3: SECOND RECALL — one final message
+Stage 3: FINAL RECALL — one last emotional message
     │
     ├── User replies → back to Stage 1
     └── 1 day, no reply → Stage 4

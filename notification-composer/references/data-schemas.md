@@ -78,6 +78,6 @@ All data is written to the user's workspace and readable by any part of the syst
 | Engagement stage | `data/engagement.json > notification_stage` | direct read/write |
 | Last interaction | `data/engagement.json > last_interaction` | direct read (written by platform) |
 | Stage changed at | `data/engagement.json > stage_changed_at` | written by `check-stage.py` |
-| Recall 1 sent | `data/engagement.json > recall_1_sent` | written by `notification-composer` after sending first recall |
-| Recall 2 sent | `data/engagement.json > recall_2_sent` | written by `notification-composer` after sending second recall |
+| Last recall date | `data/engagement.json > last_recall_date` | written by `notification-composer` after each daily recall (Stage 2) |
+| Final recall sent | `data/engagement.json > recall_2_sent` | written by `notification-composer` after final recall (Stage 3) |
 | Adaptive config | `data/engagement.json > reminder_config` | direct read/write |
