@@ -127,7 +127,7 @@ Then check `suggestion_type` to decide if the evaluation is usable:
 
 | `suggestion_type` | Usability | Reason |
 |---|---|---|
-| `"next_meal"` | **Usable** | This advice was explicitly meant for the next meal. Use `diff_for_suggestions` to guide direction. |
+| `"next_meal"` | **Usable** | This advice was explicitly meant for the next meal. Use `suggestion_text` as the basis for your reminder. |
 | `"next_time"` | **Usable** | Previous meal was on track. Use for light encouragement — "keep the same rhythm". |
 | `"right_now"` | **Not usable → fallback** | Was advice to adjust that meal itself (pre-eating). User may or may not have followed it — unreliable. |
 | `"case_d_snack"` / `"case_d_ok"` | **Not usable → fallback** | End-of-day snack advice, not applicable to the next day's meal. |
@@ -137,15 +137,25 @@ Then check `suggestion_type` to decide if the evaluation is usable:
 
 | `suggestion_type` | Guidance |
 |---|---|
-| `"next_meal"` | Translate `diff_for_suggestions` + `status` into plain-language direction: which macros to increase, which to ease up on. Add food examples from user history if `data_level` allows (see Step 3). |
-| `"next_time"` | Light encouragement — "keep the same rhythm" or a gentle variety nudge. No corrective tone. |
+| `"next_meal"` | Use `suggestion_text` from the stored evaluation as the basis. Rephrase it as a casual reminder — don't copy verbatim, but preserve the adjustment direction. Add food examples from user history if `data_level` allows (see Step 3). |
+| `"next_time"` | Light encouragement — "keep the same rhythm" or a gentle variety nudge. No corrective tone. `suggestion_text` may contain a habit tip — you can reference it lightly. |
 
 **Step 2b — If evaluation is not usable (fallback):**
 
 | Fallback tier | Condition | Action |
 |---|---|---|
-| Tier 1 | `meal-history` has a record for the **same weekday last week** (same meal type) | Recommend what the user ate that day. E.g., "上周三午餐你吃的鸡胸肉配糙米，今天也来一份？" |
+| Tier 1 | `meal-history` has a record for the **same weekday last week** (same meal type) | Review that meal's nutritional balance and give health-based guidance. If the meal was balanced → recommend repeating it. If it had issues (e.g., high carbs, low protein) → point out what to improve this time. Never blindly recommend repeating an unbalanced meal. |
 | Tier 2 | No same-weekday record | Send only the photo invitation — no food guidance. Keep it minimal. |
+
+**Tier 1 examples:**
+
+Balanced last week → recommend:
+- "上周三你午餐吃的鸡胸配糙米挺好的，今天也可以这么来~"
+- "Last Wednesday's salmon + salad was solid — same vibe today?"
+
+Unbalanced last week → suggest adjustment:
+- "上周三午餐碳水偏多了，今天试试多加点蛋白质~"
+- "Last Wednesday's lunch was carb-heavy — try adding more protein today."
 
 **Step 3 — Food examples (only when evaluation is usable + needs adjustment):**
 
@@ -200,9 +210,16 @@ Keep the entire message short. No numbered lists of meal options. The adjustment
 吃之前拍给我看看👀
 ```
 
-**Chinese (lunch, previous meal not logged — fallback Tier 1, same weekday last week had 牛肉面):**
+**Chinese (lunch, fallback Tier 1 — last Wednesday had 鸡胸肉+糙米, balanced):**
 ```
-上周三你午餐吃的牛肉面，今天也来一份？
+上周三你午餐吃的鸡胸配糙米挺好的，今天也可以这么来~
+
+吃之前拍给我看看~
+```
+
+**Chinese (lunch, fallback Tier 1 — last Wednesday had 炒饭+奶茶, carb-heavy):**
+```
+上周三午餐碳水偏多了，今天试试多加点蛋白质~
 
 吃之前拍给我看看~
 ```
@@ -219,9 +236,16 @@ Protein was light this morning — try to load up a bit at lunch, like your usua
 Snap a pic before you eat — I'll take a look~
 ```
 
-**English (dinner, fallback Tier 1 — last Wednesday had salmon + salad):**
+**English (dinner, fallback Tier 1 — last Wednesday had salmon + salad, balanced):**
 ```
-Last Wednesday you had salmon and salad for dinner — up for that again?
+Last Wednesday's salmon and salad was a great combo — same vibe tonight?
+
+Snap a pic before you eat~
+```
+
+**English (lunch, fallback Tier 1 — last Wednesday had pasta + soda, carb-heavy):**
+```
+Last Wednesday's lunch was pretty carb-heavy — try adding more protein today.
 
 Snap a pic before you eat~
 ```
@@ -369,7 +393,7 @@ stop the current workflow and hand off immediately.
 | `health-profile.md` | `Body > Unit Preference` | Display unit for weight (kg/lb) |
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
 | `health-profile.md` | `Activity & Lifestyle > Exercise Habits` | Detect IF patterns |
-| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged; read stored evaluation from today's (or yesterday's) most recent meal for adjustment guidance |
+| `data/meals/YYYY-MM-DD.json` | via `nutrition-calc.py load` | Skip reminder if meal already logged; read stored evaluation (`suggestion_type` + `suggestion_text`) from today's (or yesterday's) most recent meal for adjustment guidance |
 | `data/meals/*.json` (30 days) | via `nutrition-calc.py meal-history` | User eating habits, top foods, recent meals for food examples; same-weekday-last-week meals for fallback recommendations |
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |

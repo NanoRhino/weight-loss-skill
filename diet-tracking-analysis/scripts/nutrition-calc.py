@@ -327,9 +327,11 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None)
 
 
 def _save_evaluation_to_meal(data_dir: str, day: str, meal_name: str, eval_result: dict):
-    """Persist evaluation summary into the saved meal record.
+    """Persist suggestion_type into the saved meal record.
 
-    Stores only the fields notification-composer needs for next-meal guidance.
+    Only stores suggestion_type from the script layer. The human-readable
+    suggestion_text is written later by diet-tracking-analysis via
+    save-evaluation command after the LLM composes the response.
     """
     path = get_log_path(data_dir, day)
     if not os.path.exists(path):
@@ -340,13 +342,39 @@ def _save_evaluation_to_meal(data_dir: str, day: str, meal_name: str, eval_resul
         if m.get("name") == meal_name:
             m["evaluation"] = {
                 "suggestion_type": eval_result.get("suggestion_type"),
-                "needs_adjustment": eval_result.get("needs_adjustment"),
-                "diff_for_suggestions": eval_result.get("diff_for_suggestions"),
-                "status": eval_result.get("status"),
             }
             break
     with open(path, "w", encoding="utf-8") as f:
         json.dump(meals, f, ensure_ascii=False, indent=2)
+
+
+def save_evaluation_text(data_dir: str, meal_name: str, suggestion_text: str,
+                         day: str = None, tz_offset: int = None) -> dict:
+    """Save the LLM-generated suggestion text into a meal's evaluation record.
+
+    Called by diet-tracking-analysis after composing the user-facing response.
+    Merges suggestion_text into the existing evaluation dict (which already
+    has suggestion_type from _save_evaluation_to_meal).
+    """
+    day = day or _local_date(tz_offset)
+    path = get_log_path(data_dir, day)
+    if not os.path.exists(path):
+        return {"saved": False, "error": "No meal file for this date"}
+    with open(path, "r", encoding="utf-8") as f:
+        meals = json.load(f)
+    found = False
+    for m in meals:
+        if m.get("name") == meal_name:
+            if "evaluation" not in m:
+                m["evaluation"] = {}
+            m["evaluation"]["suggestion_text"] = suggestion_text
+            found = True
+            break
+    if not found:
+        return {"saved": False, "error": f"Meal '{meal_name}' not found"}
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(meals, f, ensure_ascii=False, indent=2)
+    return {"saved": True, "meal": meal_name, "date": day}
 
 
 def load_meals(data_dir: str, day: str = None, tz_offset: int = None) -> dict:
@@ -917,10 +945,17 @@ def meal_history(data_dir: str, meal_type: str, days: int = 30,
                       or m.get("name") == meal_type]
         if matched_sw:
             sw_foods = []
+            sw_macros = {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
             for m in matched_sw:
                 sw_foods.extend(f.get("name", "") for f in m.get("foods", [])
                                 if f.get("name"))
-            same_weekday_meal = {"date": same_weekday_date, "foods": sw_foods}
+                for k in sw_macros:
+                    sw_macros[k] += m.get(k, 0)
+            same_weekday_meal = {
+                "date": same_weekday_date,
+                "foods": sw_foods,
+                "macros": sw_macros,
+            }
 
     return {
         "meal_type": meal_type,
@@ -1623,6 +1658,19 @@ def main():
     ddp.add_argument("--tz-offset", type=int, default=None,
                      help="Timezone offset from UTC in seconds")
 
+    se = sub.add_parser("save-evaluation",
+                         help="Save LLM-generated suggestion text to a meal's evaluation record")
+    se.add_argument("--data-dir", type=str, required=True,
+                    help="Directory with daily JSON logs")
+    se.add_argument("--meal-name", type=str, required=True,
+                    help="Name of meal to attach suggestion to (e.g. lunch)")
+    se.add_argument("--suggestion-text", type=str, required=True,
+                    help="The suggestion text shown to the user (e.g. '晚餐多点蛋白质')")
+    se.add_argument("--date", type=str, default=None,
+                    help="Date override (YYYY-MM-DD)")
+    se.add_argument("--tz-offset", type=int, default=None,
+                    help="Timezone offset from UTC in seconds")
+
     ld = sub.add_parser("local-date",
                          help="Get the user's local date, weekday, and week ranges")
     ld.add_argument("--tz-offset", type=int, required=True,
@@ -1790,6 +1838,12 @@ def main():
             meal_name=args.meal_name, day=args.date,
             weight=args.weight, daily_cal=args.cal,
             meals=args.meals, mode=args.mode, region=args.region,
+        )
+    elif args.cmd == "save-evaluation":
+        result = save_evaluation_text(
+            data_dir=args.data_dir, meal_name=args.meal_name,
+            suggestion_text=args.suggestion_text,
+            day=args.date, tz_offset=getattr(args, 'tz_offset', None),
         )
     elif args.cmd == "query-day":
         result = query_day(
