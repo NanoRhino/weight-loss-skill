@@ -50,7 +50,13 @@ def check_health_profile(workspace_dir):
 
 
 def check_engagement_stage(workspace_dir):
-    """Check 2: user is not in silent mode (Stage 4)."""
+    """Check 2: engagement stage gating.
+
+    Stage 1 (ACTIVE):  SEND — normal reminder
+    Stage 2 (PAUSE):   SEND only if recall_1 not yet sent (composer sends recall)
+    Stage 3 (RECALL):  SEND only if recall_2 not yet sent (composer sends recall)
+    Stage 4 (SILENT):  NO_REPLY — suppress everything
+    """
     path = os.path.join(workspace_dir, "data", "engagement.json")
     if not os.path.exists(path):
         # No engagement file = assume active (Stage 1)
@@ -65,6 +71,10 @@ def check_engagement_stage(workspace_dir):
             stage = stage_map.get(stage.lower(), 1)
         if stage >= 4:
             return False, f"notification_stage={stage} — user is in silent mode"
+        if stage == 2 and data.get("recall_1_sent", False):
+            return False, "notification_stage=2, first recall already sent — waiting for reply"
+        if stage == 3 and data.get("recall_2_sent", False):
+            return False, "notification_stage=3, second recall already sent — waiting for reply"
         return True, None
     except (json.JSONDecodeError, IOError) as e:
         log(f"Warning: could not read engagement.json: {e}")

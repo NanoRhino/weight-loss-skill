@@ -76,4 +76,8 @@ All data is written to the user's workspace and readable by any part of the syst
 | Weight records | `data/weight.json` | `weight-tracker.py save/load` (from `weight-tracking` skill) |
 | Meal records | `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py save/load` (from `diet-tracking-analysis` skill) |
 | Engagement stage | `data/engagement.json > notification_stage` | direct read/write |
+| Last interaction | `data/engagement.json > last_interaction` | direct read (written by platform) |
+| Stage changed at | `data/engagement.json > stage_changed_at` | written by `check-stage.py` |
+| Recall 1 sent | `data/engagement.json > recall_1_sent` | written by `notification-composer` after sending first recall |
+| Recall 2 sent | `data/engagement.json > recall_2_sent` | written by `notification-composer` after sending second recall |
 | Adaptive config | `data/engagement.json > reminder_config` | direct read/write |

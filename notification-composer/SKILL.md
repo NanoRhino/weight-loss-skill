@@ -57,11 +57,22 @@ without any manual intervention.
 
 ## Pre-send Checks (MANDATORY — run before every reminder)
 
-**Every reminder MUST run the pre-send-check script FIRST. If it returns `NO_REPLY`, your entire response must be exactly `NO_REPLY` — stop immediately, do not compose a message, do not output anything else.**
+**Every reminder MUST run both scripts below IN ORDER. If either returns `NO_REPLY`, your entire response must be exactly `NO_REPLY` — stop immediately, do not compose a message, do not output anything else.**
 
 > ⚠️ **CRITICAL:** Any text you output WILL be delivered to the user. `NO_REPLY` is the only way to suppress delivery. No explanations, no reasoning, no "check failed" messages.
 
-### Step 1: Run the script
+### Step 0: Update engagement stage
+
+```bash
+python3 {notification-manager:baseDir}/scripts/check-stage.py \
+  --workspace-dir {workspaceDir} \
+  --tz-offset {tz_offset}
+```
+
+This updates `data/engagement.json > notification_stage` based on how long the
+user has been silent. Must run before pre-send-check so the stage is current.
+
+### Step 1: Run the pre-send-check script
 
 ```bash
 python3 {baseDir}/scripts/pre-send-check.py \
@@ -75,7 +86,10 @@ Read `TZ Offset` from USER.md (already in context), then run the script with the
 ### Step 2: Check output
 
 - Output is **`NO_REPLY`** → reply with exactly `NO_REPLY`. Done. Do not continue.
-- Output is **`SEND`** → proceed to compose the reminder message (see Message Templates below).
+- Output is **`SEND`** → read `data/engagement.json > notification_stage`:
+  - **Stage 1** → compose a normal reminder (see Message Templates below).
+  - **Stage 2** → compose a **first recall** message (see § Recall Messages). After sending, write `recall_1_sent: true` to `data/engagement.json`.
+  - **Stage 3** → compose a **second recall** message (see § Recall Messages). After sending, write `recall_2_sent: true` to `data/engagement.json`.
 
 ### What the script checks
 
@@ -334,6 +348,7 @@ stop the current workflow and hand off immediately.
 |------|-----|------|
 | `data/weight.json` | `weight-tracker.py save` | User reports weight |
 | `data/recommendations/YYYY-MM-DD.json` | `nutrition-calc.py save-recommendation` | After sending each meal recommendation |
+| `data/engagement.json` | `recall_1_sent` / `recall_2_sent` — direct write | After sending a recall message (Stage 2 or 3) |
 
 Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals and recommendations via `nutrition-calc.py` from `diet-tracking-analysis`.
 Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.

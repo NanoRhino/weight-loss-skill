@@ -258,7 +258,7 @@ bash {baseDir}/scripts/create-reminder.sh \
 ```
 Stage 1: ACTIVE — normal reminders
     │
-    └── 2 full calendar days: zero replies + zero messages
+    └── 5 full calendar days: zero replies + zero messages
            │
 Stage 2: PAUSE — stop all reminders, send first recall
     │
@@ -268,7 +268,7 @@ Stage 2: PAUSE — stop all reminders, send first recall
 Stage 3: SECOND RECALL — one final message
     │
     ├── User replies → back to Stage 1
-    └── No reply → Stage 4
+    └── 1 day, no reply → Stage 4
            │
 Stage 4: SILENT — send nothing. Wait for user to return.
 ```
@@ -277,10 +277,25 @@ Recall replaces the next meal reminder slot — don't send at random hours.
 Weight reminders also stop at Stage 2. Write current stage to
 `data/engagement.json > notification_stage`.
 
-**Stage transition logic:** This skill periodically checks `data/engagement.json > last_interaction`
-to detect when the user has gone silent. When a stage transition occurs, update
-`data/engagement.json > notification_stage`. The `notification-composer` reads this value to
+**Stage transition logic:** Before every reminder, `notification-composer` calls this skill's
+stage-check script to update the engagement stage:
+
+```bash
+python3 {baseDir}/scripts/check-stage.py \
+  --workspace-dir {workspaceDir} \
+  --tz-offset {tz_offset}
+```
+
+The script reads `data/engagement.json > last_interaction`, calculates silence
+duration, and advances `notification_stage` when thresholds are met. It also
+resets to Stage 1 when a silent user returns (`last_interaction` < 1 day ago
+but stage > 1). The `notification-composer` then reads the updated stage to
 decide whether to send a normal reminder, a recall message, or nothing at all.
+
+After sending a recall message, `notification-composer` writes
+`recall_1_sent: true` (Stage 2) or `recall_2_sent: true` (Stage 3) to
+`data/engagement.json`. The `pre-send-check` script uses these flags to
+suppress duplicate recalls — only one recall per stage.
 
 **When a silent user returns:**
 Reset to Stage 1. Resume normal reminders. The warm welcome message itself
