@@ -176,7 +176,7 @@ The opening line is optional — use it for context when relevant (time of day, 
 
 #### Gentle Nudge (1-day silence)
 
-When composing **the first meal reminder of the day** (breakfast / meal_1) and Stage = 1, read `data/engagement.json > last_interaction`. If the user has been silent for **1–3 full calendar days**, prepend a gentle nudge line before the normal meal recommendations.
+When composing **the first meal reminder of the day** (breakfast / meal_1) and Stage = 1, check the most recent meal file in `data/meals/`. If the user has not logged any meal for **1–3 full calendar days**, prepend a gentle nudge line before the normal meal recommendations.
 
 **Purpose:** 小犀牛撒娇地提一嘴，然后继续正常推荐。不是召回，只是"我注意到你没来"的小情绪，让用户感觉被惦记着。
 
@@ -533,7 +533,7 @@ stop the current workflow and hand off immediately.
 | `data/recommendations/YYYY-MM-DD.json` | via `nutrition-calc.py meal-history` | Recent recommendations for deduplication |
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
-| `data/engagement.json` | `last_interaction` — direct read | Stage detection |
+| `data/engagement.json` | `stage_changed_at` — direct read | Determine recall day (Day 4/5/6) within Stage 2 |
 | `data/streak.json` | via `streak-calc.py info` | Check for pending milestone to celebrate in meal reminder |
 
 ### Writes

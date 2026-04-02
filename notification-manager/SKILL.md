@@ -289,16 +289,18 @@ python3 {baseDir}/scripts/check-stage.py \
   --tz-offset {tz_offset}
 ```
 
-The script reads `data/engagement.json > last_interaction`, calculates silence
-duration, and advances `notification_stage` when thresholds are met. It also
-resets to Stage 1 when a silent user returns (`last_interaction` < 1 day ago
-but stage > 1). The `notification-composer` then reads the updated stage to
-decide whether to send a normal reminder, a recall message, or nothing at all.
+The script scans `data/meals/*.json` to find the most recent date with a logged
+meal — this is the "last interaction". No platform-level timestamp needed; meal
+records are the ground truth. It calculates calendar days since that date and
+advances `notification_stage` when thresholds are met. It also resets to Stage 1
+when a silent user returns (new meal logged today/yesterday but stage > 1).
 
-After sending a recall message, `notification-composer` writes
-`recall_1_sent: true` (Stage 2) or `recall_2_sent: true` (Stage 3) to
-`data/engagement.json`. The `pre-send-check` script uses these flags to
-suppress duplicate recalls — only one recall per stage.
+The `notification-composer` then reads the updated stage to decide whether to
+send a normal reminder, a recall message, or nothing at all.
+
+During Stage 2 (Day 4-6), `notification-composer` sends one recall per day
+(morning only) and writes `last_recall_date` to `data/engagement.json`.
+After the final recall (Stage 3), it writes `recall_2_sent: true`.
 
 **When a silent user returns:**
 Reset to Stage 1. Resume normal reminders. The warm welcome message itself
@@ -338,7 +340,8 @@ Users may ask to change reminders in natural language. Handle inline:
 | Source | Field / Path | Purpose |
 |--------|-------------|---------|
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
-| `data/engagement.json` | `last_interaction` | Stage detection |
+| `data/meals/*.json` | `status` field per meal entry | Derive last interaction date (most recent logged meal) |
+| `data/engagement.json` | `stage_changed_at` | Stage transition timing |
 
 ### Writes
 

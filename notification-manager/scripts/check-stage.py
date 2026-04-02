@@ -2,14 +2,17 @@
 """
 check-stage.py — Update engagement stage based on user silence duration.
 
-Reads data/engagement.json, calculates days since last_interaction,
-and transitions notification_stage according to lifecycle rules:
+Derives last interaction from meal logging records (data/meals/*.json)
+rather than relying on a platform-written timestamp. A "logged day" is
+any date with at least one meal entry whose status is "logged".
 
-  Stage 1 (ACTIVE)  → 5 full calendar days silent → Stage 2 (PAUSE)
-  Stage 2 (PAUSE)   → 3 days after stage change   → Stage 3 (SECOND RECALL)
-  Stage 3 (RECALL)  → 1 day after stage change     → Stage 4 (SILENT)
+Lifecycle rules:
 
-When a silent user returns (last_interaction is recent but stage > 1),
+  Stage 1 (ACTIVE)  → 3 full calendar days silent → Stage 2 (RECALL)
+  Stage 2 (RECALL)  → 3 days of daily recalls      → Stage 3 (FINAL)
+  Stage 3 (FINAL)   → 1 day after final recall      → Stage 4 (SILENT)
+
+When a silent user returns (new meal logged while stage > 1),
 resets to Stage 1.
 
 Usage:
@@ -22,8 +25,10 @@ Exit code 0 always.
 """
 
 import argparse
+import glob
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone, timedelta
 
@@ -34,13 +39,12 @@ def log(msg):
 
 
 # Transition thresholds (in days)
-STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → pause + first recall
-STAGE_2_TO_3_DAYS = 3   # 3 days of recall messages (Day 4-6) → second recall
-STAGE_3_TO_4_DAYS = 1   # 1 day after second recall → silent
+STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → recall phase
+STAGE_2_TO_3_DAYS = 3   # 3 days of recall messages (Day 4-6) → final recall
+STAGE_3_TO_4_DAYS = 1   # 1 day after final recall → silent
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
-    "last_interaction": None,
     "stage_changed_at": None,
     "last_recall_date": None,
     "recall_2_sent": False,
@@ -56,7 +60,6 @@ def load_engagement(workspace_dir):
     try:
         with open(path) as f:
             data = json.load(f)
-        # Merge with defaults for any missing keys
         for key, default in ENGAGEMENT_DEFAULTS.items():
             if key not in data:
                 data[key] = default
@@ -72,7 +75,6 @@ def save_engagement(workspace_dir, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    f.close()
 
 
 def parse_iso(s):
@@ -96,6 +98,45 @@ def normalize_stage(stage):
     return 1
 
 
+def get_last_logged_date(workspace_dir):
+    """
+    Scan data/meals/*.json to find the most recent date with at least one
+    meal entry whose status is "logged". Returns a date string (YYYY-MM-DD)
+    or None if no logged meals found.
+    """
+    meals_dir = os.path.join(workspace_dir, "data", "meals")
+    if not os.path.isdir(meals_dir):
+        return None
+
+    date_pattern = re.compile(r"(\d{4}-\d{2}-\d{2})\.json$")
+    logged_dates = []
+
+    for filepath in glob.glob(os.path.join(meals_dir, "*.json")):
+        match = date_pattern.match(os.path.basename(filepath))
+        if not match:
+            continue
+        date_str = match.group(1)
+        try:
+            with open(filepath) as f:
+                meals = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            continue
+
+        has_logged = False
+        if isinstance(meals, list):
+            has_logged = any(m.get("status") == "logged" for m in meals)
+        elif isinstance(meals, dict):
+            for key, meal in meals.items():
+                if isinstance(meal, dict) and meal.get("status") == "logged":
+                    has_logged = True
+                    break
+
+        if has_logged:
+            logged_dates.append(date_str)
+
+    return max(logged_dates) if logged_dates else None
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Update engagement stage based on user silence duration"
@@ -106,37 +147,46 @@ def main():
     args = parser.parse_args()
 
     data, existed = load_engagement(args.workspace_dir)
-    now = datetime.now(timezone.utc)
+    tz = timezone(timedelta(seconds=args.tz_offset))
+    now = datetime.now(tz)
+    today_str = now.strftime("%Y-%m-%d")
 
     stage = normalize_stage(data.get("notification_stage", 1))
-    last_interaction = parse_iso(data.get("last_interaction"))
     stage_changed_at = parse_iso(data.get("stage_changed_at"))
 
-    # If no last_interaction recorded, initialize and exit
-    if last_interaction is None:
+    # --- Derive last interaction from meal records ---
+    last_logged = get_last_logged_date(args.workspace_dir)
+
+    if last_logged is None:
+        # No meal records at all — user hasn't started logging yet, stay at current stage
         if not existed:
-            data["last_interaction"] = now.isoformat()
             data["stage_changed_at"] = now.isoformat()
             save_engagement(args.workspace_dir, data)
-            log("Initialized engagement.json with stage 1")
+            log("No meal records found, initialized engagement.json")
         print(stage)
         return
 
+    # Calculate days since last logged meal (in calendar days)
+    last_logged_date = datetime.strptime(last_logged, "%Y-%m-%d").date()
+    today_date = now.date()
+    days_silent = (today_date - last_logged_date).days
+
+    log(f"Last logged meal: {last_logged}, days silent: {days_silent}, stage: {stage}")
+
     old_stage = stage
-    days_silent = (now - last_interaction).total_seconds() / 86400
     changed = False
 
-    # --- User returned: last_interaction is recent but stage > 1 ---
-    if stage > 1 and days_silent < 1:
+    # --- User returned: logged a meal today or yesterday but stage > 1 ---
+    if stage > 1 and days_silent <= 1:
         stage = 1
         data["notification_stage"] = 1
         data["stage_changed_at"] = now.isoformat()
         data["last_recall_date"] = None
         data["recall_2_sent"] = False
         changed = True
-        log(f"RESET to stage 1 (user returned, silent only {days_silent:.1f} days)")
+        log(f"RESET to stage 1 (user returned, last logged {last_logged})")
 
-    # --- Forward transitions based on silence duration ---
+    # --- Forward transitions ---
     elif stage == 1:
         if days_silent >= STAGE_1_TO_2_DAYS:
             stage = 2
@@ -145,7 +195,7 @@ def main():
             data["last_recall_date"] = None
             data["recall_2_sent"] = False
             changed = True
-            log(f"TRANSITION 1 → 2 (silent {days_silent:.1f} days)")
+            log(f"TRANSITION 1 → 2 (silent {days_silent} days)")
 
     elif stage == 2:
         if stage_changed_at:
