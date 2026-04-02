@@ -46,7 +46,8 @@ Habits appear inside meal conversations. No separate reminders. Before each meal
 ## Habit Recommendation
 
 1. Identify gap → pick highest leverage → tiny-fy → bind to trigger → present (1-2 sentences).
-2. Accept → energy. Decline → one alternative. Decline again → drop it. **Single-ask rule applies.**
+2. **Max 3 habits per recommendation batch.** Can recommend 1, 2, or 3 based on context. Don't overwhelm.
+3. Accept → energy. Decline → one alternative. Decline again → drop it. **Single-ask rule applies.**
 
 → Full method, examples, presentation rules: `references/recommendation.md`
 
@@ -58,7 +59,7 @@ Habits appear inside meal conversations. No separate reminders. Before each meal
 - **Track:** `completed` / `missed` / `no_response` / `self_initiated`. Praise behavior, not person; ~1 in 3-4 gets a real comment.
 - **Graduate:** run `check-graduation`. ≥ 80% completion + (self-initiation > 30% or user confirms automatic).
 - **Fail:** run `check-failure`. 3 consecutive misses → keep / shrink / swap.
-- **Concurrency:** run `check-concurrency`. Max 3 active; flags struggling habits.
+- **Concurrency:** run `check-concurrency`. No cap on active habits — users can have as many as they want. But each recommendation batch is limited to 3 new habits max.
 
 → Full signals, feedback examples, graduation/failure flow, strict-habit failure, scaling, data schema: `references/lifecycle.md`
 

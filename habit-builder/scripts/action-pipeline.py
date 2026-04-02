@@ -73,7 +73,7 @@ SELF_INIT_THRESHOLD = 0.30   # 30%
 NO_RESPONSE_STALL = 3        # consecutive no-responses → stall
 FAILURE_THRESHOLD = 3         # consecutive missed/no_response → failure
 MAX_ACTIVE_DAYS = 90         # auto-pause after this
-MAX_CONCURRENT = 3           # max active habits
+MAX_CONCURRENT = 999         # no cap on active habits; recommendation layer limits to 3 per batch
 STABILIZE_THRESHOLD = 0.70   # below this → suggest stabilizing before adding
 
 
