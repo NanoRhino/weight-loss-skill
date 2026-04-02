@@ -75,14 +75,14 @@ if [[ -z "$AT" && -z "$CRON_EXPR" ]]; then echo "ERROR: --at or --cron is requir
 # Read from USER.md in workspace
 if [[ "$TZ_EXPLICIT" == "false" && -n "$CRON_EXPR" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  HELPERS="$HOME/.openclaw/backend-service/scripts/usermd-helpers.sh"
+  PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+  HELPERS="$PROJECT_ROOT/.openclaw-strategic-management/scripts/usermd-helpers.sh"
   if [[ -f "$HELPERS" ]]; then
     source "$HELPERS"
   fi
 
   WS_CANDIDATES=(
-    "$HOME/.openclaw/workspace-$AGENT"
-    "$HOME/.openclaw/workspace-nutritionist/$AGENT"
+    "$PROJECT_ROOT/.openclaw-user-service/workspaces/$AGENT"
   )
   for WS_DIR in "${WS_CANDIDATES[@]}"; do
     if [[ -f "$WS_DIR/USER.md" ]] && type usermd_read &>/dev/null; then
@@ -126,7 +126,7 @@ if [[ -z "$TO" ]]; then
   case "$CHANNEL" in
     slack)
       # Original Slack logic: look up user ID from openclaw.json bindings
-      CONFIG="$HOME/.openclaw/openclaw.json"
+      CONFIG="$PROJECT_ROOT/.openclaw-gateway/openclaw.json"
       SLACK_USER_ID=$(python3 -c "
 import json, sys
 with open('$CONFIG') as f:

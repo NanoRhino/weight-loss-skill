@@ -34,7 +34,7 @@ if [[ -z "$FILENAME" ]]; then
 fi
 
 # Resolve config path
-CONFIG="${OPENCLAW_CONFIG:-$HOME/.openclaw/openclaw.json}"
+CONFIG="${OPENCLAW_CONFIG:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)/.openclaw-gateway/openclaw.json}"
 if [[ ! -f "$CONFIG" ]]; then
   echo "ERROR: openclaw.json not found at $CONFIG" >&2
   exit 1

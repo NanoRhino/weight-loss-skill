@@ -77,13 +77,12 @@ The script resolves the delivery target (`--to`) based on the channel:
 
 | Channel | Auto-detection | Example |
 |---------|---------------|---------|
-| `slack` (default) | Looks up Slack user ID from `~/.openclaw/openclaw.json` bindings → `user:<id>` | `--agent 007-zhuoran` → `user:U12345` |
+| `slack` (default) | Looks up Slack user ID from `.openclaw-gateway/openclaw.json` bindings → `user:<id>` | `--agent 007-zhuoran` → `user:U12345` |
 | `wechat` / `wecom` | Extracts userId from agent ID (`wechat-dm-xxx` → `xxx`) | `--agent wechat-dm-abc123` → `abc123` |
 | Others | No auto-detection — must pass `--to` explicitly | `--to "123456789"` |
 
 Timezone auto-detection searches these paths in order:
-1. `~/.openclaw/workspace-$AGENT/USER.md`
-2. `~/.openclaw/workspace-nutritionist/$AGENT/USER.md`
+1. `.openclaw-user-service/workspaces/$AGENT/USER.md`
 
 Then calls `openclaw cron add` with `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically.
 
