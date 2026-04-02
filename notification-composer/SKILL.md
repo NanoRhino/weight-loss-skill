@@ -51,22 +51,6 @@ python3 {baseDir}/scripts/pre-send-check.py \
 - 输出 **`NO_REPLY`** → 回复恰好 `NO_REPLY`，结束，不继续。
 - 输出 **`SEND`** → 继续组合提醒消息（见下方消息模板）。
 
-### 脚本检查项
-
-脚本以确定性方式运行以下检查（无 LLM 参与）：
-
-1. `health-profile.md` 存在？（用户已入门？）
-2. `engagement.json > notification_stage` —— 用户是否处于静默模式（Stage 4）？
-3. 健康标志 —— `avoid_weight_focus` 或 `history_of_ed`（仅体重提醒）？
-4. `health-preferences.md` 中的日程约束（如"工作日跳过早餐"）？
-5. 今天该餐是否已记录？（通过 `data/meals/YYYY-MM-DD.json`）
-6. 体重专项检查（通过 `data/weight.json`）：
-   - `weight`：今天是否已称重？
-   - `weight_evening`：今天是否已称重？（是 → 抑制晚间跟进）
-   - `weight_morning_followup`：昨天或今天是否已称重？（是 → 抑制次晨跟进）
-
-任一不通过 → `NO_REPLY`。全部通过 → `SEND`。
-
 ---
 
 ## 消息模板
