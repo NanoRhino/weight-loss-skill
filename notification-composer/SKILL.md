@@ -125,8 +125,9 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 2. If earlier meals are already logged today, call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get today's intake for nutritional complementing.
 3. Read `health-preferences.md` (taste preferences, food restrictions).
 4. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
-5. Compose 2-3 meal recommendations (see Composition Rules below).
-6. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended.
+5. **Check streak milestone:** Call `streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}`. If `pending_milestone` is not `null`, use the milestone celebration as the **opening line** (see `streak-tracker` SKILL.md § Milestones for tone). If `null`, compose the opening normally.
+6. Compose 2-3 meal recommendations (see Composition Rules below).
+7. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended. If a milestone was celebrated, also call `streak-calc.py celebrate --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset} --milestone <n>`.
 
 #### Composition Rules
 
@@ -341,6 +342,7 @@ stop the current workflow and hand off immediately.
 | `data/weight.json` | via `weight-tracker.py load --last 1` | Skip reminder if already weighed today |
 | `data/engagement.json` | `notification_stage` — direct read | Stage detection (choose normal/recall/silent) |
 | `data/engagement.json` | `last_interaction` — direct read | Stage detection |
+| `data/streak.json` | via `streak-calc.py info` | Check for pending milestone to celebrate in meal reminder |
 
 ### Writes
 
@@ -349,6 +351,7 @@ stop the current workflow and hand off immediately.
 | `data/weight.json` | `weight-tracker.py save` | User reports weight |
 | `data/recommendations/YYYY-MM-DD.json` | `nutrition-calc.py save-recommendation` | After sending each meal recommendation |
 | `data/engagement.json` | `recall_1_sent` / `recall_2_sent` — direct write | After sending a recall message (Stage 2 or 3) |
+| `data/streak.json` | via `streak-calc.py celebrate` | After sending a milestone celebration |
 
 Scripts: weight via `{weight-tracking:baseDir}/scripts/weight-tracker.py`, meals and recommendations via `nutrition-calc.py` from `diet-tracking-analysis`.
 Status values: `"logged"` / `"skipped"` / `"no_reply"`. Full schemas: `references/data-schemas.md`.
