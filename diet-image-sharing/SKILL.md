@@ -1,17 +1,22 @@
 ---
 name: diet-image-sharing
-version: 1.0.0
-description: "Generate a shareable daily diet record card (styled HTML page hosted on cloud storage). Trigger when user asks to share their diet record, wants a summary image/card of what they ate today, or says phrases like 'share my meals', 'diet card', '饮食打卡', '分享今天吃了什么', '发个今天的饮食记录', '饮食记录图片'. Also triggered by daily-review or notification-composer when sending a visual diet summary."
+version: 1.1.0
+description: "Generate a shareable daily diet record card as an image (PNG) or web page (HTML). Trigger when user asks to share their diet record, wants a summary image/card of what they ate today, or says phrases like 'share my meals', 'diet card', '饮食打卡', '分享今天吃了什么', '发个今天的饮食记录', '饮食记录图片'. Also triggered by daily-review or notification-composer when sending a visual diet summary."
 metadata:
   openclaw:
     emoji: "camera_with_flash"
+    requires:
+      bins: ["uv"]
 ---
 
 # Diet Image Sharing — Shareable Daily Diet Card
 
 > **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. Just do it silently and respond with the result.
 
-Generate a beautiful, shareable HTML card showing the user's daily diet record — meals, calories, macros, and progress toward their target. Upload to cloud storage and send the link.
+Generate a beautiful, shareable daily diet record card — meals, calories, macros, and progress toward target. Supports two output modes:
+
+- **Image mode (default):** PNG image sent directly in chat — best for WeChat / Telegram / social sharing.
+- **Link mode:** HTML web page hosted on cloud storage — best when the user wants a clickable link.
 
 ## When to Trigger
 
@@ -35,6 +40,7 @@ Generate a beautiful, shareable HTML card showing the user's daily diet record �
 | Path | When |
 |------|------|
 | `data/diet-cards/daily-diet-{date}.html` | After generating the HTML card |
+| `data/diet-cards/daily-diet-{date}.png` | After converting HTML to image (image mode) |
 
 ## Workflow
 
@@ -69,9 +75,44 @@ Parameters:
 - `--cal-unit`: `Cal` for US locale, `kcal` for all others
 - `--output`: Write HTML to `data/diet-cards/` directory
 
-### Step 3: Upload to Cloud Storage
+### Step 3: Convert to Image (image mode — default)
 
-Use `plan-export`'s upload script (consistent with weekly-report):
+Convert the HTML card to a PNG image using WeasyPrint + PyMuPDF:
+
+```bash
+uv run {baseDir}/scripts/html-to-image.py \
+  {workspaceDir}/data/diet-cards/daily-diet-{date}.html \
+  {workspaceDir}/data/diet-cards/daily-diet-{date}.png \
+  --scale 2
+```
+
+- No browser binary required — uses WeasyPrint (HTML→PDF) + PyMuPDF (PDF→PNG).
+- `--scale 2` produces retina-quality output (2x resolution).
+- Bottom whitespace is auto-trimmed.
+
+### Step 4: Upload & Send
+
+#### Image mode (default — send PNG directly in chat)
+
+Upload the PNG via `jdcloud-oss-upload` — its `MEDIA:` output auto-attaches the image to the chat message:
+
+```bash
+uv run {jdcloud-oss-upload:baseDir}/scripts/upload.py \
+  {workspaceDir}/data/diet-cards/daily-diet-{date}.png \
+  --prefix diet-cards
+```
+
+The script prints:
+- `URL: <presigned-url>` — the presigned URL (15 min expiry)
+- `MEDIA: <presigned-url>` — OpenClaw auto-attaches this as an inline image
+
+After upload, send a short message alongside the image:
+- zh: "你的今日饮食记录 👆"
+- en: "Your daily diet record 👆"
+
+#### Link mode (send HTML link — use when user explicitly asks for a link)
+
+Upload the HTML via `plan-export`'s upload script:
 
 ```bash
 bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
@@ -86,20 +127,20 @@ bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
 - The URL is stable: `{username}/daily-diet.html` — each upload overwrites the previous card.
 - `plan-url.json` is auto-updated with the `daily-diet` key.
 
-### Step 4: Send to User
-
-Send the URL to the user with a short message:
-
+Send the URL:
 - zh: "你的今日饮食记录卡 👇\n{url}"
 - en: "Your daily diet card 👇\n{url}"
 
 ## Notes
 
+- **Default is image mode** — sends a PNG directly in chat, no click needed.
+- Use link mode only when the user explicitly asks for a link or URL.
 - HTML is fully self-contained (inline CSS, no external dependencies)
 - Designed for mobile — max width 480px, responsive layout
 - Green theme consistent with the project's visual identity
 - Card shows: date, meal breakdown with individual foods, calorie progress bar, macro summary
 - Meals with no data are omitted from the card
+- Image is 2x retina quality (960px actual width for sharp rendering on phones)
 - The `daily-diet` key in `plan-url.json` is overwritten each time (only latest card is live)
 
 ## Skill Routing
