@@ -72,6 +72,9 @@ python3 {notification-manager:baseDir}/scripts/check-stage.py \
 This updates `data/engagement.json > notification_stage` based on how long the
 user has been silent. Must run before pre-send-check so the stage is current.
 
+Output format: `"{stage} {days_silent}"` (e.g. `"1 2"` = Stage 1, 2 days silent).
+Parse both values — `days_silent` is needed for the Gentle Nudge check (§ below).
+
 ### Step 1: Run the pre-send-check script
 
 ```bash
@@ -96,7 +99,7 @@ Read `TZ Offset` from USER.md (already in context), then run the script with the
 The script runs these checks deterministically (no LLM involvement):
 
 1. `health-profile.md` exists? (user onboarded?)
-2. `engagement.json > notification_stage` — Stage 2: morning only (one recall/day, suppress lunch/dinner); Stage 3: final recall sent?; Stage 4: suppress all.
+2. `engagement.json > notification_stage` — Stage 2: one recall/day (first meal cron triggers, rest suppressed, weight suppressed); Stage 3: final recall (one-shot, weight suppressed); Stage 4: suppress all.
 3. Health flags — `avoid_weight_focus` or `history_of_ed` (weight reminders only)?
 4. Scheduling constraints from `health-preferences.md` (e.g., "skips breakfast on workdays")?
 5. Meal already logged today? (via `data/meals/YYYY-MM-DD.json`)
@@ -176,13 +179,15 @@ The opening line is optional — use it for context when relevant (time of day, 
 
 #### Gentle Nudge (1-day silence)
 
-When composing **the first meal reminder of the day** (breakfast / meal_1) and Stage = 1, check the most recent meal file in `data/meals/`. If the user has not logged any meal for **1–3 full calendar days**, prepend a gentle nudge line before the normal meal recommendations.
+When composing the **first meal reminder of the day** and Stage = 1, check `days_silent` from Step 0 output. If **1 ≤ days_silent ≤ 3**, prepend a gentle nudge line before the normal meal recommendations.
+
+**How to know if this is the first meal cron of the day:** This is the first cron that returns `SEND` today. Lunch/dinner crons on the same day won't add another nudge because the user will have received the nudge + recommendation in the earlier cron (and if they replied, the meal-logged check suppresses subsequent crons; if they didn't reply, the nudge was already sent once today).
 
 **Purpose:** 小犀牛撒娇地提一嘴，然后继续正常推荐。不是召回，只是"我注意到你没来"的小情绪，让用户感觉被惦记着。
 
 **Rules:**
-- Only on the **morning's first meal** — lunch/dinner 不加，避免重复
-- Only when **1 ≤ days_silent < 4** — 沉默 1-3 天。第 4 天进入召回阶段，由 recall 接管
+- Only on **the day's first meal cron** — 后续 cron 不重复（用户无论有无 breakfast，第一个触发的 meal cron 加 nudge）
+- Only when **1 ≤ days_silent ≤ 3** — 沉默 1-3 天。第 4 天进入 Stage 2 召回阶段
 - Nudge line + normal recommendation 一起发，不是两条消息
 - 语气：撒娇 + 营养师式关心，轻轻带过，不深究
 - Day 2 和 Day 3 的 nudge 要有变化，不要重复同一句

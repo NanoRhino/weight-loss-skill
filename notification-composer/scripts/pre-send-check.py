@@ -53,9 +53,10 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
     """Check 2: engagement stage gating.
 
     Stage 1 (ACTIVE):  SEND — normal reminder
-    Stage 2 (RECALL):  SEND once per day (morning first meal only, suppress lunch/dinner)
-                        Each day gets a different recall message (Day 4→5→6)
-    Stage 3 (FINAL):   SEND only if final recall not yet sent
+    Stage 2 (RECALL):  SEND once per day (first meal cron only, suppress rest)
+                        Weight reminders suppressed entirely.
+    Stage 3 (FINAL):   SEND once (first meal cron of the day, then suppress all)
+                        Weight reminders suppressed entirely.
     Stage 4 (SILENT):  NO_REPLY — suppress everything
     """
     path = os.path.join(workspace_dir, "data", "engagement.json")
@@ -72,19 +73,27 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             stage = stage_map.get(stage.lower(), 1)
         if stage >= 4:
             return False, f"notification_stage={stage} — user is in silent mode"
+
+        # Stage 2 & 3: suppress weight reminders entirely
+        if stage in (2, 3):
+            is_weight = meal_type in ("weight", "weight_evening", "weight_morning_followup")
+            if is_weight:
+                return False, f"notification_stage={stage} — weight reminders suppressed during recall"
+
         if stage == 2:
-            # Stage 2: one recall per day, morning first meal only
-            is_morning = meal_type in ("breakfast", "meal_1")
-            if not is_morning:
-                return False, "notification_stage=2 — only morning recall, suppressing lunch/dinner"
-            # Check if recall already sent today
+            # Stage 2: one recall per day — first meal cron triggers it,
+            # subsequent crons (any meal type) are suppressed
             local_date = get_local_date(tz_offset)
             last_recall_date = data.get("last_recall_date", "")
             if last_recall_date == local_date:
                 return False, f"notification_stage=2, recall already sent today ({local_date})"
             return True, None
-        if stage == 3 and data.get("recall_2_sent", False):
-            return False, "notification_stage=3, final recall already sent — waiting for reply"
+
+        if stage == 3:
+            if data.get("recall_2_sent", False):
+                return False, "notification_stage=3, final recall already sent — waiting for reply"
+            return True, None
+
         return True, None
     except (json.JSONDecodeError, IOError) as e:
         log(f"Warning: could not read engagement.json: {e}")

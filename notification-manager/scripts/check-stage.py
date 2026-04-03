@@ -163,7 +163,7 @@ def main():
             data["stage_changed_at"] = now.isoformat()
             save_engagement(args.workspace_dir, data)
             log("No meal records found, initialized engagement.json")
-        print(stage)
+        print(f"{stage} 0")
         return
 
     # Calculate days since last logged meal (in calendar days)
@@ -221,7 +221,8 @@ def main():
     if changed or not existed:
         save_engagement(args.workspace_dir, data)
 
-    print(stage)
+    # Output: "stage days_silent" (e.g. "1 2" = Stage 1, 2 days silent)
+    print(f"{stage} {days_silent}")
 
 
 if __name__ == "__main__":

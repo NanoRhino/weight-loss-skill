@@ -208,25 +208,21 @@ def cmd_celebrate(args):
 
 def main():
     parser = argparse.ArgumentParser(description="Streak calculator")
+    # Shared arguments on the parent parser (used by both subcommands and bare invocation)
+    parser.add_argument("--data-dir", required=True,
+                        help="Path to data/meals directory")
+    parser.add_argument("--workspace-dir", required=True,
+                        help="Agent workspace root")
+    parser.add_argument("--tz-offset", required=True, type=int,
+                        help="Timezone offset in seconds from UTC")
+
     sub = parser.add_subparsers(dest="command")
 
-    # info subcommand
-    info_p = sub.add_parser("info", help="Get streak info")
-    info_p.add_argument("--data-dir", required=True,
-                        help="Path to data/meals directory")
-    info_p.add_argument("--workspace-dir", required=True,
-                        help="Agent workspace root")
-    info_p.add_argument("--tz-offset", required=True, type=int,
-                        help="Timezone offset in seconds from UTC")
+    # info subcommand (also the default)
+    sub.add_parser("info", help="Get streak info")
 
     # celebrate subcommand
     cel_p = sub.add_parser("celebrate", help="Mark milestone as celebrated")
-    cel_p.add_argument("--data-dir", required=True,
-                        help="Path to data/meals directory (unused, for consistency)")
-    cel_p.add_argument("--workspace-dir", required=True,
-                        help="Agent workspace root")
-    cel_p.add_argument("--tz-offset", required=True, type=int,
-                        help="Timezone offset in seconds from UTC")
     cel_p.add_argument("--milestone", required=True, type=int,
                         help="Milestone number to mark as celebrated")
 

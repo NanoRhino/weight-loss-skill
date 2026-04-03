@@ -261,8 +261,8 @@ Stage 1: ACTIVE — normal reminders (Day 2-3: morning nudge + normal recommenda
     └── 3 full calendar days: zero replies + zero messages
            │
 Stage 2: RECALL — stop normal reminders, send daily recall (Day 4-6)
-    │       Each morning: one recall message (no meal recommendations)
-    │       Lunch/dinner: suppressed
+    │       First meal cron of the day: one recall message (no meal recommendations)
+    │       Subsequent meal crons + weight: suppressed
     │       Tone escalation: Day 4 撒娇 → Day 5 假装生气 → Day 6 委屈卖萌
     │
     ├── User replies → back to Stage 1
