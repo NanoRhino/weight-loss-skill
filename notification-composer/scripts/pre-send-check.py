@@ -49,8 +49,16 @@ def check_health_profile(workspace_dir):
     return True, None
 
 
-def check_engagement_stage(workspace_dir):
-    """Check 2: user is not in silent mode (Stage 4)."""
+def check_engagement_stage(workspace_dir, meal_type, tz_offset):
+    """Check 2: engagement stage gating.
+
+    Stage 1 (ACTIVE):  SEND — normal reminder
+    Stage 2 (RECALL):  SEND once per day (first meal cron only, suppress rest)
+                        Weight reminders suppressed entirely.
+    Stage 3 (FINAL):   SEND once (first meal cron of the day, then suppress all)
+                        Weight reminders suppressed entirely.
+    Stage 4 (SILENT):  NO_REPLY — suppress everything
+    """
     path = os.path.join(workspace_dir, "data", "engagement.json")
     if not os.path.exists(path):
         # No engagement file = assume active (Stage 1)
@@ -65,6 +73,27 @@ def check_engagement_stage(workspace_dir):
             stage = stage_map.get(stage.lower(), 1)
         if stage >= 4:
             return False, f"notification_stage={stage} — user is in silent mode"
+
+        # Stage 2 & 3: suppress weight reminders entirely
+        if stage in (2, 3):
+            is_weight = meal_type in ("weight", "weight_evening", "weight_morning_followup")
+            if is_weight:
+                return False, f"notification_stage={stage} — weight reminders suppressed during recall"
+
+        if stage == 2:
+            # Stage 2: one recall per day — first meal cron triggers it,
+            # subsequent crons (any meal type) are suppressed
+            local_date = get_local_date(tz_offset)
+            last_recall_date = data.get("last_recall_date", "")
+            if last_recall_date == local_date:
+                return False, f"notification_stage=2, recall already sent today ({local_date})"
+            return True, None
+
+        if stage == 3:
+            if data.get("recall_2_sent", False):
+                return False, "notification_stage=3, final recall already sent — waiting for reply"
+            return True, None
+
         return True, None
     except (json.JSONDecodeError, IOError) as e:
         log(f"Warning: could not read engagement.json: {e}")
@@ -253,7 +282,8 @@ def main():
 
     checks = [
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
-        ("engagement_stage", lambda: check_engagement_stage(args.workspace_dir)),
+        ("engagement_stage", lambda: check_engagement_stage(
+            args.workspace_dir, args.meal_type, args.tz_offset)),
         ("health_flags", lambda: check_health_flags(args.workspace_dir, args.meal_type)),
         ("scheduling", lambda: check_scheduling_constraints(
             args.workspace_dir, args.meal_type, args.tz_offset)),
