@@ -29,13 +29,15 @@ Cron 管理和生命周期由 `notification-manager` 负责。
 
 ---
 
-## 前置检查（强制——每次提醒前必须运行）
+## 餐前提醒流程
 
-**每次提醒必须先运行前置检查脚本。如果返回 `NO_REPLY`，你的全部输出必须恰好是 `NO_REPLY`——立即停止，不要组合消息，不要输出任何其他内容。**
+**目的：** 根据上一餐的营养评估提醒用户本餐注意什么，然后邀请拍照打卡。
 
-> ⚠️ **关键：** 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。不要附带解释、推理或"检查未通过"的说明。
+**风格：** 像了解你生活的朋友发的消息，不是系统通知。温暖、简洁、有对话感。引导方向，不指定菜品。
 
-### 第一步：运行脚本
+> ⚠️ 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。不要附带解释、推理或"检查未通过"的说明。
+
+### 第一步：前置检查
 
 ```bash
 python3 {baseDir}/scripts/pre-send-check.py \
@@ -44,45 +46,17 @@ python3 {baseDir}/scripts/pre-send-check.py \
   --tz-offset {tz_offset}
 ```
 
-从 USER.md 读取 `TZ Offset`（已在上下文中），然后用正确的 `--meal-type` 运行脚本。
+- 输出 **`NO_REPLY`** → 回复恰好 `NO_REPLY`，结束。
+- 输出 **`SEND`** → 继续第二步。
 
-### 第二步：检查输出
+### 第二步：读取 evaluation
 
-- 输出 **`NO_REPLY`** → 回复恰好 `NO_REPLY`，结束，不继续。
-- 输出 **`SEND`** → 继续组合提醒消息（见下方消息模板）。
-
----
-
-## 消息模板
-
-### 餐前提醒 —— 基于调整建议的引导
-
-**目的：根据上一餐的营养评估提醒用户本餐注意什么，然后邀请拍照打卡。**
-既是方向引导，也是饮食记录的入口——每条提醒都应以邀请用户分享餐前照片或描述结尾。
-
-**核心理念：引导方向，不指定菜品。** 告诉用户"调什么"（如"多点蛋白质，碳水悠着点"），而非"吃什么"。
-
-**风格：像了解你生活的朋友发的消息，不是系统通知。**
-温暖、简洁、有对话感。
-
-#### 生成流程
-
-1. 调用 `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` 获取今天的餐食记录及其存储的 evaluation。如果是当天第一餐，同时加载昨天的数据（`--date` 昨天）。
-2. 找到最近一餐的 `evaluation`（见下方第一步），判断走哪条路径。
-3. **仅在进入降级路径时：**
-   - 调用 `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` 获取 `same_weekday_last_week`。
-   - 如果命中 Tier 1（推荐食物），读取 `health-preferences.md` 过滤过敏/不喜欢的食物。
-
-> **不再调用 `save-recommendation`：** 因为不再推荐具体菜品，无需写入 `data/recommendations/`。
-
-#### 组合规则
-
-**第一步 —— 定位最近一餐的 evaluation 并判断可用性：**
+调用 `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` 获取今天的餐食记录。如果是当天第一餐，同时加载昨天的数据（`--date` 昨天）。
 
 **当天第一餐** → 读昨天最后一餐的 evaluation。
 **当天第二/三餐** → 读今天最近一餐的 evaluation。
 
-然后根据 `suggestion_type` 判断是否可用：
+根据 `suggestion_type` 判断是否可用：
 
 | `suggestion_type` | 可用性 |
 |---|---|
@@ -92,38 +66,27 @@ python3 {baseDir}/scripts/pre-send-check.py \
 | `"case_d_snack"` / `"case_d_ok"` | **不可用 → 降级** |
 | 无 evaluation（上一餐未打卡） | **降级** |
 
-**第二步 a —— evaluation 可用时，组合调整引导：**
+### 第三步：组合消息
+
+**3a —— evaluation 可用：**
 
 | `suggestion_type` | 引导方式 |
 |---|---|
 | `"next_meal"` | 以存储的 `suggestion_text` 为基础，改写为口语化提醒——不照抄，但保留调整方向。无需额外读取数据。 |
 | `"next_time"` | 轻松鼓励或温和的变换建议。不纠正。`suggestion_text` 可能含习惯小贴士，可轻轻带过。无需额外读取数据。 |
 
-**第二步 b —— evaluation 不可用时（降级）：**
+**3b —— evaluation 不可用（降级）：**
+
+先调用 `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` 获取 `same_weekday_last_week`。Tier 1 时读取 `health-preferences.md` 过滤过敏/不喜欢的食物。
 
 | 降级层级 | 条件 | 动作 |
 |---|---|---|
 | Tier 1 | `meal-history` 中**上周同天同餐**有记录 | 正面推荐那天吃的食物，根据营养数据（`same_weekday_last_week.macros`）附最多一条健康贴士（如控油、加蛋白质、配蔬菜、少盛碳水）。已均衡则纯肯定。始终肯定食物——不评判、不否定。 |
 | Tier 2 | 无上周同天记录 | 只发拍照邀请，不做任何食物引导。 |
 
-**结尾：** 始终以拍照邀请结尾。
+**所有路径的消息都以拍照邀请结尾。**
 
-#### 消息格式
-
-```
-{调整引导 —— 1-2句，口语化}
-
-{结尾 —— 拍照邀请}
-```
-
-降级 Tier 2（无可用引导）：
-```
-{仅拍照邀请}
-```
-
-保持消息简短。不出现编号菜单。调整引导应像朋友随口一提，不是处方。
-
-**严格模式：** 如果 `habits.active` 中有 `strict: true` 且 `source: "weight-gain-strategy"` 的习惯，**读取 `weight-gain-strategy/references/strict-mode.md` 并遵循其中所有 notification-composer 相关行为**（卡路里累计、主动催促、晨间问责、加密频率）。
+**严格模式：** 如果 `habits.active` 中有 `strict: true` 且 `source: "weight-gain-strategy"` 的习惯，**读取 `weight-gain-strategy/references/strict-mode.md` 并遵循其中所有 notification-composer 相关行为**。
 
 ### 习惯签到
 
