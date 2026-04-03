@@ -125,34 +125,6 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 **严格模式：** 如果 `habits.active` 中有 `strict: true` 且 `source: "weight-gain-strategy"` 的习惯，**读取 `weight-gain-strategy/references/strict-mode.md` 并遵循其中所有 notification-composer 相关行为**（卡路里累计、主动催促、晨间问责、加密频率）。
 
-#### 示例
-
-**午餐，上一餐（早餐）`suggestion_type: "next_meal"`，suggestion_text: "午餐多点蛋白质，碳水减半就好"：**
-```
-中午蛋白质加点量，碳水悠着点~
-
-吃之前拍给我，现场帮你看~
-```
-
-**午餐，上一餐（早餐）`suggestion_type: "next_time"`，正常：**
-```
-早上吃得挺均衡的，午餐保持节奏就好~
-
-吃之前拍给我看看👀
-```
-
-**午餐，降级 Tier 1 —— 上周三吃了麻辣烫，油脂偏高：**
-```
-今天中午要不要吃个麻辣烫，营养又美味，吃的时候别忘了控一控油哦~
-
-吃之前拍给我看看~
-```
-
-**早餐，降级 Tier 2 —— 无可用数据：**
-```
-早上好～吃之前拍给我，帮你看~
-```
-
 #### 禁忌
 - 不在提醒中出现卡路里数字或宏量素明细——那是用户记录后才展示的
 - 不要像企业健康 App 的语气（`"请选择一个用餐方案"` ✗）
