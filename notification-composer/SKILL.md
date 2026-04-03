@@ -92,12 +92,12 @@ python3 {baseDir}/scripts/pre-send-check.py \
 | `"case_d_snack"` / `"case_d_ok"` | **不可用 → 降级** |
 | 无 evaluation（上一餐未打卡） | **降级** |
 
-**第二步 —— evaluation 可用时，组合调整引导：**
+**第二步 a —— evaluation 可用时，组合调整引导：**
 
 | `suggestion_type` | 引导方式 |
 |---|---|
 | `"next_meal"` | 以存储的 `suggestion_text` 为基础，改写为口语化提醒——不照抄，但保留调整方向。无需额外读取数据。 |
-| `"next_time"` | 轻松鼓励——"保持节奏就好"或温和的变换建议。不纠正。`suggestion_text` 可能含习惯小贴士，可轻轻带过。无需额外读取数据。 |
+| `"next_time"` | 轻松鼓励或温和的变换建议。不纠正。`suggestion_text` 可能含习惯小贴士，可轻轻带过。无需额外读取数据。 |
 
 **第二步 b —— evaluation 不可用时（降级）：**
 
