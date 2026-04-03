@@ -126,6 +126,32 @@ Use the cron tool directly for listing and removing:
 - **Remove**: cron tool with `action: "remove"` and `jobId`
 - **Adjust timing**: remove old job + create new one
 
+### Batch creation (preferred for initial setup)
+
+When creating ALL reminders for a user (e.g., after meal-planner completes onboarding), use the batch script instead of calling `create-reminder.sh` multiple times:
+
+```bash
+bash {baseDir}/scripts/batch-create-reminders.sh \
+  --agent <your-agent-id> \
+  --channel <channel> \
+  --workspace <path-to-user-workspace>
+```
+
+This reads `health-profile.md` and `USER.md` from the workspace, calculates all cron times, and creates every required job (meal reminders, weight reminders, daily review, weekly report, diet pattern detection) in one execution.
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `--agent` | ✅ | Agent ID |
+| `--channel` | ✅ | Delivery channel |
+| `--workspace` | ✅ | Path to user workspace directory |
+| `--dry-run` | ❌ | Print commands without executing |
+| `--skip-existing` | ❌ | Skip jobs that already exist (matches by name) |
+| `--only <type>` | ❌ | Only create: `meal`, `weight`, `review`, `report`, `pattern`, or `all` (default) |
+
+**When to use batch vs individual:**
+- **Batch** (`batch-create-reminders.sh`): Initial setup after onboarding, re-syncing all reminders
+- **Individual** (`create-reminder.sh`): One-shot reminders, individual job adjustments, custom reminders
+
 ---
 
 ## Auto-sync on Activation
@@ -149,11 +175,15 @@ Use the cron tool directly for listing and removing:
    - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
 8. Do all of this **silently** — do not mention it to the user.
 
+**Optimization:** When auto-sync detects that NO cron jobs exist for this user (initial setup), run `batch-create-reminders.sh` instead of creating jobs individually. This avoids multiple LLM round-trips. For incremental sync (some jobs exist, some missing/stale), use individual `create-reminder.sh` calls or remove-then-batch.
+
 ---
 
 ## Cron Job Definitions
 
 Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `USER.md`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+
+> 💡 **Performance tip:** For initial reminder setup (all jobs need creation), prefer `batch-create-reminders.sh` — it creates all jobs in one script execution. The individual examples below are kept as reference for the auto-sync logic and single-job adjustments.
 
 > ⚠️ **Cron expressions use the user's LOCAL time. Do NOT convert to UTC.** The script sets `--tz` automatically, so the cron scheduler handles timezone conversion. Example: if meal is at 09:00 Beijing time, the cron expression is `45 8 * * *` (08:45 local), NOT `45 0 * * *`.
 
