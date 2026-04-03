@@ -6,6 +6,11 @@
 <title>{{TITLE}}</title>
 <!-- Daily Diet Card — self-contained, mobile-friendly, shareable -->
 <style>
+  @page {
+    size: 480px;
+    margin: 0;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   html {
@@ -27,83 +32,88 @@
   .page {
     max-width: 480px;
     margin: 0 auto;
-    padding: 1.5rem 1rem 2rem;
+    padding: 24px 16px 32px;
   }
 
   /* ===== Header ===== */
   .card-header {
     text-align: center;
-    margin-bottom: 1.2rem;
-    padding-bottom: 1rem;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
     border-bottom: 2px solid #d4e0c0;
   }
 
   .card-header h1 {
-    font-size: 1.5rem;
+    font-size: 22px;
     font-weight: 700;
     color: #2d5016;
-    margin-bottom: 0.2rem;
+    margin-bottom: 3px;
   }
 
   .card-header .date {
-    font-size: 0.9rem;
+    font-size: 13px;
     color: #666;
   }
 
   .card-header .name {
-    font-size: 0.85rem;
+    font-size: 12px;
     color: #888;
-    margin-top: 0.15rem;
+    margin-top: 2px;
   }
 
-  /* ===== Summary Bar ===== */
-  .summary-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
-    margin-bottom: 1.2rem;
+  /* ===== Summary Bar (table layout for WeasyPrint compat) ===== */
+  .summary-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 6px 0;
+    margin-bottom: 16px;
   }
 
-  .summary-item {
+  .summary-table td {
     background: #fff;
     border-radius: 10px;
-    padding: 0.6rem 0.4rem;
+    padding: 8px 4px;
     text-align: center;
     border: 1px solid #e0ddd5;
+    width: 25%;
   }
 
-  .summary-item .value {
-    font-size: 1.15rem;
+  .summary-table .value {
+    font-size: 17px;
     font-weight: 700;
     color: #2d5016;
+    display: block;
   }
 
-  .summary-item .label {
-    font-size: 0.7rem;
+  .summary-table .label {
+    font-size: 10px;
     color: #888;
-    margin-top: 0.1rem;
+    display: block;
+    margin-top: 1px;
   }
 
-  .summary-item.over .value { color: #dc2626; }
-  .summary-item.under .value { color: #f59e0b; }
-  .summary-item.ok .value { color: #16a34a; }
+  .summary-table .over .value { color: #dc2626; }
+  .summary-table .under .value { color: #f59e0b; }
+  .summary-table .ok .value { color: #16a34a; }
 
   /* ===== Calorie Progress ===== */
   .calorie-progress {
     background: #fff;
     border-radius: 10px;
-    padding: 0.8rem 1rem;
-    margin-bottom: 1.2rem;
+    padding: 10px 14px;
+    margin-bottom: 16px;
     border: 1px solid #e0ddd5;
   }
 
-  .calorie-progress .label-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.82rem;
+  .label-row {
+    font-size: 12px;
     color: #666;
-    margin-bottom: 0.4rem;
+    margin-bottom: 6px;
   }
+
+  .label-row .left { float: left; }
+  .label-row .right { float: right; }
+  .label-row::after { content: ""; display: table; clear: both; }
 
   .progress-bar {
     height: 10px;
@@ -115,118 +125,96 @@
   .progress-bar-fill {
     height: 100%;
     border-radius: 5px;
-    transition: width 0.3s;
   }
 
-  .progress-bar-fill.ok { background: linear-gradient(90deg, #4ade80, #16a34a); }
-  .progress-bar-fill.over { background: linear-gradient(90deg, #fbbf24, #f87171); }
-  .progress-bar-fill.under { background: linear-gradient(90deg, #93c5fd, #60a5fa); }
+  .progress-bar-fill.ok { background: #16a34a; }
+  .progress-bar-fill.over { background: #f87171; }
+  .progress-bar-fill.under { background: #60a5fa; }
 
   .calorie-status {
-    font-size: 0.78rem;
+    font-size: 11px;
     color: #888;
     text-align: right;
-    margin-top: 0.3rem;
+    margin-top: 4px;
   }
 
   /* ===== Meal Cards ===== */
   .meal-card {
     background: #fff;
     border-radius: 10px;
-    margin-bottom: 0.8rem;
+    margin-bottom: 10px;
     border: 1px solid #e0ddd5;
     overflow: hidden;
   }
 
   .meal-title {
-    padding: 0.5rem 0.8rem;
-    font-size: 0.92rem;
+    padding: 7px 12px;
+    font-size: 14px;
     font-weight: 600;
     color: #2d5016;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     border-bottom: 1px solid #f0ede5;
   }
 
   .meal-title .meal-cal {
-    font-size: 0.85rem;
+    float: right;
+    font-size: 13px;
     font-weight: 600;
     color: #555;
   }
 
-  .meal-foods {
-    padding: 0.4rem 0.8rem 0.5rem;
-  }
+  .meal-title::after { content: ""; display: table; clear: both; }
 
-  .food-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.25rem 0;
-    font-size: 0.85rem;
+  .food-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
     color: #444;
   }
 
-  .food-item:not(:last-child) {
+  .food-table td {
+    padding: 4px 12px;
     border-bottom: 1px solid #f5f3ed;
   }
 
-  .food-name {
-    flex: 1;
+  .food-table tr:last-child td {
+    border-bottom: none;
   }
 
-  .food-amount {
+  .food-table .food-name {
+    /* takes remaining space */
+  }
+
+  .food-table .food-amount {
     color: #999;
-    font-size: 0.78rem;
-    margin-left: 0.5rem;
+    font-size: 11px;
+    text-align: right;
     white-space: nowrap;
+    width: 50px;
   }
 
-  .food-cal {
+  .food-table .food-cal {
     color: #666;
-    font-size: 0.82rem;
-    margin-left: 0.5rem;
+    font-size: 12px;
     font-weight: 500;
+    text-align: right;
     white-space: nowrap;
-  }
-
-  /* ===== Macro Breakdown ===== */
-  .macro-row {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .macro-pill {
-    background: #fff;
-    border-radius: 20px;
-    padding: 0.35rem 0.8rem;
-    font-size: 0.8rem;
-    color: #555;
-    border: 1px solid #e0ddd5;
-  }
-
-  .macro-pill strong {
-    color: #2d5016;
+    width: 70px;
   }
 
   /* ===== Footer ===== */
   .card-footer {
     text-align: center;
-    margin-top: 1.2rem;
-    padding-top: 0.8rem;
+    margin-top: 16px;
+    padding-top: 10px;
     border-top: 1px solid #d4e0c0;
-    font-size: 0.75rem;
+    font-size: 11px;
     color: #aaa;
   }
 
-  /* ===== Responsive ===== */
-  @media (max-width: 400px) {
+  /* ===== Responsive (browser only, not WeasyPrint) ===== */
+  @media screen and (max-width: 400px) {
     html { font-size: 13px; }
-    .page { padding: 1rem 0.7rem; }
-    .summary-bar { grid-template-columns: repeat(2, 1fr); }
+    .page { padding: 14px 10px; }
   }
 </style>
 </head>
@@ -241,24 +229,24 @@
   </header>
 
   <!-- SUMMARY BAR -->
-  <div class="summary-bar">
-    <div class="summary-item {{CAL_STATUS}}">
-      <div class="value">{{TOTAL_CAL}}</div>
-      <div class="label">{{CAL_UNIT}}</div>
-    </div>
-    <div class="summary-item">
-      <div class="value">{{TOTAL_PROTEIN}}</div>
-      <div class="label">{{PROTEIN_LABEL}}</div>
-    </div>
-    <div class="summary-item">
-      <div class="value">{{TOTAL_CARBS}}</div>
-      <div class="label">{{CARBS_LABEL}}</div>
-    </div>
-    <div class="summary-item">
-      <div class="value">{{TOTAL_FAT}}</div>
-      <div class="label">{{FAT_LABEL}}</div>
-    </div>
-  </div>
+  <table class="summary-table"><tr>
+    <td class="{{CAL_STATUS}}">
+      <span class="value">{{TOTAL_CAL}}</span>
+      <span class="label">{{CAL_UNIT}}</span>
+    </td>
+    <td>
+      <span class="value">{{TOTAL_PROTEIN}}</span>
+      <span class="label">{{PROTEIN_LABEL}}</span>
+    </td>
+    <td>
+      <span class="value">{{TOTAL_CARBS}}</span>
+      <span class="label">{{CARBS_LABEL}}</span>
+    </td>
+    <td>
+      <span class="value">{{TOTAL_FAT}}</span>
+      <span class="label">{{FAT_LABEL}}</span>
+    </td>
+  </tr></table>
 
   {{CALORIE_PROGRESS_SECTION}}
 

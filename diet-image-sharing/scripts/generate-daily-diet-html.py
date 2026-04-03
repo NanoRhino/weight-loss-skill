@@ -140,11 +140,11 @@ def build_meal_cards_html(grouped: dict, lang: str, cal_unit: str) -> str:
             amount_str = f"~{amount}g" if amount else ""
             cal = food["calories"]
             foods_html.append(
-                f'      <div class="food-item">'
-                f'<span class="food-name">{esc(food["name"])}</span>'
-                f'<span class="food-amount">{esc(amount_str)}</span>'
-                f'<span class="food-cal">{cal} {esc(cal_unit)}</span>'
-                f'</div>'
+                f'      <tr>'
+                f'<td class="food-name">{esc(food["name"])}</td>'
+                f'<td class="food-amount">{esc(amount_str)}</td>'
+                f'<td class="food-cal">{cal} {esc(cal_unit)}</td>'
+                f'</tr>'
             )
 
         card = f"""  <div class="meal-card">
@@ -152,9 +152,9 @@ def build_meal_cards_html(grouped: dict, lang: str, cal_unit: str) -> str:
       <span>{icon} {esc(label)}</span>
       <span class="meal-cal">{meal_cal} {esc(cal_unit)}</span>
     </div>
-    <div class="meal-foods">
+    <table class="food-table">
 {chr(10).join(foods_html)}
-    </div>
+    </table>
   </div>"""
         cards.append(card)
 
@@ -194,8 +194,8 @@ def build_progress_section(total_cal: int, cal_target: int, lang: str, cal_unit:
 
     return f"""  <div class="calorie-progress">
     <div class="label-row">
-      <span>{intake_label}: {total_cal} {esc(cal_unit)}</span>
-      <span>{target_label}: {cal_target} {esc(cal_unit)}</span>
+      <span class="left">{intake_label}: {total_cal} {esc(cal_unit)}</span>
+      <span class="right">{target_label}: {cal_target} {esc(cal_unit)}</span>
     </div>
     <div class="progress-bar">
       <div class="progress-bar-fill {fill_class}" style="width: {bar_width}%"></div>
