@@ -89,7 +89,51 @@ python3 {baseDir}/scripts/streak-calc.py celebrate \
   resets automatically — so the same milestones can be re-celebrated in
   a new streak.
 
+## Daily Streak Opening Line
+
+**Every meal reminder** (Stage 1, `current_streak ≥ 2`) gets a streak opening line.
+Not just milestones — every day. Format:
+
+`"你已经连续 {current_streak - 1} 天打卡了，{free half}"`
+
+The first half states the fact (yesterday's count, since today hasn't been logged yet).
+The second half is free — 小犀牛 can riff on the theme of getting to know the user
+better through their eating habits. Vary it daily. Keep it to one sentence total.
+
+### Daily opening examples — Chinese
+
+> 你已经连续 2 天打卡了，慢慢摸到你的口味了～
+
+> 你已经连续 4 天打卡了，感觉越来越懂你的饮食节奏了
+
+> 你已经连续 5 天打卡了，你的口味偏好我快背下来了 🦏
+
+> 你已经连续 8 天打卡了，每天看你吃什么已经成了我的期待
+
+> 你已经连续 12 天打卡了，我对你的了解又多了一些
+
+> 你已经连续 25 天打卡了，你的饮食习惯我已经门儿清了
+
+### Daily opening examples — English
+
+> 2 days in a row — I'm starting to learn your taste.
+
+> 5 days straight — I'm getting to know your eating rhythm pretty well.
+
+> 8 days now — checking what you eat has become my favorite part of the day.
+
+### Rules
+
+- **Streak ≥ 2** — Day 1 (first log) has no streak line. Day 2 says "连续 1 天".
+- **Use `current_streak - 1`** — because today's meal hasn't been logged yet when the reminder fires. "连续 5 天打卡" means 5 previous days confirmed.
+- **Free half themes:** getting to know their taste, learning their habits, feeling closer, noticing patterns, 小犀牛's own growth alongside the user. Always food/nutrition related.
+- **Don't repeat** the same free half two days in a row. Rotate themes.
+- **Don't count calories or cite data** in the opening — keep it warm, not analytical.
+
 ## Milestones
+
+On milestone days, **replace** the daily opening with the milestone celebration
+(more emotional, bigger energy). The daily format resumes the day after.
 
 | Days | Tier | Energy |
 |------|------|--------|
