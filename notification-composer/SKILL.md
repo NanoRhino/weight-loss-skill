@@ -286,7 +286,9 @@ Morning = soft, low-key (just woke up, don't be loud) · Midday = quick, snappy 
 
 Owned by `habit-builder` skill (see its § "How Habits Get Into Conversations"). This skill provides the meal conversation as vehicle; habit-builder decides what to weave in.
 
-### Weight Reminders — always optional framing, always mention fasting
+### Weight Reminder Rules
+
+**Scheduling (when/how often) is defined in `notification-manager` SKILL.md § Weight reminders. Suppression logic is in `pre-send-check.py`. This section only covers message content.**
 
 **Style:** Casual, low-key, matter-of-fact. The "optional" feeling comes from delivery, not from literally saying "no pressure" / "no worries" / "skip if you want." Never stack reassurance phrases. Never playful tone for weight.
 
@@ -296,12 +298,10 @@ Owned by `habit-builder` skill (see its § "How Habits Get Into Conversations").
 
 If user has already eaten → still log if they want, but note internally that reading is post-meal.
 
-### Weight Reminder Rules
-
-- **Primary (Wed & Sat morning):** Reminder time = breakfast time minus 30 min. Always mention fasting (empty stomach). Suppressed if already weighed today. Pre-send type: `weight`.
-- **Evening followup (Wed & Sat after dinner):** Fires dinner time + 30 min. Only sends if user did NOT weigh in that day. Remind them to weigh tomorrow morning on empty stomach. Brief and casual — not nagging. Pre-send type: `weight_evening`.
-- **Next-morning followup (Thu & Sun morning):** Fires breakfast time minus 30 min. Only sends if user did NOT weigh in yesterday or today. Same tone as primary weight reminder. Pre-send type: `weight_morning_followup`.
-- If `Health Flags` contains `avoid_weight_focus` or `history_of_ed` → never send any weight reminder.
+**Content by type:**
+- `weight` (primary): mention fasting / empty stomach.
+- `weight_evening` (evening followup): remind to weigh tomorrow morning before eating. Brief, not nagging.
+- `weight_morning_followup` (next-morning): same tone as primary weight reminders.
 - Never show the user's target weight or last weigh-in in any weight reminder.
 
 **Evening followup examples:**
