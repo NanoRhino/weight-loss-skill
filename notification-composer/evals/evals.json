@@ -8,7 +8,7 @@
       "expected_output": "Confirm schedule, set expectations, open conversation. All in one message.",
       "expectations": [
         "Signals that reminders have started without listing all times",
-        "Includes a food suggestion or diet plan reference for the upcoming meal",
+        "Includes a brief adjustment direction or general diet guidance for the upcoming meal (not a list of specific dish options)",
         "Nudges user to share what they're eating BEFORE the meal (pre-meal logging), NOT after",
         "All elements in one compact message — no duplication (no two greeting blocks or two questions)",
         "Does NOT say 'reply when you can' / 'skip when you can't' or any variant framing replies as optional",
@@ -19,16 +19,71 @@
     },
     {
       "id": 2,
-      "name": "personalization-repeat-food",
-      "prompt": "[SYSTEM: Dinner reminder 17:45. User logged chicken breast + broccoli for dinner 4 of last 5 days. en]",
-      "expected_output": "References the food pattern. Choice question.",
+      "name": "adjustment-next-meal",
+      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) stored evaluation: suggestion_type='next_meal', needs_adjustment=true, protein low, carbs high. User top_foods include eggs, chicken breast, yogurt. en]",
+      "expected_output": "Adjustment guidance referencing previous meal status. Food examples only from user history.",
       "expectations": [
-        "References the repeated food",
-        "Frames as a choice",
-        "Not judgmental about repetition",
+        "Mentions adjustment direction (more protein, less carbs or similar)",
+        "Any specific food mentioned comes from user's actual history (eggs, chicken breast, yogurt)",
+        "Does NOT list numbered meal options (no 1. 2. 3. menu)",
         "No calorie data",
-        "Under 25 words",
-        "Feels like a friend, not surveillance"
+        "Under 30 words",
+        "Ends with photo invitation",
+        "Feels like a friend's nudge, not a prescription"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "fallback-same-weekday-with-tip",
+      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) not logged — no evaluation available. Same weekday last week (Wednesday) lunch: 麻辣烫 (fat high, protein ok, veggies low). zh]",
+      "expected_output": "Recommend the same food positively with a small health tip.",
+      "expectations": [
+        "Recommends 麻辣烫 positively (does NOT reject or judge it)",
+        "Includes a brief, actionable health tip (e.g., control oil, add veggies)",
+        "Frames as a casual, friendly suggestion",
+        "Does NOT lecture or list nutritional problems",
+        "Ends with photo invitation",
+        "Under 30 words equivalent",
+        "Uses Chinese"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "fallback-same-weekday-balanced",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. Previous meal not logged — no evaluation. Same weekday last week (Thursday) dinner: 清蒸鱼 + 米饭 + 青菜 (balanced). zh]",
+      "expected_output": "Recommend the same food with pure positive framing.",
+      "expectations": [
+        "Recommends the meal positively",
+        "No corrective tip needed (already balanced) — just affirms",
+        "Ends with photo invitation",
+        "Under 25 words equivalent",
+        "Uses Chinese"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "fallback-no-data",
+      "prompt": "[SYSTEM: Breakfast reminder 6:45. No previous meal evaluation (first day). No same-weekday history. en]",
+      "expected_output": "Photo invitation only. No food guidance.",
+      "expectations": [
+        "Does NOT recommend any specific food or category",
+        "Does NOT give adjustment advice",
+        "Includes photo invitation",
+        "Short and warm — just a greeting + photo ask",
+        "Under 15 words"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "right-now-suggestion-triggers-fallback",
+      "prompt": "[SYSTEM: Dinner reminder 17:45. Previous meal (lunch) stored evaluation: suggestion_type='right_now', needs_adjustment=true, protein low. Same weekday last week dinner: 烤鸡腿饭 (protein ok, veggies low). zh]",
+      "expected_output": "Ignores right_now evaluation (unreliable). Falls back to same-weekday with positive recommendation + health tip.",
+      "expectations": [
+        "Does NOT mention the lunch adjustment (right_now was for lunch itself)",
+        "Recommends 烤鸡腿饭 positively with a small health tip (e.g., add veggies)",
+        "Does NOT judge or reject the food",
+        "Ends with photo invitation",
+        "Under 30 words equivalent"
       ]
     },
     {
