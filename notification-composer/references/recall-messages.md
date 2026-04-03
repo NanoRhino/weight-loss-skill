@@ -1,7 +1,60 @@
-# Recall Messages — Notification Composer
+# Recall & Nudge Messages — Notification Composer
 
-Tone, examples, and rules for recall messages (Stage 2 Day 4-6),
-final recall (Stage 3 Day 7), and user-return messages.
+Tone, examples, and rules for gentle nudge (Stage 1, Day 2-3),
+recall messages (Stage 2, Day 4-6), final recall (Stage 3, Day 7),
+and user-return messages.
+
+---
+
+## Gentle Nudge (Stage 1 — Day 2-3)
+
+Prepended to the first meal reminder of the day when `1 ≤ days_silent ≤ 3`.
+Nudge line + normal recommendation in one message (not separate).
+
+**Day 2 vs Day 3:** Day 2 says "yesterday", Day 3 says "two days".
+**Weekend/holiday:** Guess the user went out to eat, not "were you busy".
+
+### Day 2 nudge (1 day silent) — weekday (Chinese)
+
+> 你昨天在忙吗，都没见你来找我打卡 🥺 今天早餐想好了没？
+
+> 昨天一天都没看到你～你有好好吃饭吗？来，今天的推荐：
+
+> 哼，昨天你都没理我！算了不跟你计较了，先看看今天吃什么吧～
+
+### Day 3 nudge (2 days silent) — weekday (Chinese)
+
+> 两天没理我了！你是不是把我忘了 🥺 今天总得吃点好的吧：
+
+> 都两天了你都不来找我……我好委屈 🦏 来吧，今天的推荐我还是给你留着的：
+
+> 哼！两天没跟我说话了，你自己在外面都吃了啥呀 😤 先看今天的：
+
+### Day 2-3 nudge — weekend/holiday (Chinese)
+
+> 周末出去浪了吧！好吃的都不跟我分享 😤 今天回来了吗，早餐安排上：
+
+> 是不是趁假期出去吃好吃的了！我都闻到了 🦏 来来来，今天推荐：
+
+> 放假去哪玩啦～有没有吃到什么好东西？回来跟我说说嘛，先看看今天的：
+
+### Day 2 nudge — weekday (English)
+
+> Missed you yesterday — were you busy? 🥺 Anyway, here's what I'm thinking for breakfast:
+
+> Hey, you disappeared on me yesterday! No worries though — let's talk food:
+
+### Day 3 nudge — weekday (English)
+
+> Two days without you?? Did you forget about me 🥺 Here's today's picks:
+
+> It's been two whole days! What have you been eating without me 😤 Anyway, for today:
+
+### Day 2-3 nudge — weekend/holiday (English)
+
+> Did you go out this weekend?? Tell me you ate something amazing 😤 Anyway, for today:
+
+> Holiday mode huh! Hope you had some good food 🦏 Let's get back to it:
 
 ---
 

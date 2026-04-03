@@ -96,17 +96,9 @@ Read `TZ Offset` from USER.md (already in context), then run the script with the
 
 ### What the script checks
 
-The script runs these checks deterministically (no LLM involvement):
-
-1. `health-profile.md` exists? (user onboarded?)
-2. `engagement.json > notification_stage` — Stage 2: one recall/day (first meal cron triggers, rest suppressed, weight suppressed); Stage 3: final recall (one-shot, weight suppressed); Stage 4: suppress all.
-3. Health flags — `avoid_weight_focus` or `history_of_ed` (weight reminders only)?
-4. Scheduling constraints from `health-preferences.md` (e.g., "skips breakfast on workdays")?
-5. Meal already logged today? (via `data/meals/YYYY-MM-DD.json`)
-6. Weight-specific checks (via `data/weight.json`):
-   - `weight`: already weighed today?
-   - `weight_evening`: already weighed today? (if yes → suppress evening followup)
-   - `weight_morning_followup`: weighed yesterday or today? (if either → suppress morning followup)
+The script runs deterministic checks (no LLM). See `pre-send-check.py`
+source for the full list. Key gates: onboarding status, engagement stage,
+health flags, scheduling constraints, meal/weight already logged today.
 
 Any fail → `NO_REPLY`. All pass → `SEND`.
 
@@ -185,67 +177,14 @@ When composing the **first meal reminder of the day** and Stage = 1, check `days
 
 **Purpose:** 小犀牛撒娇地提一嘴，然后继续正常推荐。不是召回，只是"我注意到你没来"的小情绪，让用户感觉被惦记着。
 
+**Full tone guide and examples → `references/recall-messages.md` § Gentle Nudge**
+
 **Rules:**
-- Only on **the day's first meal cron** — 后续 cron 不重复（用户无论有无 breakfast，第一个触发的 meal cron 加 nudge）
-- Only when **1 ≤ days_silent ≤ 3** — 沉默 1-3 天。第 4 天进入 Stage 2 召回阶段
-- Nudge line + normal recommendation 一起发，不是两条消息
-- 语气：撒娇 + 营养师式关心，轻轻带过，不深究
-- Day 2 和 Day 3 的 nudge 要有变化，不要重复同一句
-- **周末/节假日感知：** 如果沉默期覆盖了周末（六日）或公众假期，nudge 要自然地猜测用户是不是出去玩了、聚餐了，语气更轻松。不要在周末用"在忙吗"这种工作日话术
-- **Day 2 vs Day 3 话术区分：** Day 2 说"昨天"，Day 3 说"两天/好久"——不要在沉默 2 天后还说"昨天"
-
-**Day 2 nudge（沉默 1 天）— 工作日 (Chinese):**
-
-> 你昨天在忙吗，都没见你来找我打卡 🥺 今天早餐想好了没？
-
-> 昨天一天都没看到你～你有好好吃饭吗？来，今天的推荐：
-
-> 哼，昨天你都没理我！算了不跟你计较了，先看看今天吃什么吧～
-
-**Day 3 nudge（沉默 2 天）— 工作日 (Chinese):**
-
-> 两天没理我了！你是不是把我忘了 🥺 今天总得吃点好的吧：
-
-> 都两天了你都不来找我……我好委屈 🦏 来吧，今天的推荐我还是给你留着的：
-
-> 哼！两天没跟我说话了，你自己在外面都吃了啥呀 😤 先看今天的：
-
-**Day 2-3 nudge — 周末/节假日 (Chinese):**
-
-> 周末出去浪了吧！好吃的都不跟我分享 😤 今天回来了吗，早餐安排上：
-
-> 是不是趁假期出去吃好吃的了！我都闻到了 🦏 来来来，今天推荐：
-
-> 放假去哪玩啦～有没有吃到什么好东西？回来跟我说说嘛，先看看今天的：
-
-**Day 2 nudge — weekday (English):**
-
-> Missed you yesterday — were you busy? 🥺 Anyway, here's what I'm thinking for breakfast:
-
-> Hey, you disappeared on me yesterday! No worries though — let's talk food:
-
-**Day 3 nudge — weekday (English):**
-
-> Two days without you?? Did you forget about me 🥺 Here's today's picks:
-
-> It's been two whole days! What have you been eating without me 😤 Anyway, for today:
-
-**Day 2-3 nudge — weekend/holiday (English):**
-
-> Did you go out this weekend?? Tell me you ate something amazing 😤 Anyway, for today:
-
-> Holiday mode huh! Hope you had some good food 🦏 Let's get back to it:
-
-**Full message example with nudge (Chinese):**
-```
-你昨天在忙吗，都没见你来找我打卡 🥺 今天早餐想好了没？
-
-1. 燕麦 + 水煮蛋 + 牛奶 — 你的经典搭配，稳
-2. 全麦吐司 + 牛油果 + 酸奶 — 换换口味
-3. 小米粥 + 茶叶蛋 + 几颗坚果 — 想轻一点的话
-
-吃之前拍给我，现场帮你看~
-```
+- Only on **the day's first meal cron** — subsequent crons don't repeat the nudge.
+- Only when **1 ≤ days_silent ≤ 3** — Day 4 enters Stage 2 recall.
+- Nudge line + normal recommendation in one message (not separate).
+- Day 2 says "yesterday", Day 3 says "two days" — match the actual gap.
+- Weekend/holiday: guess the user went out to eat, not generic "were you busy".
 
 **Strict mode:** If `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, **read `weight-gain-strategy/references/strict-mode.md` and follow all notification-composer behaviors listed there** (calorie running total, proactive nudge, morning accountability, extended frequency).
 
@@ -420,7 +359,7 @@ stop the current workflow and hand off immediately.
 
 | Source | Field / Path | Purpose |
 |--------|-------------|---------|
-| `health-preferences.md` | `Scheduling & Lifestyle` | Adjust reminder timing (skip breakfast if user always skips, delay dinner on busy days) |
+| `health-preferences.md` | `Taste & Dietary Preferences` | Food restrictions, allergies, taste preferences for meal recommendations |
 | `USER.md` | `Basic Info > Name` | Greeting (if set) |
 | `USER.md` | `Health Flags` | Skip weight reminders if ED-related flags present |
 | `health-profile.md` | `Body > Unit Preference` | Display unit for weight (kg/lb) |
