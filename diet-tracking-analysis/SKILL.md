@@ -48,7 +48,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 | `--weight` | `PLAN.md` or `health-profile.md` | User's current weight in kg |
 | `--cal` | `PLAN.md > Daily Calorie Range` | Daily calorie target in kcal |
 | `--meal-json` | Step 2 nutrition estimate | Single-line JSON array (see format below) |
-| `--meal-type` | Step 2 meal type detection | Omit to auto-detect from timestamp + schedule |
+| `--meal-type` | User's exact words ONLY | **Only pass when the user explicitly names the meal** (e.g. "这是早餐", "this is lunch"). Otherwise ALWAYS omit — the script auto-detects from timestamp + schedule. Never infer meal type yourself from time of day or existing logs; trust the script's detection. One call is enough — do NOT retry with a different meal-type if the result looks unexpected. |
 | `--timestamp` | Inbound message metadata | ISO-8601 UTC timestamp of user's message |
 | `--eaten` | Step 2 meal timing detection | Pass when user already ate (omit = before-eating) |
 | `--schedule` | `health-profile.md > Meal Schedule` | JSON: `{"breakfast":"07:00","lunch":"12:00","dinner":"18:00"}` |
@@ -100,7 +100,7 @@ Recognize what the user ate, estimate nutrition, then call `log-meal` to save.
 Merge consecutive messages into a single input before proceeding.
 
 #### 1.2 Determine meal type
-If user explicitly states meal type ("breakfast", "this is lunch") → pass as `--meal-type`. Otherwise omit (script auto-detects from timestamp + schedule). User's statement always takes priority, even if it contradicts the time of day.
+If user explicitly states meal type ("breakfast", "this is lunch", "早餐", "这是午饭") → pass as `--meal-type`. User's statement always takes priority, even if it contradicts the time of day. Otherwise **always omit** — let the script auto-detect. **Do NOT infer meal type yourself. Do NOT retry log-meal with a different meal-type.** One call is enough; trust the script's result.
 
 #### 1.3 Detect meal timing
 Determine before-eating (default) or already-eaten → pass as `--eaten` to script.
