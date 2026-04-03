@@ -128,10 +128,7 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 2. If earlier meals are already logged today, call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get today's intake for nutritional complementing.
 3. Read `health-preferences.md` (taste preferences, food restrictions).
 4. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
-5. **Check streak:** Call `streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}`. Use the result to compose the **opening line**:
-   - `pending_milestone` is not `null` → use the **milestone celebration** as opening (see `streak-tracker` SKILL.md § Milestones). Higher energy, bigger moment.
-   - `pending_milestone` is `null` but `current_streak ≥ 2` → use the **daily streak opening** format: `"你已经连续 {current_streak - 1} 天打卡了，{free half}"` (see `streak-tracker` SKILL.md § Daily Streak Opening Line).
-   - `current_streak < 2` → compose the opening normally (no streak mention).
+5. **Compose opening line:** Call `streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}` and follow `streak-tracker` SKILL.md § "Integration Points > notification-composer" to determine the opening line (milestone celebration, daily streak line, or normal opening).
 6. Compose 2-3 meal recommendations (see Composition Rules below).
 7. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended. If a milestone was celebrated, also call `streak-calc.py celebrate --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset} --milestone <n>`.
 
