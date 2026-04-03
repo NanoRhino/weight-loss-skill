@@ -138,10 +138,10 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 The tip (≤ 10 Chinese characters / ≤ 6 English words) explains *why this option fits right now* — in a casual, friend-like tone. Not a nutrition lecture.
 
 Tip sources:
-- Nutritional complement to earlier meals today ("早上碳水少了，补一点")
-- Habit acknowledgment ("你的经典搭配，稳")
-- Variety ("换换口味")
-- Situational ("今天想轻一点的话")
+- Nutritional complement to earlier meals today ("light on carbs this morning — balancing out")
+- Habit acknowledgment ("your go-to combo, solid")
+- Variety ("switching it up")
+- Situational ("if you want something lighter today")
 
 **Deduplication — avoid repetitive recommendations:**
 - Read `recent_recommendations` from `meal-history` output.
@@ -149,11 +149,10 @@ Tip sources:
 - Among the 2-3 options themselves, ensure variety: ideally one familiar favorite, one variation on a favorite, one different choice.
 - If the user picked the same recommendation 3+ days in a row, don't force a change — respect their preference.
 
-**Closing line:** Always end with an invitation to photograph the meal. Examples:
-- `"吃之前拍给我，现场帮你看~"`
+**Closing line:** Always end with an invitation to photograph the meal. Example:
 - `"Snap a photo before you eat — I'll check it out for you~"`
 
-Adapt the closing to the user's language.
+Adapt to the user's language.
 
 #### Message Format
 
@@ -175,7 +174,7 @@ When composing the **first meal reminder of the day** and Stage = 1, check `days
 
 **How to know if this is the first meal cron of the day:** This is the first cron that returns `SEND` today. Lunch/dinner crons on the same day won't add another nudge because the user will have received the nudge + recommendation in the earlier cron (and if they replied, the meal-logged check suppresses subsequent crons; if they didn't reply, the nudge was already sent once today).
 
-**Purpose:** 小犀牛撒娇地提一嘴，然后继续正常推荐。不是召回，只是"我注意到你没来"的小情绪，让用户感觉被惦记着。
+**Purpose:** A light, affectionate one-liner before the normal recommendation. Not a recall — just "I noticed you haven't been around" to make the user feel remembered.
 
 **Full tone guide and examples → `references/recall-messages.md` § Gentle Nudge**
 
@@ -188,20 +187,8 @@ When composing the **first meal reminder of the day** and Stage = 1, check `days
 
 **Strict mode:** If `habits.active` contains a habit with `strict: true` AND `source: "weight-gain-strategy"`, **read `weight-gain-strategy/references/strict-mode.md` and follow all notification-composer behaviors listed there** (calorie running total, proactive nudge, morning accountability, extended frequency).
 
-#### Examples
+#### Example
 
-**Chinese (lunch):**
-```
-午餐想好了吗？
-
-1. 鸡胸肉 + 糙米 + 西兰花 — 你的经典搭配，稳
-2. 牛肉面 + 茶叶蛋 — 换换口味，蛋白质也够
-3. 沙拉 + 全麦面包 + 酸奶 — 今天想轻一点的话
-
-吃之前拍给我，现场帮你看~
-```
-
-**English (breakfast):**
 ```
 Morning! A few ideas:
 
