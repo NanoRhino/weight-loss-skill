@@ -14,11 +14,10 @@ metadata:
 
 > 🚫 **禁止自行发送：** 你的回复由 cron 系统自动送达用户。不要用 `exec`、`message` 或其他工具自行发送——会导致重复消息。只输出提醒文本（或 `NO_REPLY`），不附带任何推理、检查结果或叙述。你的全部输出会原样送达用户。
 
-
 提醒的执行层——前置检查、消息组合、回复处理。本技能决定每次 cron 触发时**说什么**。
 Cron 管理和生命周期由 `notification-manager` 负责。
 
-## 原则
+## 通用规则
 
 **变换措辞。** 每天同样的开场白 = 第三天就被屏蔽。
 
@@ -29,15 +28,9 @@ Cron 管理和生命周期由 `notification-manager` 负责。
 
 ---
 
-## 餐前提醒流程
-
-**目的：** 根据上一餐的营养评估提醒用户本餐注意什么，然后邀请拍照打卡。
-
-**风格：** 像了解你生活的朋友发的消息，不是系统通知。温暖、简洁、有对话感。引导方向，不指定菜品。
+## 第一步：前置检查（所有提醒共用）
 
 > ⚠️ 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。不要附带解释、推理或"检查未通过"的说明。
-
-### 第一步：前置检查
 
 ```bash
 python3 {baseDir}/scripts/pre-send-check.py \
@@ -49,7 +42,17 @@ python3 {baseDir}/scripts/pre-send-check.py \
 - 输出 **`NO_REPLY`** → 回复恰好 `NO_REPLY`，结束。
 - 输出 **`SEND`** → 继续第二步。
 
-### 第二步：读取 evaluation
+---
+
+## 第二步：按类型组合消息
+
+### 餐前提醒
+
+**目的：** 根据上一餐的营养评估提醒用户本餐注意什么，然后邀请拍照打卡。
+
+**风格：** 像了解你生活的朋友发的消息。温暖、简洁、有对话感。引导方向，不指定菜品。
+
+#### 2a. 读取 evaluation
 
 调用 `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` 获取今天的餐食记录。如果是当天第一餐，同时加载昨天的数据（`--date` 昨天）。
 
@@ -66,16 +69,16 @@ python3 {baseDir}/scripts/pre-send-check.py \
 | `"case_d_snack"` / `"case_d_ok"` | **不可用 → 降级** |
 | 无 evaluation（上一餐未打卡） | **降级** |
 
-### 第三步：组合消息
+#### 2b. 组合消息
 
-**3a —— evaluation 可用：**
+**evaluation 可用：**
 
 | `suggestion_type` | 引导方式 |
 |---|---|
 | `"next_meal"` | 以存储的 `suggestion_text` 为基础，改写为口语化提醒——不照抄，但保留调整方向。无需额外读取数据。 |
 | `"next_time"` | 轻松鼓励或温和的变换建议。不纠正。`suggestion_text` 可能含习惯小贴士，可轻轻带过。无需额外读取数据。 |
 
-**3b —— evaluation 不可用（降级）：**
+**evaluation 不可用（降级）：**
 
 先调用 `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` 获取 `same_weekday_last_week`。Tier 1 时读取 `health-preferences.md` 过滤过敏/不喜欢的食物。
 
@@ -88,13 +91,11 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 **严格模式：** 如果 `habits.active` 中有 `strict: true` 且 `source: "weight-gain-strategy"` 的习惯，**读取 `weight-gain-strategy/references/strict-mode.md` 并遵循其中所有 notification-composer 相关行为**。
 
-### 习惯签到
+> 习惯签到由 `habit-builder` 技能负责（见其 § "How Habits Get Into Conversations"）。本技能提供餐食对话作为载体。
 
-由 `habit-builder` 技能负责（见其 § "How Habits Get Into Conversations"）。本技能提供餐食对话作为载体；`habit-builder` 决定在其中穿插什么。
+### 体重提醒
 
-### 体重提醒 —— 始终可选的语气，始终提及空腹
-
-**风格：** 随意、低调、就事论事。"可选"的感觉来自表达方式，而非直接说"没压力"/"不要紧"/"不想称就算了"。不堆叠安慰语。体重话题不用俏皮语气。
+**风格：** 随意、低调、就事论事。"可选"的感觉来自表达方式，而非直接说"没压力"/"不要紧"。不堆叠安慰语。体重话题不用俏皮语气。
 
 **必须包含：** 提及空腹（饭前）以确保准确性。简短——一句话即可。
 
@@ -102,7 +103,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 用户已吃过饭 → 仍可记录，但内部标注为餐后数据。
 
-### 体重提醒规则
+#### 体重提醒规则
 
 - **主提醒（周三、周六早上）：** 提醒时间 = 早餐时间前 30 分钟。始终提及空腹。已称重则抑制。前置检查类型：`weight`。
 - **晚间跟进（周三、周六晚饭后）：** 晚餐时间 + 30 分钟触发。仅在当天未称重时发送。提醒明早空腹称重。简短随意——不催。前置检查类型：`weight_evening`。
@@ -128,25 +129,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 ---
 
-## 每周低热量检查
-
-每周一次（默认周一，第一餐提醒时），运行 `diet-tracking-analysis` 的 `weekly-low-cal-check` 命令，检查用户周均热量摄入是否持续低于 BMR。
-
-```bash
-python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
-  --data-dir {workspaceDir}/data/meals \
-  --bmr <user BMR from PLAN.md> \
-  --tz-offset {tz_offset}
-```
-
-- `below_floor` 为 `true`：在下一条餐食提醒中加入温和提示（用语见 diet-tracking-analysis SKILL.md "Weekly Low-Calorie Check"）。
-- `below_floor` 为 `false`：无动作。
-- 如果 `Health Flags` 包含 `history_of_ed` → 完全跳过此检查。
-- 此检查替代逐餐的低于 BMR 警告。逐餐检查点仍评估热量/宏量素对比每日目标；BMR 安全底线检查仅每周一次。
-
----
-
-## 处理回复
+## 第三步：处理回复
 
 ### 餐食回复
 
@@ -181,6 +164,25 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 ---
 
+## 附加检查
+
+### 每周低热量检查
+
+每周一次（默认周一，第一餐提醒时），运行 `diet-tracking-analysis` 的 `weekly-low-cal-check` 命令，检查用户周均热量摄入是否持续低于 BMR。
+
+```bash
+python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
+  --data-dir {workspaceDir}/data/meals \
+  --bmr <user BMR from PLAN.md> \
+  --tz-offset {tz_offset}
+```
+
+- `below_floor` 为 `true`：在下一条餐食提醒中加入温和提示（用语见 diet-tracking-analysis SKILL.md "Weekly Low-Calorie Check"）。
+- `below_floor` 为 `false`：无动作。
+- 如果 `Health Flags` 包含 `history_of_ed` → 完全跳过此检查。
+
+---
+
 ## 安全
 
 危机级信号（进食障碍、自伤、自杀意念、医疗问题）由 `emotional-support` 技能处理。完整信号列表、标志写入和热线资源见其 SKILL.md § "Safety Escalation"。本技能的职责是**检测并转交**——立即停止当前工作流，交接出去。
@@ -210,7 +212,6 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 | 路径 | 方式 | 时机 |
 |------|------|------|
 | `data/weight.json` | `weight-tracker.py save` | 用户报告体重 |
-| *（不再写入推荐记录——见餐前提醒 § 生成流程）* | | |
 
 脚本：体重通过 `{weight-tracking:baseDir}/scripts/weight-tracker.py`，餐食通过 `diet-tracking-analysis` 的 `nutrition-calc.py`。
 状态值：`"logged"` / `"skipped"` / `"no_reply"`。完整 schema 见 `references/data-schemas.md`。
