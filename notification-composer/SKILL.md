@@ -125,17 +125,6 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 **严格模式：** 如果 `habits.active` 中有 `strict: true` 且 `source: "weight-gain-strategy"` 的习惯，**读取 `weight-gain-strategy/references/strict-mode.md` 并遵循其中所有 notification-composer 相关行为**（卡路里累计、主动催促、晨间问责、加密频率）。
 
-#### 禁忌
-- 不在提醒中出现卡路里数字或宏量素明细——那是用户记录后才展示的
-- 不要像企业健康 App 的语气（`"请选择一个用餐方案"` ✗）
-- 不引用让人感觉被监控的精确数据（如"你今早吃了 1279 大卡"）
-- 不推荐用户不喜欢或过敏的食物（降级 Tier 1 时查 `health-preferences.md`）
-- 不出现编号菜单（1. 2. 3.）
-- 不凭空发明食物建议——Path A/B 仅依赖 suggestion_text；Tier 1 推荐用户上周实际吃过的
-
-**时段语气：**
-早上 = 柔和、低调（刚醒，别太吵） · 中午 = 简洁、明快（会议间隙） · 晚上 = 轻松、温暖（放松状态）
-
 ### 习惯签到
 
 由 `habit-builder` 技能负责（见其 § "How Habits Get Into Conversations"）。本技能提供餐食对话作为载体；`habit-builder` 决定在其中穿插什么。
