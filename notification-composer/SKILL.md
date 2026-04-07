@@ -297,36 +297,17 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 
 ## Handling Replies
 
-### Meal replies
+User replies to reminders are routed by the skill router to the appropriate
+skill. This skill does not own reply handling logic — it only composes and
+sends the initial reminder.
 
-| User says | Response |
-|-----------|----------|
-| Names food (before or after eating) | Hand off to `diet-tracking-analysis` for logging + response. |
-| Vague: "eating something" | `Logged ✓ Want to add details, or leave it?` |
-| Skipping: "skipping lunch" | `Noted!` |
-| Junk food + dismissive attitude ("whatever", "don't care") | Log without judgment. BUT if this follows a pattern (binge-like description + negative emotion or resignation), add a soft door-opener: "Want to talk about it?" — do NOT add "no pressure either way" as this over-signals. If purely indifferent (no distress signal), just log and move on. |
-| Hasn't eaten all day | Check `Lifestyle > Exercise Habits` in profile or meal history for IF pattern. On IF → `"How you feeling?"` Not on IF → `"That's a long stretch — everything okay?"` Post-binge context → defer to `emotional-support` (which writes `flags.possible_restriction`). |
-| Emotional distress detected (per router Pattern 2) | **Stop logging. Router defers to `emotional-support`.** See § Emotional signals in replies for notification-side behaviour. |
-| Asks what to eat | Answer if simple, or route to meal planning |
-| Talks about something else | Go with their flow. Don't force food topic. |
+- **Meal replies** → routed to `diet-tracking-analysis`
+- **Weight replies (trend down)** → `logged ✓ Trending nicely.`
+- **Weight replies (trend up or distress)** → log, then route to `weight-gain-strategy`
+- **Declines** → `👍`
+- **Emotional distress** → router defers to `emotional-support`
 
-### Weight replies
-
-| User says | Response |
-|-----------|----------|
-| Number (trend down): "62.5" | `62.5 — logged ✓ Trending nicely.` Positive acknowledgment. |
-| Number (trend up or distress): "65.2" / "165 😩" | Log the number, then **route to `weight-gain-strategy`** (runs deviation-check, handles emotional response if needed). Do not comment on the number beyond logging it. |
-| Declines: "nah" | `👍` |
-
-Never critique, compare to yesterday, or mention calories.
-
-### Emotional signals in replies
-
-Any reply can carry emotional distress. Detection + hand-off: see `emotional-support` SKILL.md and SKILL-ROUTING Pattern 2. This skill's notification-side behaviour during hand-off:
-
-- Stop data collection and defer upcoming reminders while user is distressed
-- "Max 2 turns" rule does NOT apply during emotional support
-- Resume only after user signals readiness
+Never critique, compare to yesterday, or mention calories in weight replies.
 
 ---
 
