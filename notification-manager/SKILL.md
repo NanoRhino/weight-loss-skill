@@ -258,221 +258,60 @@ Users may ask to change reminders in natural language. Handle inline:
 
 ## Guided Feedback Scheduling
 
-Manages the progressive guided-feedback system that teaches users they can
-customize the AI's behavior. Questions are scheduled as **one-shot cron jobs**
-and consumed strictly in queue order — one question per day maximum.
+Schema: `references/guided-feedback-schema.md`
+Script: `{baseDir}/scripts/guided-feedback-state.py`
 
-### Data File: `data/guided-feedback.json`
-
-**Owner:** This skill (scheduling + counter updates) and `notification-composer`
-(reply processing).
-
-```json
-{
-  "total_check_ins": 0,
-  "distinct_active_days": [],
-  "queue": [
-    {
-      "id": "reminder-timing",
-      "group": "reminder",
-      "topic": "提醒时间",
-      "trigger": "total_check_ins >= 3",
-      "same_day_chain": ["reminder-frequency", "reminder-style"],
-      "status": "pending",
-      "scheduled_at": null,
-      "asked_at": null,
-      "answered_at": null,
-      "answer": null
-    },
-    {
-      "id": "reminder-frequency",
-      "group": "reminder",
-      "topic": "提醒频次（没回要不要再提醒）",
-      "trigger": "same_day_chain (reminder-timing answered)",
-      "status": "pending",
-      "scheduled_at": null,
-      "asked_at": null,
-      "answered_at": null,
-      "answer": null
-    },
-    {
-      "id": "reminder-style",
-      "group": "reminder",
-      "topic": "提醒内容风格",
-      "trigger": "same_day_chain (reminder-frequency answered)",
-      "status": "pending",
-      "scheduled_at": null,
-      "asked_at": null,
-      "answered_at": null,
-      "answer": null
-    },
-    {
-      "id": "feedback-tone",
-      "group": "feedback",
-      "topic": "饮食反馈语气",
-      "trigger": "reminder chain completed (all answered|skipped|covered)",
-      "same_day_chain": ["food-preference", "advice-intensity"],
-      "status": "pending",
-      "scheduled_at": null,
-      "asked_at": null,
-      "answered_at": null,
-      "answer": null
-    },
-    {
-      "id": "food-preference",
-      "group": "feedback",
-      "topic": "推荐食物偏好",
-      "trigger": "same_day_chain (feedback-tone answered)",
-      "status": "pending",
-      "scheduled_at": null,
-      "asked_at": null,
-      "answered_at": null,
-      "answer": null
-    },
-    {
-      "id": "advice-intensity",
-      "group": "feedback",
-      "topic": "建议力度（要不要说后果）",
-      "trigger": "same_day_chain (food-preference answered)",
-      "status": "pending",
-      "scheduled_at": null,
-      "asked_at": null,
-      "answered_at": null,
-      "answer": null
-    },
-    {
-      "id": "open-review",
-      "group": "review",
-      "topic": "开放式回顾",
-      "trigger": "distinct_active_days >= 5",
-      "status": "pending",
-      "scheduled_at": null,
-      "asked_at": null,
-      "answered_at": null,
-      "answer": null
-    }
-  ],
-  "preference_signals": []
-}
-```
-
-### Status Lifecycle
-
-```
-pending → scheduled → asked → answered | skipped | covered
-```
-
-- `pending`: Not yet triggered
-- `scheduled`: One-shot cron job created, `scheduled_at` set
-- `asked`: Message delivered to user, `asked_at` set
-- `answered`: User replied, `answered_at` + `answer` set
-- `skipped`: 24h elapsed after `asked_at` with no reply
-- `covered`: `preference_signals` already covers this question (skip it)
-
-### Trigger Chain
-
-After each meal check-in is logged by `diet-tracking-analysis`:
-
-1. `diet-tracking-analysis` updates `total_check_ins` (+1) and
-   `distinct_active_days` (append today's date if not present).
-2. This skill checks whether the next `pending` question's trigger
-   condition is met.
-3. If met, check `preference_signals` for entries whose `covers` field
-   matches the question `id`:
-   - If covered → mark `status: "covered"`, check the next question.
-   - If not covered → create a one-shot cron job.
-
-### Scheduling Rules
-
-**Timing:** Schedule the question for the **current day's last meal
-reminder time + 60 minutes**. Read `health-profile.md > Meal Schedule`
-to determine the last meal time.
-
-**One question per day:** If a question was already asked or scheduled
-today, do not schedule another. The next question goes to the
-**next active day** (the next day the user logs a meal), at last meal
-reminder + 60min.
-
-**Cron creation:**
+### Script Commands
 
 ```bash
-bash {baseDir}/scripts/create-reminder.sh \
-  --agent <agent> --channel <channel> \
-  --type other --exact \
-  --name "Guided feedback: <question-id>" \
-  --message "Run notification-composer for guided-feedback <question-id>." \
-  --at "<last-meal-time + 60min as ISO timestamp>"
+# Initialize (during onboarding)
+python3 {baseDir}/scripts/guided-feedback-state.py --workspace-dir {workspaceDir} --tz-offset {tz_offset} init
+
+# After each meal check-in (called by diet-tracking-analysis)
+python3 {baseDir}/scripts/guided-feedback-state.py --workspace-dir {workspaceDir} --tz-offset {tz_offset} increment
+
+# Check what to schedule next
+python3 {baseDir}/scripts/guided-feedback-state.py --workspace-dir {workspaceDir} --tz-offset {tz_offset} next
+# → {"action":"schedule"|"wait"|"done", "question_id":...}
+
+# Update question status
+python3 {baseDir}/scripts/guided-feedback-state.py --workspace-dir {workspaceDir} --tz-offset {tz_offset} update \
+  --question-id <id> --new-status <scheduled|asked|answered|skipped> [--answer <text>]
+# → {"updated":..., "chain_next": "<next-id>"|null}
+
+# Check 24h skip timer (run on every activation)
+python3 {baseDir}/scripts/guided-feedback-state.py --workspace-dir {workspaceDir} --tz-offset {tz_offset} skip-check
 ```
 
-After creating the job, update the question's `status` to `"scheduled"`
-and set `scheduled_at`.
+### Scheduling Flow
 
-### Trigger Conditions
+1. After each meal check-in → run `increment`, then `next`
+2. If `next` returns `action: "schedule"` → create one-shot cron:
+   ```bash
+   bash {baseDir}/scripts/create-reminder.sh \
+     --agent <agent> --channel <channel> --type other --exact \
+     --name "Guided feedback: <question-id>" \
+     --message "Run notification-composer for guided-feedback <question-id>." \
+     --at "<last-meal-time + 60min>"
+   ```
+   Then run `update --question-id <id> --new-status scheduled`
+3. On every activation → run `skip-check`
 
-| Question | Condition | Schedule Time |
-|----------|-----------|---------------|
-| `reminder-timing` | `total_check_ins >= 3` (chain head) | Same day, last meal + 1h |
-| `reminder-frequency` | Same-day chain: `reminder-timing` answered | Same day, immediately |
-| `reminder-style` | Same-day chain: `reminder-frequency` answered | Same day, immediately |
-| `feedback-tone` | Reminder chain completed (chain head) | **Next day**, last meal + 1h |
-| `food-preference` | Same-day chain: `feedback-tone` answered | Same day, immediately |
-| `advice-intensity` | Same-day chain: `food-preference` answered | Same day, immediately |
-| `open-review` | `distinct_active_days.length >= 5` | Same day, last meal + 1h |
+### Key Rules
 
-### Same-Day Chains
+- **One chain per day.** Chain 1 (reminder ×3) on Day A, Chain 2 (feedback ×3) on Day A+1, open-review on Day 5+.
+- **Chain heads only get cron jobs.** Chain members are sent as immediate follow-ups by `notification-composer`.
+- **24h skip timer.** Unanswered → `skipped`, remaining chain members also skipped.
+- **Conflict:** if `open-review` collides with a chain, chain wins, review defers.
+- **Timing conflict with daily-review:** shift to +90min instead of +60min.
 
-There are **two same-day chains**, each asking related questions on the
-same day, one after another as the user replies:
-
-**Chain 1 — Reminder settings (Day A, triggered at 3 check-ins):**
-`reminder-timing` → `reminder-frequency` → `reminder-style`
-
-**Chain 2 — Feedback settings (Day A+1):**
-`feedback-tone` → `food-preference` → `advice-intensity`
-
-**How chains work:**
-1. Only the **chain head** (`reminder-timing` or `feedback-tone`) is
-   scheduled via cron. Subsequent questions in the chain are NOT
-   scheduled as separate cron jobs.
-2. When the user answers a question, `notification-composer` immediately
-   sends the next chained question as a **separate follow-up message**
-   (confirm current answer first, then send next question).
-3. If the user doesn't answer a question in the chain, the chain stops.
-   The unanswered question gets the 24h skip timer. When it times out
-   and is marked `skipped`, all remaining chained questions are also
-   marked `skipped`.
-4. The next chain (or `open-review`) is triggered on the **next day**
-   after the previous chain completes (all questions answered, skipped,
-   or covered).
-
-### Conflict Avoidance
-
-- If `open-review` and another question would both trigger on the same day,
-  the sequential queue question takes priority; `open-review` defers to
-  the next active day.
-- If the scheduled time falls within 30min of the daily-review auto-trigger
-  (1h after last meal log), shift the guided-feedback question to +90min
-  instead of +60min.
-
-### Skip Timer
-
-When a question has been in `asked` status for 24 hours with no reply:
-- Mark it `"skipped"`
-- Trigger scheduling of the next question (follows the "next day" rule)
-
-This check runs every time this skill is activated (similar to auto-sync).
-
-### Acting on Reminder Setting Changes
-
-When a guided-feedback reply changes reminder settings (processed by
-`notification-composer`, written to `ai-preferences.md`), this skill
-must act on the change:
+### Acting on Preference Changes
 
 | Changed Field | Action |
 |---------------|--------|
-| `Reminder Lead Time` | Recalculate cron times: meal time − new lead time. Auto-sync will fix crons on next activation. |
-| `Reminder Repeat` | If `true`, create a second one-shot reminder for each meal at meal time + 30min (only if first reminder got no reply). If `false`, remove repeat reminders. |
-| `Reminder Content` | No cron change needed — `notification-composer` reads this at compose time. |
+| `Reminder Lead Time` | Auto-sync will fix crons on next activation |
+| `Reminder Repeat: true` | Create repeat reminder at meal time + 30min |
+| `Reminder Content` | No cron change — composer reads at compose time |
 
 ---
 

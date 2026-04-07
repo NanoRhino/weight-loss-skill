@@ -330,7 +330,7 @@ When user describes what they're about to eat (or what they already ate):
 5. **Check portion clarity** — assume standard portions by default; only ask if any item appears ≥ 2× normal (see Portion Follow-Up Rule below)
 6. **Estimate nutrition per food item** — use USDA data for each food's calories / protein g / carbs g / fat g. **China region:** also estimate `vegetables_g` and `fruits_g` for this meal.
 7. **Call save** — persist this meal (include `meal_type` with the user's original meal designation, e.g. `"breakfast"`, `"lunch"`, `"dinner"`, `"snack"`). **China region:** include `vegetables_g` and `fruits_g` in the meal JSON.
-8. **Update guided-feedback counters** — if `data/guided-feedback.json` exists, increment `total_check_ins` by 1 and append today's date to `distinct_active_days` (if not already present). This is the input signal for the guided-feedback scheduling system. Do this silently.
+8. **Update guided-feedback counters** — run `python3 {notification-manager:baseDir}/scripts/guided-feedback-state.py --workspace-dir {workspaceDir} --tz-offset {tz_offset} increment` silently.
 9. **Call evaluate** — pass all meals from save output, evaluate checkpoint status
 10. **China region:** Call `produce-check` — pass all meals from save output, evaluate cumulative produce intake
 11. **Reply in format** — meal details + nutrition summary + produce status (China only) + suggestion (use meal timing to select `right_now` vs. `next_meal` — see Response Format)
