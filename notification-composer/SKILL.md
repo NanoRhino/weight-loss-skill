@@ -315,8 +315,7 @@ python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-ca
 | User says | Response |
 |-----------|----------|
 | Number (trend down): "62.5" | `62.5 — logged ✓ Trending nicely.` Positive acknowledgment. |
-| Number (trend up): "65.2" | `65.2 — logged ✓` **Then route to `weight-gain-strategy`** (which runs deviation-check to assess severity). Do not comment on the number. |
-| Number + distress: "165 😩" | `165 logged.` **Then router defers to `emotional-support`.** Do not comment on the number beyond logging it. |
+| Number (trend up or distress): "65.2" / "165 😩" | Log the number, then **route to `weight-gain-strategy`** (runs deviation-check, handles emotional response if needed). Do not comment on the number beyond logging it. |
 | Declines: "nah" | `👍` |
 
 Never critique, compare to yesterday, or mention calories.
