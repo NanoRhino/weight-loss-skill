@@ -66,6 +66,18 @@ Each item: `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`. CN r
 
 Runs detect → load → check-missing → save → evaluate → produce internally. Returns combined JSON with `meal_detection`, `existing_meals`, `missing_meals`, `save`, `evaluation`, `produce`. Same meal name overwrites (supports corrections).
 
+**Post-response step:** After composing the ③ Suggestion text for the user, call `save-evaluation` to persist the suggestion text so `notification-composer` can reference it in the next meal reminder:
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py save-evaluation \
+  --data-dir {workspaceDir}/data/meals \
+  --meal-name <meal_name> \
+  --suggestion-text '<the suggestion text shown to the user>' \
+  --tz-offset <seconds>
+```
+
+This writes `suggestion_type` + `suggestion_text` into the meal record's `evaluation` field. The `suggestion_type` is already stored by `log-meal`; this command adds the human-readable text.
+
 ### `delete-meal`
 
 ```bash
