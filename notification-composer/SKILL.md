@@ -259,10 +259,21 @@ Update the question's `status` to `"asked"` and `asked_at` to current time.
 ```
 你已经打了 {total_check_ins} 次卡了，慢慢有感觉了吧 😊 想了解一下你的使用感受，我好调整配合你的节奏。
 
-现在是饭前 15 分钟提醒一次，你觉得：
-1. 现在这样挺好
-2. 想更早一点收到（提前 30 分钟 / 1 小时）
-3. 如果没回，隔一会儿再提醒我一次
+现在是饭前 15 分钟提醒你，你觉得这个时间：
+1. 挺好的，刚刚好
+2. 太晚了，想提前 30 分钟收到
+3. 再早点，提前 1 小时提醒我
+
+或者你有别的想法也行，随便说。
+```
+
+**`reminder-frequency`:**
+
+```
+再问一个提醒相关的 🙌 如果提醒发了你没回，你希望我：
+1. 就提醒一次，没回就算了
+2. 隔 30 分钟再提醒我一次
+3. 隔 30 分钟提醒，还没回就再来一次（最多提醒 3 次）
 
 或者你有别的想法也行，随便说。
 ```
@@ -270,8 +281,7 @@ Update the question's `status` to `"asked"` and `asked_at` to current time.
 **`reminder-style`:**
 
 ```
-再了解你一点 🙌 每次提醒的时候，你更希望我：
-
+每次提醒的时候，你更希望我：
 1. 现在这样就挺好
 2. 简单提醒就行（"晚饭时间到了，记得拍照打卡～"）
 3. 加点鼓励打气（"今天已经坚持第 X 天了，继续冲！"）
@@ -279,11 +289,12 @@ Update the question's `status` to `"asked"` and `asked_at` to current time.
 或者你有别的想法也行，随便说。
 ```
 
-**`feedback-tone`:**
+**`feedback-tone`** (same-day chain head):
 
 ```
-这几天我给的饮食反馈（比如"蛋白质偏低""这顿热量有点高"），你觉得：
+用了几天了，想了解一下你对饮食反馈的感受 😊
 
+这几天我给的反馈（比如"蛋白质偏低""这顿热量有点高"），你觉得：
 1. 挺好的，继续这样
 2. 再严格一点，超标了就明确提醒我
 3. 温柔一些，少挑毛病多鼓励
@@ -292,17 +303,27 @@ Update the question's `status` to `"asked"` and `asked_at` to current time.
 了解你的感受，后面每天的反馈才对味。
 ```
 
-**`food-preference`:**
+**`food-preference`** (same-day chain, sent immediately after `feedback-tone` reply):
 
 ```
 这几天推荐的菜有没有不太合适的？
-
 1. 都还行，继续推
 2. 有些食材不喜欢或买不到（告诉我哪些）
 3. 做法太复杂了，想要更简单的
 4. 口味上想调整（比如偏中式、偏清淡等）
 
 告诉我之后推荐会越来越对你胃口。
+```
+
+**`advice-intensity`** (same-day chain, sent immediately after `food-preference` reply):
+
+```
+还有一个——我给建议的时候，你希望我：
+1. 就告诉我怎么做就行
+2. 多说说为什么这么建议，帮我理解
+3. 可以说说不调整的话会怎样，帮我更有动力执行
+
+你越告诉我你的习惯，我越能在对的时间说对的话。
 ```
 
 **`open-review`:**
@@ -342,8 +363,11 @@ When the reply is identified as an answer:
 | Question | User Choice | ai-preferences.md Update |
 |----------|-------------|--------------------------|
 | `reminder-timing`: 1 | Keep current | No change |
-| `reminder-timing`: 2 | Earlier | `Reminder Lead Time: 30min` (or 60min if specified) |
-| `reminder-timing`: 3 | Repeat | `Reminder Repeat: true` |
+| `reminder-timing`: 2 | 30min earlier | `Reminder Lead Time: 30min` |
+| `reminder-timing`: 3 | 1h earlier | `Reminder Lead Time: 60min` |
+| `reminder-frequency`: 1 | Once only | `Reminder Repeat: false` (default) |
+| `reminder-frequency`: 2 | Once more | `Reminder Repeat: true`, `Reminder Max Repeats: 1` |
+| `reminder-frequency`: 3 | Up to 3 times | `Reminder Repeat: true`, `Reminder Max Repeats: 2` |
 | `reminder-style`: 1 | Keep current | No change |
 | `reminder-style`: 2 | Brief | `Reminder Content: brief` |
 | `reminder-style`: 3 | Motivational | `Reminder Content: motivational` |
@@ -353,6 +377,9 @@ When the reply is identified as an answer:
 | `feedback-tone`: 4 | Silent | `Unsolicited Advice: none`, `Comparison with Plan: weekly-only` |
 | `food-preference`: 1 | Keep current | No change |
 | `food-preference`: 2-4 | Specific feedback | Append to `health-preferences.md` under appropriate section |
+| `advice-intensity`: 1 | Action only | `Advice Style: action-only` |
+| `advice-intensity`: 2 | With reasoning | `Advice Style: with-reasoning` |
+| `advice-intensity`: 3 | With consequences | `Advice Style: with-consequences` |
 | `open-review` | Any | Parse and apply to relevant `ai-preferences.md` fields |
 
 3. For `reminder-timing` changes, notify `notification-manager` to update
@@ -364,8 +391,15 @@ When the reply is identified as an answer:
    - "收到，后面反馈会温柔一些 😊"
    - "了解了，推荐会往简单口味靠。"
 
-5. Trigger `notification-manager` to check if the next question should
-   be scheduled.
+5. **Check for same-day chain:** If the answered question has a
+   `same_day_chain` (i.e., it is `feedback-tone`) or is part of a chain
+   (i.e., `food-preference` or `advice-intensity`), send the next chained
+   question **immediately** as a follow-up message — do not wait for a
+   cron job. The confirmation of the current answer and the next question
+   are sent as **two separate messages** (confirm first, then next question).
+
+6. If no same-day chain applies, trigger `notification-manager` to check
+   if the next question should be scheduled (normal next-day flow).
 
 ---
 

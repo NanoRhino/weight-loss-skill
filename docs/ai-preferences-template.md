@@ -18,6 +18,7 @@
 - **Tone:** warm-friend
 - **Detail Level:** standard
 - **Encouragement Frequency:** normal
+- **Advice Style:** action-only
 
 ## Content Control
 - **Calorie Display:** always
@@ -28,6 +29,7 @@
 ## Reminder Settings
 - **Reminder Lead Time:** 15min
 - **Reminder Repeat:** false
+- **Reminder Max Repeats:** 0
 - **Reminder Content:** recommend
 
 ## Interaction Preferences
@@ -50,6 +52,7 @@
 | Tone | warm-friend, professional, tough-love, playful | warm-friend | Overall communication style |
 | Detail Level | minimal, standard, detailed | standard | How much explanation accompanies feedback |
 | Encouragement Frequency | less, normal, more | normal | How often AI adds positive reinforcement |
+| Advice Style | action-only, with-reasoning, with-consequences | action-only | How much context accompanies suggestions. `action-only` = just say what to do; `with-reasoning` = explain why; `with-consequences` = also describe what happens if you don't adjust |
 
 ### Content Control
 
@@ -65,7 +68,8 @@
 | Field | Values | Default | Effect |
 |-------|--------|---------|--------|
 | Reminder Lead Time | 15min, 30min, 60min | 15min | How far before meal time the reminder fires |
-| Reminder Repeat | true, false | false | Whether a second reminder fires if no reply |
+| Reminder Repeat | true, false | false | Whether additional reminders fire if no reply |
+| Reminder Max Repeats | 0, 1, 2 | 0 | How many additional reminders (only when Repeat is true) |
 | Reminder Content | recommend, brief, motivational | recommend | Style of reminder message |
 
 ### Interaction Preferences

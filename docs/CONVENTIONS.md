@@ -202,8 +202,9 @@ a guided-feedback question (e.g., "你说话太啰嗦了" covers
 }
 ```
 
-Valid `covers` values: `reminder-timing`, `reminder-style`,
-`feedback-tone`, `food-preference`, `open-review`.
+Valid `covers` values: `reminder-timing`, `reminder-frequency`,
+`reminder-style`, `feedback-tone`, `food-preference`,
+`advice-intensity`, `open-review`.
 
 ---
 
