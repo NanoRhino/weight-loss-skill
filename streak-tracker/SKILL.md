@@ -224,19 +224,23 @@ respond naturally:
 | Source | Field / Path | Purpose |
 |--------|-------------|---------|
 | `data/meals/YYYY-MM-DD.json` | `status` field per meal entry | Determine which days have at least one logged meal |
-| `data/streak.json` | `milestones_celebrated` | Avoid re-celebrating the same milestone |
+| `data/streak.json` | all fields | Avoid re-celebrating; provide streak data to other skills without running script |
 
 ### Writes
 
 | Path | How | When |
 |------|-----|------|
+| `data/streak.json` | `streak-calc.py info` | Every run — persists current_streak, longest_streak, streak_start_date, last_logged_date, milestones_celebrated |
 | `data/streak.json` | `streak-calc.py celebrate` | After sending a milestone celebration message |
-| `data/streak.json` | `streak-calc.py info` (auto-reset) | When streak breaks, resets `milestones_celebrated` |
 
 ### Data Schema — `data/streak.json`
 
 ```json
 {
+  "current_streak": 7,
+  "longest_streak": 14,
+  "streak_start_date": "2026-03-26",
+  "last_logged_date": "2026-04-01",
   "milestones_celebrated": [3, 7]
 }
 ```

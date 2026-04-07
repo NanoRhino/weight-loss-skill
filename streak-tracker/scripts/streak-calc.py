@@ -159,7 +159,7 @@ def get_pending_milestone(current_streak, celebrated):
 
 
 def cmd_info(args):
-    """Output streak info as JSON."""
+    """Output streak info as JSON and persist to data/streak.json."""
     today = get_local_date(args.tz_offset)
     logged_dates = find_logged_dates(args.data_dir)
     current_streak, longest_streak, streak_start = calculate_streak(
@@ -172,16 +172,27 @@ def cmd_info(args):
     # Reset celebrated list if streak was broken (current < max celebrated)
     if celebrated and current_streak < max(celebrated):
         celebrated = []
-        streak_data["milestones_celebrated"] = celebrated
-        save_streak_data(args.workspace_dir, streak_data)
+
+    # Preserve longest_streak across resets
+    stored_longest = streak_data.get("longest_streak", 0)
+    if longest_streak < stored_longest:
+        longest_streak = stored_longest
 
     pending = get_pending_milestone(current_streak, celebrated)
+
+    # Persist streak data
+    streak_data["current_streak"] = current_streak
+    streak_data["longest_streak"] = longest_streak
+    streak_data["streak_start_date"] = streak_start
+    streak_data["last_logged_date"] = max(logged_dates) if logged_dates else None
+    streak_data["milestones_celebrated"] = celebrated
+    save_streak_data(args.workspace_dir, streak_data)
 
     result = {
         "current_streak": current_streak,
         "longest_streak": longest_streak,
         "streak_start_date": streak_start,
-        "last_logged_date": max(logged_dates) if logged_dates else None,
+        "last_logged_date": streak_data["last_logged_date"],
         "today": today,
         "pending_milestone": pending,
         "milestones_celebrated": celebrated,
