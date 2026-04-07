@@ -142,13 +142,12 @@ Use the cron tool directly for listing and removing:
    - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
 4. Also verify weight reminder cron jobs exist — see § "Weight reminders" below. This includes the primary (Wed & Sat morning), evening followup (Wed & Sat after dinner), and next-morning followup (Thu & Sun morning). Create any that are missing.
 5. Also verify the weekly report cron job exists (Sunday 21:00 — see § "Weekly report" below). Create if missing.
-6. Also verify the daily review cron job exists (dinner + 3h — see § "Daily review" below). Create if missing. If dinner time changed, remove and recreate.
-7. **Diet pattern detection** — special handling:
+6. **Diet pattern detection** — special handling:
    - Read `health-profile.md > Automation > Pattern Detection Completed`
    - If has a date → job already completed. If job still exists, remove it (stale).
    - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it.
    - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
-8. Do all of this **silently** — do not mention it to the user.
+7. Do all of this **silently** — do not mention it to the user.
 
 ---
 
@@ -221,19 +220,6 @@ bash {baseDir}/scripts/create-reminder.sh \
   --message "Run weekly-report to generate this week's progress report." \
   --cron "0 21 * * 0"
 ```
-
-### Daily review (every day, dinner + 3h)
-
-Daily nutrition summary. Cron time = dinner reminder time + 3 hours. Derive dinner time from `health-profile.md > Meal Schedule`. Example: dinner at 18:00 → daily review cron at 21:00.
-
-```bash
-bash {baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --channel <channel> --name "Daily review" \
-  --message "Run daily-review to generate today's nutrition summary." \
-  --cron "0 21 * * *"
-```
-
-Included in auto-sync: when dinner time changes, adjust this cron accordingly.
 
 ### Diet pattern detection (self-destructing, onboarding + 3 days)
 
