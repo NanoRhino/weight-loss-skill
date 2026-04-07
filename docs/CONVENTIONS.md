@@ -155,7 +155,59 @@ Skills frequently read data owned by other skills. To keep this manageable:
 
 ---
 
-## 10. Language & Locale Policy
+## 10. AI Preferences & Guided Feedback
+
+### ai-preferences.md (workspace root)
+
+Stores user-controlled AI behavior settings — coaching style, content
+preferences, reminder settings, and interaction boundaries. See
+`docs/ai-preferences-template.md` for the full field reference.
+
+- **Type:** Markdown (profile-like, changes infrequently)
+- **Created by:** `user-onboarding-profile` (during onboarding, with defaults)
+- **Written by:** `user-onboarding-profile` (explicit preference changes),
+  `notification-composer` (guided-feedback reply processing)
+- **Read by:** All skills that produce user-facing output
+- Skills should read this file at conversation start alongside
+  `health-preferences.md` and adjust their output accordingly.
+
+### data/guided-feedback.json
+
+Tracks the state of the progressive guided-feedback system — which
+questions have been asked, answered, skipped, or covered by prior
+user statements.
+
+- **Type:** JSON (state tracking)
+- **Owner:** `notification-manager` (scheduling + state writes),
+  `notification-composer` (reply processing + state writes)
+- **Read by:** `notification-manager`, `notification-composer`,
+  `diet-tracking-analysis` (to increment check-in counter)
+- Uses one-shot cron jobs (`--at`) to schedule questions, not recurring crons.
+- Questions are consumed strictly in queue order, one per day max.
+
+### Preference Signal Convention
+
+All skills may detect and record user preference signals during
+normal conversation. When a user expresses a preference that maps to
+a guided-feedback question (e.g., "你说话太啰嗦了" covers
+`feedback-tone`), append a signal entry to
+`data/guided-feedback.json > preference_signals`:
+
+```json
+{
+  "date": "2026-04-08",
+  "source": "diet-tracking-analysis",
+  "covers": "feedback-tone",
+  "content": "用户说回复太长了"
+}
+```
+
+Valid `covers` values: `reminder-timing`, `reminder-style`,
+`feedback-tone`, `food-preference`, `open-review`.
+
+---
+
+## 11. Language & Locale Policy
 
 **Do NOT add language selection logic to any skill.** Language is managed
 centrally:
@@ -173,7 +225,7 @@ centrally:
 
 ---
 
-## 11. Cron Job Delivery Policy
+## 12. Cron Job Delivery Policy
 
 Cron isolated sessions use **announce delivery** — the agent's text output
 is automatically delivered to the user by the OpenClaw cron system. This

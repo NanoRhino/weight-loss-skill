@@ -25,6 +25,7 @@ things to focus on next week.
 3. **One week is noise, trends are signal.** Never draw dramatic conclusions from a single week.
 4. **Personalize everything.** Use the user's name, units, food history, and goals — never a generic template dump.
 5. **Actionable > informational.** Every suggestion must be something the user can do next week.
+6. **Respect user preferences.** Read `ai-preferences.md` (if it exists) at report generation time. Adjust tone (`Tone`, `Strictness`), detail level (`Detail Level`, `Response Length`), and content visibility (`Calorie Display`, `Macro Breakdown`) accordingly. If `Comparison with Plan` is `weekly-only`, the weekly report is the only place plan comparisons appear — make it count.
 
 ---
 

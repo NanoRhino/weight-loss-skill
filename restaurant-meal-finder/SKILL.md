@@ -62,6 +62,7 @@ health-profile.md (body data) + health-preferences.md (food prefs)
 - `exercise-tracking-planning` → today's exercise (for calorie/protein adjustment)
 - `health-preferences.md` → food likes/dislikes, allergies, diet mode
 - `health-profile.md` → body stats, diet config, location, schedule
+- `ai-preferences.md` → coaching style, tone, detail level (adjust response accordingly)
 - `locale.json` → language and region
 
 **Downstream handoff:**

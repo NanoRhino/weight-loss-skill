@@ -16,6 +16,10 @@ metadata:
 Manage body weight records with full CRUD operations. All data lives in a
 single JSON file; display always uses the user's preferred unit.
 
+**Read `ai-preferences.md`** (if it exists) at conversation start. Adjust
+response tone per `Tone` and `Strictness` settings. If `Unsolicited Advice`
+is `none` or `minimal`, skip trend commentary unless the user asks for it.
+
 ## Data Storage
 
 **File:** `{workspaceDir}/data/weight.json`

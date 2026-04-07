@@ -12,8 +12,9 @@ Before modifying any skill or data structure, read `docs/CONVENTIONS.md`.
 
 ## Key Rules
 
-- **No language selection logic in skills** — `locale.json` is the sole authority for reply language. Never add "reply in the user's language" or similar directives. See `docs/CONVENTIONS.md` §10.
-- **No self-delivery wrappers in cron job payloads** — The "don't use exec/message to send" rule lives in `notification-composer` SKILL.md, not in each cron job's `payload.message`. Keep payload text to just the task instruction (e.g., `"Run notification-composer pre-send checks for breakfast."`). See `docs/CONVENTIONS.md` §11.
+- **No language selection logic in skills** — `locale.json` is the sole authority for reply language. Never add "reply in the user's language" or similar directives. See `docs/CONVENTIONS.md` §11.
+- **No self-delivery wrappers in cron job payloads** — The "don't use exec/message to send" rule lives in `notification-composer` SKILL.md, not in each cron job's `payload.message`. Keep payload text to just the task instruction (e.g., `"Run notification-composer pre-send checks for breakfast."`). See `docs/CONVENTIONS.md` §12.
+- **AI Preferences are user-controlled** — `ai-preferences.md` governs coaching style, tone, strictness, and content preferences. All user-facing skills must read it. See `docs/CONVENTIONS.md` §10.
 - Transactional/structured data → JSON under `data/`
 - Profile-like content that changes slowly → Markdown at workspace root
 - Group related data into one file per domain

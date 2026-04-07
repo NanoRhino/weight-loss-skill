@@ -43,7 +43,7 @@ USER.md (identity) + health-profile.md (health data) + health-preferences.md (pr
 
 ## Preference Awareness
 
-**Before generating any meal plan, diet template, or food suggestion, read `health-preferences.md`.** This file contains user preferences accumulated across all conversations — food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more.
+**Before generating any meal plan, diet template, or food suggestion, read `health-preferences.md`** and **`ai-preferences.md`** (if they exist). `health-preferences.md` contains food likes/dislikes, allergies, cooking conditions, scheduling constraints, and more. `ai-preferences.md` controls coaching style — adjust tone (`Tone`, `Strictness`), detail level (`Detail Level`), and response length (`Response Length`) accordingly.
 
 ### How to Apply Preferences
 
@@ -422,6 +422,28 @@ English equivalent:
 > Don't stress about perfection — just follow the plan and tell me what you're having before you eat. I'll fine-tune from there 👍
 >
 > Beyond meal tracking, just tell me whatever you need — like water reminders or grocery tips. And if anything feels off — recommendations don't suit your taste, I'm not pushing you hard enough, or my tone is too soft — just let me know and I'll adjust.
+
+### WeChat Pin Guidance (WeChat channel only)
+
+After the daily tracking workflow message, if the user's channel is `wechat`
+(from `channel-source.json`), append a pin suggestion:
+
+> 对了，建议把小犀牛的对话**置顶**，这样打卡提醒来了第一时间能看到，不容易被别的消息淹掉。
+>
+> 接下来几天你先正常用着，用了几天之后我会问你一些感受，帮我了解怎么配合你更舒服。
+
+English equivalent (for non-WeChat or English users, adapt as appropriate):
+
+> By the way — I'd suggest pinning this chat so my reminders don't get buried.
+>
+> Just use it normally for the next few days — after a bit I'll ask how it's going so I can adjust to your style.
+
+**Purpose:** The pin reminder increases retention. The preview of "I'll ask
+for your feedback later" sets the expectation that the AI is customizable
+and primes the user for the guided-feedback questions.
+
+If the channel is not WeChat, skip the pin suggestion but still include
+the preview line ("接下来几天你先正常用着...").
 
 ---
 

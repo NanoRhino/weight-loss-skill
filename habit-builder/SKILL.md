@@ -107,7 +107,7 @@ Bad: `"Did you complete your habit today?"` · `"Remember your commitment!"`
 
 ### How to choose the right habit
 
-Read `USER.md`, `health-profile.md`, and `health-preferences.md` + recent `logs.*` to build a picture of the user's
+Read `USER.md`, `health-profile.md`, `health-preferences.md`, and `ai-preferences.md` + recent `logs.*` to build a picture of the user's
 current lifestyle. **`health-preferences.md` is especially valuable here** — it contains accumulated preferences across all conversations that reveal what the user enjoys, dislikes, and finds practical. Design habits that align with these preferences for maximum adherence (e.g., if the user loves cooking on weekends, a meal-prep habit is a natural fit; if they hate mornings, don't suggest a morning routine habit). Then find the **smallest behavior change with the biggest
 impact.**
 

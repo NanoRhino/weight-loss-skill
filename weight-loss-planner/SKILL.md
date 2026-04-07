@@ -99,8 +99,9 @@ Once all body data and TDEE values are resolved, proceed to Step 2 (Generate Mil
 
 ### Preference Awareness
 
-Before generating a plan, **read `health-preferences.md`** (if it exists). Stored preferences may influence:
+Before generating a plan, **read `health-preferences.md`** and **`ai-preferences.md`** (if they exist). Stored preferences may influence:
 - **General coaching notes** — preferences like "prefers gradual changes" should inform how you present the plan
+- **Presentation style** — `ai-preferences.md` settings (`Tone`, `Detail Level`, `Response Length`) control how verbose and technical the plan presentation should be
 
 If the user states new preferences during the planning conversation (e.g., "I don't want to count every calorie"), **silently append them to `health-preferences.md`** under the appropriate subcategory.
 

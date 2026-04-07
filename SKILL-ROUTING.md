@@ -303,6 +303,50 @@ build a habit or get exercise programming.
 
 ---
 
+### Pattern 11: Guided Feedback Reply + Diet Logging (P4 + P2)
+
+**Trigger:** User replies to a guided-feedback question with food content
+(e.g., the question was about reminder style, but the user also mentions
+what they just ate), or the user's reply contains both an answer to the
+guided-feedback question and a food log.
+
+**Resolution: Both processed — guided feedback first, then diet logging.**
+
+1. Parse the guided-feedback answer and process it (update preferences)
+2. If the reply also contains food content, hand off to `diet-tracking-analysis`
+3. Combine into one response: brief preference confirmation + normal meal log
+
+### Pattern 12: Guided Feedback + Emotional Support (P4 vs P1)
+
+**Trigger:** A guided-feedback question fires while the user is in
+emotional distress, or the user's reply to a guided-feedback question
+carries emotional signals.
+
+**Resolution: Emotional support takes priority.**
+
+1. If the user is in emotional distress (detected from engagement state or
+   current message), the guided-feedback question returns `NO_REPLY`
+2. If the user replies to a guided-feedback question with distress signals,
+   route to `emotional-support` (P1) — the question stays in `asked` status
+   (24h skip timer still applies)
+
+### Pattern 13: AI Preference Change + Other Intent (P3)
+
+**Trigger:** User expresses a preference change alongside another intent
+(e.g., "别总说热量了，我中午吃了沙拉" contains both a preference change
+and a food log).
+
+**Resolution: Preference change first (silent), then normal routing.**
+
+1. Detect the preference change intent, update `ai-preferences.md` silently
+2. Append to `data/guided-feedback.json > preference_signals` if it covers
+   a queued question
+3. Process the remaining intent(s) normally through standard routing
+4. The preference change is confirmed inline (one brief sentence at the
+   start of the response), not as a separate message
+
+---
+
 ## Response Merge Rules
 
 When two skills co-execute in a single response, follow these formatting

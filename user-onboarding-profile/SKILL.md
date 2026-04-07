@@ -361,5 +361,7 @@ After the user confirms their summary:
        --tz-offset <from timezone.json>
      ```
    - **Unit preference** — infer from the user's weight input (e.g., "80kg" → `kg`, "165 lbs" → `lb`, "130斤" → `kg`) and write to `health-profile.md > Body > Unit Preference`
+   - **AI Preferences** — create `ai-preferences.md` with default values (see `docs/ai-preferences-template.md`). If the user expressed any communication preferences during onboarding (e.g., "说话简短点", "be strict with me"), apply them to the defaults before saving.
+   - **Guided Feedback** — create `data/guided-feedback.json` with the initial structure (see `notification-manager` SKILL.md § "Guided Feedback Scheduling"). All questions start as `pending`, counters at 0.
    Do not tell the user the filenames, file format, or mention `.md` — just confirm that their profile has been saved.
 3. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.

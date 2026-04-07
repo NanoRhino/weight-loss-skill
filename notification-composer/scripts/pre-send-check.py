@@ -196,15 +196,77 @@ def check_scheduling_constraints(workspace_dir, meal_type, tz_offset):
     return True, None
 
 
+def check_guided_feedback(workspace_dir, question_id):
+    """Check for guided-feedback: question still in scheduled status and not covered."""
+    gf_path = os.path.join(workspace_dir, "data", "guided-feedback.json")
+    if not os.path.exists(gf_path):
+        return False, "guided-feedback.json not found"
+
+    try:
+        with open(gf_path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        log(f"Warning: could not read guided-feedback.json: {e}")
+        return False, f"could not read guided-feedback.json: {e}"
+
+    # Find the question in the queue
+    question = None
+    for q in data.get("queue", []):
+        if q.get("id") == question_id:
+            question = q
+            break
+
+    if question is None:
+        return False, f"question '{question_id}' not found in queue"
+
+    if question.get("status") != "scheduled":
+        return False, f"question '{question_id}' status is '{question.get('status')}', expected 'scheduled'"
+
+    # Check if preference_signals now cover this question
+    for signal in data.get("preference_signals", []):
+        if signal.get("covers") == question_id:
+            return False, f"question '{question_id}' covered by preference signal from {signal.get('date')}"
+
+    return True, None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Pre-send check for meal/weight reminders")
     parser.add_argument("--workspace-dir", required=True, help="Agent workspace root")
     parser.add_argument("--meal-type", required=True,
-                        choices=["breakfast", "lunch", "dinner", "meal_1", "meal_2", "weight"],
+                        choices=["breakfast", "lunch", "dinner", "meal_1", "meal_2",
+                                 "weight", "guided-feedback"],
                         help="Meal type to check")
     parser.add_argument("--tz-offset", required=True, type=int,
                         help="Timezone offset in seconds from UTC")
+    parser.add_argument("--question-id", required=False, default=None,
+                        help="Question ID for guided-feedback checks")
     args = parser.parse_args()
+
+    # Guided-feedback has its own check sequence
+    if args.meal_type == "guided-feedback":
+        if not args.question_id:
+            log("FAIL: --question-id required for guided-feedback")
+            print("NO_REPLY")
+            return
+
+        checks = [
+            ("health_profile", lambda: check_health_profile(args.workspace_dir)),
+            ("engagement_stage", lambda: check_engagement_stage(args.workspace_dir)),
+            ("guided_feedback", lambda: check_guided_feedback(
+                args.workspace_dir, args.question_id)),
+        ]
+
+        for check_name, check_fn in checks:
+            passed, reason = check_fn()
+            if not passed:
+                log(f"FAIL [{check_name}]: {reason}")
+                print("NO_REPLY")
+                return
+
+        log("All guided-feedback checks passed")
+        print("SEND")
+        return
 
     checks = [
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
