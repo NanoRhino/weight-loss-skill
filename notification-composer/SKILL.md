@@ -120,9 +120,12 @@ Warm, concise, conversational. Each recommendation feels like a friend's suggest
 2. If earlier meals are already logged today, call `nutrition-calc.py load --data-dir {workspaceDir}/data/meals --tz-offset {tz_offset}` to get today's intake for nutritional complementing.
 3. Read `health-preferences.md` (taste preferences, food restrictions).
 4. Read the user's diet template from `health-profile.md > Diet Config > Diet Mode`.
-5. **Compose opening line:** Call `streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}` and follow `streak-tracker` SKILL.md § "Integration Points > notification-composer" to determine the opening line (milestone celebration, daily streak line, or normal opening).
+5. **Compose opening line:** Call `{streak-tracker:baseDir}/scripts/streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}`. Use the JSON output to determine the opening line:
+   - `pending_milestone` is not `null` → **milestone celebration** as opening (bigger energy, 1-2 sentences, reference something real). After sending, call `streak-calc.py celebrate --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset} --milestone <n>`.
+   - `pending_milestone` is `null` and `current_streak >= 2` → **daily streak opening**: state the count (`current_streak - 1`, since today's meal hasn't been logged yet) and add a free half about getting to know the user's eating habits. One sentence. Vary daily.
+   - `current_streak < 2` → compose the opening normally (no streak mention).
 6. Compose 2-3 meal recommendations (see Composition Rules below).
-7. After sending, call `nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended. If a milestone was celebrated, also call `streak-calc.py celebrate --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset} --milestone <n>`.
+7. After sending, call `{diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py save-recommendation --data-dir {workspaceDir}/data/meals --meal-type {current_meal} --items '{JSON array of recommendation strings}' --tz-offset {tz_offset}` to record what was recommended.
 
 #### Composition Rules
 
