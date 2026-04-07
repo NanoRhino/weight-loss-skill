@@ -256,19 +256,22 @@ bash {baseDir}/scripts/create-reminder.sh \
 ## Lifecycle: Active → Recall → Silent
 
 ```
-Stage 1: ACTIVE — normal reminders
+Stage 1: ACTIVE — normal reminders (Day 2-3: morning nudge + normal recommendation)
     │
-    └── 2 full calendar days: zero replies + zero messages
+    └── 3 full calendar days: zero replies + zero messages
            │
-Stage 2: PAUSE — stop all reminders, send first recall
+Stage 2: RECALL — stop normal reminders, send daily recall (Day 4-6)
+    │       First meal cron of the day: one recall message (no meal recommendations)
+    │       Subsequent meal crons + weight: suppressed
+    │       Tone escalation: Day 4 clingy → Day 5 fake angry → Day 6 pouty/vulnerable
     │
     ├── User replies → back to Stage 1
     └── 3 days, no reply
            │
-Stage 3: SECOND RECALL — one final message
+Stage 3: FINAL RECALL — one last emotional message
     │
     ├── User replies → back to Stage 1
-    └── No reply → Stage 4
+    └── 1 day, no reply → Stage 4
            │
 Stage 4: SILENT — send nothing. Wait for user to return.
 ```
@@ -277,10 +280,27 @@ Recall replaces the next meal reminder slot — don't send at random hours.
 Weight reminders also stop at Stage 2. Write current stage to
 `data/engagement.json > notification_stage`.
 
-**Stage transition logic:** This skill periodically checks `data/engagement.json > last_interaction`
-to detect when the user has gone silent. When a stage transition occurs, update
-`data/engagement.json > notification_stage`. The `notification-composer` reads this value to
-decide whether to send a normal reminder, a recall message, or nothing at all.
+**Stage transition logic:** Before every reminder, `notification-composer` calls this skill's
+stage-check script to update the engagement stage:
+
+```bash
+python3 {baseDir}/scripts/check-stage.py \
+  --workspace-dir {workspaceDir} \
+  --tz-offset {tz_offset}
+```
+
+The script scans `data/meals/*.json` to find the most recent date with a logged
+meal — this is the "last interaction". No platform-level timestamp needed; meal
+records are the ground truth. It calculates calendar days since that date and
+advances `notification_stage` when thresholds are met. It also resets to Stage 1
+when a silent user returns (new meal logged today/yesterday but stage > 1).
+
+The `notification-composer` then reads the updated stage to decide whether to
+send a normal reminder, a recall message, or nothing at all.
+
+During Stage 2 (Day 4-6), `notification-composer` sends one recall per day
+(morning only) and writes `last_recall_date` to `data/engagement.json`.
+After the final recall (Stage 3), it writes `recall_2_sent: true`.
 
 **When a silent user returns:**
 Reset to Stage 1. Resume normal reminders. The warm welcome message itself
@@ -313,6 +333,75 @@ Users may ask to change reminders in natural language. Handle inline:
 
 ---
 
+## Custom User Reminders
+
+Users may ask the AI to set arbitrary recurring or one-shot reminders unrelated
+to meals/weight (e.g., "每天给我讲个笑话", "提醒我周五交报告", "每天早上发条励志语录").
+
+### Naming Convention
+
+All custom reminders MUST use the `[custom]` prefix in their job name:
+- `[custom] 每日笑话`
+- `[custom] 周五交报告提醒`
+- `[custom] 早间励志语录`
+
+This distinguishes them from system reminders (meal/weight/weekly-report) and
+prevents accidental deletion of system jobs when users say "取消提醒".
+
+### Creating
+
+Use the same `create-cron.py` script with appropriate parameters:
+
+```bash
+python3 {baseDir}/scripts/create-cron.py \
+  --workspace-dir {workspaceDir} \
+  --name "[custom] 每日笑话" \
+  --message "给用户讲一个好笑的笑话，风格轻松幽默，每次不同。" \
+  --cron "0 9 * * *" \
+  --type meal
+```
+
+For one-shot reminders:
+```bash
+python3 {baseDir}/scripts/create-cron.py \
+  --workspace-dir {workspaceDir} \
+  --name "[custom] 周五交报告提醒" \
+  --message "提醒用户今天要交报告。" \
+  --at "2026-04-11T09:00:00+08:00" \
+  --type meal \
+  --delete-after
+```
+
+### Canceling
+
+When a user asks to stop a custom reminder (e.g., "别讲笑话了", "取消那个提醒"):
+
+1. `cron list` — find jobs with `[custom]` prefix matching the user's intent.
+2. `cron rm` — delete the matched job(s).
+3. Confirm: `"好的，已取消「每日笑话」提醒。"`
+
+**Important:** Only delete `[custom]` jobs. Never delete system reminders
+(meal/weight/weekly-report) unless the user explicitly asks to stop those
+(handled by § Reminder Settings Changes above).
+
+### Listing
+
+When a user asks "我设了哪些提醒" / "有哪些定时任务":
+
+1. `cron list` — filter for `[custom]` prefix jobs.
+2. Present as a simple list with name + schedule.
+3. Also mention system reminders separately if relevant.
+
+### Ambiguity
+
+If the user says "取消提醒" without specifying which one:
+- If only one `[custom]` job exists → cancel it and confirm.
+- If multiple `[custom]` jobs exist → list them and ask which to cancel.
+- If no `[custom]` jobs exist → assume they mean system reminders, defer to
+  § Reminder Settings Changes.
+
+---
+
 ## Workspace
 
 ### Reads
@@ -320,7 +409,8 @@ Users may ask to change reminders in natural language. Handle inline:
 | Source | Field / Path | Purpose |
 |--------|-------------|---------|
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
-| `data/engagement.json` | `last_interaction` | Stage detection |
+| `data/meals/*.json` | `status` field per meal entry | Derive last interaction date (most recent logged meal) |
+| `data/engagement.json` | `stage_changed_at` | Stage transition timing |
 
 ### Writes
 
