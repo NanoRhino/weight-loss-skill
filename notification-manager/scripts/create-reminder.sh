@@ -101,6 +101,36 @@ if [[ "$TZ_EXPLICIT" == "false" && -n "$CRON_EXPR" ]]; then
   fi
 fi
 
+# --- Resolve user workspace for cron message injection ---
+USER_WORKSPACE=""
+for WS_DIR in "${WS_CANDIDATES[@]}"; do
+  if [[ -d "$WS_DIR" ]]; then
+    USER_WORKSPACE="$WS_DIR"
+    break
+  fi
+done
+
+# For wechat/wecom channels, also try {userId}_{robotId} format
+if [[ -z "$USER_WORKSPACE" && ("$CHANNEL" == "wechat" || "$CHANNEL" == "wecom") ]]; then
+  WORKSPACES_DIR="$PROJECT_ROOT/.openclaw-user-service/workspaces"
+  if [[ -d "$WORKSPACES_DIR" ]]; then
+    for DIR in "$WORKSPACES_DIR"/*; do
+      DIR_NAME=$(basename "$DIR")
+      # Case-insensitive match on the agent ID (which is lowercased)
+      if [[ "${DIR_NAME,,}" == "${AGENT,,}"* ]]; then
+        USER_WORKSPACE="$DIR"
+        break
+      fi
+    done
+  fi
+fi
+
+if [[ -n "$USER_WORKSPACE" ]]; then
+  echo "Resolved user workspace: $USER_WORKSPACE"
+else
+  echo "WARNING: Could not resolve user workspace for agent $AGENT" >&2
+fi
+
 # --- Anti-burst: adjust cron expression for recurring jobs ---
 if [[ -n "$CRON_EXPR" && "$EXACT" == "false" ]]; then
   echo "Running anti-burst slot finder (type=$JOB_TYPE)..."
@@ -164,6 +194,13 @@ print('NOT_FOUND')
 fi
 
 echo "Agent: $AGENT → Channel: $CHANNEL → To: $TO"
+
+# --- Inject user workspace path into message for cron isolated sessions ---
+if [[ -n "$USER_WORKSPACE" ]]; then
+  MESSAGE="$MESSAGE
+User workspace: $USER_WORKSPACE"
+  echo "Injected user workspace into message"
+fi
 
 # --- Build the cron command ---
 # Note: Do NOT wrap $MESSAGE with delivery instructions here.

@@ -32,6 +32,8 @@ Cron 管理和生命周期由 `notification-manager` 负责。
 
 > ⚠️ 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。不要附带解释、推理或"检查未通过"的说明。
 
+> **Cron workspace 路径：** 当由 cron 触发时，消息可能包含 `User workspace: /absolute/path` 行。如果存在，用该路径替代 `{workspaceDir}`（默认 workspace 可能指向模板目录）。提取路径方法：从消息中搜索以 `User workspace:` 开头的行，取该行冒号后的内容并去除首尾空格。
+
 ```bash
 python3 {baseDir}/scripts/pre-send-check.py \
   --workspace-dir {workspaceDir} \
