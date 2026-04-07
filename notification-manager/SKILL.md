@@ -283,6 +283,14 @@ python3 {baseDir}/scripts/guided-feedback-state.py --workspace-dir {workspaceDir
 python3 {baseDir}/scripts/guided-feedback-state.py --workspace-dir {workspaceDir} --tz-offset {tz_offset} skip-check
 ```
 
+### Existing User Backfill
+
+If `guided-feedback.json` doesn't exist when any command runs, the script
+auto-initializes it and backfills `total_check_ins` and `distinct_active_days`
+from existing `data/meals/*.json` files. This means existing users who already
+have enough check-ins will immediately qualify for guided-feedback questions
+on their next meal log.
+
 ### Scheduling Flow
 
 1. After each meal check-in → run `increment`, then `next`

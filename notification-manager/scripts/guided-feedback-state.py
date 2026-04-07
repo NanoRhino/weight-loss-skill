@@ -275,13 +275,52 @@ def cmd_skip_check(data):
     return {"skipped": skipped}
 
 
-def cmd_init(workspace_dir):
+def backfill_counters(data, workspace_dir, tz_offset):
+    """Scan existing meal data to populate counters for existing users."""
+    meals_dir = os.path.join(workspace_dir, "data", "meals")
+    if not os.path.isdir(meals_dir):
+        return 0, []
+
+    total = 0
+    active_days = []
+
+    # Scan daily meal files (YYYY-MM-DD.json)
+    for fname in sorted(os.listdir(meals_dir)):
+        if not fname.endswith(".json") or len(fname) != 15:  # YYYY-MM-DD.json
+            continue
+        date_str = fname[:-5]
+        fpath = os.path.join(meals_dir, fname)
+        try:
+            with open(fpath) as f:
+                meals = json.load(f)
+            if not isinstance(meals, list):
+                continue
+            meal_count = len(meals)
+            if meal_count > 0:
+                active_days.append(date_str)
+                total += meal_count
+        except (json.JSONDecodeError, IOError):
+            continue
+
+    data["total_check_ins"] = total
+    data["distinct_active_days"] = active_days
+    return total, active_days
+
+
+def cmd_init(workspace_dir, tz_offset):
     path = os.path.join(workspace_dir, "data", "guided-feedback.json")
     if os.path.exists(path):
         return {"action": "exists", "path": path}
     data = get_default_data()
+    total, active_days = backfill_counters(data, workspace_dir, tz_offset)
     save_data(data, path)
-    return {"action": "created", "path": path}
+    return {
+        "action": "created",
+        "path": path,
+        "backfilled": total > 0,
+        "total_check_ins": total,
+        "distinct_active_days": len(active_days)
+    }
 
 
 def main():
@@ -295,14 +334,19 @@ def main():
     args = parser.parse_args()
 
     if args.command == "init":
-        result = cmd_init(args.workspace_dir)
+        result = cmd_init(args.workspace_dir, args.tz_offset)
         print(json.dumps(result, ensure_ascii=False))
         return
 
     data, path = load_data(args.workspace_dir)
     if data is None:
-        print(json.dumps({"error": "guided-feedback.json not found. Run init first."}))
-        sys.exit(1)
+        # Auto-init for existing users: create + backfill + proceed
+        log("guided-feedback.json not found, auto-initializing with backfill")
+        init_result = cmd_init(args.workspace_dir, args.tz_offset)
+        data, path = load_data(args.workspace_dir)
+        if data is None:
+            print(json.dumps({"error": "failed to auto-init guided-feedback.json"}))
+            sys.exit(1)
 
     if args.command == "increment":
         result = cmd_increment(data, args.tz_offset)
