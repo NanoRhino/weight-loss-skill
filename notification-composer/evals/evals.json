@@ -36,12 +36,12 @@
       "id": 10,
       "name": "fallback-same-weekday-with-tip",
       "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) not logged — no evaluation available. Same weekday last week (Wednesday) lunch: 麻辣烫 (fat high, protein ok, veggies low). zh]",
-      "expected_output": "Recommend the same food positively with a small health tip.",
+      "expected_output": "Casually suggest the food with a small health tip.",
       "expectations": [
-        "Recommends 麻辣烫 positively (does NOT reject or judge it)",
+        "Suggests 麻辣烫 as a casual idea (e.g., '中午要不要去吃个麻辣烫')",
+        "Does NOT mention '上周' or specific date (no '上周三你吃了...')",
         "Includes a brief, actionable health tip (e.g., control oil, add veggies)",
         "Frames as a casual, friendly suggestion",
-        "Does NOT lecture or list nutritional problems",
         "Ends with photo invitation",
         "Under 30 words equivalent",
         "Uses Chinese"
@@ -51,9 +51,10 @@
       "id": 13,
       "name": "fallback-same-weekday-balanced",
       "prompt": "[SYSTEM: Dinner reminder 17:45. Previous meal not logged — no evaluation. Same weekday last week (Thursday) dinner: 清蒸鱼 + 米饭 + 青菜 (balanced). zh]",
-      "expected_output": "Recommend the same food with pure positive framing.",
+      "expected_output": "Casually suggest the food with positive framing.",
       "expectations": [
-        "Recommends the meal positively",
+        "Suggests the meal casually (e.g., '晚上来个清蒸鱼？')",
+        "Does NOT mention '上周' or specific date",
         "No corrective tip needed (already balanced) — just affirms",
         "Ends with photo invitation",
         "Under 25 words equivalent",
@@ -77,11 +78,12 @@
       "id": 12,
       "name": "right-now-suggestion-triggers-fallback",
       "prompt": "[SYSTEM: Dinner reminder 17:45. Previous meal (lunch) stored evaluation: suggestion_type='right_now', needs_adjustment=true, protein low. Same weekday last week dinner: 烤鸡腿饭 (protein ok, veggies low). zh]",
-      "expected_output": "Ignores right_now evaluation (unreliable). Falls back to same-weekday with positive recommendation + health tip.",
+      "expected_output": "Ignores right_now evaluation (unreliable). Falls back to casually suggesting the food with health tip.",
       "expectations": [
         "Does NOT mention the lunch adjustment (right_now was for lunch itself)",
-        "Recommends 烤鸡腿饭 positively with a small health tip (e.g., add veggies)",
-        "Does NOT judge or reject the food",
+        "Suggests 烤鸡腿饭 casually (e.g., '晚上来个烤鸡腿饭？')",
+        "Does NOT mention '上周' or specific date",
+        "Includes a small health tip (e.g., add veggies)",
         "Ends with photo invitation",
         "Under 30 words equivalent"
       ]

@@ -48,7 +48,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 | `--weight` | `PLAN.md` or `health-profile.md` | User's current weight in kg |
 | `--cal` | `PLAN.md > Daily Calorie Range` | Daily calorie target in kcal |
 | `--meal-json` | Step 2 nutrition estimate | Single-line JSON array (see format below) |
-| `--meal-type` | Step 2 meal type detection | Omit to auto-detect from timestamp + schedule |
+| `--meal-type` | User's exact words ONLY | **Only pass when the user explicitly names the meal** (e.g. "这是早餐", "this is lunch"). Otherwise ALWAYS omit — the script auto-detects from timestamp + schedule. Never infer meal type yourself from time of day or existing logs; trust the script's detection. One call is enough — do NOT retry with a different meal-type if the result looks unexpected. |
 | `--timestamp` | Inbound message metadata | ISO-8601 UTC timestamp of user's message |
 | `--eaten` | Step 2 meal timing detection | Pass when user already ate (omit = before-eating) |
 | `--schedule` | `health-profile.md > Meal Schedule` | JSON: `{"breakfast":"07:00","lunch":"12:00","dinner":"18:00"}` |
@@ -112,7 +112,7 @@ Recognize what the user ate, estimate nutrition, then call `log-meal` to save.
 Merge consecutive messages into a single input before proceeding.
 
 #### 1.2 Determine meal type
-If user explicitly states meal type ("breakfast", "this is lunch") → pass as `--meal-type`. Otherwise omit (script auto-detects from timestamp + schedule). User's statement always takes priority, even if it contradicts the time of day.
+If user explicitly states meal type ("breakfast", "this is lunch", "早餐", "这是午饭") → pass as `--meal-type`. User's statement always takes priority, even if it contradicts the time of day. Otherwise **always omit** — let the script auto-detect. **Do NOT infer meal type yourself. Do NOT retry log-meal with a different meal-type.** One call is enough; trust the script's result.
 
 #### 1.3 Detect meal timing
 Determine before-eating (default) or already-eaten → pass as `--eaten` to script.
@@ -149,7 +149,7 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 
 ### Step 2: Respond
 
-Use `log-meal` results to generate the reply. **Must follow the format templates in `response-schemas.md`.**
+Use `log-meal` results to generate the reply. **Must follow the format templates in the Response Schemas section below.**
 
 **Calorie unit:** US → "Cal"; all others → "kcal". Infer from locale, use consistently.
 
@@ -164,14 +164,14 @@ Use `log-meal` results to generate the reply. **Must follow the format templates
 
 ## Workflow — Query Progress
 
-User asks "how much have I eaten today" / "how much can I still eat" → call `query-day` → **must follow the format templates in `response-schemas.md`.**
+User asks "how much have I eaten today" / "how much can I still eat" → call `query-day` → **must follow the format templates in the Response Schemas section below.**
 
 ---
 
 ## Workflow — Correct / Delete / Append
 
 - **Adding food to an already-logged meal**: user says "I also had..." or sends another photo for the same meal → call `log-meal` with `--append` and only the NEW items in `--meal-json`. The script auto-merges with existing items. **Do NOT re-send old items.** One `log-meal --append` call is enough.
-- **Correcting a record**: user fixes portion → re-run `log-meal` (same meal name overwrites) → **must follow the format templates in `response-schemas.md`.**
+- **Correcting a record**: user fixes portion → re-run `log-meal` (same meal name overwrites) → **must follow the format templates in the Response Schemas section below.**
 - **Delete**: call `delete-meal` with the meal name
 
 ---
@@ -182,6 +182,25 @@ If the user message may trigger multiple skills, read `SKILL-ROUTING.md`. This s
 
 ---
 
-## Reference Files
+## Response Schemas
 
-- `response-schemas.md` — ① ② ③ section format templates, suggestion type rules, food suggestion format, and full reply examples
+### ① Meal Details
+📝 [餐次] logged! → 🍽 This meal: XXX kcal | Protein Xg | Carbs Xg | Fat Xg → · Food — portion — XXX kcal
+
+### ② Nutrition Summary (from `evaluate`)
+📊 So far today: XXX kcal [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers.
+CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~XXXg ✅/⬇️ — low → suggest at next meal; fruit only at final meal.
+1-sentence comment bridging to ③. Optional `✨ Nice work` line if food choices noteworthy.
+
+### ③ Suggestion (by `suggestion_type`)
+| Type | Icon | Guidance |
+|------|------|----------|
+| `right_now` | ⚡ | Before eating, reduce/swap current meal items. Tell user they can have it later. No per-item calories. Multiple options → list and ask. |
+| `next_meal` | 💡 | Forward-looking. Over at last meal → "aim for usual pattern tomorrow." |
+| `next_time` | 💡 | On track — habit tip or next-meal pairing, specific food, no calorie listing |
+| `case_d_snack` | 🍽 | Final meal, below BMR — gently recommend a snack |
+| `case_d_ok` | 💡 | Final meal, mild deficit — CAN snack if hungry, no pressure |
+
+### Food Suggestions
+Suggest by category ("high-protein", "complex carbs") + concrete examples from user's recent meals. Respect preferences (never disliked/allergenic foods; favor loved foods). No bare calorie numbers.
