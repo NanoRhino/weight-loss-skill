@@ -11,7 +11,10 @@
 # S3 key format: {username}/{key}.html
 # Public URL format: {base-url}/{username}/{key}.html
 #
-# --username (required): User identifier (e.g., "zhuoran")
+# --username (optional): User identifier for the URL path. If omitted, auto-resolved
+#                        from agent-registry.json using the workspace path.
+#                        Resolution: workspace dir name → agentId → shortId (6-char).
+#                        Falls back to agentId if shortId not found.
 # --key (required): Document key (e.g., "weight-loss-plan", "meal-plan")
 # --base-url: Public URL base (default: https://nanorhino.ai)
 #
@@ -53,8 +56,45 @@ done
 
 if [[ -z "$FILE" ]]; then echo "ERROR: --file is required" >&2; exit 1; fi
 if [[ ! -f "$FILE" ]]; then echo "ERROR: File not found: $FILE" >&2; exit 1; fi
-if [[ -z "$USERNAME" ]]; then echo "ERROR: --username is required" >&2; exit 1; fi
 if [[ -z "$KEY" ]]; then echo "ERROR: --key is required" >&2; exit 1; fi
+
+# === Auto-resolve username from workspace path if not provided ===
+if [[ -z "$USERNAME" ]]; then
+  if [[ -z "$WORKSPACE" ]]; then
+    echo "ERROR: --username or --workspace is required" >&2; exit 1
+  fi
+  # Extract agentId from workspace dir name: workspace-wechat-dm-xxx → wechat-dm-xxx
+  WS_BASENAME=$(basename "$WORKSPACE")
+  AGENT_ID="${WS_BASENAME#workspace-}"
+
+  # Look up shortId from agent-registry.json
+  REGISTRY="${HOME}/.openclaw/extensions/wechat/agent-registry.json"
+  if [[ -f "$REGISTRY" ]]; then
+    # Extract accountId from agentId (strip "wechat-dm-" prefix)
+    ACCOUNT_ID="${AGENT_ID#wechat-dm-}"
+    USERNAME=$(python3 -c "
+import json, sys
+try:
+    with open('${REGISTRY}') as f:
+        reg = json.load(f)
+    info = reg.get('agents', {}).get('${ACCOUNT_ID}', {})
+    sid = info.get('shortId', '')
+    if sid:
+        print(sid)
+    else:
+        print('${ACCOUNT_ID}')
+except Exception:
+    print('${ACCOUNT_ID}')
+" 2>/dev/null)
+  else
+    USERNAME="$ACCOUNT_ID"
+  fi
+
+  if [[ -z "$USERNAME" ]]; then
+    echo "ERROR: Could not resolve username from workspace path" >&2; exit 1
+  fi
+  echo "Auto-resolved username: $USERNAME (from $AGENT_ID)" >&2
+fi
 
 S3_KEY="user/${USERNAME}/${KEY}.html"
 PUBLIC_URL="${BASE_URL}/user/${USERNAME}/${KEY}.html"
