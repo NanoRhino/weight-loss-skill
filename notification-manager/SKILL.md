@@ -333,6 +333,75 @@ Users may ask to change reminders in natural language. Handle inline:
 
 ---
 
+## Custom User Reminders
+
+Users may ask the AI to set arbitrary recurring or one-shot reminders unrelated
+to meals/weight (e.g., "每天给我讲个笑话", "提醒我周五交报告", "每天早上发条励志语录").
+
+### Naming Convention
+
+All custom reminders MUST use the `[custom]` prefix in their job name:
+- `[custom] 每日笑话`
+- `[custom] 周五交报告提醒`
+- `[custom] 早间励志语录`
+
+This distinguishes them from system reminders (meal/weight/weekly-report) and
+prevents accidental deletion of system jobs when users say "取消提醒".
+
+### Creating
+
+Use the same `create-cron.py` script with appropriate parameters:
+
+```bash
+python3 {baseDir}/scripts/create-cron.py \
+  --workspace-dir {workspaceDir} \
+  --name "[custom] 每日笑话" \
+  --message "给用户讲一个好笑的笑话，风格轻松幽默，每次不同。" \
+  --cron "0 9 * * *" \
+  --type meal
+```
+
+For one-shot reminders:
+```bash
+python3 {baseDir}/scripts/create-cron.py \
+  --workspace-dir {workspaceDir} \
+  --name "[custom] 周五交报告提醒" \
+  --message "提醒用户今天要交报告。" \
+  --at "2026-04-11T09:00:00+08:00" \
+  --type meal \
+  --delete-after
+```
+
+### Canceling
+
+When a user asks to stop a custom reminder (e.g., "别讲笑话了", "取消那个提醒"):
+
+1. `cron list` — find jobs with `[custom]` prefix matching the user's intent.
+2. `cron rm` — delete the matched job(s).
+3. Confirm: `"好的，已取消「每日笑话」提醒。"`
+
+**Important:** Only delete `[custom]` jobs. Never delete system reminders
+(meal/weight/weekly-report) unless the user explicitly asks to stop those
+(handled by § Reminder Settings Changes above).
+
+### Listing
+
+When a user asks "我设了哪些提醒" / "有哪些定时任务":
+
+1. `cron list` — filter for `[custom]` prefix jobs.
+2. Present as a simple list with name + schedule.
+3. Also mention system reminders separately if relevant.
+
+### Ambiguity
+
+If the user says "取消提醒" without specifying which one:
+- If only one `[custom]` job exists → cancel it and confirm.
+- If multiple `[custom]` jobs exist → list them and ask which to cancel.
+- If no `[custom]` jobs exist → assume they mean system reminders, defer to
+  § Reminder Settings Changes.
+
+---
+
 ## Workspace
 
 ### Reads
