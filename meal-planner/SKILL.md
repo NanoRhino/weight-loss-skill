@@ -425,8 +425,12 @@ English equivalent:
 
 ### WeChat Pin Guidance (WeChat channel only)
 
-After the daily tracking workflow message, if the user's channel is `wechat`
-(from `channel-source.json`), append a pin suggestion:
+**Send as a separate message** — do NOT merge into the daily tracking workflow
+message above. Wait for the workflow message to be delivered, then send this
+as its own standalone message. This ensures it gets attention and doesn't get
+lost at the bottom of a long message.
+
+If the user's channel is `wechat` (from `channel-source.json`):
 
 > 对了，建议把小犀牛的对话**置顶**，这样打卡提醒来了第一时间能看到，不容易被别的消息淹掉。
 >
