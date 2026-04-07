@@ -156,6 +156,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 规则：
 - 仅当天第一个 meal cron——后续 cron 不重复。
+- **去重机制：** 发送 nudge 前，先读 `data/engagement.json > last_nudge_date`。如果等于今天日期，跳过 nudge（只发正常提醒）。发送 nudge 后，写入 `last_nudge_date: "{today}"` 到 `data/engagement.json`。
 - Day 2 说"昨天"，Day 3 说"两天"——匹配实际间隔。
 - 周末/节假日：猜用户是不是出去玩了/吃好吃的了。
 
