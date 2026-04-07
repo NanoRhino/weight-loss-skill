@@ -134,7 +134,7 @@ Each tip ≤ 6 English words / 10 CJK characters. Closing: invite photo before e
 
 ### Gentle Nudge
 
-When Stage = 1 and `1 ≤ days_silent ≤ 3`, prepend a nudge line to the first meal cron of the day. Nudge + recommendation in one message.
+When Stage = 1 and `2 ≤ days_silent ≤ 3`, prepend a nudge line to the first meal cron of the day. Nudge + recommendation in one message.
 
 Rules:
 - First meal cron only — subsequent crons don't repeat.
