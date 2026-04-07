@@ -20,9 +20,9 @@ Generate a beautiful, shareable daily diet record card — meals, calories, macr
 
 ## When to Trigger
 
-- User asks to share or see a visual summary of their diet record
-- User says "饮食打卡", "分享饮食记录", "今天吃了什么（给我看看）", "diet card", "share my meals"
-- Another skill requests a visual diet summary for the user
+- **Auto-trigger (primary):** `diet-tracking-analysis` calls `log-meal` and it returns `all_meals_logged: true` — meaning the user has logged all main meals for the day. The diet card is generated and sent automatically as a "check-in complete" reward. No user request needed.
+- **Manual trigger:** User asks to share or see a visual summary of their diet record — "饮食打卡", "分享饮食记录", "今天吃了什么（给我看看）", "diet card", "share my meals".
+- **Cross-skill trigger:** Another skill (e.g., daily-review) requests a visual diet summary.
 
 ## Data Sources
 

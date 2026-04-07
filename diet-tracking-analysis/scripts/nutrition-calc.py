@@ -1494,6 +1494,13 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     if save_clarifications:
         result["needs_clarification"] = save_clarifications
 
+    # 8. Check if all main meals are now logged
+    logged_names = {resolve_meal_name(m.get("name", ""), meals)
+                    for m in all_meals if not m.get("assumed")}
+    main_meals = [b["meals"][0] for b in blocks]
+    all_logged = all(m in logged_names for m in main_meals)
+    result["all_meals_logged"] = all_logged
+
     return result
 
 

@@ -168,6 +168,8 @@ Use `log-meal` results to generate the reply. **Must follow the format templates
 - Assumed meals: suggestion calc only, never show in progress display
 - User says "skipped" → mark zero intake, re-run `query-day`; "can't recall" → keep assumed value
 
+**Auto diet card:** When `log-meal` returns `all_meals_logged: true`, all main meals for the day have been recorded. After sending the normal meal response, **automatically trigger `diet-image-sharing`** to generate and send the daily diet summary image. Do not ask the user — just generate and send it. This serves as a visual "check-in complete" reward.
+
 ---
 
 ## Workflow — Query Progress
