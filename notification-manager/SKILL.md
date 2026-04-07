@@ -277,6 +277,7 @@ and consumed strictly in queue order — one question per day maximum.
       "group": "reminder",
       "topic": "提醒时间",
       "trigger": "total_check_ins >= 3",
+      "same_day_chain": ["reminder-frequency", "reminder-style"],
       "status": "pending",
       "scheduled_at": null,
       "asked_at": null,
@@ -287,7 +288,7 @@ and consumed strictly in queue order — one question per day maximum.
       "id": "reminder-frequency",
       "group": "reminder",
       "topic": "提醒频次（没回要不要再提醒）",
-      "trigger": "previous answered|skipped|covered",
+      "trigger": "same_day_chain (reminder-timing answered)",
       "status": "pending",
       "scheduled_at": null,
       "asked_at": null,
@@ -298,7 +299,7 @@ and consumed strictly in queue order — one question per day maximum.
       "id": "reminder-style",
       "group": "reminder",
       "topic": "提醒内容风格",
-      "trigger": "previous answered|skipped|covered",
+      "trigger": "same_day_chain (reminder-frequency answered)",
       "status": "pending",
       "scheduled_at": null,
       "asked_at": null,
@@ -309,7 +310,7 @@ and consumed strictly in queue order — one question per day maximum.
       "id": "feedback-tone",
       "group": "feedback",
       "topic": "饮食反馈语气",
-      "trigger": "previous answered|skipped|covered",
+      "trigger": "reminder chain completed (all answered|skipped|covered)",
       "same_day_chain": ["food-preference", "advice-intensity"],
       "status": "pending",
       "scheduled_at": null,
@@ -410,35 +411,39 @@ and set `scheduled_at`.
 
 | Question | Condition | Schedule Time |
 |----------|-----------|---------------|
-| `reminder-timing` | `total_check_ins >= 3` | Same day, last meal + 1h |
-| `reminder-frequency` | Previous question terminal (`answered`/`skipped`/`covered`) | **Next day**, last meal + 1h |
-| `reminder-style` | Previous question terminal | **Next day**, last meal + 1h |
-| `feedback-tone` | Previous question terminal | **Next day**, last meal + 1h |
-| `food-preference` | Same-day chain: `feedback-tone` answered | **Same day**, immediately after `feedback-tone` reply |
-| `advice-intensity` | Same-day chain: `food-preference` answered | **Same day**, immediately after `food-preference` reply |
+| `reminder-timing` | `total_check_ins >= 3` (chain head) | Same day, last meal + 1h |
+| `reminder-frequency` | Same-day chain: `reminder-timing` answered | Same day, immediately |
+| `reminder-style` | Same-day chain: `reminder-frequency` answered | Same day, immediately |
+| `feedback-tone` | Reminder chain completed (chain head) | **Next day**, last meal + 1h |
+| `food-preference` | Same-day chain: `feedback-tone` answered | Same day, immediately |
+| `advice-intensity` | Same-day chain: `food-preference` answered | Same day, immediately |
 | `open-review` | `distinct_active_days.length >= 5` | Same day, last meal + 1h |
 
-### Same-Day Chain
+### Same-Day Chains
 
-`feedback-tone`, `food-preference`, and `advice-intensity` form a **same-day
-chain**: they are asked on the same day, one after another, as the user
-replies. This avoids spreading 3 closely related questions across 3 separate
-days.
+There are **two same-day chains**, each asking related questions on the
+same day, one after another as the user replies:
 
-**How it works:**
-1. `feedback-tone` is scheduled via cron (normal next-day trigger).
-2. When the user answers `feedback-tone`, `notification-composer` immediately
-   sends `food-preference` as a follow-up in the same conversation turn
-   (no cron needed — it's a direct follow-up message).
-3. When the user answers `food-preference`, `notification-composer` immediately
-   sends `advice-intensity`.
-4. If the user doesn't answer one in the chain, the chain stops. The
-   unanswered question gets the 24h skip timer as usual. The remaining
-   chained questions stay `pending` and are skipped (marked `skipped`)
-   along with the unanswered one.
+**Chain 1 — Reminder settings (Day A, triggered at 3 check-ins):**
+`reminder-timing` → `reminder-frequency` → `reminder-style`
 
-**Important:** Same-day chain questions do NOT get their own cron jobs.
-Only the chain head (`feedback-tone`) is scheduled via cron.
+**Chain 2 — Feedback settings (Day A+1):**
+`feedback-tone` → `food-preference` → `advice-intensity`
+
+**How chains work:**
+1. Only the **chain head** (`reminder-timing` or `feedback-tone`) is
+   scheduled via cron. Subsequent questions in the chain are NOT
+   scheduled as separate cron jobs.
+2. When the user answers a question, `notification-composer` immediately
+   sends the next chained question as a **separate follow-up message**
+   (confirm current answer first, then send next question).
+3. If the user doesn't answer a question in the chain, the chain stops.
+   The unanswered question gets the 24h skip timer. When it times out
+   and is marked `skipped`, all remaining chained questions are also
+   marked `skipped`.
+4. The next chain (or `open-review`) is triggered on the **next day**
+   after the previous chain completes (all questions answered, skipped,
+   or covered).
 
 ### Conflict Avoidance
 

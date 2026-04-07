@@ -391,15 +391,23 @@ When the reply is identified as an answer:
    - "收到，后面反馈会温柔一些 😊"
    - "了解了，推荐会往简单口味靠。"
 
-5. **Check for same-day chain:** If the answered question has a
-   `same_day_chain` (i.e., it is `feedback-tone`) or is part of a chain
-   (i.e., `food-preference` or `advice-intensity`), send the next chained
-   question **immediately** as a follow-up message — do not wait for a
-   cron job. The confirmation of the current answer and the next question
-   are sent as **two separate messages** (confirm first, then next question).
+5. **Check for same-day chain:** If the answered question is part of a
+   same-day chain (see notification-manager § "Same-Day Chains"), send
+   the next chained question **immediately** as a follow-up message —
+   do not wait for a cron job. The confirmation of the current answer
+   and the next question are sent as **two separate messages** (confirm
+   first, then next question).
 
-6. If no same-day chain applies, trigger `notification-manager` to check
-   if the next question should be scheduled (normal next-day flow).
+   Chain 1: `reminder-timing` → `reminder-frequency` → `reminder-style`
+   Chain 2: `feedback-tone` → `food-preference` → `advice-intensity`
+
+   Before sending the next chained question, check `preference_signals`
+   — if the next question is already covered, mark it `covered` and
+   skip to the one after. If all remaining are covered, the chain ends.
+
+6. If no same-day chain applies (chain ended or standalone question),
+   trigger `notification-manager` to check if the next chain/question
+   should be scheduled (normal next-day flow).
 
 ---
 
