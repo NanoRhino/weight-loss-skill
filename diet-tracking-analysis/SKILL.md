@@ -127,6 +127,18 @@ Backfilled meals from missing-meal handling are always "already eaten" — never
 #### 1.4 Estimate portions
 When user omits portion size, use standard single-serving defaults and prefix with `~`.
 
+**Photo-based reference scaling:** When a food photo contains recognizable objects, use them to gauge portion size before falling back to defaults. Common references:
+
+| Reference object | Approximate size |
+|-----------------|-----------------|
+| Chicken egg | ~6 cm long, ~60 g |
+| Soup spoon (Chinese) | Bowl ~6–7 cm wide |
+| Chopstick | ~24 cm long |
+| Standard rice bowl | ~11 cm diameter, ~300 ml |
+| Disposable lunch box (small / large) | ~500 ml / ~750–1000 ml |
+
+Workflow: spot reference → estimate container/food dimensions by comparison → convert to grams. This is especially important for large containers (big plates, trays, lunch boxes) where default single-serving assumptions undercount.
+
 Flag any item that appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs") — Step 2 will decide whether to ask for clarification.
 
 #### 1.5 Estimate nutrition
@@ -146,6 +158,17 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 - Photo: judge by sheen/pooling; Text with no photo: default 5g/200g unless described as oily
 - Deep-fried: oil already in standard nutrition data — don't double-count
 - Soups: only count visible floating oil; clear broth → 0g
+
+**Cooked-vegetable shrinkage:** Vegetables lose significant weight/volume when cooked. When estimating `amount_g` and `vegetables_g` for cooked dishes, mentally reverse the shrinkage to avoid systematic underestimation.
+
+| Category | Examples | Cooked ÷ Raw ratio | Rule of thumb |
+|----------|----------|-------------------|---------------|
+| Leafy greens | Spinach, lettuce, amaranth, water spinach | ~0.2–0.3 | A plate of cooked greens ≈ 3–5× that weight in raw leaves |
+| Cruciferous / stems | Bok choy, napa cabbage, broccoli, celery | ~0.5–0.6 | Roughly half the raw weight |
+| Firm / low-water | Bell pepper, green beans, snow peas, mushrooms | ~0.7–0.8 | Modest shrinkage |
+| Root / gourd | Carrot, zucchini, eggplant, winter melon | ~0.8–0.9 | Minimal change |
+
+Use these ratios to estimate **raw weight** from the cooked portion visible in a photo or described by the user, then record that raw weight as `vegetables_g`. For `amount_g` and calorie calculation, use the **cooked weight** (what was actually eaten).
 
 ### Step 2: Respond
 
