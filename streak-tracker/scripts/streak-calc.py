@@ -38,8 +38,18 @@ def get_local_date(tz_offset):
     return datetime.now(tz).strftime("%Y-%m-%d")
 
 
+def _meal_has_food(meal):
+    """Check if a meal dict contains actual food data."""
+    if not isinstance(meal, dict):
+        return False
+    if meal.get("status") == "logged":
+        return True
+    items = meal.get("items") or meal.get("foods")
+    return bool(items)
+
+
 def find_logged_dates(data_dir):
-    """Scan data/meals/ for dates with at least one 'logged' meal entry."""
+    """Scan data/meals/ for dates with at least one meal entry with food data."""
     meals_dir = data_dir
     if not os.path.isdir(meals_dir):
         return set()
@@ -59,17 +69,16 @@ def find_logged_dates(data_dir):
         except (json.JSONDecodeError, IOError):
             continue
 
-        # Check if any meal in this file is "logged"
+        # Check if any meal in this file has actual food data
         if isinstance(meals, list):
             for meal in meals:
-                status = meal.get("status", "")
-                if status == "logged":
+                if _meal_has_food(meal):
                     logged_dates.add(date_str)
                     break
         elif isinstance(meals, dict):
             # Handle dict-format meal files (keyed by meal_type)
             for key, meal in meals.items():
-                if isinstance(meal, dict) and meal.get("status") == "logged":
+                if _meal_has_food(meal):
                     logged_dates.add(date_str)
                     break
 

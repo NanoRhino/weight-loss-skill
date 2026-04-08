@@ -98,10 +98,22 @@ def normalize_stage(stage):
     return 1
 
 
+def _meal_has_food(meal):
+    """Check if a meal dict contains actual food data (items or foods list)."""
+    if not isinstance(meal, dict):
+        return False
+    # Explicit status takes precedence if present
+    if meal.get("status") == "logged":
+        return True
+    # Fallback: has non-empty items or foods list
+    items = meal.get("items") or meal.get("foods")
+    return bool(items)
+
+
 def get_last_logged_date(workspace_dir):
     """
     Scan data/meals/*.json to find the most recent date with at least one
-    meal entry whose status is "logged". Returns a date string (YYYY-MM-DD)
+    meal entry that contains actual food data. Returns a date string (YYYY-MM-DD)
     or None if no logged meals found.
     """
     meals_dir = os.path.join(workspace_dir, "data", "meals")
@@ -124,10 +136,10 @@ def get_last_logged_date(workspace_dir):
 
         has_logged = False
         if isinstance(meals, list):
-            has_logged = any(m.get("status") == "logged" for m in meals)
+            has_logged = any(_meal_has_food(m) for m in meals)
         elif isinstance(meals, dict):
             for key, meal in meals.items():
-                if isinstance(meal, dict) and meal.get("status") == "logged":
+                if _meal_has_food(meal):
                     has_logged = True
                     break
 

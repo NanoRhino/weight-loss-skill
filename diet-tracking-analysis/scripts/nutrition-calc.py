@@ -303,9 +303,6 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None)
     """Save a meal to the daily log. Same meal name overwrites (supports corrections)."""
     os.makedirs(data_dir, exist_ok=True)
     meal = _migrate_meal(meal)
-    # Ensure every saved meal has status: "logged" (required by check-stage.py / streak-calc.py)
-    if "status" not in meal:
-        meal["status"] = "logged"
     path = get_log_path(data_dir, day, tz_offset)
 
     existing: list = []
