@@ -300,6 +300,34 @@ def analyze(weight: float, daily_cal: int, meals: int, log: list,
     }
 
 
+def _resolve_tz_offset(workspace_dir: str) -> int:
+    """Try to read tz_offset from workspace files, fallback to 28800 (UTC+8)."""
+    import re
+    # Try timezone.json
+    tz_json = os.path.join(workspace_dir, "data", "timezone.json")
+    if os.path.isfile(tz_json):
+        try:
+            with open(tz_json) as f:
+                d = json.load(f)
+            v = d.get("tz_offset") or d.get("tzOffset")
+            if v is not None:
+                return int(v)
+        except Exception:
+            pass
+    # Try USER.md
+    user_md = os.path.join(workspace_dir, "USER.md")
+    if os.path.isfile(user_md):
+        try:
+            with open(user_md) as f:
+                text = f.read()
+            m = re.search(r'TZ Offset[:\s]*(\d+)', text)
+            if m:
+                return int(m.group(1))
+        except Exception:
+            pass
+    return 28800  # default UTC+8
+
+
 def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
               workspace_dir: str = None) -> dict:
     """Save a meal to the daily log. Same meal name overwrites (supports corrections).
@@ -338,7 +366,11 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
         '..', 'notification-manager', 'scripts', 'guided-feedback-state.py'))
     if os.path.isfile(gf_script):
         try:
-            tz = str(tz_offset or 0)
+            # Resolve tz_offset: explicit arg > timezone.json > USER.md > default 28800
+            if tz_offset is not None and tz_offset != 0:
+                tz = str(tz_offset)
+            else:
+                tz = str(_resolve_tz_offset(ws))
             inc_out = subprocess.run(
                 [sys.executable, gf_script, '--workspace-dir', ws, '--tz-offset', tz, 'increment'],
                 capture_output=True, text=True, timeout=10
