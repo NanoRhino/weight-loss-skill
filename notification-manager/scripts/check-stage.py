@@ -46,7 +46,7 @@ STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → recall phase
 STAGE_2_TO_3_DAYS = 3   # 3 days of recall messages (Day 4-6) → final recall
 STAGE_3_TO_4_DAYS = 1   # 1 day after final recall → weekly recall
 STAGE_4_TO_5_WEEKS = 3  # 3 weeks of weekly recalls → monthly recall
-STAGE_5_TO_6_MONTHS = 3 # 3 months of monthly recalls → permanent silence
+STAGE_5_TO_6_DAYS = 90  # 90 days (3 months) total silence → permanent silence
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
@@ -249,16 +249,14 @@ def main():
                 changed = True
                 log(f"TRANSITION 4 → 5 (in stage 4 for {weeks_in_stage:.1f} weeks)")
 
-    # Stage 5 → 6 after 3 months
+    # Stage 5 → 6 after 90 days total silence (from first silent day)
     elif stage == 5:
-        if stage_changed_at:
-            months_in_stage = (now - stage_changed_at).total_seconds() / (86400 * 30)
-            if months_in_stage >= STAGE_5_TO_6_MONTHS:
-                stage = 6
-                data["notification_stage"] = 6
-                data["stage_changed_at"] = now.isoformat()
-                changed = True
-                log(f"TRANSITION 5 → 6 (in stage 5 for {months_in_stage:.1f} months)")
+        if days_silent >= STAGE_5_TO_6_DAYS:
+            stage = 6
+            data["notification_stage"] = 6
+            data["stage_changed_at"] = now.isoformat()
+            changed = True
+            log(f"TRANSITION 5 → 6 (total silence {days_silent} days)")
 
     # Stage 6 is permanent silence — no further transitions
 
