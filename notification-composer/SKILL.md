@@ -112,6 +112,8 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 #### Step A：组合开场白（连续打卡）
 
+> ⚠️ **Step A 独立于 Step B/C 的 evaluation 流程。无论 evaluation 是否可用、无论是否降级，Step A 的开场白都必须执行。**
+
 调用 `{streak-tracker:baseDir}/scripts/streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}`：
 
 - `pending_milestone` 不为 null → **里程碑庆祝**（更大能量，1-2 句）。发送后调用 `streak-calc.py celebrate --milestone <n>`。
@@ -145,6 +147,8 @@ python3 {baseDir}/scripts/pre-send-check.py \
 | `"next_time"` | 轻松鼓励或温和的变换建议。不纠正。`suggestion_text` 可能含习惯小贴士，可轻轻带过。无需额外读取数据。 |
 
 **evaluation 不可用（降级）：**
+
+> ⚠️ **降级只影响消息正文（Step C），不影响 Step A 的开场白。如果 Step A 产生了 streak/milestone 开场白，必须保留并拼接在降级内容前面。**
 
 先调用 `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` 获取 `same_weekday_last_week`。Tier 1 时读取 `health-preferences.md` 过滤过敏/不喜欢的食物。
 
