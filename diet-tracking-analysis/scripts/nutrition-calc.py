@@ -41,6 +41,7 @@ Usage:
 import argparse
 import json
 import os
+import subprocess
 import sys
 from datetime import date, datetime, timedelta, timezone
 
@@ -1215,6 +1216,9 @@ def main():
     s.add_argument("--tz-offset", type=int, default=None,
                    help="Timezone offset from UTC in seconds (e.g. 28800 for UTC+8). "
                         "Used to compute local date when --date is omitted.")
+    s.add_argument("--workspace-dir", type=str, default=None,
+                   help="Workspace directory. When provided, auto-runs guided-feedback "
+                        "increment+next after saving.")
 
     l = sub.add_parser("load", help="Load today's meal records")
     l.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
@@ -1339,6 +1343,30 @@ def main():
             print(f"Error: invalid --meal JSON: {e}", file=sys.stderr)
             sys.exit(1)
         result = save_meal(args.data_dir, meal, args.date, getattr(args, 'tz_offset', None))
+        # Auto-run guided-feedback increment+next when workspace-dir is provided
+        workspace_dir = getattr(args, 'workspace_dir', None)
+        if workspace_dir and result.get("saved"):
+            try:
+                gf_script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                         '..', 'notification-manager', 'scripts', 'guided-feedback-state.py')
+                gf_script = os.path.normpath(gf_script)
+                tz = str(getattr(args, 'tz_offset', None) or 0)
+                inc_out = subprocess.run(
+                    [sys.executable, gf_script, '--workspace-dir', workspace_dir, '--tz-offset', tz, 'increment'],
+                    capture_output=True, text=True, timeout=10
+                )
+                inc_result = json.loads(inc_out.stdout) if inc_out.stdout.strip() else {}
+                next_out = subprocess.run(
+                    [sys.executable, gf_script, '--workspace-dir', workspace_dir, '--tz-offset', tz, 'next'],
+                    capture_output=True, text=True, timeout=10
+                )
+                next_result = json.loads(next_out.stdout) if next_out.stdout.strip() else {}
+                result["guided_feedback"] = {
+                    "increment": inc_result,
+                    "next": next_result
+                }
+            except Exception as e:
+                result["guided_feedback"] = {"error": str(e)}
     elif args.cmd == "load":
         result = load_meals(args.data_dir, args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "evaluate":
