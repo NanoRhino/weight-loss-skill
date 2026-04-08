@@ -41,6 +41,28 @@ Patterns table to determine how they coordinate.
 
 ---
 
+## Pre-Routing: Guided Feedback Reply Check
+
+**Before any intent detection**, check if there is a pending guided-feedback
+question awaiting a reply:
+
+1. Read `data/guided-feedback.json` in the user's workspace
+2. If any question has `status: "asked"`, the user may be replying to it
+3. **If the user message looks like an answer** (a number like "1"/"2"/"3",
+   a short phrase, or free-text that matches the question's options):
+   → Route to `notification-composer` guided-feedback reply handling
+   (see notification-composer SKILL.md §"Handling replies")
+4. **If the message is clearly unrelated** (food log, exercise, emotional,
+   long conversational message): → Skip this check and proceed to normal
+   Intent Detection below. The guided-feedback question stays in `asked`
+   status (24h skip timer applies per `skip-check`).
+
+**Why this exists:** Guided-feedback questions are sent from isolated cron
+sessions but replies arrive in the main session. This pre-routing step
+bridges the gap so the main session can process the reply.
+
+---
+
 ## Intent Detection
 
 Before routing, parse the user message into **intents**. A single message
