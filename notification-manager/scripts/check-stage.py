@@ -4,13 +4,15 @@ check-stage.py — Update engagement stage based on user silence duration.
 
 Derives last interaction from meal logging records (data/meals/*.json)
 rather than relying on a platform-written timestamp. A "logged day" is
-any date with at least one meal entry whose status is "logged".
+any date with at least one meal entry that contains food data.
 
 Lifecycle rules:
 
-  Stage 1 (ACTIVE)  → 3 full calendar days silent → Stage 2 (RECALL)
-  Stage 2 (RECALL)  → 3 days of daily recalls      → Stage 3 (FINAL)
-  Stage 3 (FINAL)   → 1 day after final recall      → Stage 4 (SILENT)
+  Stage 1 (ACTIVE)   → 3 full calendar days silent  → Stage 2 (RECALL)
+  Stage 2 (RECALL)   → 3 days of daily recalls       → Stage 3 (FINAL)
+  Stage 3 (FINAL)    → 1 day after final recall       → Stage 4 (WEEKLY)
+  Stage 4 (WEEKLY)   → 3 weeks of weekly recalls      → Stage 5 (MONTHLY)
+  Stage 5 (MONTHLY)  → monthly recalls indefinitely
 
 When a silent user returns (new meal logged while stage > 1),
 resets to Stage 1.
@@ -18,7 +20,7 @@ resets to Stage 1.
 Usage:
   python3 check-stage.py --workspace-dir <path> --tz-offset <seconds>
 
-Output (stdout): current stage number (1-4)
+Output (stdout): current stage number (1-5) and days_silent
 Transitions are logged to stderr.
 
 Exit code 0 always.
@@ -41,7 +43,8 @@ def log(msg):
 # Transition thresholds (in days)
 STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → recall phase
 STAGE_2_TO_3_DAYS = 3   # 3 days of recall messages (Day 4-6) → final recall
-STAGE_3_TO_4_DAYS = 1   # 1 day after final recall → silent
+STAGE_3_TO_4_DAYS = 1   # 1 day after final recall → weekly recall
+STAGE_4_TO_5_WEEKS = 3  # 3 weeks of weekly recalls → monthly recall
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
@@ -229,8 +232,22 @@ def main():
                 stage = 4
                 data["notification_stage"] = 4
                 data["stage_changed_at"] = now.isoformat()
+                data["weekly_recall_count"] = 0
                 changed = True
                 log(f"TRANSITION 3 → 4 (in stage 3 for {days_in_stage:.1f} days)")
+
+    elif stage == 4:
+        if stage_changed_at:
+            weeks_in_stage = (now - stage_changed_at).total_seconds() / (86400 * 7)
+            if weeks_in_stage >= STAGE_4_TO_5_WEEKS:
+                stage = 5
+                data["notification_stage"] = 5
+                data["stage_changed_at"] = now.isoformat()
+                data["monthly_recall_count"] = 0
+                changed = True
+                log(f"TRANSITION 4 → 5 (in stage 4 for {weeks_in_stage:.1f} weeks)")
+
+    # Stage 5 is permanent — no further transitions
 
     if changed or not existed:
         save_engagement(args.workspace_dir, data)
