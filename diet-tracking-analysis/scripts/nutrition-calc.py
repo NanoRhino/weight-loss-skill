@@ -300,8 +300,13 @@ def analyze(weight: float, daily_cal: int, meals: int, log: list,
     }
 
 
-def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None) -> dict:
-    """Save a meal to the daily log. Same meal name overwrites (supports corrections)."""
+def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
+              workspace_dir: str = None) -> dict:
+    """Save a meal to the daily log. Same meal name overwrites (supports corrections).
+    
+    Auto-runs guided-feedback increment+next after saving. workspace_dir is
+    auto-inferred from data_dir (../../) if not provided.
+    """
     os.makedirs(data_dir, exist_ok=True)
     meal = _migrate_meal(meal)
     path = get_log_path(data_dir, day, tz_offset)
@@ -324,7 +329,31 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(existing, f, ensure_ascii=False, indent=2)
 
-    return {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
+    result = {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
+
+    # Auto-run guided-feedback increment+next
+    ws = workspace_dir or os.path.normpath(os.path.join(data_dir, '..', '..'))
+    gf_script = os.path.normpath(os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        '..', 'notification-manager', 'scripts', 'guided-feedback-state.py'))
+    if os.path.isfile(gf_script):
+        try:
+            tz = str(tz_offset or 0)
+            inc_out = subprocess.run(
+                [sys.executable, gf_script, '--workspace-dir', ws, '--tz-offset', tz, 'increment'],
+                capture_output=True, text=True, timeout=10
+            )
+            inc_result = json.loads(inc_out.stdout) if inc_out.stdout.strip() else {}
+            next_out = subprocess.run(
+                [sys.executable, gf_script, '--workspace-dir', ws, '--tz-offset', tz, 'next'],
+                capture_output=True, text=True, timeout=10
+            )
+            next_result = json.loads(next_out.stdout) if next_out.stdout.strip() else {}
+            result["guided_feedback"] = {"increment": inc_result, "next": next_result}
+        except Exception as e:
+            result["guided_feedback"] = {"error": str(e)}
+
+    return result
 
 
 def load_meals(data_dir: str, day: str = None, tz_offset: int = None) -> dict:
@@ -1342,31 +1371,8 @@ def main():
         except json.JSONDecodeError as e:
             print(f"Error: invalid --meal JSON: {e}", file=sys.stderr)
             sys.exit(1)
-        result = save_meal(args.data_dir, meal, args.date, getattr(args, 'tz_offset', None))
-        # Auto-run guided-feedback increment+next when workspace-dir is provided
-        workspace_dir = getattr(args, 'workspace_dir', None)
-        if workspace_dir and result.get("saved"):
-            try:
-                gf_script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                         '..', 'notification-manager', 'scripts', 'guided-feedback-state.py')
-                gf_script = os.path.normpath(gf_script)
-                tz = str(getattr(args, 'tz_offset', None) or 0)
-                inc_out = subprocess.run(
-                    [sys.executable, gf_script, '--workspace-dir', workspace_dir, '--tz-offset', tz, 'increment'],
-                    capture_output=True, text=True, timeout=10
-                )
-                inc_result = json.loads(inc_out.stdout) if inc_out.stdout.strip() else {}
-                next_out = subprocess.run(
-                    [sys.executable, gf_script, '--workspace-dir', workspace_dir, '--tz-offset', tz, 'next'],
-                    capture_output=True, text=True, timeout=10
-                )
-                next_result = json.loads(next_out.stdout) if next_out.stdout.strip() else {}
-                result["guided_feedback"] = {
-                    "increment": inc_result,
-                    "next": next_result
-                }
-            except Exception as e:
-                result["guided_feedback"] = {"error": str(e)}
+        result = save_meal(args.data_dir, meal, args.date, getattr(args, 'tz_offset', None),
+                           getattr(args, 'workspace_dir', None))
     elif args.cmd == "load":
         result = load_meals(args.data_dir, args.date, getattr(args, 'tz_offset', None))
     elif args.cmd == "evaluate":
