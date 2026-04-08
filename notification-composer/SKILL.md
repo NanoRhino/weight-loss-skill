@@ -148,8 +148,8 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 调用 `{streak-tracker:baseDir}/scripts/streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}`：
 
-- `pending_milestone` 不为 null → **里程碑庆祝**（更大能量，1-2 句）。发送后调用 `streak-calc.py celebrate --milestone <n>`。
-- `current_streak >= 2` → **每日连续打卡开场白**：展示天数（`current_streak - 1`，因为今天的餐还没打）+ 后半句关于越来越了解用户饮食习惯的自由发挥。一句话。每天不同。
+- `pending_milestone` 不为 null → **里程碑庆祝**（更大能量，1-2 句，用 🎉）。发送后调用 `streak-calc.py celebrate --milestone <n>`。
+- `pending_milestone` 为 null 且 `current_streak >= 2` → **每日连续打卡开场白**：简短一句，展示天数（`current_streak - 1`，因为今天的餐还没打）+ 后半句关于越来越了解用户饮食习惯的自由发挥。**不用 🎉，不用"里程碑"、"达成"等庆祝词。** 语气是日常的，不是庆祝的。示例："连续第7天啦～越来越了解你的口味了" / "又是新的一天，第4天打卡开始～"
 - `current_streak < 2` → 正常开场白（不提打卡天数）。
 
 #### Step B：读取 evaluation
