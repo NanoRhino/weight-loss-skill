@@ -127,7 +127,10 @@ Backfilled meals from missing-meal handling are always "already eaten" — never
 #### 1.4 Estimate portions
 When user omits portion size, use standard single-serving defaults and prefix with `~`.
 
-Flag any item that appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs") — Step 2 will decide whether to ask for clarification.
+Flag any item that meets **either** condition — Step 2 will decide whether to ask for clarification:
+
+1. **Unusual quantity:** appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs").
+2. **Ambiguous variant:** the food has common variants whose calorie difference is **≥ 40 %** and the user didn't specify which (e.g., 包子 without filling → 菜包 ~160 kcal vs 鲜肉包 ~280 kcal; 饺子 without filling; sandwich without protein; salad without dressing info). If the user already named a specific variant (e.g., "鲜肉包", "chicken sandwich"), do NOT flag.
 
 #### 1.5 Estimate nutrition
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
@@ -153,7 +156,12 @@ Use `log-meal` results to generate the reply. **Must follow the format templates
 
 **Calorie unit:** US → "Cal"; all others → "kcal". Infer from locale, use consistently.
 
-**Portion clarification:** If Step 2 flagged any ≥ 2× normal items → ask ONE question using everyday references (palm-sized, half plate) — **never ask for grams**. If multiple items are ≥ 2×, ask about all in one message. If the user doesn't answer, default to the most likely reasonable portion. Never ask more than once per food item.
+**Clarification (portion or variant):** If Step 1.4 flagged any items → ask ONE combined question covering all flagged items. Rules:
+- **Unusual quantity** → use everyday references (palm-sized, half plate) — **never ask for grams**.
+- **Ambiguous variant** → offer 2–3 most common variants as quick-pick options (e.g., "包子是菜包、鲜肉包、还是豆沙包？"). Keep the question casual and short.
+- If multiple items are flagged, ask about all in one message.
+- If the user doesn't answer, default to the most common / middle-calorie variant.
+- Never ask more than once per food item.
 
 **Missing meal note:** `log-meal` auto-detects missing meals — do NOT ask about them.
 - `has_missing = true` → append PS: which meals were assumed normal, invite corrections
