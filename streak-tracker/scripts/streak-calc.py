@@ -42,8 +42,6 @@ def _meal_has_food(meal):
     """Check if a meal dict contains actual food data."""
     if not isinstance(meal, dict):
         return False
-    if meal.get("status") == "logged":
-        return True
     items = meal.get("items") or meal.get("foods")
     return bool(items)
 
@@ -156,14 +154,21 @@ def save_streak_data(workspace_dir, data):
 
 def get_pending_milestone(current_streak, celebrated):
     """
-    Return the highest uncelebrated milestone that current_streak has reached.
+    Return the milestone to celebrate right now, if any.
+    Only celebrates milestones reached within the last 1 day (current_streak - m <= 1).
+    Expired milestones are silently added to celebrated list.
     Returns None if nothing to celebrate.
     """
     celebrated_set = set(celebrated)
     pending = None
     for m in MILESTONES:
         if current_streak >= m and m not in celebrated_set:
-            pending = m
+            if current_streak - m <= 1:
+                # Just reached — celebrate
+                pending = m
+            else:
+                # Expired — silently mark as celebrated
+                celebrated.append(m)
     return pending
 
 

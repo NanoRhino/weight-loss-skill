@@ -4,13 +4,15 @@ check-stage.py — Update engagement stage based on user silence duration.
 
 Derives last interaction from meal logging records (data/meals/*.json)
 rather than relying on a platform-written timestamp. A "logged day" is
-any date with at least one meal entry whose status is "logged".
+any date with at least one meal entry that contains food data.
 
 Lifecycle rules:
 
-  Stage 1 (ACTIVE)  → 3 full calendar days silent → Stage 2 (RECALL)
-  Stage 2 (RECALL)  → 3 days of daily recalls      → Stage 3 (FINAL)
-  Stage 3 (FINAL)   → 1 day after final recall      → Stage 4 (SILENT)
+  Stage 1 (ACTIVE)   → 3 full calendar days silent  → Stage 2 (RECALL)
+  Stage 2 (RECALL)   → 3 days of daily recalls       → Stage 3 (WEEKLY)
+  Stage 3 (WEEKLY)   → 3 weeks of weekly recalls      → Stage 4 (MONTHLY)
+  Stage 4 (MONTHLY)  → 90 days total silence          → Stage 5 (SILENT)
+  Stage 5 (SILENT)   → permanent silence
 
 When a silent user returns (new meal logged while stage > 1),
 resets to Stage 1.
@@ -18,7 +20,7 @@ resets to Stage 1.
 Usage:
   python3 check-stage.py --workspace-dir <path> --tz-offset <seconds>
 
-Output (stdout): current stage number (1-4)
+Output (stdout): current stage number (1-5) and days_silent
 Transitions are logged to stderr.
 
 Exit code 0 always.
@@ -38,10 +40,11 @@ def log(msg):
     print(f"[check-stage] {msg}", file=sys.stderr)
 
 
-# Transition thresholds (in days)
-STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → recall phase
-STAGE_2_TO_3_DAYS = 3   # 3 days of recall messages (Day 4-6) → final recall
-STAGE_3_TO_4_DAYS = 1   # 1 day after final recall → silent
+# Transition thresholds
+STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → daily recall
+STAGE_2_TO_3_DAYS = 3   # 3 days of daily recalls (Day 4-6) → weekly recall
+STAGE_3_TO_4_WEEKS = 3  # 3 weeks of weekly recalls → monthly recall
+STAGE_4_TO_5_DAYS = 90  # 90 days total silence → permanent silence
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
@@ -102,10 +105,6 @@ def _meal_has_food(meal):
     """Check if a meal dict contains actual food data (items or foods list)."""
     if not isinstance(meal, dict):
         return False
-    # Explicit status takes precedence if present
-    if meal.get("status") == "logged":
-        return True
-    # Fallback: has non-empty items or foods list
     items = meal.get("items") or meal.get("foods")
     return bool(items)
 
@@ -218,19 +217,30 @@ def main():
                 stage = 3
                 data["notification_stage"] = 3
                 data["stage_changed_at"] = now.isoformat()
-                data["recall_2_sent"] = False
+                data["weekly_recall_count"] = 0
                 changed = True
                 log(f"TRANSITION 2 → 3 (in stage 2 for {days_in_stage:.1f} days)")
 
     elif stage == 3:
         if stage_changed_at:
-            days_in_stage = (now - stage_changed_at).total_seconds() / 86400
-            if days_in_stage >= STAGE_3_TO_4_DAYS:
+            weeks_in_stage = (now - stage_changed_at).total_seconds() / (86400 * 7)
+            if weeks_in_stage >= STAGE_3_TO_4_WEEKS:
                 stage = 4
                 data["notification_stage"] = 4
                 data["stage_changed_at"] = now.isoformat()
+                data["monthly_recall_count"] = 0
                 changed = True
-                log(f"TRANSITION 3 → 4 (in stage 3 for {days_in_stage:.1f} days)")
+                log(f"TRANSITION 3 → 4 (in stage 3 for {weeks_in_stage:.1f} weeks)")
+
+    elif stage == 4:
+        if days_silent >= STAGE_4_TO_5_DAYS:
+            stage = 5
+            data["notification_stage"] = 5
+            data["stage_changed_at"] = now.isoformat()
+            changed = True
+            log(f"TRANSITION 4 → 5 (total silence {days_silent} days)")
+
+    # Stage 5 is permanent silence — no further transitions
 
     if changed or not existed:
         save_engagement(args.workspace_dir, data)

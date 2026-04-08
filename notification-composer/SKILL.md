@@ -84,13 +84,45 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 **完整语气指南和示例 → `references/recall-messages.md`**
 
-#### Stage 3 → 最终召回（Day 7）
+#### Stage 3 → 每周召回（第 2-4 周）
 
-一条安静、温柔、深情的消息。陈述句，不是提问。营养师最后的请求："好好吃饭，照顾好自己。" 然后永久沉默。
+**频率：** 每周一次。读 `data/engagement.json > last_recall_date`，如果距今不到 7 天则回复 `NO_REPLY`。
 
-发送后写入 `recall_2_sent: true` 到 `data/engagement.json`。
+**语气：** 比 Stage 2 更轻，不再撒娇或假装生气。像一个朋友偶尔想起你，发条消息问候。保持食物主题。
 
-**完整示例 → `references/recall-messages.md` § Final Recall**
+**规则：**
+- 每周只发一条（第一个 meal cron 发，其余 NO_REPLY）
+- 通过 `last_recall_date` 控制间隔（≥ 7 天才发）
+- 发送后更新 `last_recall_date: "{today}"`
+- 持续 3 周后进入 Stage 4
+
+**示例语气：**
+- "好久没聊了～最近吃得怎么样？有没有发现什么好吃的 🦏"
+- "突然想起你，最近忙吧？记得好好吃饭呀～"
+- "路过一家店想到你会喜欢，你最近还好吗？别忘了按时吃饭 🦏"
+
+#### Stage 4 → 每月召回
+
+**频率：** 每月一次。读 `data/engagement.json > last_recall_date`，如果距今不到 30 天则回复 `NO_REPLY`。
+
+**语气：** 最轻最淡。像很久没联系的朋友发的一条关心。不期待回复，但让用户知道你还在。
+
+**规则：**
+- 每月只发一条（第一个 meal cron 发，其余 NO_REPLY）
+- 通过 `last_recall_date` 控制间隔（≥ 30 天才发）
+- 发送后更新 `last_recall_date: "{today}"`
+- 总沉默满 90 天后进入 Stage 5
+
+**示例语气：**
+- "好久不见呀～不管怎样，好好吃饭🦏🤍"
+- "想起你了，最近还好吗？记得照顾好自己～"
+- "很久没聊了，就想跟你说一声：好好吃饭，我一直都在🦏"
+
+#### Stage 5 → 永久沉默
+
+所有 cron 返回 `NO_REPLY`。不再发送任何消息。
+
+用户如果主动回来，仍然 reset 到 Stage 1。
 
 #### 用户回归（阶段重置为 1）
 
@@ -116,8 +148,8 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 调用 `{streak-tracker:baseDir}/scripts/streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}`：
 
-- `pending_milestone` 不为 null → **里程碑庆祝**（更大能量，1-2 句）。发送后调用 `streak-calc.py celebrate --milestone <n>`。
-- `current_streak >= 2` → **每日连续打卡开场白**：展示天数（`current_streak - 1`，因为今天的餐还没打）+ 后半句关于越来越了解用户饮食习惯的自由发挥。一句话。每天不同。
+- `pending_milestone` 不为 null → **里程碑庆祝**（更大能量，1-2 句，用 🎉）。发送后调用 `streak-calc.py celebrate --milestone <n>`。
+- `pending_milestone` 为 null 且 `current_streak >= 2` → **每日连续打卡开场白**：简短一句，展示天数（`current_streak - 1`，因为今天的餐还没打）+ 后半句关于越来越了解用户饮食习惯的自由发挥。**不用 🎉，不用"里程碑"、"达成"等庆祝词。** 语气是日常的，不是庆祝的。示例："连续第7天啦～越来越了解你的口味了" / "又是新的一天，第4天打卡开始～"
 - `current_streak < 2` → 正常开场白（不提打卡天数）。
 
 #### Step B：读取 evaluation
