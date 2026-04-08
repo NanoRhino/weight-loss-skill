@@ -73,7 +73,7 @@ read_usermd() {
     return 1
   fi
   local value
-  value=$(grep "^- \*\*${field}:\*\*" "$USER_MD" 2>/dev/null | sed 's/^- \*\*[^*]*\*\* \?//' || true)
+  value=$(grep "^- \*\*${field}:\*\*" "$USER_MD" 2>/dev/null | sed -E 's/^- \*\*[^*]*\*\*[[:space:]]*//' || true)
   # Trim whitespace and return empty if nothing left
   value=$(echo "$value" | xargs)
   if [[ -n "$value" ]]; then
