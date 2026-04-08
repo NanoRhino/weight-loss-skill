@@ -69,9 +69,18 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 #### Stage 2 → 每日召回（Day 4-6）
 
-组合情绪饱满的召回消息（2-3 句，不带餐食推荐）。语气递进：Day 4 撒娇 → Day 5 假装生气 → Day 6 委屈卖萌。从 `data/engagement.json > stage_changed_at` 计算是进入 Stage 2 后的第几天。通过食物表达想念。周末/节假日：猜用户是不是出去吃好吃的了。
+组合情绪饱满的召回消息（2-3 句，不带餐食推荐）。语气递进：Day 4 撒娇 → Day 5 假装生气 → Day 6 委屈卖萌。通过食物表达想念。周末/节假日：猜用户是不是出去吃好吃的了。
 
-发送后写入 `last_recall_date: "{today}"` 到 `data/engagement.json`。
+**召回天数判定：** 读 `data/engagement.json > recall_count`（默认 0）。该值表示已发送过几条召回消息。
+- `recall_count = 0` → 第一次召回（Day 4 撒娇语气）
+- `recall_count = 1` → 第二次召回（Day 5 假装生气语气）
+- `recall_count = 2` → 第三次召回（Day 6 委屈卖萌语气）
+
+发送后：
+1. 写入 `last_recall_date: "{today}"` 到 `data/engagement.json`（防止同一天重复发送）
+2. 将 `recall_count` +1 写入 `data/engagement.json`（追踪召回进度）
+
+**去重：** 发送前检查 `last_recall_date`，如果等于今天则回复 `NO_REPLY`。
 
 **完整语气指南和示例 → `references/recall-messages.md`**
 
