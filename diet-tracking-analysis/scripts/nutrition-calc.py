@@ -350,6 +350,54 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
             )
             next_result = json.loads(next_out.stdout) if next_out.stdout.strip() else {}
             result["guided_feedback"] = {"increment": inc_result, "next": next_result}
+
+            # Auto-create cron if scheduling is needed
+            if next_result.get("action") == "schedule":
+                question_id = next_result.get("question_id", "")
+                reminder_sh = os.path.normpath(os.path.join(
+                    os.path.dirname(gf_script), 'create-reminder.sh'))
+                # Read channel info from workspace
+                channel_src = os.path.join(ws, 'channel-source.json')
+                channel = "wechat"
+                to_id = ""
+                agent_id = ""
+                if os.path.isfile(channel_src):
+                    with open(channel_src) as csf:
+                        cs = json.load(csf)
+                    channel = cs.get("channel", "wechat")
+                    to_id = cs.get("senderId", "")
+                # Infer agent-id from workspace dir name
+                ws_basename = os.path.basename(os.path.normpath(ws))
+                if ws_basename.startswith("workspace-"):
+                    agent_id = ws_basename[len("workspace-"):]
+
+                if agent_id and os.path.isfile(reminder_sh):
+                    cron_cmd = [
+                        "bash", reminder_sh,
+                        "--agent", agent_id,
+                        "--channel", channel,
+                        "--type", "other", "--exact",
+                        "--name", f"Guided feedback: {question_id}",
+                        "--message", f"Run notification-composer for guided-feedback {question_id}.",
+                        "--at", "60m"
+                    ]
+                    if to_id:
+                        cron_cmd.extend(["--to", to_id])
+                    cron_out = subprocess.run(
+                        cron_cmd, capture_output=True, text=True, timeout=30
+                    )
+                    result["guided_feedback"]["cron_created"] = cron_out.returncode == 0
+                    if cron_out.returncode != 0:
+                        result["guided_feedback"]["cron_error"] = cron_out.stderr[:200]
+
+                    # Update status to scheduled
+                    if cron_out.returncode == 0:
+                        subprocess.run(
+                            [sys.executable, gf_script, '--workspace-dir', ws, '--tz-offset', tz,
+                             'update', '--question-id', question_id, '--new-status', 'scheduled'],
+                            capture_output=True, text=True, timeout=10
+                        )
+                        result["guided_feedback"]["scheduled"] = question_id
         except Exception as e:
             result["guided_feedback"] = {"error": str(e)}
 
