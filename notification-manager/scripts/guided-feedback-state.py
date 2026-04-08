@@ -215,7 +215,58 @@ def cmd_status(data):
     }
 
 
-def cmd_update(data, question_id, new_status, answer=None):
+def _write_short_term_hint(workspace_dir, question_id):
+    """Write a hint to short-term.json so the main session knows a guided-feedback
+    question was asked and can route the user's reply correctly."""
+    st_path = os.path.join(workspace_dir, "memory", "short-term.json")
+    try:
+        if os.path.isfile(st_path):
+            with open(st_path, "r") as f:
+                entries = json.load(f)
+        else:
+            entries = []
+
+        # Remove any existing guided-feedback hint (only one at a time)
+        entries = [e for e in entries if e.get("topic") != "guided-feedback-pending-reply"]
+
+        now = get_now_iso()
+        entries.append({
+            "date": now[:10],
+            "time": now[11:16],
+            "topic": "guided-feedback-pending-reply",
+            "summary": (
+                f"我刚通过定时消息向用户发送了偏好调查问题（{question_id}），"
+                "用户如果回复数字（1/2/3）或简短文字，这是对偏好问题的回答。"
+                "请读 notification-composer SKILL.md 的'Handling replies'部分处理回复，"
+                f"调用 guided-feedback-state.py update --question-id {question_id} "
+                "--new-status answered --answer <用户回复>"
+            ),
+            "follow_ups": [f"处理用户对 {question_id} 的偏好回复"],
+            "_guided_feedback": {"question_id": question_id, "status": "asked"}
+        })
+
+        with open(st_path, "w") as f:
+            json.dump(entries, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        log(f"Warning: failed to write short-term hint: {e}")
+
+
+def _clear_short_term_hint(workspace_dir):
+    """Remove the guided-feedback hint from short-term.json after answer/skip."""
+    st_path = os.path.join(workspace_dir, "memory", "short-term.json")
+    try:
+        if not os.path.isfile(st_path):
+            return
+        with open(st_path, "r") as f:
+            entries = json.load(f)
+        entries = [e for e in entries if e.get("topic") != "guided-feedback-pending-reply"]
+        with open(st_path, "w") as f:
+            json.dump(entries, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        log(f"Warning: failed to clear short-term hint: {e}")
+
+
+def cmd_update(data, question_id, new_status, answer=None, workspace_dir=None):
     q = find_question(data, question_id)
     if not q:
         return {"error": f"question '{question_id}' not found"}
@@ -227,9 +278,13 @@ def cmd_update(data, question_id, new_status, answer=None):
         q["scheduled_at"] = now
     elif new_status == "asked":
         q["asked_at"] = now
+        if workspace_dir:
+            _write_short_term_hint(workspace_dir, question_id)
     elif new_status == "answered":
         q["answered_at"] = now
         q["answer"] = answer
+        if workspace_dir:
+            _clear_short_term_hint(workspace_dir)
 
     # Determine chain next
     chain_next = None
@@ -253,7 +308,7 @@ def cmd_update(data, question_id, new_status, answer=None):
     }
 
 
-def cmd_skip_check(data):
+def cmd_skip_check(data, workspace_dir=None):
     """Check for questions past 24h skip timer."""
     now = datetime.now(timezone.utc)
     skipped = []
@@ -267,7 +322,7 @@ def cmd_skip_check(data):
         try:
             asked_time = datetime.fromisoformat(asked_at)
             if (now - asked_time).total_seconds() > 86400:
-                result = cmd_update(data, q["id"], "skipped")
+                result = cmd_update(data, q["id"], "skipped", workspace_dir=workspace_dir)
                 skipped.append(q["id"])
         except (ValueError, TypeError):
             continue
@@ -358,9 +413,9 @@ def main():
         if not args.question_id or not args.new_status:
             print(json.dumps({"error": "--question-id and --new-status required"}))
             sys.exit(1)
-        result = cmd_update(data, args.question_id, args.new_status, args.answer)
+        result = cmd_update(data, args.question_id, args.new_status, args.answer, workspace_dir=args.workspace_dir)
     elif args.command == "skip-check":
-        result = cmd_skip_check(data)
+        result = cmd_skip_check(data, workspace_dir=args.workspace_dir)
 
     save_data(data, path)
     print(json.dumps(result, ensure_ascii=False))
