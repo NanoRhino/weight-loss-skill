@@ -354,8 +354,6 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
             # Auto-create cron if scheduling is needed
             if next_result.get("action") == "schedule":
                 question_id = next_result.get("question_id", "")
-                reminder_sh = os.path.normpath(os.path.join(
-                    os.path.dirname(gf_script), 'create-reminder.sh'))
                 # Read channel info from workspace
                 channel_src = os.path.join(ws, 'channel-source.json')
                 channel = "wechat"
@@ -371,15 +369,19 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
                 if ws_basename.startswith("workspace-"):
                     agent_id = ws_basename[len("workspace-"):]
 
-                if agent_id and os.path.isfile(reminder_sh):
+                if agent_id:
                     cron_cmd = [
-                        "bash", reminder_sh,
+                        "openclaw", "cron", "add",
                         "--agent", agent_id,
-                        "--channel", channel,
-                        "--type", "other", "--exact",
+                        "--session", "main",
                         "--name", f"Guided feedback: {question_id}",
                         "--message", f"Run notification-composer for guided-feedback {question_id}.",
-                        "--at", "60m"
+                        "--announce",
+                        "--channel", channel,
+                        "--at", "60m",
+                        "--delete-after-run",
+                        "--exact",
+                        "--json",
                     ]
                     if to_id:
                         cron_cmd.extend(["--to", to_id])
