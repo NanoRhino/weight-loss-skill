@@ -152,6 +152,11 @@ All JSON fields use full names: `calories`, `protein`, `carbs`, `fat`. Old short
 
 `--assumed` optional: for forgotten meals, pass standard values based on that meal's ratio of daily targets (e.g. forgotten lunch in 30:40:30 mode = 40% of daily targets, NOT the cumulative checkpoint).
 
+Flag any item that meets **either** condition — Step 2 will decide whether to ask for clarification:
+
+1. **Unusual quantity:** appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs").
+2. **Ambiguous variant:** the food has common variants whose calorie difference is **≥ 40 %** and the user didn't specify which (e.g., 包子 without filling → 菜包 ~160 kcal vs 鲜肉包 ~280 kcal; 饺子 without filling; sandwich without protein; salad without dressing info). If the user already named a specific variant (e.g., "鲜肉包", "chicken sandwich"), do NOT flag.
+
 ### 6. Missing Meal Check — `check-missing`
 
 ```bash
@@ -175,6 +180,13 @@ Evaluates cumulative vegetable and fruit intake at the current checkpoint. Only 
 Each meal in `--log` may include optional fields `vegetables_g` (grams of vegetables) and `fruits_g` (grams of fruit); missing fields default to 0.
 
 Returns: `is_final_meal`, `vegetables_actual_g`, `vegetables_target_g`, `has_vegetable_target`, `vegetable_status` (`"on_track"` / `"low"` / `null`), `fruits_actual_g`, `fruits_daily_min_g`, `fruits_daily_max_g`, `fruit_status` (`"on_track"` / `"low"` / `"high"` / `null`)
+
+**Clarification (portion or variant):** If Step 1.4 flagged any items → ask ONE combined question covering all flagged items. Rules:
+- **Unusual quantity** → use everyday references (palm-sized, half plate) — **never ask for grams**.
+- **Ambiguous variant** → offer 2–3 most common variants as quick-pick options (e.g., "包子是菜包、鲜肉包、还是豆沙包？"). Keep the question casual and short.
+- If multiple items are flagged, ask about all in one message.
+- If the user doesn't answer, default to the most common / middle-calorie variant.
+- Never ask more than once per food item.
 
 ### 8. Weekly Low-Calorie Check — `weekly-low-cal-check`
 
