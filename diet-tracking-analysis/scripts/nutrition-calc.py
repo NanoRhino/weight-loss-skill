@@ -328,6 +328,50 @@ def _resolve_tz_offset(workspace_dir: str) -> int:
     return 28800  # default UTC+8
 
 
+def _check_ambiguous_foods(meal: dict) -> list:
+    """Check if any foods in the meal match the ambiguous-foods dictionary.
+    Returns a list of clarification prompts for foods that need user input."""
+    ambiguous_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'references', 'ambiguous-foods.json')
+    if not os.path.isfile(ambiguous_path):
+        return []
+    try:
+        with open(ambiguous_path, 'r', encoding='utf-8') as f:
+            dictionary = json.load(f)
+    except Exception:
+        return []
+
+    clarifications = []
+    foods = meal.get("foods", [])
+    for food_item in foods:
+        food_name = food_item.get("name", "")
+        if not food_name:
+            continue
+        for entry in dictionary:
+            keyword = entry.get("keyword", "")
+            if keyword not in food_name:
+                continue
+            # Check if user already specified a variant
+            excludes = entry.get("exclude", [])
+            already_specified = any(ex in food_name for ex in excludes)
+            if already_specified:
+                continue
+            # Found ambiguous food — build clarification
+            variants = entry.get("variants", [])
+            default_variant = next((v for v in variants if v.get("default")), variants[0] if variants else None)
+            clarifications.append({
+                "food": food_name,
+                "keyword": keyword,
+                "question": entry.get("question", f"{keyword}具体是哪种？"),
+                "options": [{"name": v["name"], "calories": v["calories"]} for v in variants],
+                "default_used": default_variant["name"] if default_variant else None,
+                "default_calories": default_variant["calories"] if default_variant else None
+            })
+            break  # One match per food item
+    return clarifications
+
+
 def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
               workspace_dir: str = None) -> dict:
     """Save a meal to the daily log. Same meal name overwrites (supports corrections).
@@ -358,6 +402,11 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
         json.dump(existing, f, ensure_ascii=False, indent=2)
 
     result = {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
+
+    # Check for ambiguous foods that need clarification
+    clarifications = _check_ambiguous_foods(meal)
+    if clarifications:
+        result["needs_clarification"] = clarifications
 
     # Auto-run guided-feedback increment+next
     ws = workspace_dir or os.path.normpath(os.path.join(os.path.abspath(data_dir), '..', '..'))
