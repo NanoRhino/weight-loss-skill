@@ -55,9 +55,11 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
     Stage 1 (ACTIVE):  SEND — normal reminder
     Stage 2 (RECALL):  SEND once per day (first meal cron only, suppress rest)
                         Weight reminders suppressed entirely.
-    Stage 3 (FINAL):   SEND once (first meal cron of the day, then suppress all)
+    Stage 3 (WEEKLY):  SEND once per week (if >= 7 days since last_recall_date)
                         Weight reminders suppressed entirely.
-    Stage 4 (SILENT):  NO_REPLY — suppress everything
+    Stage 4 (MONTHLY): SEND once per month (if >= 30 days since last_recall_date)
+                        Weight reminders suppressed entirely.
+    Stage 5 (SILENT):  NO_REPLY — suppress everything
     """
     path = os.path.join(workspace_dir, "data", "engagement.json")
     if not os.path.exists(path):
@@ -71,11 +73,11 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
         if isinstance(stage, str):
             stage_map = {"active": 1, "pause": 2, "recall": 3, "silent": 4}
             stage = stage_map.get(stage.lower(), 1)
-        if stage >= 4:
+        if stage >= 5:
             return False, f"notification_stage={stage} — user is in silent mode"
 
-        # Stage 2 & 3: suppress weight reminders entirely
-        if stage in (2, 3):
+        # Stage 2-4: suppress weight reminders entirely
+        if stage in (2, 3, 4):
             is_weight = meal_type in ("weight", "weight_evening", "weight_morning_followup")
             if is_weight:
                 return False, f"notification_stage={stage} — weight reminders suppressed during recall"
@@ -90,8 +92,31 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             return True, None
 
         if stage == 3:
-            if data.get("recall_2_sent", False):
-                return False, "notification_stage=3, final recall already sent — waiting for reply"
+            # Stage 3 (weekly): send if >= 7 days since last recall
+            local_date = get_local_date(tz_offset)
+            last_recall_date = data.get("last_recall_date", "")
+            if last_recall_date:
+                try:
+                    last = datetime.strptime(last_recall_date, "%Y-%m-%d").date()
+                    today = datetime.strptime(local_date, "%Y-%m-%d").date()
+                    if (today - last).days < 7:
+                        return False, f"notification_stage=3, weekly recall sent {last_recall_date} (<7 days)"
+                except ValueError:
+                    pass
+            return True, None
+
+        if stage == 4:
+            # Stage 4 (monthly): send if >= 30 days since last recall
+            local_date = get_local_date(tz_offset)
+            last_recall_date = data.get("last_recall_date", "")
+            if last_recall_date:
+                try:
+                    last = datetime.strptime(last_recall_date, "%Y-%m-%d").date()
+                    today = datetime.strptime(local_date, "%Y-%m-%d").date()
+                    if (today - last).days < 30:
+                        return False, f"notification_stage=4, monthly recall sent {last_recall_date} (<30 days)"
+                except ValueError:
+                    pass
             return True, None
 
         return True, None
