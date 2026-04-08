@@ -41,7 +41,7 @@ metadata:
 
 ## What Counts as a "Logged Day"
 
-`data/meals/YYYY-MM-DD.json` contains at least one meal with actual food data (`items` or `foods` array non-empty), or `status: "logged"`.
+`data/meals/YYYY-MM-DD.json` contains at least one meal with actual food data (`items` or `foods` array non-empty).
 
 ## Script
 

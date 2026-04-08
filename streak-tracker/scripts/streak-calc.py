@@ -42,8 +42,6 @@ def _meal_has_food(meal):
     """Check if a meal dict contains actual food data."""
     if not isinstance(meal, dict):
         return False
-    if meal.get("status") == "logged":
-        return True
     items = meal.get("items") or meal.get("foods")
     return bool(items)
 

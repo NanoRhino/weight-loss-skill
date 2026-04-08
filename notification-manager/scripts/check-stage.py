@@ -105,10 +105,6 @@ def _meal_has_food(meal):
     """Check if a meal dict contains actual food data (items or foods list)."""
     if not isinstance(meal, dict):
         return False
-    # Explicit status takes precedence if present
-    if meal.get("status") == "logged":
-        return True
-    # Fallback: has non-empty items or foods list
     items = meal.get("items") or meal.get("foods")
     return bool(items)
 
