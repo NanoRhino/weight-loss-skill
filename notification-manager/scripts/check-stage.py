@@ -183,6 +183,8 @@ def main():
         data["stage_changed_at"] = now.isoformat()
         data["last_recall_date"] = None
         data["recall_2_sent"] = False
+        data["recall_count"] = 0
+        data["last_nudge_date"] = None
         changed = True
         log(f"RESET to stage 1 (user returned, last logged {last_logged})")
 
