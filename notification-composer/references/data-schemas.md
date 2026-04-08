@@ -81,3 +81,5 @@ All data is written to the user's workspace and readable by any part of the syst
 | Last recall date | `data/engagement.json > last_recall_date` | written by `notification-composer` after each daily recall (Stage 2) |
 | Final recall sent | `data/engagement.json > recall_2_sent` | written by `notification-composer` after final recall (Stage 3) |
 | Adaptive config | `data/engagement.json > reminder_config` | direct read/write |
+| Streak data | `data/streak.json > current_streak, longest_streak, streak_start_date, last_logged_date` | written by `streak-calc.py info` on every run |
+| Milestones celebrated | `data/streak.json > milestones_celebrated` | written by `streak-calc.py celebrate` after milestone message |
