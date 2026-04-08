@@ -12,7 +12,8 @@ Lifecycle rules:
   Stage 2 (RECALL)   → 3 days of daily recalls       → Stage 3 (FINAL)
   Stage 3 (FINAL)    → 1 day after final recall       → Stage 4 (WEEKLY)
   Stage 4 (WEEKLY)   → 3 weeks of weekly recalls      → Stage 5 (MONTHLY)
-  Stage 5 (MONTHLY)  → monthly recalls indefinitely
+  Stage 5 (MONTHLY)  → 3 months of monthly recalls    → Stage 6 (SILENT)
+  Stage 6 (SILENT)   → permanent silence
 
 When a silent user returns (new meal logged while stage > 1),
 resets to Stage 1.
@@ -45,6 +46,7 @@ STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → recall phase
 STAGE_2_TO_3_DAYS = 3   # 3 days of recall messages (Day 4-6) → final recall
 STAGE_3_TO_4_DAYS = 1   # 1 day after final recall → weekly recall
 STAGE_4_TO_5_WEEKS = 3  # 3 weeks of weekly recalls → monthly recall
+STAGE_5_TO_6_MONTHS = 3 # 3 months of monthly recalls → permanent silence
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
@@ -247,7 +249,18 @@ def main():
                 changed = True
                 log(f"TRANSITION 4 → 5 (in stage 4 for {weeks_in_stage:.1f} weeks)")
 
-    # Stage 5 is permanent — no further transitions
+    # Stage 5 → 6 after 3 months
+    elif stage == 5:
+        if stage_changed_at:
+            months_in_stage = (now - stage_changed_at).total_seconds() / (86400 * 30)
+            if months_in_stage >= STAGE_5_TO_6_MONTHS:
+                stage = 6
+                data["notification_stage"] = 6
+                data["stage_changed_at"] = now.isoformat()
+                changed = True
+                log(f"TRANSITION 5 → 6 (in stage 5 for {months_in_stage:.1f} months)")
+
+    # Stage 6 is permanent silence — no further transitions
 
     if changed or not existed:
         save_engagement(args.workspace_dir, data)
