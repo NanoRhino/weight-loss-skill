@@ -59,7 +59,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 ### 第四步：按阶段分支
 
-读取 `data/engagement.json > notification_stage`。
+使用**第二步 check-stage.py 的 stdout 输出值**作为当前 stage（不要重新读文件，因为 check-stage.py 已经写回了最新值）。
 
 #### Stage 1 → 正常提醒
 
@@ -247,3 +247,15 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 - 餐前提醒消息：≤ 80 字（中文）/ 40 词（英文），不含结尾拍照邀请
 - 回复处理：最多 2 轮（提醒 → 回复 → 响应 → 结束）
+
+---
+
+## ⚠️ engagement.json 写入规则
+
+**所有对 `data/engagement.json` 的写入必须使用 read-modify-write 模式：**
+
+1. 先读取当前文件内容
+2. 仅修改需要更新的字段
+3. 写回完整对象
+
+**绝不整体覆盖。** `check-stage.py` 会更新 `notification_stage` 和 `stage_changed_at` 等字段。如果 agent 后续用缓存的旧数据整体写回，会覆盖脚本的更新，导致 stage 永远卡在旧值。
