@@ -20,11 +20,10 @@
     {
       "id": 2,
       "name": "adjustment-next-meal",
-      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) stored evaluation: suggestion_type='next_meal', needs_adjustment=true, protein low, carbs high. User top_foods include eggs, chicken breast, yogurt. en]",
-      "expected_output": "Adjustment guidance referencing previous meal status. Food examples only from user history.",
+      "prompt": "[SYSTEM: Lunch reminder 11:45. Previous meal (breakfast) stored evaluation: suggestion_type='next_meal', needs_adjustment=true, protein low, carbs high. en]",
+      "expected_output": "Adjustment guidance referencing previous meal status.",
       "expectations": [
         "Mentions adjustment direction (more protein, less carbs or similar)",
-        "Any specific food mentioned comes from user's actual history (eggs, chicken breast, yogurt)",
         "Does NOT list numbered meal options (no 1. 2. 3. menu)",
         "No calorie data",
         "Under 30 words",
