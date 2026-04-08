@@ -84,15 +84,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 **完整语气指南和示例 → `references/recall-messages.md`**
 
-#### Stage 3 → 最终召回（Day 7）
-
-一条安静、温柔、深情的消息。陈述句，不是提问。营养师最后的请求："好好吃饭，照顾好自己。" 然后进入每周召回。
-
-发送后写入 `recall_2_sent: true` 到 `data/engagement.json`。
-
-**完整示例 → `references/recall-messages.md` § Final Recall**
-
-#### Stage 4 → 每周召回（第 2-4 周）
+#### Stage 3 → 每周召回（第 2-4 周）
 
 **频率：** 每周一次。读 `data/engagement.json > last_recall_date`，如果距今不到 7 天则回复 `NO_REPLY`。
 
@@ -102,14 +94,14 @@ python3 {baseDir}/scripts/pre-send-check.py \
 - 每周只发一条（第一个 meal cron 发，其余 NO_REPLY）
 - 通过 `last_recall_date` 控制间隔（≥ 7 天才发）
 - 发送后更新 `last_recall_date: "{today}"`
-- 持续 3 周后进入 Stage 5
+- 持续 3 周后进入 Stage 4
 
 **示例语气：**
 - "好久没聊了～最近吃得怎么样？有没有发现什么好吃的 🦏"
 - "突然想起你，最近忙吧？记得好好吃饭呀～"
 - "路过一家店想到你会喜欢，你最近还好吗？别忘了按时吃饭 🦏"
 
-#### Stage 5 → 每月召回
+#### Stage 4 → 每月召回
 
 **频率：** 每月一次。读 `data/engagement.json > last_recall_date`，如果距今不到 30 天则回复 `NO_REPLY`。
 
@@ -119,14 +111,14 @@ python3 {baseDir}/scripts/pre-send-check.py \
 - 每月只发一条（第一个 meal cron 发，其余 NO_REPLY）
 - 通过 `last_recall_date` 控制间隔（≥ 30 天才发）
 - 发送后更新 `last_recall_date: "{today}"`
-- 永久持续，不再转换
+- 总沉默满 90 天后进入 Stage 5
 
 **示例语气：**
 - "好久不见呀～不管怎样，好好吃饭🦏🤍"
 - "想起你了，最近还好吗？记得照顾好自己～"
 - "很久没聊了，就想跟你说一声：好好吃饭，我一直都在🦏"
 
-#### Stage 6 → 永久沉默
+#### Stage 5 → 永久沉默
 
 所有 cron 返回 `NO_REPLY`。不再发送任何消息。
 

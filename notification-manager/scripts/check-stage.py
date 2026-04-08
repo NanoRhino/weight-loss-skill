@@ -9,11 +9,10 @@ any date with at least one meal entry that contains food data.
 Lifecycle rules:
 
   Stage 1 (ACTIVE)   → 3 full calendar days silent  → Stage 2 (RECALL)
-  Stage 2 (RECALL)   → 3 days of daily recalls       → Stage 3 (FINAL)
-  Stage 3 (FINAL)    → 1 day after final recall       → Stage 4 (WEEKLY)
-  Stage 4 (WEEKLY)   → 3 weeks of weekly recalls      → Stage 5 (MONTHLY)
-  Stage 5 (MONTHLY)  → 3 months of monthly recalls    → Stage 6 (SILENT)
-  Stage 6 (SILENT)   → permanent silence
+  Stage 2 (RECALL)   → 3 days of daily recalls       → Stage 3 (WEEKLY)
+  Stage 3 (WEEKLY)   → 3 weeks of weekly recalls      → Stage 4 (MONTHLY)
+  Stage 4 (MONTHLY)  → 90 days total silence          → Stage 5 (SILENT)
+  Stage 5 (SILENT)   → permanent silence
 
 When a silent user returns (new meal logged while stage > 1),
 resets to Stage 1.
@@ -41,12 +40,11 @@ def log(msg):
     print(f"[check-stage] {msg}", file=sys.stderr)
 
 
-# Transition thresholds (in days)
-STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → recall phase
-STAGE_2_TO_3_DAYS = 3   # 3 days of recall messages (Day 4-6) → final recall
-STAGE_3_TO_4_DAYS = 1   # 1 day after final recall → weekly recall
-STAGE_4_TO_5_WEEKS = 3  # 3 weeks of weekly recalls → monthly recall
-STAGE_5_TO_6_DAYS = 90  # 90 days (3 months) total silence → permanent silence
+# Transition thresholds
+STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → daily recall
+STAGE_2_TO_3_DAYS = 3   # 3 days of daily recalls (Day 4-6) → weekly recall
+STAGE_3_TO_4_WEEKS = 3  # 3 weeks of weekly recalls → monthly recall
+STAGE_4_TO_5_DAYS = 90  # 90 days total silence → permanent silence
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
@@ -223,42 +221,30 @@ def main():
                 stage = 3
                 data["notification_stage"] = 3
                 data["stage_changed_at"] = now.isoformat()
-                data["recall_2_sent"] = False
+                data["weekly_recall_count"] = 0
                 changed = True
                 log(f"TRANSITION 2 → 3 (in stage 2 for {days_in_stage:.1f} days)")
 
     elif stage == 3:
         if stage_changed_at:
-            days_in_stage = (now - stage_changed_at).total_seconds() / 86400
-            if days_in_stage >= STAGE_3_TO_4_DAYS:
+            weeks_in_stage = (now - stage_changed_at).total_seconds() / (86400 * 7)
+            if weeks_in_stage >= STAGE_3_TO_4_WEEKS:
                 stage = 4
                 data["notification_stage"] = 4
                 data["stage_changed_at"] = now.isoformat()
-                data["weekly_recall_count"] = 0
-                changed = True
-                log(f"TRANSITION 3 → 4 (in stage 3 for {days_in_stage:.1f} days)")
-
-    elif stage == 4:
-        if stage_changed_at:
-            weeks_in_stage = (now - stage_changed_at).total_seconds() / (86400 * 7)
-            if weeks_in_stage >= STAGE_4_TO_5_WEEKS:
-                stage = 5
-                data["notification_stage"] = 5
-                data["stage_changed_at"] = now.isoformat()
                 data["monthly_recall_count"] = 0
                 changed = True
-                log(f"TRANSITION 4 → 5 (in stage 4 for {weeks_in_stage:.1f} weeks)")
+                log(f"TRANSITION 3 → 4 (in stage 3 for {weeks_in_stage:.1f} weeks)")
 
-    # Stage 5 → 6 after 90 days total silence (from first silent day)
-    elif stage == 5:
-        if days_silent >= STAGE_5_TO_6_DAYS:
-            stage = 6
-            data["notification_stage"] = 6
+    elif stage == 4:
+        if days_silent >= STAGE_4_TO_5_DAYS:
+            stage = 5
+            data["notification_stage"] = 5
             data["stage_changed_at"] = now.isoformat()
             changed = True
-            log(f"TRANSITION 5 → 6 (total silence {days_silent} days)")
+            log(f"TRANSITION 4 → 5 (total silence {days_silent} days)")
 
-    # Stage 6 is permanent silence — no further transitions
+    # Stage 5 is permanent silence — no further transitions
 
     if changed or not existed:
         save_engagement(args.workspace_dir, data)
