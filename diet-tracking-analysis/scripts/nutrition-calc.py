@@ -62,25 +62,37 @@ def _local_date(tz_offset: int = None) -> str:
 # ---------------------------------------------------------------------------
 
 # Mapping from old short keys to new full keys
-_SHORT_TO_LONG = {"cal": "calories", "p": "protein", "c": "carbs", "f": "fat"}
+_SHORT_TO_LONG = {
+    "cal": "calories", "p": "protein", "c": "carbs", "f": "fat",
+    "protein_g": "protein", "carbs_g": "carbs", "fat_g": "fat",
+}
 
 
 def _migrate_meal(meal: dict) -> dict:
-    """Convert old short-key meal dicts to full-name keys.
+    """Normalize meal dicts across old and new formats.
 
-    Handles both top-level fields and nested foods list.
-    If both short and long keys exist, long key takes precedence.
+    Handles: short keys (cal→calories), _g suffix keys (protein_g→protein),
+    items→foods rename, and meal-level macro summation from food items.
     """
     out = {}
     for k, v in meal.items():
         new_key = _SHORT_TO_LONG.get(k, k)
-        # Don't overwrite if the long name already exists
         if new_key in out:
             continue
         if k == "foods" and isinstance(v, list):
             out[k] = [_migrate_meal(f) for f in v]
         else:
             out[new_key] = v
+
+    # New format: items → foods
+    if "items" in out and "foods" not in out:
+        out["foods"] = [_migrate_meal(f) for f in out.pop("items")]
+
+    # New format: no meal-level macros → sum from foods
+    if "foods" in out and "calories" not in out:
+        for key in ("calories", "protein", "carbs", "fat"):
+            out[key] = round(sum(f.get(key, 0) for f in out["foods"]), 1)
+
     return out
 
 
