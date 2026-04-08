@@ -120,6 +120,26 @@ target−2, ...) to stay as close to the intended time as possible.
 **Important:** Always pass `--type meal` for meal reminders and `--type weight`
 for weight reminders. This ensures correct window sizing.
 
+### Batch creation (preferred for auto-sync)
+
+When creating multiple cron jobs at once (e.g., during auto-sync or onboarding), use the batch script instead of calling `create-reminder.sh` multiple times. It fetches the cron list **once** and resolves timezone/delivery target **once**, making it significantly faster.
+
+```bash
+python3 {baseDir}/scripts/batch-create.py \
+  --agent <your-agent-id> --channel <channel> \
+  --jobs '[
+    {"name": "Breakfast reminder", "message": "Run notification-composer for breakfast.", "cron": "45 6 * * *", "type": "meal"},
+    {"name": "Lunch reminder", "message": "Run notification-composer for lunch.", "cron": "45 11 * * *", "type": "meal"},
+    {"name": "Dinner reminder", "message": "Run notification-composer for dinner.", "cron": "45 17 * * *", "type": "meal"},
+    {"name": "Weight check-in reminder", "message": "Run notification-composer for weight.", "cron": "30 6 * * 3,6", "type": "weight"},
+    {"name": "Weekly report", "message": "Run weekly-report to generate this week's progress report.", "cron": "0 21 * * 0"}
+  ]'
+```
+
+Each job object: `name` (required), `message` (required), `cron` (required), `type` (meal|weight|other, default: other), `exact` (bool, default: false).
+
+Anti-burst is batch-aware — if job A takes a slot, job B sees it as occupied. Use `create-reminder.sh` only for creating a single job (e.g., user-requested custom reminders).
+
 ### Managing existing jobs
 
 Use the cron tool directly for listing and removing:
