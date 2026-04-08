@@ -49,6 +49,19 @@ def check_health_profile(workspace_dir):
     return True, None
 
 
+def _update_engagement_field(workspace_dir, updates):
+    """Read-modify-write specific fields in engagement.json."""
+    path = os.path.join(workspace_dir, "data", "engagement.json")
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        data.update(updates)
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except (json.JSONDecodeError, IOError) as e:
+        log(f"Warning: could not update engagement.json: {e}")
+
+
 def check_engagement_stage(workspace_dir, meal_type, tz_offset):
     """Check 2: engagement stage gating.
 
@@ -63,13 +76,11 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
     """
     path = os.path.join(workspace_dir, "data", "engagement.json")
     if not os.path.exists(path):
-        # No engagement file = assume active (Stage 1)
         return True, None
     try:
         with open(path) as f:
             data = json.load(f)
         stage = data.get("notification_stage", 1)
-        # Handle string stage names
         if isinstance(stage, str):
             stage_map = {"active": 1, "pause": 2, "recall": 3, "silent": 4}
             stage = stage_map.get(stage.lower(), 1)
@@ -82,18 +93,17 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             if is_weight:
                 return False, f"notification_stage={stage} — weight reminders suppressed during recall"
 
+        local_date = get_local_date(tz_offset)
+
         if stage == 2:
-            # Stage 2: one recall per day — first meal cron triggers it,
-            # subsequent crons (any meal type) are suppressed
-            local_date = get_local_date(tz_offset)
             last_recall_date = data.get("last_recall_date", "")
             if last_recall_date == local_date:
                 return False, f"notification_stage=2, recall already sent today ({local_date})"
+            # Lock today's date immediately to prevent duplicate sends
+            _update_engagement_field(workspace_dir, {"last_recall_date": local_date})
             return True, None
 
         if stage == 3:
-            # Stage 3 (weekly): send if >= 7 days since last recall
-            local_date = get_local_date(tz_offset)
             last_recall_date = data.get("last_recall_date", "")
             if last_recall_date:
                 try:
@@ -103,11 +113,11 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
                         return False, f"notification_stage=3, weekly recall sent {last_recall_date} (<7 days)"
                 except ValueError:
                     pass
+            # Lock date immediately
+            _update_engagement_field(workspace_dir, {"last_recall_date": local_date})
             return True, None
 
         if stage == 4:
-            # Stage 4 (monthly): send if >= 30 days since last recall
-            local_date = get_local_date(tz_offset)
             last_recall_date = data.get("last_recall_date", "")
             if last_recall_date:
                 try:
@@ -117,6 +127,8 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
                         return False, f"notification_stage=4, monthly recall sent {last_recall_date} (<30 days)"
                 except ValueError:
                     pass
+            # Lock date immediately
+            _update_engagement_field(workspace_dir, {"last_recall_date": local_date})
             return True, None
 
         return True, None
