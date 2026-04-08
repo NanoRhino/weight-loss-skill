@@ -860,9 +860,71 @@ def meal_history(data_dir: str, meal_type: str, days: int = 30,
                  ref_date: str = None, tz_offset: int = None) -> dict:
     """Analyze meal history for a given meal type over the last N days.
 
-    Returns recent recommendations and same-weekday-last-week fallback data.
+    Returns top foods by frequency, average macros, recent 3 days of actual
+    meals, and recent 3 days of recommendations.
     """
     end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
+
+    food_counts: dict[str, list[float]] = {}  # name -> list of calorie values
+    macro_sums = {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0}
+    days_with_data = 0
+    recent_3: list[dict] = []
+
+    for offset in range(days):
+        day = (end - timedelta(days=offset)).isoformat()
+        path = get_log_path(data_dir, day)
+        if not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            all_meals = _migrate_meals(json.load(f))
+
+        matched = [m for m in all_meals if m.get("meal_type") == meal_type
+                    or m.get("name") == meal_type]
+        if not matched:
+            continue
+
+        days_with_data += 1
+
+        for m in matched:
+            macro_sums["calories"] += m.get("calories", 0)
+            macro_sums["protein"] += m.get("protein", 0)
+            macro_sums["carbs"] += m.get("carbs", 0)
+            macro_sums["fat"] += m.get("fat", 0)
+
+            for food in m.get("foods", []):
+                fname = food.get("name", "")
+                if not fname:
+                    continue
+                fcal = food.get("calories", 0)
+                food_counts.setdefault(fname, []).append(fcal)
+
+        if len(recent_3) < 3:
+            day_foods = []
+            for m in matched:
+                day_foods.extend(f.get("name", "") for f in m.get("foods", [])
+                                 if f.get("name"))
+            recent_3.append({"date": day, "foods": day_foods})
+
+    # Build top foods
+    top_foods = sorted(food_counts.items(), key=lambda x: len(x[1]),
+                       reverse=True)[:10]
+    top_foods_out = [
+        {"name": name, "count": len(cals),
+         "avg_calories": round(sum(cals) / len(cals), 1)}
+        for name, cals in top_foods
+    ]
+
+    # Average macros
+    avg_macros = {k: round(v / days_with_data, 1) if days_with_data else 0
+                  for k, v in macro_sums.items()}
+
+    # Data level
+    if days_with_data >= 7:
+        data_level = "rich"
+    elif days_with_data >= 1:
+        data_level = "limited"
+    else:
+        data_level = "none"
 
     # Recent recommendations
     rec_dir = _get_recommendations_dir(data_dir)
@@ -909,6 +971,11 @@ def meal_history(data_dir: str, meal_type: str, days: int = 30,
 
     return {
         "meal_type": meal_type,
+        "data_level": data_level,
+        "days_with_data": days_with_data,
+        "top_foods": top_foods_out,
+        "avg_macros": avg_macros,
+        "recent_3_days": recent_3,
         "recent_recommendations": recent_recs,
         "same_weekday_last_week": same_weekday_meal,
     }

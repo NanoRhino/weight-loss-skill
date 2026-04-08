@@ -4,6 +4,14 @@ Rules for composing 2-3 meal recommendations in each reminder.
 
 ---
 
+## Recommendation Sources (by `data_level`)
+
+| `data_level` | Strategy |
+|-------------|----------|
+| `rich` (≥ 7 days) | Base recommendations on the user's real eating habits (`top_foods`). Combine familiar ingredients into varied meals. |
+| `limited` (1-6 days) | Mix available history with the diet template. Use known favorites where possible, fill gaps from the template. |
+| `none` (0 days) | Use the diet template + `health-preferences.md` preferences entirely. |
+
 ## Format
 
 Each recommendation = food combo + short tip (joined by ` — `).
