@@ -370,17 +370,26 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
                     agent_id = ws_basename[len("workspace-"):]
 
                 if agent_id:
+                    # Schedule at 21:00 local time today (or tomorrow if past 21:00)
+                    from datetime import datetime, timezone, timedelta
+                    tz_sec = int(tz)
+                    local_tz = timezone(timedelta(seconds=tz_sec))
+                    now_local = datetime.now(local_tz)
+                    target = now_local.replace(hour=21, minute=0, second=0, microsecond=0)
+                    if now_local >= target:
+                        target += timedelta(days=1)
+                    at_iso = target.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
                     cron_cmd = [
                         "openclaw", "cron", "add",
                         "--agent", agent_id,
-                        "--session", "main",
+                        "--session", "isolated",
                         "--name", f"Guided feedback: {question_id}",
                         "--message", f"Run notification-composer for guided-feedback {question_id}.",
                         "--announce",
                         "--channel", channel,
-                        "--at", "60m",
+                        "--at", at_iso,
                         "--delete-after-run",
-                        "--exact",
                         "--json",
                     ]
                     if to_id:
