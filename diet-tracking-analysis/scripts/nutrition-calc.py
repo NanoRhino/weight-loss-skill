@@ -360,7 +360,7 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
     result = {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
 
     # Auto-run guided-feedback increment+next
-    ws = workspace_dir or os.path.normpath(os.path.join(data_dir, '..', '..'))
+    ws = workspace_dir or os.path.normpath(os.path.join(os.path.abspath(data_dir), '..', '..'))
     gf_script = os.path.normpath(os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         '..', 'notification-manager', 'scripts', 'guided-feedback-state.py'))
@@ -426,21 +426,21 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
                     ]
                     if to_id:
                         cron_cmd.extend(["--to", to_id])
-                    cron_out = subprocess.run(
-                        cron_cmd, capture_output=True, text=True, timeout=30
+                    # Run in background — openclaw cron add can take 30-60s due to
+                    # Kafka plugin initialization. We don't need to wait for it.
+                    cron_proc = subprocess.Popen(
+                        cron_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                     )
-                    result["guided_feedback"]["cron_created"] = cron_out.returncode == 0
-                    if cron_out.returncode != 0:
-                        result["guided_feedback"]["cron_error"] = cron_out.stderr[:200]
+                    result["guided_feedback"]["cron_created"] = True
+                    result["guided_feedback"]["cron_pid"] = cron_proc.pid
 
-                    # Update status to scheduled
-                    if cron_out.returncode == 0:
-                        subprocess.run(
-                            [sys.executable, gf_script, '--workspace-dir', ws, '--tz-offset', tz,
-                             'update', '--question-id', question_id, '--new-status', 'scheduled'],
-                            capture_output=True, text=True, timeout=10
-                        )
-                        result["guided_feedback"]["scheduled"] = question_id
+                    # Update status to scheduled (fire-and-forget, cron is async)
+                    subprocess.run(
+                        [sys.executable, gf_script, '--workspace-dir', ws, '--tz-offset', tz,
+                         'update', '--question-id', question_id, '--new-status', 'scheduled'],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    result["guided_feedback"]["scheduled"] = question_id
         except Exception as e:
             result["guided_feedback"] = {"error": str(e)}
 
