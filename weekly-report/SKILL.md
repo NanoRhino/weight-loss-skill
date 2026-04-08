@@ -521,12 +521,11 @@ Generate a self-contained HTML file using the template at
 bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
   --file {workspaceDir}/data/reports/weekly-report-{start_date}.html \
   --bucket nanorhino-im-plans \
-  --username {shortId} \
   --key weekly-report \
   --workspace {workspaceDir}
 ```
 
-- `{shortId}`: read from `agent-registry.json` for the current user (6-char identifier). If unavailable, fall back to the full account ID.
+- The script **auto-resolves the username** from the workspace path (→ agentId → `agent-registry.json` shortId). Do NOT pass `--username` manually.
 - The script outputs the public URL to stdout. **Send this URL to the user** alongside the Part 1 message.
 - The URL is stable (`{username}/weekly-report.html`) — each upload overwrites the previous week's report.
 - `plan-url.json` is auto-updated with the `weekly-report` key.

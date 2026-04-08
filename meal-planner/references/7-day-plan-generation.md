@@ -27,19 +27,11 @@ Send this message **immediately** after confirming the user wants the plan, **be
      --agent <YOUR_AGENT_ID> \
      --input MEAL-PLAN.md \
      --bucket nanorhino-im-plans \
-     --username <USERNAME> \
      --workspace <AGENT_WORKSPACE_PATH> \
      --template meal-plan \
      --key meal-plan)
    ```
-   **`--username` resolution:** Derive from the workspace path:
-   - If workspace path contains `workspace-wechat-dm-{id}` → extract `{id}` as username (e.g., `accr51qz5uksxmi82ixyztd`)
-   - Otherwise → use the agent ID (e.g., `007-zhuoran`)
-   
-   Shell one-liner to auto-detect:
-   ```bash
-   USERNAME=$(basename "$AGENT_WORKSPACE_PATH" | grep -oP 'workspace-wechat-dm-\K.*' || echo "$YOUR_AGENT_ID")
-   ```
+   The script auto-resolves the username from the workspace path (→ agentId → `agent-registry.json` shortId). Do NOT pass `--username` manually.
 3. **Send the public URL to the user** via the message tool, with a brief summary. The URL is permanent: `https://nanorhino.ai/{username}/meal-plan.html`.
 4. Adapt all content (food names, meal names, day names, tips) to the user's language.
 5. Use full macro names matching the user's language — never abbreviate to P/C/F. English: `Protein`, `Carbs`, `Fat`; Chinese: `蛋白`, `碳水`, `脂肪`.

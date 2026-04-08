@@ -29,7 +29,7 @@ when conflicts arise.
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
 | **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder`, `weight-gain-strategy` | Designing programs and plans. |
-| **P4 — Reporting** | `weekly-report`, `daily-review`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
+| **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
 **Rule:** When two skills from different tiers conflict, the higher-priority
@@ -276,23 +276,7 @@ to `diet-tracking-analysis` for logging. No conflict — sequential handoff.
 
 ---
 
-### Pattern 9: Daily Review + Weekly Report (Same Tier — P4)
-
-**Trigger:** User asks for a daily review on the same day a weekly report is
-generated (e.g., Sunday evening or Monday).
-
-**Resolution: Weekly report takes precedence.**
-
-1. If `weekly-report` is generating for a period that includes today, skip
-   the daily review auto-trigger — the weekly report already covers this data
-2. If the user explicitly asks for a daily review, generate it even if a
-   weekly report was sent earlier (different granularity — per-meal vs per-week)
-3. `daily-review` auto-trigger after dinner appends to the
-   `diet-tracking-analysis` dinner response as a combined message
-
----
-
-### Pattern 10: Multiple Planning Requests (Same Tier — P3)
+### Pattern 9: Multiple Planning Requests (Same Tier — P3)
 
 **Trigger:** User asks for a weight-loss plan while also wanting to
 build a habit or get exercise programming.
@@ -307,7 +291,7 @@ build a habit or get exercise programming.
 
 ---
 
-### Pattern 11: Advice-to-Action Handoff (Any Skill → habit-builder)
+### Pattern 10: Advice-to-Action Handoff (Any Skill → habit-builder)
 
 **Trigger:** Any skill gives advice that implies a sustained behavior change,
 and the user shows interest or asks "how do I actually do this?"
@@ -330,7 +314,7 @@ and the user shows interest or asks "how do I actually do this?"
    suggestion, don't repeat it. It stays in the queue for the next
    natural opportunity (e.g., Weekly Review).
 
-### Pattern 12: Weight Gain Strategy + Emotional Distress (P3 vs P1)
+### Pattern 11: Weight Gain Strategy + Emotional Distress (P3 vs P1)
 
 **Trigger:** User expresses concern about weight gain with emotional distress
 signals (e.g., "I'm gaining weight and I hate myself", "越来越胖了好焦虑").
@@ -344,7 +328,7 @@ signals (e.g., "I'm gaining weight and I hate myself", "越来越胖了好焦虑
 4. When transitioning, use soft entry: "Want to look at the data together
    and figure out a plan?" — not "Here's what went wrong."
 
-### Pattern 13: Weight Gain Strategy + Diet Logging (P3 vs P2)
+### Pattern 12: Weight Gain Strategy + Diet Logging (P3 vs P2)
 
 **Trigger:** User logs food AND asks about weight gain in the same message.
 
@@ -354,7 +338,7 @@ signals (e.g., "I'm gaining weight and I hate myself", "越来越胖了好焦虑
 2. `weight-gain-strategy` provides analysis after logging is confirmed
 3. Single response — diet log confirmation first, then trend analysis
 
-### Pattern 14: Weight Gain Strategy + Weight-Loss Planner (Same Tier — P3)
+### Pattern 13: Weight Gain Strategy + Weight-Loss Planner (Same Tier — P3)
 
 **Trigger:** User asks to redo their weight-loss plan because of weight gain.
 
@@ -433,7 +417,7 @@ three cases, asking again makes things worse. Move forward with what you have.
 
 ---
 
-### Pattern 11: Behavior Self-Report vs Food Logging (P3 vs P2)
+### Pattern 14: Behavior Self-Report vs Food Logging (P3 vs P2)
 
 **Trigger:** User describes a long-term behavioral pattern — a habit they
 want to change or a problem they recognize — without logging specific food

@@ -76,4 +76,10 @@ All data is written to the user's workspace and readable by any part of the syst
 | Weight records | `data/weight.json` | `weight-tracker.py save/load` (from `weight-tracking` skill) |
 | Meal records | `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py save/load` (from `diet-tracking-analysis` skill) |
 | Engagement stage | `data/engagement.json > notification_stage` | direct read/write |
+| Last interaction | Derived from `data/meals/*.json` | `check-stage.py` scans for most recent logged meal date |
+| Stage changed at | `data/engagement.json > stage_changed_at` | written by `check-stage.py` |
+| Last recall date | `data/engagement.json > last_recall_date` | written by `notification-composer` after each daily recall (Stage 2) |
+| Final recall sent | `data/engagement.json > recall_2_sent` | written by `notification-composer` after final recall (Stage 3) |
 | Adaptive config | `data/engagement.json > reminder_config` | direct read/write |
+| Streak data | `data/streak.json > current_streak, longest_streak, streak_start_date, last_logged_date` | written by `streak-calc.py info` on every run |
+| Milestones celebrated | `data/streak.json > milestones_celebrated` | written by `streak-calc.py celebrate` after milestone message |

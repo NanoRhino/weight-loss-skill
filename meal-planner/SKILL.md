@@ -184,7 +184,12 @@ After the user confirms their diet mode, ask about their meal schedule. **Only a
 
 **Wait for the user to answer.**
 
-After the user provides their meal schedule, confirm the reminder and move to Round 3:
+After the user provides their meal schedule:
+
+1. **Immediately write `Meal Schedule`** → `health-profile.md > Meal Schedule`
+2. **Activate `notification-manager`** — so it creates meal/weight reminder cron jobs now, while the meal times are fresh. Do not wait until the diet template is presented. This is silent — do not mention cron jobs or technical details.
+
+Then confirm the reminder and move to Round 3:
 
 > 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
 
@@ -209,7 +214,7 @@ English equivalent:
 
 **After collecting all three rounds:** Update the appropriate files silently:
 - **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
-- **Meal Schedule** → `health-profile.md > Meal Schedule`
+- **Meal Schedule** — already written after Round 2; no action needed here
 - **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
 - **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
 
@@ -379,14 +384,13 @@ This note should appear **immediately after the template and example**, before i
 
 After presenting the diet template, **immediately introduce the daily tracking workflow** (same content as Step 5's "Introduce Daily Tracking Workflow" section). Do NOT ask the user whether they want a 7-day meal plan — the template is sufficient to start, and the 7-day plan is only generated if the user proactively requests it later.
 
-### Bootstrap Meal Reminders (Silent)
+### Mark Onboarding Complete (Silent)
 
 After presenting the diet template:
 
-1. **Write `Onboarding Completed`** — update `health-profile.md > Automation > Onboarding Completed` with today's date (YYYY-MM-DD format).
-2. **Activate `notification-manager`** — so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create all cron jobs (meal reminders, weight reminders, daily review, diet pattern detection). `notification-manager` owns all reminder lifecycle management.
+**Write `Onboarding Completed`** — update `health-profile.md > Automation > Onboarding Completed` with today's date (YYYY-MM-DD format). This enables diet-pattern-detection scheduling on the next `notification-manager` auto-sync.
 
-Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
+Meal reminders were already bootstrapped in Step 1.5 Round 2 — no action needed here.
 
 ---
 

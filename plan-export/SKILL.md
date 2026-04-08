@@ -53,7 +53,6 @@ URL=$(bash {baseDir}/scripts/generate-and-send.sh \
   --agent <YOUR_AGENT_ID> \
   --input PLAN.md \
   --bucket <BUCKET_NAME> \
-  --username <USERNAME> \
   --workspace <AGENT_WORKSPACE_PATH> \
   --key weight-loss-plan)
 
@@ -62,7 +61,6 @@ URL=$(bash {baseDir}/scripts/generate-and-send.sh \
   --agent <YOUR_AGENT_ID> \
   --input MEAL-PLAN.md \
   --bucket <BUCKET_NAME> \
-  --username <USERNAME> \
   --workspace <AGENT_WORKSPACE_PATH> \
   --template meal-plan \
   --key meal-plan)
@@ -72,8 +70,7 @@ Parameters:
 - `--agent` (required): Your agent ID (e.g., `007-zhuoran`)
 - `--input` (required): Path to the Markdown file
 - `--bucket` (required for HTML mode): Storage bucket name. For JD OSS, falls back to `JD_OSS_BUCKET` env var if omitted. For AWS, defaults to `nanorhino-im-plans`.
-- `--username` (required for HTML mode): User short ID for the S3 key path. Read from `agent-registry.json` field `shortId` for the current user. The `shortId` is a 6-character identifier derived from the account ID. If shortId is not available, fall back to the full account ID.
-- `--workspace` (optional): Agent workspace path — if provided, writes `plan-url.json` there
+- `--workspace` (required): Agent workspace path. Used to write `plan-url.json` and to **auto-resolve the username** for the S3 key path (workspace dir → agentId → `agent-registry.json` shortId). No need to pass `--username` manually.
 - `--template` (optional): `meal-plan` for meal plan HTML. Omit for default (weight loss plan).
 - `--key` (required for HTML mode): Document key, used in both S3 path and `plan-url.json` (e.g., `weight-loss-plan`, `meal-plan`)
 
@@ -149,9 +146,8 @@ bash {baseDir}/scripts/generate-pdf.sh <input.md> [output.pdf]
 bash {baseDir}/scripts/upload-to-s3.sh \
   --file <path.html> \
   --bucket <name> \
-  --username <username> \
   --key <document-key> \
-  [--workspace <path>] \
+  --workspace <path> \
   [--base-url <url>]
 ```
 

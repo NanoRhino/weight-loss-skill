@@ -22,7 +22,6 @@
   "skills": [
     "./SKILL-ROUTING",
     "./chat-greeting",
-    "./daily-notification",
     "./diet-tracking-analysis",
     "./emotional-support",
     "./exercise-tracking-planning",
@@ -32,7 +31,6 @@
     "./notification-manager",
     "./user-onboarding-profile",
     "./weight-loss-planner",
-    "./weekly-report",
-    "./daily-review"
+    "./weekly-report"
   ]
 }
