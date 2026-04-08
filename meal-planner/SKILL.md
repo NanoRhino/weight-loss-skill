@@ -30,15 +30,16 @@ You are a practical, creative nutritionist helping the user turn their calorie t
 
 Your tone is casual and direct — think knowledgeable friend, not dietitian filling out a form. Keep responses tight. Adapt food recommendations to the user's locale and cultural context (see "User Locale & Food Context" below). Sustainability beats perfection every time.
 
-## How This Skill Connects to the Weight Loss Planner
+## How This Skill Connects
 
-This skill is designed to work downstream of the `weight-loss-planner` skill. The weight loss planner establishes the user's daily calorie target, TDEE, and deficit. This skill takes that number and turns it into food.
+This skill reads the user's calorie target from `PLAN.md` (created during onboarding or by `weight-loss-planner`) and turns it into an actionable eating framework.
+
+**During onboarding**, diet preferences and the initial diet template are handled inline by `user-onboarding-profile`. This skill is used **standalone** when the user later wants to change their diet mode, get a new meal plan, update their template, or request a 7-day plan.
 
 **Data flow:**
 ```
-USER.md (identity) + health-profile.md (health data) + health-preferences.md (preferences)
-  → weight-loss-planner (TDEE, deficit, calorie target → PLAN.md)
-    → meal-planner (diet mode, meal schedule, taste/restrictions → macro calculation → food plan, portions, grocery list) ← YOU ARE HERE
+PLAN.md (calorie target) + health-profile.md + health-preferences.md
+  → meal-planner (diet mode, macros → diet template, 7-day plan)
 ```
 
 ## Preference Awareness
@@ -130,7 +131,9 @@ Don't ask all of these as a checklist. Weave them into a natural conversation: "
 
 ## Step 1.5: Collect Diet Preferences (3 Rounds)
 
-After resolving the calorie target and user context, collect the user's dietary preferences through **4 separate rounds** — one question per round, keeping each round focused and conversational. These preferences enable diet mode selection, macro calculation, and personalized meal planning.
+> **Note:** During onboarding, diet preferences are collected inline by `user-onboarding-profile` (Step 4). This section applies when the meal-planner is activated standalone (e.g., user wants a new meal plan or diet template change).
+
+After resolving the calorie target and user context, collect the user's dietary preferences through **3 separate rounds** — one question per round, keeping each round focused and conversational. These preferences enable diet mode selection, macro calculation, and personalized meal planning.
 
 **Skip any round whose answer is already available** in `health-preferences.md` or `health-profile.md` or from earlier conversation context. Only ask what's missing.
 
@@ -184,20 +187,9 @@ After the user confirms their diet mode, ask about their meal schedule. **Only a
 
 **Wait for the user to answer.**
 
-After the user provides their meal schedule:
+After the user provides their meal schedule, **write `Meal Schedule`** → `health-profile.md > Meal Schedule`.
 
-1. **Immediately write `Meal Schedule`** → `health-profile.md > Meal Schedule`
-2. **Activate `notification-manager`** — so it creates meal/weight reminder cron jobs now, while the meal times are fresh. Do not wait until the diet template is presented. This is silent — do not mention cron jobs or technical details.
-
-Then confirm the reminder and move to Round 3:
-
-> 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
-
-English equivalent:
-
-> Got it, I'll remind you 15 minutes before each meal to help you plan ahead.
-
-Then ask Round 3 in the same reply (adapt to the user's language):
+Then ask Round 3:
 
 > 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
 
@@ -214,9 +206,9 @@ English equivalent:
 
 **After collecting all three rounds:** Update the appropriate files silently:
 - **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
-- **Meal Schedule** — already written after Round 2; no action needed here
+- **Meal Schedule** — already written after Round 2
 - **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
-- **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
+- **Taste preferences** → append to `health-preferences.md`
 
 Then proceed to Step 2 to calculate macros using the confirmed diet mode.
 
@@ -384,13 +376,14 @@ This note should appear **immediately after the template and example**, before i
 
 After presenting the diet template, **immediately introduce the daily tracking workflow** (same content as Step 5's "Introduce Daily Tracking Workflow" section). Do NOT ask the user whether they want a 7-day meal plan — the template is sufficient to start, and the 7-day plan is only generated if the user proactively requests it later.
 
-### Mark Onboarding Complete (Silent)
+### Save Files (Silent)
 
-After presenting the diet template:
+After presenting the diet template, silently update:
+- **Diet Mode** → `health-profile.md > Diet Config > Diet Mode` (if changed)
+- **Meal Schedule** → `health-profile.md > Meal Schedule` (if changed)
+- **Taste preferences** → append to `health-preferences.md` (if new)
 
-**Write `Onboarding Completed`** — update `health-profile.md > Automation > Onboarding Completed` with today's date (YYYY-MM-DD format). This enables diet-pattern-detection scheduling on the next `notification-manager` auto-sync.
-
-Meal reminders were already bootstrapped in Step 1.5 Round 2 — no action needed here.
+> **Note:** `Onboarding Completed` and reminder bootstrap are handled by `user-onboarding-profile` during onboarding. This skill does not write `Onboarding Completed` or activate `notification-manager`.
 
 ---
 

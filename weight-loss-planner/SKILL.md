@@ -91,7 +91,7 @@ The script handles safety floors (max(BMR, 1000)), rate clamping, and all edge c
 
 **Timeline:** Do NOT ask the user for a timeline. Based on your professional judgment, select the most appropriate weekly loss rate from the rate guidelines in Step 2 and derive the timeline automatically. If the user later wants to adjust the pace, they can do so in Step 3.
 
-**Diet mode:** Do NOT ask about diet mode at this stage. The plan focuses on calorie targets, BMI, TDEE, and timeline only — no macro breakdown. Diet mode and dietary preferences will be collected by the `meal-planner` skill after the plan is confirmed.
+**Diet mode:** Do NOT ask about diet mode at this stage. The plan focuses on calorie targets, BMI, TDEE, and timeline only — no macro breakdown.
 
 If `health-profile.md` already contains the target weight, don't ask for it again — use it directly.
 
@@ -205,7 +205,7 @@ Each adjustment triggers a recalculation. After recalculating, **re-present the 
 
 ---
 
-### Step 4: Save PLAN.md & Transition to Meal Planner
+### Step 4: Save PLAN.md
 
 Once the user confirms the plan presented in Step 2/3, **do NOT re-present the plan** — the user has just seen it. Proceed directly with the following actions:
 
@@ -214,11 +214,9 @@ Once the user confirms the plan presented in Step 2/3, **do NOT re-present the p
 1. Silently save the most recently presented Plan Presentation content as `PLAN.md` in the current workspace. The PLAN.md contains only the Plan Presentation content — no macro breakdowns, no diet mode, no meal-related information. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
 2. Do not generate PDF or send via Slack.
 
-**Do NOT mention meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled by the `notification-manager` and will be configured automatically when the `meal-planner` skill collects the user's meal schedule. Do not mention, summarize, or set up any reminder schedule during the weight-loss planning phase.
+**If the user wants to adjust the plan** after confirmation, help them modify it (go back to Step 3).
 
-**Transition to Meal Planner** — After saving, seamlessly transition to the `meal-planner` skill to help the user establish their eating pattern. Don't ask the user whether they want a diet plan — just proceed naturally, e.g., "现在来帮你规划一下每天怎么吃——我来根据你的目标制定一个饮食模板。" The meal-planner will read the calorie target from the conversation context and collect diet preferences (diet mode, meal schedule, taste/restrictions) on its own. This ensures the user leaves the planning session with both a weight-loss plan AND an actionable eating framework.
-
-**If the user wants to adjust the plan** after confirmation, help them modify it (go back to Step 3). **If the plan is confirmed**, transition directly to the meal planner — do not detour into reminders or other topics.
+> **Note:** During onboarding, plan generation is handled inline by `user-onboarding-profile` (Step 3). This skill is used standalone when a user wants to recalculate their plan, adjust pace, or check in on progress.
 
 ---
 
