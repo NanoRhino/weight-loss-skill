@@ -364,6 +364,153 @@ def cmd_long_term_stats(memory_dir: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Extract conversations from session files (Batch Mode)
+# ---------------------------------------------------------------------------
+
+def cmd_extract_conversations(session_dir: str, hours: int = 24) -> dict:
+    """Extract user messages from the latest session file.
+
+    Finds the newest non-deleted .jsonl in session_dir, reads it,
+    and extracts real user messages from the last N hours.
+
+    Returns structured conversation data ready for the agent to summarize.
+    """
+    if not os.path.isdir(session_dir):
+        return {"error": f"session dir not found: {session_dir}", "conversations": []}
+
+    # Find newest non-deleted session file
+    candidates = []
+    for f in os.listdir(session_dir):
+        if f.endswith(".jsonl") and ".deleted." not in f:
+            full = os.path.join(session_dir, f)
+            candidates.append((os.path.getmtime(full), full))
+
+    if not candidates:
+        return {"error": "no session files found", "conversations": []}
+
+    candidates.sort(reverse=True)
+    session_file = candidates[0][1]
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    cutoff_ts = cutoff.isoformat()
+
+    # Patterns that indicate non-user messages
+    skip_types = {"session", "model_change", "thinking_level_change", "custom",
+                  "toolCall", "toolResult"}
+
+    conversations = []  # List of {timestamp, role, text}
+    current_exchange = []  # Buffer for grouping
+
+    with open(session_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            entry_type = entry.get("type", "")
+
+            # Skip non-message types
+            if entry_type in skip_types:
+                continue
+            if entry_type != "message":
+                continue
+
+            msg = entry.get("message", {})
+            role = msg.get("role", "")
+            ts_str = entry.get("timestamp", "")
+
+            # Only process messages after cutoff
+            if ts_str and ts_str < cutoff_ts:
+                continue
+
+            # Extract text content
+            content = msg.get("content", [])
+            if isinstance(content, str):
+                text = content
+            elif isinstance(content, list):
+                text_parts = []
+                for c in content:
+                    if isinstance(c, dict) and c.get("type") == "text":
+                        text_parts.append(c.get("text", ""))
+                    elif isinstance(c, str):
+                        text_parts.append(c)
+                text = "\n".join(text_parts)
+            else:
+                text = ""
+
+            text = text.strip()
+            if not text:
+                continue
+
+            # Skip system-injected messages disguised as user messages
+            if role == "user":
+                # Skip heartbeat, cron prompts, system events
+                lower = text[:200].lower()
+                if any(kw in lower for kw in [
+                    "heartbeat", "read heartbeat.md",
+                    "run notification-composer", "run diet-pattern-detection",
+                    "run weekly-report", "run memory-consolidation",
+                    "cron task", "system event",
+                    '"customtype"', '"type":"custom"',
+                ]):
+                    continue
+                # Skip metadata blocks
+                # Strip metadata blocks (Sender/Conversation info) — may be nested
+                while text.startswith(("Conversation info (untrusted metadata):", "Sender (untrusted metadata):")):
+                    idx = text.find("```\n\n")
+                    if idx >= 0:
+                        text = text[idx + 5:].strip()
+                    else:
+                        idx = text.find("```\n")
+                        if idx >= 0:
+                            text = text[idx + 4:].strip()
+                        else:
+                            text = ""
+                            break
+                if not text:
+                    continue
+
+            conversations.append({
+                "timestamp": ts_str,
+                "role": role,
+                "text": text[:2000],  # Truncate very long messages
+            })
+
+    # Group into exchanges (user message + assistant response pairs)
+    exchanges = []
+    current = {"user_messages": [], "assistant_messages": [], "start_time": None}
+
+    for msg in conversations:
+        if msg["role"] == "user":
+            # If we had an exchange going with assistant response, save it
+            if current["user_messages"] and current["assistant_messages"]:
+                exchanges.append(current)
+                current = {"user_messages": [], "assistant_messages": [], "start_time": None}
+            current["user_messages"].append(msg)
+            if not current["start_time"]:
+                current["start_time"] = msg["timestamp"]
+        elif msg["role"] == "assistant":
+            current["assistant_messages"].append(msg)
+
+    # Don't forget the last exchange
+    if current["user_messages"]:
+        exchanges.append(current)
+
+    return {
+        "session_file": session_file,
+        "hours": hours,
+        "cutoff": cutoff_ts,
+        "total_messages": len(conversations),
+        "exchanges": len(exchanges),
+        "conversations": exchanges,
+    }
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -415,6 +562,14 @@ def main():
                            help="Report long-term.md statistics")
     lts_p.add_argument("--memory-dir", required=True)
 
+    # extract-conversations
+    ec_p = sub.add_parser("extract-conversations",
+                          help="Extract user messages from session files")
+    ec_p.add_argument("--session-dir", required=True,
+                      help="Path to agent's sessions directory")
+    ec_p.add_argument("--hours", type=int, default=24,
+                      help="Look back N hours (default: 24)")
+
     args = parser.parse_args()
 
     if args.cmd == "init":
@@ -439,6 +594,8 @@ def main():
         result = cmd_medium_term_stats(args.memory_dir)
     elif args.cmd == "long-term-stats":
         result = cmd_long_term_stats(args.memory_dir)
+    elif args.cmd == "extract-conversations":
+        result = cmd_extract_conversations(args.session_dir, args.hours)
     else:
         parser.print_help()
         sys.exit(1)

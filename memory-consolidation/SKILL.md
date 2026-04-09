@@ -310,6 +310,77 @@ This is defined in the agent's AGENTS.md template.
 
 ---
 
+## Batch Mode (Cron Dispatcher)
+
+When running as a **batch consolidation job** (triggered by the daily dispatcher cron,
+not during a live conversation), follow this workflow instead of the real-time flow above.
+
+### Context
+
+You receive a prompt with:
+- **User** account ID
+- **Workspace** / **Memory dir** / **Session dir** paths
+- **Tasks** to execute (one or more of the task types below)
+
+### Step 1: Extract Conversations
+
+Use the script to extract recent user messages from the session file:
+
+```bash
+python3 {baseDir}/scripts/memory-consolidator.py extract-conversations \
+  --session-dir {sessionDir} \
+  --hours 24
+```
+
+Returns JSON with `exchanges` — each exchange has `user_messages` and
+`assistant_messages` with timestamps and cleaned text (metadata stripped).
+
+### Step 2: Execute Tasks
+
+Execute **only** the tasks listed in your prompt, in order:
+
+#### `init`
+Create missing memory files:
+```bash
+python3 {baseDir}/scripts/memory-consolidator.py init --memory-dir {memoryDir}
+```
+
+#### `short-term-update`
+Using the extracted conversations from Step 1:
+1. For each meaningful exchange, create a short-term entry via `short-term-update`
+2. Group related messages into single entries (a quick "ok" doesn't need its own)
+3. Write summaries in the user's language
+4. Set day summary for each day with `short-term-set-day-summary`
+
+#### `medium-term-consolidate`
+1. Run `short-term-rotate` to get removed days
+2. Run `medium-term-read` to get current topics
+3. For each removed conversation: classify into existing or new topic,
+   append to 「关键讨论」, update 「当前结论」, manage 「待跟进」
+4. Write updated medium-term.md with `Last consolidated: YYYY-MM-DD`
+
+#### `medium-term-cleanup`
+1. Run `medium-term-stats` to check state
+2. Remove 「关键讨论」entries older than 1 month
+3. Merge overlapping observations
+4. Remove resolved 「待跟进」
+
+#### `long-term-promote`
+1. Read medium-term.md and long-term.md
+2. Identify stable conclusions (appeared 2+ times, not contradicted)
+3. Promote to appropriate long-term sections
+4. Update `**Last updated:** YYYY-MM-DD` in long-term.md
+
+### Rules
+- **SILENT operation.** No narration.
+- Write in the **user's language** (Chinese for Chinese users).
+- Memory scope is **BROAD** — diet, work, emotions, social life, hobbies, everything.
+- Prefer **over-recording** to under-recording.
+- Reply with a brief JSON summary: `{"tasks_completed": [...], "entries_added": N, "topics_updated": N}`
+
+
+---
+
 ## Important Notes
 
 - **The script handles I/O; the agent handles intelligence.** The script reads/writes/rotates files. The agent decides what to summarize, how to classify topics, and what's worth promoting.
