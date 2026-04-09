@@ -24,6 +24,18 @@ def load_json(path):
         return json.load(f)
 
 
+def get_meal_calories(meal):
+    """Extract calories from a meal dict with fallback to foods/items sum."""
+    if not isinstance(meal, dict):
+        return 0
+    meal_cal = meal.get("cal", meal.get("calories", 0)) or 0
+    if meal_cal == 0:
+        foods = meal.get("foods", meal.get("items", []))
+        if foods:
+            meal_cal = sum(f.get("calories", 0) for f in foods if isinstance(f, dict))
+    return meal_cal
+
+
 def save_json(path, data):
     """Save data as JSON."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -187,7 +199,7 @@ def analyze(args):
             meals = day_data if isinstance(day_data, list) else day_data.get("meals", [])
             for meal in meals:
                 if isinstance(meal, dict):
-                    day_cal += meal.get("cal", meal.get("calories", 0)) or 0
+                    day_cal += get_meal_calories(meal)
             if day_cal > 0:
                 daily_cals.append({"date": d, "cal": day_cal})
 
@@ -476,7 +488,7 @@ def detect_temporary_causes(args, local_now, readings, calorie_target):
         day_cal = 0
         for meal in meals:
             if isinstance(meal, dict):
-                day_cal += meal.get("cal", meal.get("calories", 0)) or 0
+                day_cal += get_meal_calories(meal)
         if day_cal > 0:
             overshoot = day_cal - calorie_target
             overshoot_pct = overshoot / calorie_target * 100
@@ -516,7 +528,7 @@ def detect_temporary_causes(args, local_now, readings, calorie_target):
                             dd = load_json(mp)
                             ms = dd if isinstance(dd, list) else dd.get("meals", [])
                             dc = sum(
-                                (m.get("cal", m.get("calories", 0)) or 0)
+                                get_meal_calories(m)
                                 for m in ms if isinstance(m, dict)
                             )
                             if dc > 0:
@@ -699,6 +711,30 @@ def deviation_check(args):
                 adaptation_period = True
         except ValueError:
             pass
+
+    # --- Active strategy suppression: skip cause-check/significant if strategy still active ---
+    if triggered and severity in ("cause-check", "significant"):
+        strategy_path = os.path.join(args.data_dir, "weight-gain-strategy.json")
+        if os.path.exists(strategy_path):
+            try:
+                with open(strategy_path) as f:
+                    strat_data = json.load(f)
+                active = strat_data.get("active_strategy", {})
+                if active and active.get("status") == "active":
+                    end_date = active.get("end_date", "")
+                    if end_date >= local_now.strftime("%Y-%m-%d"):
+                        print(json.dumps({
+                            "triggered": False,
+                            "severity": "none",
+                            "actual_severity": severity,
+                            "reason": "active_strategy",
+                            "consecutive_increases": consecutive_increases,
+                            "strategy_end_date": end_date,
+                            "message": f"Active strategy in place until {end_date}. Suppressing {severity} trigger.",
+                        }, indent=2, ensure_ascii=False))
+                        return
+            except (json.JSONDecodeError, IOError):
+                pass
 
     # --- Cooldown: skip if same severity was triggered recently ---
     # comfort: 3 day cooldown, cause-check: 7 days, significant: 7 days
