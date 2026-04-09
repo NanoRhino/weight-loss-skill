@@ -670,6 +670,54 @@ def deviation_check(args):
         except ValueError:
             pass
 
+    # --- Cooldown: skip if same severity was triggered recently ---
+    # comfort: 3 day cooldown, cause-check: 5 days, significant: 7 days
+    cooldown_map = {"comfort": 3, "cause-check": 5, "significant": 7}
+    wgs_state_path = os.path.join(args.data_dir, "weight-gain-state.json")
+    wgs_state = {}
+    if os.path.exists(wgs_state_path):
+        try:
+            with open(wgs_state_path) as f:
+                wgs_state = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            wgs_state = {}
+
+    if triggered and severity in cooldown_map:
+        last_trigger_date = wgs_state.get("last_trigger_date", "")
+        last_severity = wgs_state.get("last_severity", "")
+        cooldown_days = cooldown_map[severity]
+        if last_trigger_date and last_severity == severity:
+            try:
+                days_since = (local_now.date() - datetime.strptime(
+                    last_trigger_date, "%Y-%m-%d"
+                ).date()).days
+                if days_since < cooldown_days:
+                    print(json.dumps({
+                        "triggered": False,
+                        "severity": "none",
+                        "reason": "cooldown",
+                        "actual_severity": severity,
+                        "consecutive_increases": consecutive_increases,
+                        "cooldown_days": cooldown_days,
+                        "days_since_last": days_since,
+                        "message": f"Same severity '{severity}' triggered {days_since}d ago, cooldown is {cooldown_days}d. Skipped.",
+                    }, indent=2, ensure_ascii=False))
+                    return
+            except ValueError:
+                pass
+        # Severity escalated — always trigger (e.g. comfort → cause-check)
+
+    # If we will trigger, persist state for future cooldown checks
+    if triggered:
+        wgs_state["last_trigger_date"] = local_now.strftime("%Y-%m-%d")
+        wgs_state["last_severity"] = severity
+        wgs_state["consecutive_increases"] = consecutive_increases
+        try:
+            with open(wgs_state_path, "w") as f:
+                json.dump(wgs_state, f, indent=2, ensure_ascii=False)
+        except IOError:
+            pass
+
     # --- Detect temporary / specific causes ---
     calorie_target = parse_plan_target(args.plan_file) if args.plan_file else None
     temporary_causes = []
