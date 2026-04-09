@@ -695,9 +695,16 @@ def deviation_check(args):
         return
 
     # --- Count consecutive increases from most recent reading backwards ---
+    # Deduplicate: if the same value appears multiple times (e.g., save-and-check
+    # just saved the same value), collapse consecutive identical readings
+    deduped = []
+    for r in readings:
+        if not deduped or r["value"] != deduped[-1]["value"]:
+            deduped.append(r)
+
     consecutive_increases = 0
-    for i in range(len(readings) - 1, 0, -1):
-        if readings[i]["value"] > readings[i - 1]["value"]:
+    for i in range(len(deduped) - 1, 0, -1):
+        if deduped[i]["value"] > deduped[i - 1]["value"]:
             consecutive_increases += 1
         else:
             break
