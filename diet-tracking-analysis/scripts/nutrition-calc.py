@@ -369,7 +369,7 @@ def _check_ambiguous_foods(meal: dict) -> list:
         return []
 
     clarifications = []
-    foods = meal.get("foods", [])
+    foods = meal.get("foods", []) or meal.get("items", [])
     for food_item in foods:
         food_name = food_item.get("name", "")
         if not food_name:
@@ -1626,6 +1626,21 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         result["produce"] = produce_check(meals, current_meal, all_meals)
     else:
         result["produce"] = None
+
+    # 7. Ambiguous food clarification (from save_meal output or direct check)
+    save_clarifications = save_result.get("needs_clarification", [])
+    if not save_clarifications:
+        # save_meal might not have had the right field name; check directly
+        save_clarifications = _check_ambiguous_foods(meal_data)
+    if save_clarifications:
+        result["needs_clarification"] = save_clarifications
+
+    # 8. Check for pending guided-feedback reply
+    ws = save_result.get("_workspace_dir") or os.path.normpath(
+        os.path.join(os.path.abspath(data_dir), '..', '..'))
+    pending = _check_pending_feedback(ws)
+    if pending:
+        result["⚠️ GUIDED_FEEDBACK_PENDING"] = pending
 
     return result
 
