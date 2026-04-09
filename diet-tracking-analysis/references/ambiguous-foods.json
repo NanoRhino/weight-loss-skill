@@ -7,7 +7,8 @@
       {"name": "菜包", "calories": 160, "protein": 6, "carbs": 25, "fat": 4},
       {"name": "豆沙包", "calories": 230, "protein": 5, "carbs": 42, "fat": 5}
     ],
-    "question": "包子是菜包、鲜肉包、还是豆沙包？"
+    "emoji": "🤔",
+    "hint": "包子已先按鲜肉包记录，如果是其他馅的告诉我，我来改～"
   },
   {
     "keyword": "饺子",
@@ -17,7 +18,8 @@
       {"name": "素三鲜饺", "calories": 30, "protein": 1, "carbs": 5, "fat": 0.8, "note": "per piece"},
       {"name": "虾仁饺", "calories": 35, "protein": 3, "carbs": 4, "fat": 1, "note": "per piece"}
     ],
-    "question": "饺子是什么馅的？猪肉白菜、素三鲜、还是虾仁？"
+    "emoji": "🤔",
+    "hint": "饺子已先按猪肉白菜馅记录，如果是其他馅的告诉我，我来改～"
   },
   {
     "keyword": "粽子",
@@ -27,7 +29,8 @@
       {"name": "蛋黄肉粽", "calories": 450, "protein": 14, "carbs": 48, "fat": 22},
       {"name": "豆沙粽", "calories": 280, "protein": 5, "carbs": 55, "fat": 4}
     ],
-    "question": "粽子是肉粽、蛋黄肉粽、还是豆沙粽？"
+    "emoji": "🤔",
+    "hint": "粽子已先按肉粽记录，如果是其他馅的告诉我，我来改～"
   },
   {
     "keyword": "馅饼",
@@ -36,7 +39,8 @@
       {"name": "猪肉馅饼", "calories": 300, "protein": 12, "carbs": 30, "fat": 15, "default": true},
       {"name": "韭菜鸡蛋馅饼", "calories": 220, "protein": 8, "carbs": 28, "fat": 8}
     ],
-    "question": "馅饼是猪肉馅还是韭菜鸡蛋馅？"
+    "emoji": "🤔",
+    "hint": "馅饼已先按猪肉馅记录，如果是其他馅的告诉我，我来改～"
   },
   {
     "keyword": "烧麦",
@@ -45,7 +49,8 @@
       {"name": "糯米烧麦", "calories": 200, "protein": 5, "carbs": 35, "fat": 5, "default": true},
       {"name": "猪肉烧麦", "calories": 250, "protein": 10, "carbs": 28, "fat": 11}
     ],
-    "question": "烧麦是糯米的还是猪肉的？"
+    "emoji": "🤔",
+    "hint": "烧麦已先按糯米烧麦记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "面条",
@@ -55,7 +60,8 @@
       {"name": "牛肉面", "calories": 550, "protein": 25, "carbs": 70, "fat": 18, "default": true},
       {"name": "炸酱面", "calories": 600, "protein": 18, "carbs": 75, "fat": 24}
     ],
-    "question": "面条是什么面？清汤面、牛肉面、还是炸酱面？"
+    "emoji": "🍜",
+    "hint": "面条已先按牛肉面记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "米粉",
@@ -65,7 +71,8 @@
       {"name": "炒米粉", "calories": 500, "protein": 12, "carbs": 70, "fat": 18},
       {"name": "螺蛳粉", "calories": 550, "protein": 15, "carbs": 68, "fat": 22}
     ],
-    "question": "米粉是汤粉、炒粉、还是螺蛳粉？"
+    "emoji": "🍜",
+    "hint": "米粉已先按汤米粉记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "煎饼",
@@ -74,7 +81,8 @@
       {"name": "杂粮煎饼（不加料）", "calories": 250, "protein": 8, "carbs": 40, "fat": 6},
       {"name": "煎饼果子（加薄脆+蛋）", "calories": 450, "protein": 14, "carbs": 55, "fat": 18, "default": true}
     ],
-    "question": "煎饼是杂粮煎饼还是煎饼果子？"
+    "emoji": "🤔",
+    "hint": "煎饼已先按煎饼果子记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "手抓饼",
@@ -84,7 +92,8 @@
       {"name": "手抓饼加蛋", "calories": 380, "protein": 13, "carbs": 40, "fat": 18, "default": true},
       {"name": "手抓饼加蛋加肠", "calories": 500, "protein": 18, "carbs": 42, "fat": 26}
     ],
-    "question": "手抓饼是原味、加蛋、还是加蛋加肠？"
+    "emoji": "🤔",
+    "hint": "手抓饼已先按加蛋记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "三明治",
@@ -94,7 +103,8 @@
       {"name": "金枪鱼三明治", "calories": 350, "protein": 20, "carbs": 30, "fat": 15, "default": true},
       {"name": "培根蛋三明治", "calories": 450, "protein": 22, "carbs": 32, "fat": 25}
     ],
-    "question": "三明治是蔬菜、金枪鱼、还是培根蛋的？"
+    "emoji": "🥪",
+    "hint": "三明治已先按金枪鱼记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "汉堡",
@@ -104,7 +114,8 @@
       {"name": "牛肉堡", "calories": 500, "protein": 28, "carbs": 40, "fat": 22},
       {"name": "双层芝士牛肉堡", "calories": 650, "protein": 35, "carbs": 42, "fat": 35}
     ],
-    "question": "汉堡是鸡肉堡、牛肉堡、还是双层芝士堡？"
+    "emoji": "🍔",
+    "hint": "汉堡已先按鸡肉堡记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "饭团",
@@ -114,7 +125,8 @@
       {"name": "素饭团", "calories": 200, "protein": 4, "carbs": 42, "fat": 2},
       {"name": "鳗鱼饭团", "calories": 320, "protein": 12, "carbs": 45, "fat": 10}
     ],
-    "question": "饭团是肉松、素的、还是鳗鱼的？"
+    "emoji": "🍙",
+    "hint": "饭团已先按肉松饭团记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "沙拉",
@@ -124,7 +136,8 @@
       {"name": "凯撒沙拉", "calories": 350, "protein": 15, "carbs": 18, "fat": 25, "default": true},
       {"name": "鸡胸肉沙拉", "calories": 300, "protein": 30, "carbs": 15, "fat": 14}
     ],
-    "question": "沙拉是蔬菜沙拉、凯撒沙拉、还是鸡肉沙拉？"
+    "emoji": "🥗",
+    "hint": "沙拉已先按凯撒沙拉记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "馄饨",
@@ -134,7 +147,8 @@
       {"name": "荠菜馄饨", "calories": 280, "protein": 10, "carbs": 38, "fat": 9},
       {"name": "虾仁馄饨", "calories": 300, "protein": 18, "carbs": 38, "fat": 8}
     ],
-    "question": "馄饨是鲜肉、荠菜、还是虾仁馄饨？"
+    "emoji": "🤔",
+    "hint": "馄饨已先按鲜肉馅记录，如果是其他馅的告诉我，我来改～"
   },
   {
     "keyword": "月饼",
@@ -144,7 +158,8 @@
       {"name": "豆沙月饼", "calories": 350, "protein": 7, "carbs": 52, "fat": 13},
       {"name": "五仁月饼", "calories": 400, "protein": 9, "carbs": 50, "fat": 18}
     ],
-    "question": "月饼是蛋黄莲蓉、豆沙、还是五仁？"
+    "emoji": "🥮",
+    "hint": "月饼已先按蛋黄莲蓉记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "青团",
@@ -153,7 +168,8 @@
       {"name": "豆沙青团", "calories": 200, "protein": 4, "carbs": 40, "fat": 3, "default": true},
       {"name": "肉松蛋黄青团", "calories": 280, "protein": 8, "carbs": 38, "fat": 11}
     ],
-    "question": "青团是豆沙的还是肉松蛋黄的？"
+    "emoji": "🤔",
+    "hint": "青团已先按豆沙馅记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "奶茶",
@@ -163,7 +179,8 @@
       {"name": "奶茶（无糖）", "calories": 200, "protein": 4, "carbs": 28, "fat": 10},
       {"name": "奶茶（全糖+珍珠）", "calories": 550, "protein": 5, "carbs": 90, "fat": 15}
     ],
-    "question": "奶茶大概什么甜度？无糖、半糖、还是全糖？加料了吗？"
+    "emoji": "🧋",
+    "hint": "奶茶已先按半糖无料记录，甜度或加料不对告诉我，我来改～"
   },
   {
     "keyword": "咖啡",
@@ -173,7 +190,8 @@
       {"name": "拿铁", "calories": 200, "protein": 8, "carbs": 18, "fat": 10, "default": true},
       {"name": "摩卡", "calories": 350, "protein": 8, "carbs": 42, "fat": 16}
     ],
-    "question": "咖啡是美式、拿铁、还是摩卡？"
+    "emoji": "☕",
+    "hint": "咖啡已先按拿铁记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "盖饭",
@@ -183,7 +201,8 @@
       {"name": "蔬菜盖饭", "calories": 400, "protein": 10, "carbs": 70, "fat": 8},
       {"name": "红烧肉盖饭", "calories": 750, "protein": 25, "carbs": 80, "fat": 35}
     ],
-    "question": "盖饭是什么菜？蔬菜、家常荤素、还是红烧肉？"
+    "emoji": "🍚",
+    "hint": "盖饭已先按荤素搭配记录，如果差别大告诉我，我来改～"
   },
   {
     "keyword": "盒饭",
@@ -193,7 +212,8 @@
       {"name": "素菜盒饭", "calories": 450, "protein": 12, "carbs": 75, "fat": 10},
       {"name": "大荤盒饭（排骨/鸡腿）", "calories": 800, "protein": 30, "carbs": 82, "fat": 38}
     ],
-    "question": "盒饭大概什么档次？素菜、荤素搭配、还是大荤（排骨/鸡腿）？"
+    "emoji": "🍱",
+    "hint": "盒饭已先按荤素搭配记录，如果差别大告诉我，我来改～"
   },
   {
     "keyword": "便当",
@@ -203,7 +223,8 @@
       {"name": "素菜便当", "calories": 450, "protein": 12, "carbs": 75, "fat": 10},
       {"name": "大荤便当（排骨/鸡腿）", "calories": 800, "protein": 30, "carbs": 82, "fat": 38}
     ],
-    "question": "便当大概什么档次？素菜、荤素搭配、还是大荤（排骨/鸡腿）？"
+    "emoji": "🍱",
+    "hint": "便当已先按荤素搭配记录，如果差别大告诉我，我来改～"
   },
   {
     "keyword": "麻辣烫",
@@ -213,7 +234,8 @@
       {"name": "麻辣烫（纯蔬菜）", "calories": 300, "protein": 8, "carbs": 45, "fat": 10},
       {"name": "麻辣烫（多肉多粉）", "calories": 700, "protein": 28, "carbs": 70, "fat": 32}
     ],
-    "question": "麻辣烫选了什么？偏蔬菜、正常荤素、还是多肉多粉？"
+    "emoji": "🌶️",
+    "hint": "麻辣烫已先按正常荤素记录，如果差别大告诉我，我来改～"
   },
   {
     "keyword": "寿司",
@@ -223,7 +245,8 @@
       {"name": "鳗鱼寿司", "calories": 70, "protein": 3, "carbs": 9, "fat": 2.5, "note": "per piece"},
       {"name": "黄瓜卷", "calories": 30, "protein": 1, "carbs": 6, "fat": 0.3, "note": "per piece"}
     ],
-    "question": "寿司是什么口味？三文鱼、鳗鱼、还是其他？"
+    "emoji": "🍣",
+    "hint": "寿司已先按三文鱼记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "披萨",
@@ -233,7 +256,8 @@
       {"name": "玛格丽特（1片）", "calories": 220, "protein": 10, "carbs": 28, "fat": 8},
       {"name": "海鲜至尊（1片）", "calories": 260, "protein": 14, "carbs": 28, "fat": 10}
     ],
-    "question": "披萨什么口味？培根、玛格丽特、还是海鲜？"
+    "emoji": "🍕",
+    "hint": "披萨已先按培根披萨记录，如果不是告诉我，我来改～"
   },
   {
     "keyword": "拌面",
@@ -243,6 +267,7 @@
       {"name": "麻酱拌面", "calories": 500, "protein": 15, "carbs": 60, "fat": 22},
       {"name": "肉酱拌面", "calories": 550, "protein": 20, "carbs": 65, "fat": 22}
     ],
-    "question": "拌面是葱油、麻酱、还是肉酱拌面？"
+    "emoji": "🍜",
+    "hint": "拌面已先按葱油拌面记录，如果不是告诉我，我来改～"
   }
 ]

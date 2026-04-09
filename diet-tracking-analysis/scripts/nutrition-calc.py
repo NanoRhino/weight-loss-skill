@@ -386,11 +386,12 @@ def _check_ambiguous_foods(meal: dict) -> list:
             # Found ambiguous food — build clarification
             variants = entry.get("variants", [])
             default_variant = next((v for v in variants if v.get("default")), variants[0] if variants else None)
+            emoji = entry.get("emoji", "🤔")
+            hint = entry.get("hint", f"{keyword}已先按{default_variant['name'] if default_variant else '默认'}记录，如果不是告诉我，我来改～")
             clarifications.append({
                 "food": food_name,
                 "keyword": keyword,
-                "question": entry.get("question", f"{keyword}具体是哪种？"),
-                "options": [{"name": v["name"], "calories": v["calories"]} for v in variants],
+                "hint": f"{emoji} {hint}",
                 "default_used": default_variant["name"] if default_variant else None,
                 "default_calories": default_variant["calories"] if default_variant else None
             })

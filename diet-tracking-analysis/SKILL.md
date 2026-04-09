@@ -188,11 +188,13 @@ Returns: `is_final_meal`, `vegetables_actual_g`, `vegetables_target_g`, `has_veg
 - If the user doesn't answer, default to the most common / middle-calorie variant.
 - Never ask more than once per food item.
 
-**⚠️ `needs_clarification` from save output:** The `save` command automatically checks foods against a built-in ambiguous-foods dictionary (`references/ambiguous-foods.json`). If the save result contains a `needs_clarification` array, you MUST append the clarification question(s) to your reply. The food is already saved with a default value — if the user replies with their choice, call `save` again to update. Example:
+**⚠️ `needs_clarification` from save output:** The `save` command automatically checks foods against a built-in ambiguous-foods dictionary (`references/ambiguous-foods.json`). If the save result contains a `needs_clarification` array, you MUST append the `hint` text to your reply **on a new line at the end**. The food is already saved with a default value — if the user replies with their choice, call `save` again to update. Example:
 ```json
-"needs_clarification": [{"food": "包子 x2", "question": "包子是菜包、鲜肉包、还是豆沙包？", "default_used": "鲜肉包"}]
+"needs_clarification": [{"food": "包子 x2", "hint": "🤔 包子已先按鲜肉包记录，如果是其他馅的告诉我，我来改～", "default_used": "鲜肉包"}]
 ```
-→ Append to reply: "对了，包子是菜包、鲜肉包、还是豆沙包？（已先按鲜肉包记录）"
+→ Append the `hint` field value directly to the end of your reply (on a new line). Do NOT rephrase, do NOT add "对了" prefix, do NOT list options. Just copy the hint as-is.
+
+If multiple clarifications exist, each hint on its own line.
 
 **⚠️ `GUIDED_FEEDBACK_PENDING` from save output:** If the save result contains a `⚠️ GUIDED_FEEDBACK_PENDING` field, a preference survey question was recently sent to the user. The user's **next** reply (especially a number like 1/2/3) is likely answering that survey, NOT a food clarification or new food log. Do NOT treat it as food data. Instead, route to notification-composer skill's "Handling replies" section.
 
