@@ -378,6 +378,16 @@ def _check_ambiguous_foods(meal: dict) -> list:
             keyword = entry.get("keyword", "")
             if keyword not in food_name:
                 continue
+            # For single-char keywords (饼/面/粉), only match if the food name
+            # is essentially just the keyword + optional quantity (e.g. "面 x2", "饼", "粉一碗")
+            # This prevents "方便面" or "面包" from triggering
+            if len(keyword) == 1:
+                import re
+                stripped = re.sub(r'[\s\dx×*]+', '', food_name)  # remove quantity markers
+                stripped = re.sub(r'[一二三四五六七八九十两半几]', '', stripped)  # remove Chinese numerals
+                stripped = re.sub(r'[碗份个盘杯袋包盒块片根条勺]', '', stripped)  # remove measure words
+                if stripped != keyword:
+                    continue
             # Check if user already specified a variant
             excludes = entry.get("exclude", [])
             already_specified = any(ex in food_name for ex in excludes)
