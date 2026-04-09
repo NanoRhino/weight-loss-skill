@@ -111,6 +111,10 @@ Recognize what the user ate, estimate nutrition, then call `log-meal` to save.
 #### 1.1 Collect input
 Merge consecutive messages into a single input before proceeding.
 
+**Photo food naming rule:** When identifying food from a photo, if the food's interior/filling/flavor is NOT visible (e.g., steamed buns, dumplings, zongzi, mooncakes, sandwiches, wraps, stuffed pastries), you MUST use the **generic name** (e.g., "包子", "饺子", "粽子") in the `foods`/`items` array, NOT a specific variant (e.g., NOT "鲜肉包", NOT "猪肉饺"). This ensures the ambiguous-food clarification system triggers correctly. Only use a specific variant name if:
+- The user explicitly stated the filling/type in text, OR
+- The filling/type is clearly visible in the photo (e.g., cross-section showing red bean paste)
+
 #### 1.2 Determine meal type
 If user explicitly states meal type ("breakfast", "this is lunch", "早餐", "这是午饭") → pass as `--meal-type`. User's statement always takes priority, even if it contradicts the time of day. Otherwise **always omit** — let the script auto-detect. **Do NOT infer meal type yourself. Do NOT retry log-meal with a different meal-type.** One call is enough; trust the script's result.
 
@@ -125,9 +129,9 @@ Default: assume **before-eating** (enables most useful feedback).
 Backfilled meals from missing-meal handling are always "already eaten" — never use `right_now` suggestion type.
 
 #### 1.4 Estimate portions
-When user omits portion size, use standard single-serving defaults and prefix with `~`.
-
-Flag any item that appears **≥ 2× normal** (e.g., "a whole pizza", "6 eggs") — Step 2 will decide whether to ask for clarification.
+- No portion stated → standard single-serving default, prefix `~`
+- **Photo with reference objects** (egg, spoon, chopstick, bowl, lunch box): use object as scale ruler → estimate container/food dimensions → convert to grams. Sizes in `references/portion-estimation.md`. Critical for large containers — don't default to single-serving.
+- Flag items **≥ 2× normal** — Step 2 decides whether to clarify
 
 #### 1.5 Estimate nutrition
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
@@ -146,6 +150,10 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 - Photo: judge by sheen/pooling; Text with no photo: default 5g/200g unless described as oily
 - Deep-fried: oil already in standard nutrition data — don't double-count
 - Soups: only count visible floating oil; clear broth → 0g
+
+**Cooked-vegetable shrinkage:** Cooked vegetables weigh less than raw. Use shrinkage ratios in `references/portion-estimation.md` to reverse-estimate raw weight.
+- `vegetables_g` = estimated raw weight (before cooking)
+- `amount_g` / calories = cooked weight (what was eaten)
 
 ### Step 2: Respond
 
@@ -204,3 +212,26 @@ CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~X
 
 ### Food Suggestions
 Suggest by category ("high-protein", "complex carbs") + concrete examples from user's recent meals. Respect preferences (never disliked/allergenic foods; favor loved foods). No bare calorie numbers.
+
+---
+
+## Ambiguous Food Clarification
+
+**⚠️ `needs_clarification` from save/log-meal output:** The save/log-meal command automatically checks foods against a built-in ambiguous-foods dictionary (`references/ambiguous-foods.json`). If the result contains a `needs_clarification` array, you MUST append the clarification hint(s) to your reply. The food is already saved with a default value — if the user replies with their choice, call save/log-meal again to update.
+
+Single item example:
+```json
+"needs_clarification": [{"hint": "🤔 包子已先按鲜肉包记录，如果是其他馅的告诉我，我来改～", "default_used": "鲜肉包"}]
+```
+→ Append the `hint` field value directly to the end of your reply (on a new line). Do NOT rephrase, do NOT add "对了" prefix.
+
+If multiple clarifications exist, merge them into ONE natural sentence. Example:
+```json
+"needs_clarification": [
+  {"hint": "🤔 粽子已先按肉粽记录，如果是其他馅的告诉我，我来改～", ...},
+  {"hint": "🤔 包子已先按鲜肉包记录，如果是其他馅的告诉我，我来改～", ...}
+]
+```
+→ Merge into: "🤔 粽子先按肉粽、包子先按鲜肉包记录了，不对的话告诉我，我来改～"
+
+Rules: combine the items naturally, keep ONE emoji at the start, end with ONE "告诉我，我来改～". Do NOT list each hint separately.

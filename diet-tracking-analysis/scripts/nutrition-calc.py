@@ -311,6 +311,60 @@ def analyze(weight: float, daily_cal: int, meals: int, log: list,
     }
 
 
+def _check_ambiguous_foods(meal: dict) -> list:
+    """Check if any foods in the meal match the ambiguous-foods dictionary.
+    Returns a list of clarification hints for foods that need user input."""
+    ambiguous_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'references', 'ambiguous-foods.json')
+    if not os.path.isfile(ambiguous_path):
+        return []
+    try:
+        with open(ambiguous_path, 'r', encoding='utf-8') as f:
+            dictionary = json.load(f)
+    except Exception:
+        return []
+
+    clarifications = []
+    foods = meal.get("foods", []) or meal.get("items", [])
+    for food_item in foods:
+        food_name = food_item.get("name", "")
+        if not food_name:
+            continue
+        for entry in dictionary:
+            keyword = entry.get("keyword", "")
+            if keyword not in food_name:
+                continue
+            # For single-char keywords (饼/面/粉), only match if the food name
+            # is essentially just the keyword + optional quantity
+            if len(keyword) == 1:
+                import re
+                stripped = re.sub(r'[\s\dx×*]+', '', food_name)
+                stripped = re.sub(r'[一二三四五六七八九十两半几]', '', stripped)
+                stripped = re.sub(r'[碗份个盘杯袋包盒块片根条勺]', '', stripped)
+                if stripped != keyword:
+                    continue
+            # Check if user already specified a variant
+            excludes = entry.get("exclude", [])
+            already_specified = any(ex in food_name for ex in excludes)
+            if already_specified:
+                continue
+            # Found ambiguous food — build clarification
+            variants = entry.get("variants", [])
+            default_variant = next((v for v in variants if v.get("default")), variants[0] if variants else None)
+            emoji = entry.get("emoji", "🤔")
+            hint = entry.get("hint", f"{keyword}已先按{default_variant['name'] if default_variant else '默认'}记录，如果不是告诉我，我来改～")
+            clarifications.append({
+                "food": food_name,
+                "keyword": keyword,
+                "hint": f"{emoji} {hint}",
+                "default_used": default_variant["name"] if default_variant else None,
+                "default_calories": default_variant["calories"] if default_variant else None
+            })
+            break  # One match per food item
+    return clarifications
+
+
 def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None) -> dict:
     """Save a meal to the daily log. Same meal name overwrites (supports corrections)."""
     os.makedirs(data_dir, exist_ok=True)
@@ -335,7 +389,14 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(existing, f, ensure_ascii=False, indent=2)
 
-    return {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
+    result = {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
+
+    # Check for ambiguous foods that need clarification
+    clarifications = _check_ambiguous_foods(meal)
+    if clarifications:
+        result["needs_clarification"] = clarifications
+
+    return result
 
 
 def _save_evaluation_to_meal(data_dir: str, day: str, meal_name: str, eval_result: dict):
@@ -1425,6 +1486,13 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         result["produce"] = produce_check(meals, current_meal, all_meals)
     else:
         result["produce"] = None
+
+    # 7. Ambiguous food clarification
+    save_clarifications = save_result.get("needs_clarification", [])
+    if not save_clarifications:
+        save_clarifications = _check_ambiguous_foods(meal_data)
+    if save_clarifications:
+        result["needs_clarification"] = save_clarifications
 
     return result
 
