@@ -223,6 +223,15 @@ Suggest by category ("high-protein", "complex carbs") + concrete examples from u
 ```
 → Append the `hint` field value directly to the end of your reply (on a new line). Do NOT rephrase, do NOT add "对了" prefix, do NOT list options. Just copy the hint as-is.
 
-If multiple clarifications exist, each hint on its own line.
+If multiple clarifications exist, merge them into ONE natural sentence. Example:
+```json
+"needs_clarification": [
+  {"hint": "🤔 粽子已先按肉粽记录，如果是其他馅的告诉我，我来改～", ...},
+  {"hint": "🤔 包子已先按鲜肉包记录，如果是其他馅的告诉我，我来改～", ...}
+]
+```
+→ Merge into: "🤔 粽子先按肉粽、包子先按鲜肉包记录了，不对的话告诉我，我来改～"
+
+Rules: combine the items naturally, keep ONE emoji at the start, end with ONE "告诉我，我来改～". Do NOT list each hint separately.
 
 **⚠️ `GUIDED_FEEDBACK_PENDING` from save output:** If the save result contains a `⚠️ GUIDED_FEEDBACK_PENDING` field, a preference survey question was recently sent to the user. The user's **next** reply (especially a number like 1/2/3) is likely answering that survey, NOT a food clarification or new food log. Do NOT treat it as food data. Instead, route to notification-composer skill's "Handling replies" section.
