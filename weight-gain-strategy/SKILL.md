@@ -49,21 +49,22 @@ persistent the trend is.
 
 ## Diagnosis Dimensions
 
-The `analyze` command evaluates these factors:
+The `analyze` command outputs **raw statistics only** — no `detected: true/false` judgments. The AI interprets these numbers in context (user history, lifestyle, chat context) to determine causes.
 
-| Factor | Detection | Strategy |
-|--------|-----------|----------|
-| `calorie_surplus` | Average intake > target by 50+ kcal | Reduce daily intake (max -300 kcal) |
-| `calorie_volatility` | Std dev > 400 kcal, or ≥2 binge + ≥2 restrict days | Stabilize daily intake pattern |
-| `food_quality` | Raw food list provided → **AI judges** | AI proposes specific swaps based on actual foods eaten |
-| `low_protein` | Avg protein < 70% of recommended (weight×1.2g) | Add protein source per meal |
-| `exercise_decline` | Current week < previous week sessions | Restore exercise sessions |
-| `logging_gaps` | <50% of days have logged meals | Strict mode + daily logging habit |
-| `possible_water_retention` | Sudden ≥0.5kg spike, no calorie surplus | Reassurance, wait it out |
-| `normal_fluctuation` | Net change < 0.3kg | Reassurance, no action |
-| `insufficient_data` | Coverage < 40% or >50% single-meal days | Improve logging first |
+### Output fields
 
-> ⚠️ **Data confidence gate:** When `data_confidence.sufficient = false`, analysis short-circuits — returns only `insufficient_data` factor and `improve_logging` strategy. No other diagnosis is attempted on unreliable data.
+| Field | What it contains | AI uses it for |
+|-------|-----------------|----------------|
+| `calorie_stats` | avg/min/max/std_dev, days over target, days under 60%, daily breakdown | Surplus, volatility, binge/restrict patterns |
+| `protein_stats` | avg daily g, recommended g (weight×1.2), days below 70% | Protein deficit detection |
+| `exercise_stats` | This week vs last week sessions & minutes | Exercise decline |
+| `logging_stats` | Coverage %, single-meal days, unlogged days | Data reliability |
+| `weight_pattern` | Largest daily jump + dates | Sudden spike (water retention) |
+| `food_list` | Raw food names (dedupe, up to 50) | Food quality, variety, processed patterns |
+| `data_confidence` | sufficient flag, issues list | Whether to analyze or ask for more data first |
+| `active_strategy` | Current strategy type/dates if active | Whether to suppress new interventions |
+
+> ⚠️ **AI-driven analysis:** The script provides numbers; the AI decides what they mean. A std_dev of 967 kcal might be binge/restrict — or a user transitioning diets. The AI considers context.
 
 ---
 
