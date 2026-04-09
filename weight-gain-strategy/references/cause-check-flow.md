@@ -138,7 +138,37 @@ python3 {baseDir}/scripts/analyze-weight-trend.py save-strategy \
 This is for `check-strategy` / `weekly-report` only — `habits.active` is
 the source of truth for daily execution.
 
-**Step 3 — Reply** with a short, cheeky confirmation:
+**Step 3 — Create habit check-in cron reminder:**
+
+The AI side of the pact must be enforced with actual cron reminders. Use the notification-manager custom reminder system.
+
+**Cron mapping by cause:**
+
+| Detected cause | Cron schedule | Prompt template |
+|---|---|---|
+| **Snacking / calorie surplus** | `0 15 * * *` (每天 15:00) | `[custom] habit-checkin: 下午零食时间到了，记得今天的约定哦～换成{替代食物}试试？` |
+| **Weekend overeating** | `0 12 * * 6,0` + `0 18 * * 6,0` (周六日 12:00/18:00) | `[custom] habit-checkin: 周末啦，吃了什么拍给我看看📸` |
+| **Exercise decline** | `0 {time} * * {days}` (用户运动日) | `[custom] habit-checkin: 今天是运动日哦，{具体运动}安排上了吗？` |
+| **Late-night eating** | `0 20 * * *` (每天 20:00) | `[custom] habit-checkin: 厨房要关门啦🔒 晚饭吃完了吗？` |
+| **Logging gaps** | 已有三餐 cron，进入严格模式即可，无需额外 cron |
+
+**Cron 创建方法：** 使用 `openclaw cron add` 命令：
+
+```bash
+openclaw cron add \
+  --schedule "<cron expression>" \
+  --prompt "[custom] habit-checkin: <check-in message>" \
+  --label "habit:<action_id>" \
+  --target "wechat-dm-<userId>"
+```
+
+**规则：**
+- 所有 habit cron 用 `[custom] habit-checkin:` 前缀，方便识别和清理
+- `--label` 用 `habit:<action_id>` 格式，和 `habits.active` 关联
+- 习惯毕业（graduated）或失败（failed）时，必须同步删除对应 cron
+- 一个习惯最多 2 个 cron job
+
+**Step 4 — Reply** with a short, cheeky confirmation:
 - "Deal! Don't say I didn't warn you 😏"
 - "Alright, you're on my watch list this week 👀"
 
