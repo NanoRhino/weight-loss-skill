@@ -85,7 +85,7 @@ Timezone auto-detection searches these paths in order:
 1. `~/.openclaw/workspace-$AGENT/USER.md`
 2. `~/.openclaw/workspace-nutritionist/$AGENT/USER.md`
 
-Then calls `openclaw cron add` with `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically.
+Then calls `openclaw cron add` with `sessionTarget = "main"` and `payload.kind = "systemEvent"` automatically. This ensures reminder messages and user replies appear in the user's main conversation context, so the agent knows what reminders were sent and how the user responded.
 
 ### Anti-burst scheduling
 

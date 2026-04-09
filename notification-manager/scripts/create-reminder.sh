@@ -190,9 +190,9 @@ Do NOT output the message as your reply. Instead, put your full message text int
 else
   CMD=(openclaw cron add
     --name "$NAME"
-    --session isolated
+    --session main
     --agent "$AGENT"
-    --message "$MESSAGE"
+    --system-event "$MESSAGE"
     --announce
     --channel "$CHANNEL"
     --to "$TO"
