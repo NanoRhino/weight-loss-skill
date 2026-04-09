@@ -112,6 +112,10 @@ def analyze(args):
 
     display_unit = parse_display_unit(args.health_profile)
     calorie_target = parse_plan_target(args.plan_file) if args.plan_file else None
+    # Fallback: read calorie_target from health-profile.json
+    if not calorie_target:
+        hp = load_json(os.path.join(args.data_dir, "health-profile.json"))
+        calorie_target = hp.get("calorie_target") or hp.get("daily_calorie_target")
 
     # --- Load weight data ---
     weight_data = None
@@ -128,14 +132,36 @@ def analyze(args):
     if not weight_data:
         raw = load_json(os.path.join(args.data_dir, "weight.json"))
         weight_data = []
-        for k, v in sorted(raw.items()):
-            d = k[:10]
-            if start_date <= d <= end_date:
-                weight_data.append({
-                    "date": d,
-                    "value": v.get("value", v) if isinstance(v, dict) else v,
-                    "unit": v.get("unit", display_unit) if isinstance(v, dict) else display_unit,
-                })
+        if isinstance(raw, dict) and "entries" in raw:
+            # Format: {"entries": [{"date": "...", "value": N}, ...]}
+            for entry in raw["entries"]:
+                d = entry.get("date", "")[:10]
+                if start_date <= d <= end_date:
+                    weight_data.append({
+                        "date": d,
+                        "value": entry.get("value", 0),
+                        "unit": entry.get("unit", display_unit),
+                    })
+        elif isinstance(raw, dict):
+            # Format: {"2026-04-01": {"value": 65}, ...} or {"2026-04-01": 65, ...}
+            for k, v in sorted(raw.items()):
+                d = k[:10]
+                if start_date <= d <= end_date:
+                    weight_data.append({
+                        "date": d,
+                        "value": v.get("value", v) if isinstance(v, dict) else v,
+                        "unit": v.get("unit", display_unit) if isinstance(v, dict) else display_unit,
+                    })
+        elif isinstance(raw, list):
+            # Format: [{"date": "...", "value": N}, ...]
+            for entry in raw:
+                d = entry.get("date", "")[:10]
+                if start_date <= d <= end_date:
+                    weight_data.append({
+                        "date": d,
+                        "value": entry.get("value", 0),
+                        "unit": entry.get("unit", display_unit),
+                    })
 
     # Normalize weight_data to list of readings
     readings = []
@@ -396,10 +422,8 @@ def analyze(args):
         weight_path = os.path.join(args.data_dir, "weight.json")
         weight_data = load_json(weight_path)
         user_weight = None
-        if weight_data:
-            latest_key = sorted(weight_data.keys())[-1]
-            v = weight_data[latest_key]
-            user_weight = float(v.get("value", v) if isinstance(v, dict) else v)
+        if readings:
+            user_weight = float(readings[-1].get("value", 0))
         if user_weight:
             recommended = round(user_weight * 1.2, 1)
             low_protein["recommended_protein"] = recommended
