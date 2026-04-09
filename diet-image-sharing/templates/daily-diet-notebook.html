@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<style>
+  @page { size: 460px; margin: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+
+  body {
+    font-family: "Georgia", "Noto Serif SC", "Source Han Serif SC",
+                 "Songti SC", "SimSun", serif;
+    color: #3a3226;
+    background: #f5f0e6;
+    padding: 0; margin: 0;
+    line-height: 1.55;
+  }
+
+  /* Notebook paper background with ruled lines */
+  .page {
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 24px 20px 28px;
+    background-color: #faf6ee;
+    background-image:
+      repeating-linear-gradient(
+        transparent, transparent 27px, #d6cfc0 27px, #d6cfc0 28px
+      );
+  }
+
+  /* ===== Header ===== */
+  .card-header {
+    text-align: center;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #b8a88a;
+  }
+
+  .header-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4a3520;
+    letter-spacing: 2px;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: #8a7a62;
+    margin-top: 2px;
+  }
+
+  /* ===== Meal Card ===== */
+  .meal-card {
+    margin-bottom: 16px;
+    padding: 0;
+    background: rgba(255,252,245,0.6);
+    border: 1px solid #d5c9b0;
+    border-radius: 4px;
+    overflow: visible;
+    position: relative;
+  }
+
+  /* Masking tape decoration */
+  .tape {
+    height: 22px;
+    margin: -2px 30px 0 30px;
+    border-radius: 1px;
+    opacity: 0.7;
+    position: relative;
+    top: -10px;
+    margin-bottom: -10px;
+  }
+
+  .tape-yellow  { background: #f0d97a; }
+  .tape-green   { background: #a8c98a; }
+  .tape-pink    { background: #e8b0a0; }
+  .tape-blue    { background: #a0c0d8; }
+
+  .meal-inner {
+    padding: 10px 16px 14px;
+  }
+
+  /* Meal title row */
+  .meal-title-row {
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #4a3520;
+    letter-spacing: 1px;
+  }
+
+  .meal-kcal-badge {
+    float: right;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: #8b7348;
+    border-radius: 10px;
+    padding: 1px 10px;
+  }
+
+  .meal-title-row::after { content: ""; display: table; clear: both; }
+
+  /* Food illustration area */
+  .food-illust {
+    text-align: center;
+    padding: 8px 0 10px;
+    border-bottom: 1px dashed #d5c9b0;
+    margin-bottom: 8px;
+  }
+
+  .food-illust-item {
+    display: inline-block;
+    text-align: center;
+    margin: 2px 8px;
+    vertical-align: top;
+  }
+
+  .food-illust-item .fi-svg {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto;
+  }
+
+  .food-illust-item .fi-svg svg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .food-illust-item .fi-name {
+    font-size: 9px;
+    color: #7a6a52;
+    margin-top: 2px;
+    max-width: 64px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Ingredient checklist */
+  .ingredient-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .ingredient-list li {
+    font-size: 12px;
+    color: #4a3520;
+    padding: 2px 0;
+    border-bottom: 1px dotted #e0d8c8;
+  }
+
+  .ingredient-list li:last-child {
+    border-bottom: none;
+  }
+
+  .cb {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid #a09078;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+
+  .cb-checked {
+    background: #a8c98a;
+    border-color: #7a9a58;
+  }
+
+  .cb-checked::after {
+    content: "";
+    display: block;
+    width: 5px;
+    height: 3px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    position: relative;
+    top: 2px;
+    left: 2px;
+    transform: rotate(-45deg);
+  }
+
+  .ing-amt {
+    float: right;
+    color: #9a8a70;
+    font-size: 11px;
+  }
+
+  .ing-cal {
+    float: right;
+    color: #8b7348;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* ===== Summary ===== */
+  .summary-card {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(255,252,245,0.6);
+    border: 1px solid #d5c9b0;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .summary-label {
+    font-size: 11px;
+    color: #9a8a70;
+    letter-spacing: 3px;
+    margin-bottom: 6px;
+  }
+
+  .summary-cal {
+    font-size: 22px;
+    font-weight: 700;
+    color: #8b7348;
+  }
+
+  .summary-cal small {
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .summary-macros {
+    font-size: 12px;
+    color: #5a4a38;
+    margin-top: 4px;
+  }
+
+  .summary-macros .sep { color: #c8b898; margin: 0 3px; }
+
+  .progress-row { margin-top: 8px; }
+
+  .progress-track {
+    height: 7px;
+    background: #e8dcc8;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill { height: 100%; border-radius: 4px; }
+  .progress-fill.ok    { background: #8ba858; }
+  .progress-fill.over  { background: #c27044; }
+  .progress-fill.under { background: #c8a848; }
+
+  .progress-note {
+    font-size: 10px;
+    color: #9a8a70;
+    margin-top: 3px;
+  }
+
+  /* ===== Footer ===== */
+  .card-footer {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 10px;
+    color: #b8a888;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="card-header">
+    <div class="header-title">{{TITLE}}</div>
+    <div class="header-sub">{{DATE_DISPLAY}} · {{USER_NAME}}</div>
+  </header>
+
+  {{MEAL_SECTIONS}}
+
+  {{SUMMARY_SECTION}}
+
+  <footer class="card-footer">{{FOOTER_TEXT}}</footer>
+
+</div>
+</body>
+</html>
