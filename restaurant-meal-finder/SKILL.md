@@ -62,8 +62,7 @@ health-profile.md (body data) + health-preferences.md (food prefs)
 - `exercise-tracking-planning` → today's exercise (for calorie/protein adjustment)
 - `health-preferences.md` → food likes/dislikes, allergies, diet mode
 - `health-profile.md` → body stats, diet config, location, schedule
-- `ai-preferences.md` → coaching style, tone, detail level (adjust response accordingly)
-- `locale.json` → language and region
+- `USER.md > Language` → language and region
 
 **Downstream handoff:**
 - After the user picks a meal, offer to pre-log it via `diet-tracking-analysis`
@@ -78,7 +77,7 @@ health-profile.md (body data) + health-preferences.md (food prefs)
 | `PLAN.md` | Read | weight-loss-planner | Daily calorie target and macro ranges |
 | `health-preferences.md` | Read/Append | user-onboarding-profile | Food preferences, allergies, cuisine likes |
 | `health-profile.md` | Read | user-onboarding-profile | Diet mode, body stats, meal schedule, location |
-| `locale.json` | Read | system | Language and region for locale adaptation |
+| `USER.md > Language` | already in context | Language and region for locale adaptation |
 | `data/meals/YYYY-MM-DD.json` | Read | diet-tracking-analysis | Recent meal logs — today's remaining budget + last 3–5 days' patterns for context-aware recommendations |
 | `data/exercise.json` | Read | exercise-tracking-planning | Today's exercise via `exercise-calc.py load --date YYYY-MM-DD` (adjust calorie budget, emphasize protein post-workout) |
 

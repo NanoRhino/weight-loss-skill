@@ -151,6 +151,32 @@ and `.calorie-bar` in the HTML template.
 
 ---
 
+### Section 2b: Weekly Low-Calorie Safety Check
+
+Run **after** Section 2 calorie analysis. Checks if the user's weekly average intake fell below their calorie floor (BMR).
+
+```bash
+python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
+  --data-dir {workspaceDir}/data/meals --bmr <kcal> [--date <end-of-week>]
+```
+
+Returns: `below_floor`, `weekly_avg_cal`, `calorie_floor`, `days_below_floor`, `days_below_count`.
+
+BMR source: `PLAN.md` or calculate via Mifflin-St Jeor (see `weight-loss-planner/references/formulas.md`).
+
+**When `below_floor` is true:**
+Append a gentle safety note in the Calorie Analysis section:
+```
+⚠️ 这周平均每日摄入（~X kcal）低于基础代谢（~Y kcal）。
+持续低于这个水平可能影响代谢和营养摄入。
+其中 [day1, day2, ...] 偏低比较明显，下周可以在这几天多加一餐或增加份量。
+```
+Tone: informational, never guilt or alarm. Offer concrete suggestions (add a snack, increase portion).
+
+**When `below_floor` is false:** No mention — the check passes silently.
+
+---
+
 ### Section 3: Weight Progress
 
 Show weight readings and net change. See `.weight-table` and `.weight-change`
@@ -485,7 +511,7 @@ Generate a self-contained HTML file using the template at
 - Replace all `{{PLACEHOLDER}}` values with actual data
 - The file must be fully self-contained (all CSS inline, no external dependencies)
 - Follow the template structure — do not add or remove sections
-- Adapt language to user's locale (read from `locale.json`)
+- Adapt language to user's locale (from USER.md (already in context))
 - Skip sections with no data (remove the entire card, do not show empty cards)
 - For the calorie bar chart: calculate bar widths as percentage of the max value in the week
 
@@ -496,12 +522,11 @@ Generate a self-contained HTML file using the template at
 bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
   --file {workspaceDir}/data/reports/weekly-report-{start_date}.html \
   --bucket nanorhino-im-plans \
-  --username {shortId} \
   --key weekly-report \
   --workspace {workspaceDir}
 ```
 
-- `{shortId}`: read from `agent-registry.json` for the current user (6-char identifier). If unavailable, fall back to the full account ID.
+- The script **auto-resolves the username** from the workspace path (→ agentId → `agent-registry.json` shortId). Do NOT pass `--username` manually.
 - The script outputs the public URL to stdout. **Send this URL to the user** alongside the Part 1 message.
 - The URL is stable (`{username}/weekly-report.html`) — each upload overwrites the previous week's report.
 - `plan-url.json` is auto-updated with the `weekly-report` key.

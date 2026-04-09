@@ -97,7 +97,7 @@ When planning meals, use the **midpoint** of each range as the planning target. 
 
 1. **User tells you directly** — "I'm in Tokyo" / "I live in Texas" / "I'm Chinese" → always takes priority
 2. **USER.md / health-profile.md** — May contain country, city, or cultural background
-3. **Language inference** — If neither of the above is available, infer from `locale.json > lang`:
+3. **Language inference** — If neither of the above is available, infer from `USER.md > Language`:
    - `en` → default to US (American foods, imperial units)
    - `zh-CN` → default to China (Chinese foods, metric units)
    - `ja` → default to Japan
@@ -381,7 +381,10 @@ After presenting the diet template, **immediately introduce the daily tracking w
 
 ### Bootstrap Meal Reminders (Silent)
 
-After presenting the diet template, **activate `notification-manager`** so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create the corresponding cron jobs (meal reminders + weight reminders). `notification-manager` owns all reminder lifecycle management.
+After presenting the diet template:
+
+1. **Write `Onboarding Completed`** — update `health-profile.md > Automation > Onboarding Completed` with today's date (YYYY-MM-DD format).
+2. **Activate `notification-manager`** — so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create all cron jobs (meal reminders, weight reminders, daily review, diet pattern detection). `notification-manager` owns all reminder lifecycle management.
 
 Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
 

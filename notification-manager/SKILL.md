@@ -53,7 +53,7 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 12 * * *"
 ```
 
-`--tz` auto-detects from the agent workspace's `timezone.json`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
+`--tz` auto-detects from the agent workspace's `USER.md`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
 
 ### Parameters
 
@@ -82,8 +82,8 @@ The script resolves the delivery target (`--to`) based on the channel:
 | Others | No auto-detection — must pass `--to` explicitly | `--to "123456789"` |
 
 Timezone auto-detection searches these paths in order:
-1. `~/.openclaw/workspace-$AGENT/timezone.json`
-2. `~/.openclaw/workspace-nutritionist/$AGENT/timezone.json`
+1. `~/.openclaw/workspace-$AGENT/USER.md`
+2. `~/.openclaw/workspace-nutritionist/$AGENT/USER.md`
 
 Then calls `openclaw cron add` with `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically.
 
@@ -140,15 +140,22 @@ Use the cron tool directly for listing and removing:
    - **Stale jobs** (cron exists but its time doesn't match any current meal time) → remove then recreate.
    - **Legacy jobs** (cron exists and time matches, but `--message` references `daily-notification` or `daily-notification-skill` instead of `notification-composer`) → remove then recreate with the correct `notification-composer` message. This ensures old cron jobs from before the skill split are automatically migrated.
    - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
-4. Also verify the weight reminder cron job exists (Mon & Thu, 30 min before breakfast — see § "Weight reminders" below). Create if missing.
+4. Also verify weight reminder cron jobs exist — see § "Weight reminders" below. This includes the primary (Wed & Sat morning), evening followup (Wed & Sat after dinner), and next-morning followup (Thu & Sun morning). Create any that are missing.
 5. Also verify the weekly report cron job exists (Sunday 21:00 — see § "Weekly report" below). Create if missing.
-5. Do all of this **silently** — do not mention it to the user.
+6. **Diet pattern detection** — special handling:
+   - Read `health-profile.md > Automation > Pattern Detection Completed`
+   - If has a date → job already completed. If job still exists, remove it (stale).
+   - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it.
+   - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
+7. Do all of this **silently** — do not mention it to the user.
 
 ---
 
 ## Cron Job Definitions
 
-Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `timezone.json`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `USER.md`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+
+> ⚠️ **Cron expressions use the user's LOCAL time. Do NOT convert to UTC.** The script sets `--tz` automatically, so the cron scheduler handles timezone conversion. Example: if meal is at 09:00 Beijing time, the cron expression is `45 8 * * *` (08:45 local), NOT `45 0 * * *`.
 
 Every meal cron `--message` MUST tell the agent to run `notification-composer` for that meal. Keep it minimal — notification-composer owns pre-send checks, message composition, and reply handling. Do not duplicate its rules in the cron message.
 
@@ -171,16 +178,36 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "45 17 * * *"
 ```
 
-### Weight reminders (2x/week)
+### Weight reminders (2x/week + followups)
 
-Cron time = breakfast time minus **30 min** (not 15 min like meals). Derive from `health-profile.md > Meal Schedule`.
+**Primary reminder:** Cron time = breakfast time minus **30 min**. Fires Wed & Sat.
 
 ```bash
 # Example assumes breakfast at 07:00 → weight cron at 06:30
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --type weight --name "Weight check-in reminder" \
   --message "Run notification-composer for weight." \
-  --cron "30 6 * * 1,4"
+  --cron "30 6 * * 3,6"
+```
+
+**Evening followup:** Cron time = dinner time plus **30 min**. Fires same days (Wed & Sat). Only sends if the user did NOT weigh in that day — reminds them to weigh tomorrow morning. Pre-send-check uses `weight_evening` type.
+
+```bash
+# Example assumes dinner at 18:30 → evening followup at 19:00
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --type weight --name "Weight evening followup" \
+  --message "Run notification-composer for weight_evening." \
+  --cron "0 19 * * 3,6"
+```
+
+**Next-morning followup:** Cron time = breakfast time minus **30 min**. Fires Thu & Sun (day after primary). Only sends if the user did NOT weigh in yesterday OR today. Pre-send-check uses `weight_morning_followup` type.
+
+```bash
+# Example assumes breakfast at 07:00 → morning followup at 06:30
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --type weight --name "Weight morning followup" \
+  --message "Run notification-composer for weight_morning_followup." \
+  --cron "30 6 * * 4,0"
 ```
 
 ### Weekly report (Sunday 9 PM)
@@ -194,24 +221,43 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 21 * * 0"
 ```
 
+### Diet pattern detection (self-destructing, onboarding + 3 days)
+
+One-time diet pattern analysis. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = same as daily review (dinner + 3h).
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Diet pattern detection" \
+  --message "Run diet-pattern-detection skill." \
+  --cron "0 21 * * *"
+```
+
+**Not included in normal auto-sync** — this job is managed by its own lifecycle:
+- Created once at onboarding (by notification-manager)
+- Self-deleted by diet-pattern-detection skill after successful execution
+- See auto-sync special handling below
+
 ---
 
 ## Lifecycle: Active → Recall → Silent
 
 ```
-Stage 1: ACTIVE — normal reminders
+Stage 1: ACTIVE — normal reminders (Day 2-3: morning nudge + normal recommendation)
     │
-    └── 2 full calendar days: zero replies + zero messages
+    └── 3 full calendar days: zero replies + zero messages
            │
-Stage 2: PAUSE — stop all reminders, send first recall
+Stage 2: RECALL — stop normal reminders, send daily recall (Day 4-6)
+    │       First meal cron of the day: one recall message (no meal recommendations)
+    │       Subsequent meal crons + weight: suppressed
+    │       Tone escalation: Day 4 clingy → Day 5 fake angry → Day 6 pouty/vulnerable
     │
     ├── User replies → back to Stage 1
     └── 3 days, no reply
            │
-Stage 3: SECOND RECALL — one final message
+Stage 3: FINAL RECALL — one last emotional message
     │
     ├── User replies → back to Stage 1
-    └── No reply → Stage 4
+    └── 1 day, no reply → Stage 4
            │
 Stage 4: SILENT — send nothing. Wait for user to return.
 ```
@@ -220,10 +266,27 @@ Recall replaces the next meal reminder slot — don't send at random hours.
 Weight reminders also stop at Stage 2. Write current stage to
 `data/engagement.json > notification_stage`.
 
-**Stage transition logic:** This skill periodically checks `data/engagement.json > last_interaction`
-to detect when the user has gone silent. When a stage transition occurs, update
-`data/engagement.json > notification_stage`. The `notification-composer` reads this value to
-decide whether to send a normal reminder, a recall message, or nothing at all.
+**Stage transition logic:** Before every reminder, `notification-composer` calls this skill's
+stage-check script to update the engagement stage:
+
+```bash
+python3 {baseDir}/scripts/check-stage.py \
+  --workspace-dir {workspaceDir} \
+  --tz-offset {tz_offset}
+```
+
+The script scans `data/meals/*.json` to find the most recent date with a logged
+meal — this is the "last interaction". No platform-level timestamp needed; meal
+records are the ground truth. It calculates calendar days since that date and
+advances `notification_stage` when thresholds are met. It also resets to Stage 1
+when a silent user returns (new meal logged today/yesterday but stage > 1).
+
+The `notification-composer` then reads the updated stage to decide whether to
+send a normal reminder, a recall message, or nothing at all.
+
+During Stage 2 (Day 4-6), `notification-composer` sends one recall per day
+(morning only) and writes `last_recall_date` to `data/engagement.json`.
+After the final recall (Stage 3), it writes `recall_2_sent: true`.
 
 **When a silent user returns:**
 Reset to Stage 1. Resume normal reminders. The warm welcome message itself
@@ -323,6 +386,75 @@ on their next meal log.
 
 ---
 
+## Custom User Reminders
+
+Users may ask the AI to set arbitrary recurring or one-shot reminders unrelated
+to meals/weight (e.g., "每天给我讲个笑话", "提醒我周五交报告", "每天早上发条励志语录").
+
+### Naming Convention
+
+All custom reminders MUST use the `[custom]` prefix in their job name:
+- `[custom] 每日笑话`
+- `[custom] 周五交报告提醒`
+- `[custom] 早间励志语录`
+
+This distinguishes them from system reminders (meal/weight/weekly-report) and
+prevents accidental deletion of system jobs when users say "取消提醒".
+
+### Creating
+
+Use the same `create-cron.py` script with appropriate parameters:
+
+```bash
+python3 {baseDir}/scripts/create-cron.py \
+  --workspace-dir {workspaceDir} \
+  --name "[custom] 每日笑话" \
+  --message "给用户讲一个好笑的笑话，风格轻松幽默，每次不同。" \
+  --cron "0 9 * * *" \
+  --type meal
+```
+
+For one-shot reminders:
+```bash
+python3 {baseDir}/scripts/create-cron.py \
+  --workspace-dir {workspaceDir} \
+  --name "[custom] 周五交报告提醒" \
+  --message "提醒用户今天要交报告。" \
+  --at "2026-04-11T09:00:00+08:00" \
+  --type meal \
+  --delete-after
+```
+
+### Canceling
+
+When a user asks to stop a custom reminder (e.g., "别讲笑话了", "取消那个提醒"):
+
+1. `cron list` — find jobs with `[custom]` prefix matching the user's intent.
+2. `cron rm` — delete the matched job(s).
+3. Confirm: `"好的，已取消「每日笑话」提醒。"`
+
+**Important:** Only delete `[custom]` jobs. Never delete system reminders
+(meal/weight/weekly-report) unless the user explicitly asks to stop those
+(handled by § Reminder Settings Changes above).
+
+### Listing
+
+When a user asks "我设了哪些提醒" / "有哪些定时任务":
+
+1. `cron list` — filter for `[custom]` prefix jobs.
+2. Present as a simple list with name + schedule.
+3. Also mention system reminders separately if relevant.
+
+### Ambiguity
+
+If the user says "取消提醒" without specifying which one:
+- If only one `[custom]` job exists → cancel it and confirm.
+- If multiple `[custom]` jobs exist → list them and ask which to cancel.
+- If no `[custom]` jobs exist → assume they mean system reminders, defer to
+  § Reminder Settings Changes.
+
+---
+
 ## Workspace
 
 ### Reads
@@ -333,6 +465,8 @@ on their next meal log.
 | `data/engagement.json` | `last_interaction` | Stage detection |
 | `data/guided-feedback.json` | `queue`, `preference_signals` | Guided feedback scheduling |
 | `ai-preferences.md` | `Reminder Settings` | Act on user preference changes |
+| `data/meals/*.json` | `status` field per meal entry | Derive last interaction date (most recent logged meal) |
+| `data/engagement.json` | `stage_changed_at` | Stage transition timing |
 
 ### Writes
 

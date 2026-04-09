@@ -9,7 +9,8 @@ Usage:
   python3 pre-send-check.py --workspace-dir <path> --meal-type <type> --tz-offset <seconds>
 
   --workspace-dir   Agent workspace root (contains health-profile.md, data/, etc.)
-  --meal-type       One of: breakfast, lunch, dinner, meal_1, meal_2, weight
+  --meal-type       One of: breakfast, lunch, dinner, meal_1, meal_2, weight,
+                    weight_evening, weight_morning_followup
   --tz-offset       Timezone offset in seconds from UTC (e.g. 28800 for UTC+8)
 
 Exit code 0 always. Output is exactly "SEND" or "NO_REPLY" on stdout.
@@ -48,8 +49,16 @@ def check_health_profile(workspace_dir):
     return True, None
 
 
-def check_engagement_stage(workspace_dir):
-    """Check 2: user is not in silent mode (Stage 4)."""
+def check_engagement_stage(workspace_dir, meal_type, tz_offset):
+    """Check 2: engagement stage gating.
+
+    Stage 1 (ACTIVE):  SEND — normal reminder
+    Stage 2 (RECALL):  SEND once per day (first meal cron only, suppress rest)
+                        Weight reminders suppressed entirely.
+    Stage 3 (FINAL):   SEND once (first meal cron of the day, then suppress all)
+                        Weight reminders suppressed entirely.
+    Stage 4 (SILENT):  NO_REPLY — suppress everything
+    """
     path = os.path.join(workspace_dir, "data", "engagement.json")
     if not os.path.exists(path):
         # No engagement file = assume active (Stage 1)
@@ -64,6 +73,27 @@ def check_engagement_stage(workspace_dir):
             stage = stage_map.get(stage.lower(), 1)
         if stage >= 4:
             return False, f"notification_stage={stage} — user is in silent mode"
+
+        # Stage 2 & 3: suppress weight reminders entirely
+        if stage in (2, 3):
+            is_weight = meal_type in ("weight", "weight_evening", "weight_morning_followup")
+            if is_weight:
+                return False, f"notification_stage={stage} — weight reminders suppressed during recall"
+
+        if stage == 2:
+            # Stage 2: one recall per day — first meal cron triggers it,
+            # subsequent crons (any meal type) are suppressed
+            local_date = get_local_date(tz_offset)
+            last_recall_date = data.get("last_recall_date", "")
+            if last_recall_date == local_date:
+                return False, f"notification_stage=2, recall already sent today ({local_date})"
+            return True, None
+
+        if stage == 3:
+            if data.get("recall_2_sent", False):
+                return False, "notification_stage=3, final recall already sent — waiting for reply"
+            return True, None
+
         return True, None
     except (json.JSONDecodeError, IOError) as e:
         log(f"Warning: could not read engagement.json: {e}")
@@ -108,6 +138,38 @@ def check_meal_logged(workspace_dir, meal_type, tz_offset):
 def check_weight_logged(workspace_dir, tz_offset):
     """Check for weight: already weighed today?"""
     local_date = get_local_date(tz_offset)
+    return _weight_logged_on(workspace_dir, local_date)
+
+
+def check_weight_logged_today_for_followup(workspace_dir, tz_offset):
+    """Check for weight evening followup: suppress if user already weighed today."""
+    local_date = get_local_date(tz_offset)
+    logged, _ = _weight_logged_on(workspace_dir, local_date)
+    if not logged:
+        # Already weighed today → suppress the evening followup
+        return False, f"weight already logged today ({local_date}) — no evening followup needed"
+    return True, None
+
+
+def check_weight_logged_yesterday_or_today(workspace_dir, tz_offset):
+    """Check for weight morning followup: suppress if user weighed yesterday or today."""
+    tz = timezone(timedelta(seconds=tz_offset))
+    now = datetime.now(tz)
+    today = now.strftime("%Y-%m-%d")
+    yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    logged_today, _ = _weight_logged_on(workspace_dir, today)
+    logged_yesterday, _ = _weight_logged_on(workspace_dir, yesterday)
+
+    if not logged_today:
+        return False, f"weight already logged today ({today}) — no morning followup needed"
+    if not logged_yesterday:
+        return False, f"weight logged yesterday ({yesterday}) — no morning followup needed"
+    return True, None
+
+
+def _weight_logged_on(workspace_dir, date_str):
+    """Helper: check if weight was logged on a specific date. Returns (not_logged, reason)."""
     weight_file = os.path.join(workspace_dir, "data", "weight.json")
 
     if not os.path.exists(weight_file):
@@ -120,13 +182,24 @@ def check_weight_logged(workspace_dir, tz_offset):
         log(f"Warning: could not read weight.json: {e}")
         return True, None
 
-    # weight.json can be a list of entries or have a "records" key
-    records = data if isinstance(data, list) else data.get("records", [])
+    # weight.json keys are ISO-8601 datetimes; check date prefix
+    if isinstance(data, dict):
+        for key in data:
+            if key[:10] == date_str:
+                return False, f"weight logged on {date_str}"
 
+    # Also handle list format
+    if isinstance(data, list):
+        for record in data:
+            record_date = record.get("date", "")
+            if record_date == date_str:
+                return False, f"weight logged on {date_str}"
+
+    records = data.get("records", []) if isinstance(data, dict) else []
     for record in records:
         record_date = record.get("date", "")
-        if record_date == local_date:
-            return False, f"weight already logged today ({local_date})"
+        if record_date == date_str:
+            return False, f"weight logged on {date_str}"
 
     return True, None
 
@@ -270,7 +343,8 @@ def main():
     parser.add_argument("--workspace-dir", required=True, help="Agent workspace root")
     parser.add_argument("--meal-type", required=True,
                         choices=["breakfast", "lunch", "dinner", "meal_1", "meal_2",
-                                 "weight", "guided-feedback"],
+                                 "weight", "weight_evening", "weight_morning_followup",
+                                 "guided-feedback"],
                         help="Meal type to check")
     parser.add_argument("--tz-offset", required=True, type=int,
                         help="Timezone offset in seconds from UTC")
@@ -287,7 +361,7 @@ def main():
 
         checks = [
             ("health_profile", lambda: check_health_profile(args.workspace_dir)),
-            ("engagement_stage", lambda: check_engagement_stage(args.workspace_dir)),
+            ("engagement_stage", lambda: check_engagement_stage(args.workspace_dir, args.meal_type, args.tz_offset)),
             ("guided_feedback", lambda: check_guided_feedback(
                 args.workspace_dir, args.question_id)),
         ]
@@ -310,7 +384,8 @@ def main():
 
     checks = [
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
-        ("engagement_stage", lambda: check_engagement_stage(args.workspace_dir)),
+        ("engagement_stage", lambda: check_engagement_stage(
+            args.workspace_dir, args.meal_type, args.tz_offset)),
         ("health_flags", lambda: check_health_flags(args.workspace_dir, args.meal_type)),
         ("scheduling", lambda: check_scheduling_constraints(
             args.workspace_dir, args.meal_type, args.tz_offset)),
@@ -319,6 +394,12 @@ def main():
     # Add meal-specific or weight-specific check
     if args.meal_type == "weight":
         checks.append(("weight_logged", lambda: check_weight_logged(
+            args.workspace_dir, args.tz_offset)))
+    elif args.meal_type == "weight_evening":
+        checks.append(("weight_logged_today", lambda: check_weight_logged_today_for_followup(
+            args.workspace_dir, args.tz_offset)))
+    elif args.meal_type == "weight_morning_followup":
+        checks.append(("weight_logged_yesterday_or_today", lambda: check_weight_logged_yesterday_or_today(
             args.workspace_dir, args.tz_offset)))
     else:
         checks.append(("meal_logged", lambda: check_meal_logged(

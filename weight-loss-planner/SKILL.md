@@ -61,7 +61,7 @@ Calculate the following using the planner-calc script — do not ask the user fo
 
 **Use the calculation script** (`python3 {baseDir}/scripts/planner-calc.py`) instead of computing manually. Available commands:
 
-> 📅 **Date handling:** Read `timezone.json` to get `tz_offset`. Pass `--tz-offset {tz_offset}` to `forward-calc` and `reverse-calc` so completion dates are computed from the user's local date. **Never compute dates yourself.**
+> 📅 **Date handling:** Read `TZ Offset` from USER.md (already in context). Pass `--tz-offset {tz_offset}` to `forward-calc` and `reverse-calc` so completion dates are computed from the user's local date. **Never compute dates yourself.**
 
 ```bash
 # Individual calculations:
@@ -161,7 +161,6 @@ Present the plan following this exact structure. Use bullet points (•), not ta
   • 身高 / 体重 / 年龄 / 性别
   • 目标体重
   • 活动等级（用口语描述，不要用 sedentary / lightly_active 等英文字段名）
-  • 运动习惯（如有）
 
 **[Body metrics block]** — **Path B (standalone) only:** BMI has not been shown yet. Include after the user info block:
   • Current BMI: [X.X] ([classification per regional standard])
@@ -174,7 +173,7 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 **[Plan details block]** — "你的计划：" followed by bullet list:
 • 每日热量目标：[X,XXX] 大卡
 • 每日热量缺口：约 [XXX] 大卡
-• 每周减重速度：约 [X.X] kg / [X.X] 斤
+• 每周减脂速度：约 [X.X] kg / [X.X] 斤
 • 预计完成：[具体月份 + 年份] — single date only. If the user gave a target weight range, use the upper bound (easier target) as the completion date. Mention the lower bound as a follow-on milestone in the rate explanation if relevant.
 
 > **Note:** Do NOT include per-meal split or macro targets (protein/fat/carb) at this stage. Those will be calculated after the user accepts the plan and chooses a diet mode.
