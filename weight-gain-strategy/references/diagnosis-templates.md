@@ -15,6 +15,11 @@ Tone: curious and light, not accusatory.
 - **Logging gaps:** "No meal logs for {X} days — even a detective needs clues!"
 - **Water retention:** "That jump is suspiciously sudden — likely water playing tricks. Give it a few days."
 - **Normal fluctuation:** "Totally normal fluctuation — bodies aren't machines!"
+- **Calorie volatility (binge-restrict):** "Your calories are like a rollercoaster — {high_days} days over {target+300}, {low_days} days under {target×0.6}. The average looks OK but your body hates the swings — it stores fat when it senses famine coming."
+- **Calorie volatility (general):** "Daily intake ranges from {min} to {max} kcal (std dev {std}) — that's a big swing. Consistency matters more than the average number."
+- **Protein deficit:** "You're averaging {avg}g protein/day — your body needs at least {recommended}g to maintain muscle. Without enough protein, you lose muscle instead of fat, and your metabolism slows down."
+- **Food quality issues:** AI analyzes the raw food list from `diagnosis.food_quality.recent_foods` and generates specific observations. Example: "Processed/high-sodium food showed up on most days — {specific items}. These cause water retention even when calories are fine."
+- **Insufficient data:** "Only {logged_days} days logged in the last {window} days, and {single_meal_days} of those only have 1 meal. Need more complete records before I can diagnose — let's focus on logging first."
 - **Behavioral pattern shift:** When a habit change is detected (e.g., user stopped their usual evening walks, started ordering delivery more often, shifted dinner to later), call it out gently: "Looks like dinner has been creeping later — that can throw off your body's rhythm."
 
 ## Consequence Lines
@@ -38,6 +43,6 @@ Immediately follow the consequence with a positive, aspirational pull tied to th
 | Calorie creep | "No single meal is the villain here — just a tiny trim and the math starts working for you again." |
 | Processed food / high sodium | AI generates based on specific foods: "你最近{具体食物}吃了不少，钠含量高容易存水。换几顿新鲜的，体重可能很快就回来。" |
 | Low protein | "蛋白质不够容易饿、容易掉肌肉，基础代谢也会慢慢降。每餐加一份蛋白质，饱腹感和效果都会好很多。" |
-| Calorie volatility (binge/restrict) | "你的热量忽高忽低——有几天吃很少，有几天又猛吃。身体应激反应会让代谢变慢，反而更容易存脂肪。稳定比少吃更重要。" |
+| Calorie volatility (binge/restrict) | "Your body doesn't want perfection — it wants predictability. Just hitting 'close enough' every day beats feast-or-famine." |
 | Calorie volatility (high std dev) | "每天热量波动挺大的，身体不太好适应这种节奏。试试每天吃得均匀一点？" |
-| Insufficient data | "记录还不太全，我没法准确分析。先把每天的饭都拍给我，咱们下次再看趋势。" |
+| Insufficient data | "Think of logging as giving me clues — the more I see, the better I can help. Even a quick photo works!" |

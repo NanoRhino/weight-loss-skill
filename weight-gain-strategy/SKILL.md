@@ -74,6 +74,8 @@ Script path: `python3 {baseDir}/scripts/analyze-weight-trend.py`
 Commands: `analyze`, `deviation-check`, `save-strategy`, `check-strategy`.
 See `references/script-api.md` for full usage, parameters, and return schemas.
 
+> ⚠️ **`deviation-check` anti-repeat:** If `weight-gain-strategy.json` contains an `active_strategy` (status=active, end_date ≥ today), cause-check and significant triggers are suppressed (returns `severity: "none", reason: "active_strategy"`). comfort level is unaffected — a simple reassurance is still appropriate even during an active strategy.
+
 ---
 
 ## Safety Rules
