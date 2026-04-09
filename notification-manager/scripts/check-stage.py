@@ -122,11 +122,14 @@ def get_last_logged_date(workspace_dir):
     date_pattern = re.compile(r"(\d{4}-\d{2}-\d{2})\.json$")
     logged_dates = []
 
+    today_str = datetime.now().strftime("%Y-%m-%d")
     for filepath in glob.glob(os.path.join(meals_dir, "*.json")):
         match = date_pattern.match(os.path.basename(filepath))
         if not match:
             continue
         date_str = match.group(1)
+        if date_str > today_str:
+            continue  # skip future dates
         try:
             with open(filepath) as f:
                 meals = json.load(f)
