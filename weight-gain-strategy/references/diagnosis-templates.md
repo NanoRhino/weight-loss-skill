@@ -38,3 +38,6 @@ Immediately follow the consequence with a positive, aspirational pull tied to th
 | Calorie creep | "No single meal is the villain here — just a tiny trim and the math starts working for you again." |
 | Processed food / high sodium | AI generates based on specific foods: "你最近{具体食物}吃了不少，钠含量高容易存水。换几顿新鲜的，体重可能很快就回来。" |
 | Low protein | "蛋白质不够容易饿、容易掉肌肉，基础代谢也会慢慢降。每餐加一份蛋白质，饱腹感和效果都会好很多。" |
+| Calorie volatility (binge/restrict) | "你的热量忽高忽低——有几天吃很少，有几天又猛吃。身体应激反应会让代谢变慢，反而更容易存脂肪。稳定比少吃更重要。" |
+| Calorie volatility (high std dev) | "每天热量波动挺大的，身体不太好适应这种节奏。试试每天吃得均匀一点？" |
+| Insufficient data | "记录还不太全，我没法准确分析。先把每天的饭都拍给我，咱们下次再看趋势。" |
