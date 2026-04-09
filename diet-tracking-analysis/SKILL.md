@@ -111,6 +111,10 @@ Recognize what the user ate, estimate nutrition, then call `log-meal` to save.
 #### 1.1 Collect input
 Merge consecutive messages into a single input before proceeding.
 
+**Photo food naming rule:** When identifying food from a photo, if the food's interior/filling/flavor is NOT visible (e.g., steamed buns, dumplings, zongzi, mooncakes, sandwiches, wraps, stuffed pastries), you MUST use the **generic name** (e.g., "包子", "饺子", "粽子") in the `foods` array, NOT a specific variant (e.g., NOT "鲜肉包", NOT "猪肉饺"). This ensures the ambiguous-food clarification system triggers correctly. Only use a specific variant name if:
+- The user explicitly stated the filling/type in text, OR
+- The filling/type is clearly visible in the photo (e.g., cross-section showing red bean paste)
+
 #### 1.2 Determine meal type
 If user explicitly states meal type ("breakfast", "this is lunch", "早餐", "这是午饭") → pass as `--meal-type`. User's statement always takes priority, even if it contradicts the time of day. Otherwise **always omit** — let the script auto-detect. **Do NOT infer meal type yourself. Do NOT retry log-meal with a different meal-type.** One call is enough; trust the script's result.
 
