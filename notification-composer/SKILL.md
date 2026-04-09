@@ -142,15 +142,18 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 ### 生成流程
 
-#### Step A：组合开场白（连续打卡）
+#### Step A：组合开场白（连续打卡）— 仅早餐
 
 > ⚠️ **Step A 独立于 Step B/C 的 evaluation 流程。无论 evaluation 是否可用、无论是否降级，Step A 的开场白都必须执行。**
+> ⚠️ **Step A 只在 meal_type=breakfast 时执行。午餐和晚餐不提连续打卡、不提里程碑。**
 
-调用 `{streak-tracker:baseDir}/scripts/streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}`：
+当 meal_type 为 breakfast 时，调用 `{streak-tracker:baseDir}/scripts/streak-calc.py info --data-dir {workspaceDir}/data/meals --workspace-dir {workspaceDir} --tz-offset {tz_offset}`：
 
 - `pending_milestone` 不为 null → **里程碑庆祝**（更大能量，1-2 句，用 🎉）。发送后调用 `streak-calc.py celebrate --milestone <n>`。
 - `pending_milestone` 为 null 且 `current_streak >= 2` → **每日连续打卡开场白**：简短一句，展示天数（`current_streak - 1`，因为今天的餐还没打）+ 后半句关于越来越了解用户饮食习惯的自由发挥。**不用 🎉，不用"里程碑"、"达成"等庆祝词。** 语气是日常的，不是庆祝的。示例："连续第7天啦～越来越了解你的口味了" / "又是新的一天，第4天打卡开始～"
 - `current_streak < 2` → 正常开场白（不提打卡天数）。
+
+当 meal_type 为 lunch/dinner/其他：跳过 Step A，直接进 Step B。不调用 streak-calc.py，不提连续天数。
 
 #### Step B：读取 evaluation
 
@@ -180,7 +183,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 **evaluation 不可用（降级）：**
 
-> ⚠️ **降级只影响消息正文（Step C），不影响 Step A 的开场白。如果 Step A 产生了 streak/milestone 开场白，必须保留并拼接在降级内容前面。**
+> ⚠️ **降级只影响消息正文（Step C），不影响 Step A 的开场白。如果 Step A 产生了 streak/milestone 开场白（仅早餐），必须保留并拼接在降级内容前面。**
 
 先调用 `nutrition-calc.py meal-history --data-dir {workspaceDir}/data/meals --days 30 --meal-type {current_meal} --tz-offset {tz_offset}` 获取 `same_weekday_last_week`。Tier 1 时读取 `health-preferences.md` 过滤过敏/不喜欢的食物。
 
