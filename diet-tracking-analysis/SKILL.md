@@ -196,8 +196,19 @@ If the user message may trigger multiple skills, read `SKILL-ROUTING.md`. This s
 📝 [餐次] logged! → 🍽 This meal: XXX kcal | Protein Xg | Carbs Xg | Fat Xg → · Food — portion — XXX kcal
 
 ### ② Nutrition Summary (from `evaluate`)
-📊 So far today: XXX kcal [status] | Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
-Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers.
+📊 So far today:
+🔥 XXX/TARGET kcal
+███████░░░ XX%
+Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+
+**Calorie progress bar rules:**
+- Fixed 10 chars: `█` = filled, `░` = remaining
+- Each char = 10% of daily target (round to nearest)
+- ≤100%: normal display
+- >100%: all 10 filled + show surplus `(+XXX)` + `⚠️`
+  Example: `🔥 2,100/1,800 kcal (+300)` → `██████████ 117% ⚠️`
+
+Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar which shows both).
 CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~XXXg ✅/⬇️ — low → suggest at next meal; fruit only at final meal.
 1-sentence comment bridging to ③. Optional `✨ Nice work` line if food choices noteworthy.
 
