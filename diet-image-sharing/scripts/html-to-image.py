@@ -103,7 +103,7 @@ def main():
     parser.add_argument("input", help="Input HTML file path")
     parser.add_argument("output", nargs="?", default=None,
                         help="Output PNG file path (default: same name as input)")
-    parser.add_argument("--scale", type=int, default=2,
+    parser.add_argument("--scale", type=int, default=3,
                         help="Scale factor for retina output (default: 2)")
     args = parser.parse_args()
 

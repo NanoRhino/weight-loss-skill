@@ -89,11 +89,11 @@ Convert the HTML card to a PNG image using WeasyPrint + PyMuPDF:
 uv run {baseDir}/scripts/html-to-image.py \
   {workspaceDir}/data/diet-cards/daily-diet-{date}.html \
   {workspaceDir}/data/diet-cards/daily-diet-{date}.png \
-  --scale 2
+  --scale 3
 ```
 
 - No browser binary required — uses WeasyPrint (HTML→PDF) + PyMuPDF (PDF→PNG).
-- `--scale 2` produces retina-quality output (2x resolution).
+- `--scale 3` produces high-resolution output (~1035px wide, sharp on retina screens).
 - Bottom whitespace is auto-trimmed.
 
 ### Step 4: Upload & Send
