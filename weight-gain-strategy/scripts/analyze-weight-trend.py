@@ -306,34 +306,13 @@ def analyze(args):
     if abs(net_change) < 0.3:
         normal_fluctuation["detected"] = True
 
-    # --- Diagnose: processed food / high sodium ---
-    PROCESSED_KEYWORDS = [
-        "方便面", "泡面", "杯面", "速食", "炸鸡", "炸", "薯条", "薯片",
-        "培根", "午餐肉", "火腿肠", "香肠", "丸子", "汉堡", "披萨",
-        "可乐", "雪碧", "奶茶", "蛋糕", "饼干", "巧克力", "冰淇淋",
-        "辣条", "卤味", "烧烤", "烤串", "麻辣烫", "外卖",
-        "fried", "instant noodle", "burger", "pizza", "chips", "soda",
-        "bacon", "sausage", "hot dog", "fries", "nugget",
-    ]
-    processed_food = {
-        "detected": False,
-        "processed_count": 0,
+    # --- Food quality: output raw food list for AI analysis ---
+    # No keyword matching — AI judges food quality from the list
+    food_quality_data = {
         "total_food_count": len(all_food_names),
-        "processed_ratio": 0.0,
-        "processed_items": [],
-        "note": "High processed food intake may cause water retention from sodium and inflammation",
+        "recent_foods": list(set(all_food_names))[:30],  # dedupe, cap at 30
+        "note": "AI should analyze food quality: processed/high-sodium items, variety, cooking methods. Script provides data only.",
     }
-    if all_food_names:
-        processed_items = []
-        for name in all_food_names:
-            name_lower = name.lower()
-            if any(kw in name_lower for kw in PROCESSED_KEYWORDS):
-                processed_items.append(name)
-        processed_food["processed_count"] = len(processed_items)
-        processed_food["processed_ratio"] = round(len(processed_items) / len(all_food_names), 2)
-        processed_food["processed_items"] = list(set(processed_items))[:10]  # dedupe, cap at 10
-        if processed_food["processed_ratio"] >= 0.3 or len(processed_items) >= 5:
-            processed_food["detected"] = True
 
     # --- Diagnose: low protein ---
     low_protein = {
@@ -368,7 +347,7 @@ def analyze(args):
         "exercise_decline": exercise_diagnosis,
         "logging_gaps": logging_gaps,
         "possible_water_retention": water_retention,
-        "processed_food": processed_food,
+        "food_quality": food_quality_data,
         "low_protein": low_protein,
         "normal_fluctuation": normal_fluctuation,
     }
@@ -379,16 +358,17 @@ def analyze(args):
     else:
         if calorie_diagnosis["detected"]:
             top_factors.append("calorie_surplus")
-        if processed_food["detected"]:
-            top_factors.append("processed_food")
         if low_protein["detected"]:
             top_factors.append("low_protein")
         if exercise_diagnosis["detected"]:
             top_factors.append("exercise_decline")
         if logging_gaps["detected"]:
             top_factors.append("logging_gaps")
-        if water_retention["detected"] and not calorie_diagnosis["detected"] and not processed_food["detected"]:
+        if water_retention["detected"] and not calorie_diagnosis["detected"]:
             top_factors.append("possible_water_retention")
+        # food_quality is ALWAYS included when foods exist — AI decides if it's a problem
+        if food_quality_data["total_food_count"] > 0:
+            top_factors.append("food_quality")
 
     # --- Generate suggested strategies ---
     strategies = []
@@ -422,24 +402,6 @@ def analyze(args):
             "target_minutes_per_session": 30,
             "duration_days": 7,
             "expected_impact": "~150-300 kcal additional burn per session",
-        })
-
-    if processed_food["detected"]:
-        strategies.append({
-            "type": "reduce_processed",
-            "description": "Replace processed foods with whole foods",
-            "processed_items": processed_food["processed_items"],
-            "processed_ratio": processed_food["processed_ratio"],
-            "duration_days": 14,
-            "expected_impact": "Reduced sodium → less water retention, better satiety",
-            "habit_suggestion": {
-                "action_id": "swap-processed-food",
-                "description": "每天至少一餐用新鲜食材替代加工食品",
-                "trigger": "lunch or dinner",
-                "behavior": "选一餐把加工食品换成鸡胸肉/鱼/蔬菜",
-                "trigger_cadence": "daily_fixed",
-                "bound_to_meal": "lunch",
-            },
         })
 
     if low_protein["detected"]:
