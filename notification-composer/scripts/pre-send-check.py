@@ -196,6 +196,41 @@ def check_scheduling_constraints(workspace_dir, meal_type, tz_offset):
     return True, None
 
 
+def _auto_mark_asked(workspace_dir, question_id):
+    """Auto-update guided-feedback status to 'asked' and write short-term hint.
+    
+    Called inside pre-send-check after all checks pass, so agent doesn't need to
+    manually call guided-feedback-state.py update --new-status asked.
+    """
+    # Find guided-feedback-state.py
+    gf_script = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        '..', 'notification-manager', 'scripts', 'guided-feedback-state.py')
+    gf_script = os.path.normpath(gf_script)
+    
+    if not os.path.isfile(gf_script):
+        log(f"Warning: guided-feedback-state.py not found at {gf_script}")
+        return
+    
+    try:
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, gf_script,
+             '--workspace-dir', workspace_dir,
+             '--tz-offset', '28800',
+             'update',
+             '--question-id', question_id,
+             '--new-status', 'asked'],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            log(f"Auto-marked '{question_id}' as asked + wrote short-term hint")
+        else:
+            log(f"Warning: failed to mark asked: {result.stderr}")
+    except Exception as e:
+        log(f"Warning: auto-mark-asked failed: {e}")
+
+
 def check_guided_feedback(workspace_dir, question_id):
     """Check for guided-feedback: question still in scheduled status and not covered."""
     gf_path = os.path.join(workspace_dir, "data", "guided-feedback.json")
@@ -265,6 +300,11 @@ def main():
                 return
 
         log("All guided-feedback checks passed")
+        
+        # Auto-update status to "asked" and write short-term hint
+        # This is done here (not by agent) because agent often skips the update step
+        _auto_mark_asked(args.workspace_dir, args.question_id)
+        
         print("SEND")
         return
 
