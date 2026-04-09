@@ -411,7 +411,9 @@ Present the following message (adapt to the user's meal schedule):
 >
 > 不用追求完美，照着食谱吃、吃之前告诉我一声就行。我来帮你微调 👍
 >
-> 除了打卡指导外，你想让我做什么都可以直接说，比如提醒喝水，给食物购买建议等等。觉得我哪里做得不好也随时告诉我，比如推荐的东西不合口味、监督力度太小了，语气太温和了，说了我就改。
+> 💡 除了打卡指导外，你想让我做什么都可以直接说，比如提醒喝水，给食物购买建议等等。
+>
+> 🔧 觉得我哪里做得不好也随时告诉我，比如推荐的东西不合口味、监督力度太小了、语气太温和了，说了我就改。
 
 English equivalent:
 
@@ -424,7 +426,9 @@ English equivalent:
 >
 > Don't stress about perfection — just follow the plan and tell me what you're having before you eat. I'll fine-tune from there 👍
 >
-> Beyond meal tracking, just tell me whatever you need — like water reminders or grocery tips. And if anything feels off — recommendations don't suit your taste, I'm not pushing you hard enough, or my tone is too soft — just let me know and I'll adjust.
+> 💡 Beyond meal tracking, just tell me whatever you need — like water reminders or grocery tips.
+>
+> 🔧 And if anything feels off — recommendations don't suit your taste, I'm not pushing you hard enough, or my tone is too soft — just let me know and I'll adjust.
 
 ### WeChat Pin Guidance (WeChat channel only)
 
@@ -436,21 +440,14 @@ lost at the bottom of a long message.
 If the user's channel is `wechat` (from `channel-source.json`):
 
 > 对了，建议把小犀牛的对话**置顶**，这样打卡提醒来了第一时间能看到，不容易被别的消息淹掉。
->
-> 接下来几天你先正常用着，用了几天之后我会问你一些感受，帮我了解怎么配合你更舒服。
 
 English equivalent (for non-WeChat or English users, adapt as appropriate):
 
 > By the way — I'd suggest pinning this chat so my reminders don't get buried.
->
-> Just use it normally for the next few days — after a bit I'll ask how it's going so I can adjust to your style.
 
-**Purpose:** The pin reminder increases retention. The preview of "I'll ask
-for your feedback later" sets the expectation that the AI is customizable
-and primes the user for the guided-feedback questions.
+**Purpose:** The pin reminder increases retention.
 
-If the channel is not WeChat, skip the pin suggestion but still include
-the preview line ("接下来几天你先正常用着...").
+If the channel is not WeChat, skip the pin suggestion entirely.
 
 ---
 

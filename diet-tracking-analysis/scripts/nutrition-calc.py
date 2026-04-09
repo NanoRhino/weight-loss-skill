@@ -487,7 +487,7 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
                     with open(channel_src) as csf:
                         cs = json.load(csf)
                     channel = cs.get("channel", "wechat")
-                    to_id = cs.get("senderId", "")
+                    to_id = cs.get("peerId", "") or cs.get("senderId", "")
                 # Infer agent-id from workspace dir name
                 ws_basename = os.path.basename(os.path.normpath(ws))
                 if ws_basename.startswith("workspace-"):

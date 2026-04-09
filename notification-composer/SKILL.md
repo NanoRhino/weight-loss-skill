@@ -188,7 +188,8 @@ Cron message: `"Run notification-composer for guided-feedback <question-id>."`
 3. Run state script: `update --question-id <id> --new-status answered --answer <user's reply>`
 4. Update `ai-preferences.md` with the mapped preference value
 5. Check if `chain_next` is returned — if so, immediately compose and send the next question in the chain
-6. Clear `memory/short-term.json` guided-feedback hint (state script does this automatically on `answered`)
+6. If `chain_next` is null and this was the last question in a chain, append the **Chain Completion Message** from `references/guided-feedback-templates.md` to your confirmation reply
+7. Clear `memory/short-term.json` guided-feedback hint (state script does this automatically on `answered`)
 
 ---
 

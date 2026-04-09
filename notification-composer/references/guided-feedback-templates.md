@@ -8,9 +8,11 @@ naturally for other locales.
 ### `reminder-timing` (chain 1 head)
 
 ```
-你已经打了 {total_check_ins} 次卡了，慢慢有感觉了吧 😊 想了解一下你的使用感受，我好调整配合你的节奏。
+你已经打了 {total_check_ins} 次卡了，已经有感觉了吧 😊 想了解一下你的使用感受，我好调整配合你的节奏。
 
-现在是饭前 15 分钟提醒你，你觉得这个时间：
+💬 除了我接下来问的，如果你有其他哪里用着不顺手也尽管说，磨合磨合才越来越默契～
+
+先问一个关于提醒的，现在是饭前 15 分钟提醒你，你觉得这个时间：
 1. 挺好的，刚刚好
 2. 太晚了，想提前 30 分钟收到
 3. 再早点，提前 1 小时提醒我
@@ -82,6 +84,25 @@ naturally for other locales.
 ```
 用了好几天了，整体感觉怎么样？有没有什么想让我调整的？比如说话方式、提醒频率、推荐内容……什么都行。没有的话也完全 OK 👍
 ```
+
+## Chain Completion Messages
+
+When the last question in a chain is answered, append this to your confirmation reply.
+
+### After Chain 1 (reminder-style answered)
+
+```
+收到！你的偏好我都记下了 📝
+以后用着觉得哪里不对，随时跟我说一声就能改，不用忍着～
+```
+
+### After Chain 2 (advice-intensity answered)
+
+```
+好嘞，都记住了 ✌️ 后面有什么想调的，直接说就行，我随时能改～
+```
+
+---
 
 ## Answer → Preference Mapping
 
