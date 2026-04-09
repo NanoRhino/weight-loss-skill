@@ -59,7 +59,7 @@ Write to `habits.daily_log.{date}`.
 - User confirms they don't need reminders anymore
 
 On graduation: celebrate lightly, move to `habits.graduated`, stop active
-tracking. Occasionally check in via Weekly Review.
+tracking. **Delete associated cron jobs** (any cron with label `habit:<habit_id>`). Occasionally check in via Weekly Review.
 
 ## Failure and restart
 
@@ -71,8 +71,8 @@ Surface gently at next natural moment:
 | Choice | Action |
 |--------|--------|
 | Keep going | Reset tracking. "Fresh start, no catch-up." |
-| Make it easier | Shrink further. "5 min → how about just stepping outside?" |
-| Try something different | Back to recommendation flow. |
+| Make it easier | Shrink further. "5 min → how about just stepping outside?" Update cron prompt to match new habit. |
+| Try something different | Back to recommendation flow. **Delete old cron jobs** (label `habit:<old_habit_id>`), create new ones for replacement. |
 
 **Never say:** "You failed" / "You broke your streak" / "Don't give up" /
 "You were doing so well" / "No pressure"
