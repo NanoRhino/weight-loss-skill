@@ -77,23 +77,20 @@ python3 {baseDir}/scripts/pre-send-check.py \
 - `recall_count = 2` → 第三次召回（Day 6 委屈卖萌语气）
 
 发送后：
-1. 写入 `last_recall_date: "{today}"` 到 `data/engagement.json`（防止同一天重复发送）
-2. 将 `recall_count` +1 写入 `data/engagement.json`（追踪召回进度）
+1. 将 `recall_count` +1 写入 `data/engagement.json`（追踪召回进度）
 
-**去重：** 发送前检查 `last_recall_date`，如果等于今天则回复 `NO_REPLY`。
+> ⚠️ **`last_recall_date` 由 `pre-send-check.py` 自动写入，agent 无需读取或写入此字段做去重判断。**
 
 **完整语气指南和示例 → `references/recall-messages.md`**
 
 #### Stage 3 → 每周召回（第 2-4 周）
 
-**频率：** 每周一次。读 `data/engagement.json > last_recall_date`，如果距今不到 7 天则回复 `NO_REPLY`。
+**频率：** 每周一次（由 `pre-send-check.py` 通过 `last_recall_date` 自动控制间隔，agent 无需判断）。
 
 **语气：** 比 Stage 2 更轻，不再撒娇或假装生气。像一个朋友偶尔想起你，发条消息问候。保持食物主题。
 
 **规则：**
-- 每周只发一条（第一个 meal cron 发，其余 NO_REPLY）
-- 通过 `last_recall_date` 控制间隔（≥ 7 天才发）
-- 发送后更新 `last_recall_date: "{today}"`
+- 每周只发一条（第一个 meal cron 发，其余由 pre-send-check 拦截）
 - 持续 3 周后进入 Stage 4
 
 **示例语气：**
@@ -103,14 +100,12 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 #### Stage 4 → 每月召回
 
-**频率：** 每月一次。读 `data/engagement.json > last_recall_date`，如果距今不到 30 天则回复 `NO_REPLY`。
+**频率：** 每月一次（由 `pre-send-check.py` 通过 `last_recall_date` 自动控制间隔，agent 无需判断）。
 
 **语气：** 最轻最淡。像很久没联系的朋友发的一条关心。不期待回复，但让用户知道你还在。
 
 **规则：**
-- 每月只发一条（第一个 meal cron 发，其余 NO_REPLY）
-- 通过 `last_recall_date` 控制间隔（≥ 30 天才发）
-- 发送后更新 `last_recall_date: "{today}"`
+- 每月只发一条（第一个 meal cron 发，其余由 pre-send-check 拦截）
 - 总沉默满 90 天后进入 Stage 5
 
 **示例语气：**
