@@ -189,7 +189,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 **严格模式：** 如果 `habits.active` 中有 `strict: true` 且 `source: "weight-gain-strategy"` 的习惯，**读取 `weight-gain-strategy/references/strict-mode.md` 并遵循其中所有 notification-composer 相关行为**。
 
-> 习惯签到由 `habit-builder` 技能负责（见其 § "How Habits Get Into Conversations"）。本技能提供餐食对话作为载体。
+> 习惯签到由 `habit-builder` 技能负责（见其 § "How Habits Get Into Conversations"）。本技能提供餐食对话作为载体。**如果有 habit mention，放在消息最末尾单独一行，不要嵌在中间。**
 
 ### 温柔提醒（Gentle Nudge）
 

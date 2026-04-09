@@ -37,6 +37,7 @@ description: >
 Habits appear inside meal conversations. No separate reminders. Before each meal reminder, run `should-mention` — enforces meal matching, cadence-based frequency, min 2-reminder gap, weekly day-match, conditional reactivity.
 
 - One sentence max. Tone: casual friend. Record response to `habits.daily_log.{date}`.
+- **Placement: habit mention goes at the END of the message as a standalone closing line** (like a PS). Do NOT bury it in the middle. Example: "中午吃什么拍给我看看～\n\n对了，记得加份蛋白质哦 🥚"
 - `strict: true` habits (from weight-gain-strategy): week-1 frequency for 2 weeks. See `weight-gain-strategy/references/strict-mode.md`.
 
 → Full type table, frequency phases, examples: `references/habit-details.md`
