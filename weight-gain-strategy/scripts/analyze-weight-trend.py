@@ -382,24 +382,15 @@ def analyze(args):
     # --- Suggested actions (concrete, script-driven, not AI judgment) ---
     suggested_actions = []
 
-    # Logging insufficient → strict mode + logging habit
+    # Logging insufficient → strict mode (no new habit — meal reminders already exist)
     ls = logging_stats
     if ls["coverage_pct"] < 50 or (ls["logged_days"] > 0 and ls["single_meal_days"] / ls["logged_days"] > 0.5):
         suggested_actions.append({
             "type": "strict_mode",
             "reason": "logging_gaps",
-            "description": "Logging coverage too low or most days only have 1 meal — enter strict mode + build logging habit",
+            "description": "Enter strict mode — existing meal reminders become more insistent, no new cron needed",
             "stats": {"coverage_pct": ls["coverage_pct"], "single_meal_days": ls["single_meal_days"],
                       "logged_days": ls["logged_days"]},
-            "habit": {
-                "action_id": "log-every-meal",
-                "description": "每餐拍照打卡，至少记录午餐和晚餐",
-                "trigger": "meal time",
-                "behavior": "吃饭前先拍一张照片发给我",
-                "trigger_cadence": "every_meal",
-                "bound_to_meal": None,
-                "strict": True,
-            },
         })
 
     # Calorie target missing → need onboarding

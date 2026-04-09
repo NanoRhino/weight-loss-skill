@@ -82,11 +82,11 @@ Structure: **"I will do X" + "you do Y"**
 | **Weekend overeating** | Weekend meal check-in reminder | Photo-log weekend meals | "I'll check in on weekends to see what you ate — just snap a photo for me. No need to restrict, just let me see it." |
 | **Exercise decline** | Exercise check-in mid-week | Restore one specific session | "I'll check in Wednesday to see if you ran — just add that one session back. That's it, just the one." |
 | **Late-night eating** | Evening check-in before kitchen-closes time | Move last meal earlier | "I'll ping you at 8 PM to ask if you're done eating — try to wrap up dinner before 8. Sound fair?" |
-| **Logging gaps** | Daily meal-log reminder, gentler tone | Log one specific meal daily | "From now on, tell me everything you eat — start with lunch and dinner, just a photo is fine!" |
+| **Logging gaps** | Enter strict mode (existing meal reminders become more insistent) | Respond to every meal reminder | "三餐提醒我都会发，你回复就好——严格模式启动，我会盯紧一点 😤" |
 | **Food quality issues** (AI-identified) | Review meals more carefully, flag specific items | Swap specific problematic foods per AI's suggestion | AI generates personalized suggestion based on actual food list. Example: "你最近方便面吃了好几次了，钠太高容易水肿。试试换成挂面煮个青菜鸡蛋面？" |
 | **Low protein** | Check protein in each meal review | Add one protein source per meal | "你的蛋白质摄入有点低哦，容易饿也容易掉肌肉。试试每餐加一份蛋白质——鸡蛋、鸡胸、豆腐都行，我帮你留意📸" |
 | **Calorie volatility** | Daily calorie range check-in | Keep daily intake within ±200 kcal of target | "你的热量忽高忽低，身体会应激。这周试试每天都吃到{目标}附近，不用完美，稳就行。我每天帮你看📊" |
-| **Insufficient data** | More proactive photo-log invitations | Log at least 2 meals per day | "我现在掌握的线索太少了，没法帮你分析。这周每天至少拍两餐给我，我才能当好你的营养侦探🔍" |
+| **Insufficient data** | Enter strict mode (same as logging gaps) | Respond to every meal reminder | "数据不够我没法分析——先把三餐都回复给我，一周后我再帮你看" |
 
 ### Pact rules
 
@@ -158,7 +158,7 @@ The AI side of the pact must be enforced with actual cron reminders. Use the not
 | **Food quality issues** | `0 12 * * *` + `0 18 * * *` (午餐晚餐前) | `[custom] habit-checkin: {AI根据具体食物生成的个性化提醒}` |
 | **Low protein** | `0 12 * * *` (午餐前) | `[custom] habit-checkin: 这顿有蛋白质吗？鸡蛋/鸡胸/鱼/豆腐 选一个加上～💪` |
 | **Calorie volatility** | `0 12 * * *` + `0 18 * * *` (午餐晚餐前) | `[custom] habit-checkin: 今天吃到{目标}附近了吗？稳定最重要📊` |
-| **Insufficient data** | `0 12 * * *` + `0 18 * * *` (午餐晚餐前) | `[custom] habit-checkin: 这顿吃了什么？拍张照给我看看📸` |
+| **Insufficient data** | 已有三餐 cron，进入严格模式即可，无需额外 cron |
 
 **Cron 创建方法：** 使用 `openclaw cron add` 命令：
 

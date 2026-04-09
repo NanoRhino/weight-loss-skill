@@ -66,7 +66,20 @@ The `analyze` command outputs **raw statistics only** — no `detected: true/fal
 | `suggested_actions` | Concrete script-driven actions (not AI judgment) | Strict mode, set calorie target, suppress strategy |
 
 > ⚠️ **`suggested_actions` are deterministic rules, not AI opinions:**
-> - `strict_mode`: coverage < 50% or >50% single-meal days → enter strict mode (see `references/strict-mode.md`)
+> - `strict_mode`: coverage < 50% or >50% single-meal days → enter strict mode (see `references/strict-mode.md`). Do NOT create new meal reminder crons — they already exist. Strict mode makes existing reminders more insistent.
+> - `set_calorie_target`: no calorie target set → cannot do surplus analysis
+> - `suppress_new_strategy`: active strategy hasn't expired → don't start a new cause-check
+
+> 🎯 **AI creates targeted habits based on analysis — NOT generic meal reminders:**
+> After analyzing the raw data, the AI identifies the specific problem and creates a habit that addresses it. Examples:
+> - Protein low → habit: "每餐加一份蛋白质（鸡蛋/鸡胸/豆腐）"
+> - Calorie volatility (binge/restrict) → habit: "每天吃到{目标}附近，不跳餐"
+> - Late-night eating pattern → habit: "8点前吃完晚饭"
+> - Weekend overeating → habit: "周末拍照打卡，不多不少"
+> - Food quality issues → habit: specific swap based on actual foods (e.g. "方便面换成挂面煮蛋")
+> - Snacking excess → habit: specific swap (e.g. "下午零食换成酸奶/坚果")
+>
+> **NEVER create habits for:** meal logging reminders, weight check-ins, or anything that already has a cron job.
 > - `set_calorie_target`: no calorie target set → cannot do surplus analysis
 > - `suppress_new_strategy`: active strategy hasn't expired → don't start a new cause-check
 
