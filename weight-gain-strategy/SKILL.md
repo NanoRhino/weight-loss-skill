@@ -63,6 +63,12 @@ The `analyze` command outputs **raw statistics only** — no `detected: true/fal
 | `food_list` | Raw food names (dedupe, up to 50) | Food quality, variety, processed patterns |
 | `data_confidence` | sufficient flag, issues list | Whether to analyze or ask for more data first |
 | `active_strategy` | Current strategy type/dates if active | Whether to suppress new interventions |
+| `suggested_actions` | Concrete script-driven actions (not AI judgment) | Strict mode, set calorie target, suppress strategy |
+
+> ⚠️ **`suggested_actions` are deterministic rules, not AI opinions:**
+> - `strict_mode`: coverage < 50% or >50% single-meal days → enter strict mode (see `references/strict-mode.md`)
+> - `set_calorie_target`: no calorie target set → cannot do surplus analysis
+> - `suppress_new_strategy`: active strategy hasn't expired → don't start a new cause-check
 
 > ⚠️ **AI-driven analysis:** The script provides numbers; the AI decides what they mean. A std_dev of 967 kcal might be binge/restrict — or a user transitioning diets. The AI considers context.
 
