@@ -379,6 +379,36 @@ def analyze(args):
                     "description": act.get("description"),
                 }
 
+    # --- Suggested actions (concrete, script-driven, not AI judgment) ---
+    suggested_actions = []
+
+    # Logging insufficient → strict mode candidate
+    ls = logging_stats
+    if ls["coverage_pct"] < 50 or (ls["logged_days"] > 0 and ls["single_meal_days"] / ls["logged_days"] > 0.5):
+        suggested_actions.append({
+            "type": "strict_mode",
+            "reason": "logging_gaps",
+            "description": "Logging coverage too low or most days only have 1 meal — consider strict mode",
+            "stats": {"coverage_pct": ls["coverage_pct"], "single_meal_days": ls["single_meal_days"],
+                      "logged_days": ls["logged_days"]},
+        })
+
+    # Calorie target missing → need onboarding
+    if not calorie_target:
+        suggested_actions.append({
+            "type": "set_calorie_target",
+            "reason": "no_target",
+            "description": "No calorie target set — cannot assess surplus/deficit",
+        })
+
+    # Active strategy exists → suppress new interventions
+    if active_strategy:
+        suggested_actions.append({
+            "type": "suppress_new_strategy",
+            "reason": "active_strategy",
+            "description": f"Active strategy until {active_strategy['ends']} — no new cause-check needed",
+        })
+
     # --- Final output ---
     result = {
         "trend": trend,
@@ -390,6 +420,7 @@ def analyze(args):
         "weight_pattern": weight_pattern,
         "food_list": food_list,
         "active_strategy": active_strategy,
+        "suggested_actions": suggested_actions,
     }
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
