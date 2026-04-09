@@ -103,7 +103,13 @@ def parse_display_unit(health_profile_path):
 
 
 def analyze(args):
-    """Analyze weight trend and diagnose causes."""
+    """Extract raw statistics for AI-driven weight gain analysis.
+
+    This function does NOT make diagnostic judgments (no detected: true/false).
+    It outputs raw numbers, lists, and statistics. The AI interprets these
+    in context (user history, lifestyle, chat context) to determine causes.
+    """
+    import statistics
     tz_offset = args.tz_offset
     local_now = get_local_now(tz_offset)
     window = args.window
@@ -205,19 +211,9 @@ def analyze(args):
         "readings": readings,
     }
 
-    # --- Diagnose: calorie surplus ---
-    calorie_diagnosis = {
-        "detected": False,
-        "avg_daily_intake": None,
-        "target": calorie_target,
-        "surplus_kcal": None,
-        "days_over_target": 0,
-        "days_total": 0,
-    }
-
+    # --- Collect meal data ---
     daily_cals = []
-    all_food_names = []  # collect food names for quality analysis
-    daily_protein = []   # collect daily protein totals
+    all_food_names = []
     for day_offset in range(window):
         d = (local_now - timedelta(days=window - 1 - day_offset)).strftime("%Y-%m-%d")
         meal_path = os.path.join(args.data_dir, "meals", f"{d}.json")
@@ -246,10 +242,8 @@ def analyze(args):
             if day_cal > 0:
                 daily_cals.append({"date": d, "cal": day_cal, "protein": day_prot,
                                    "meal_count": day_meal_count, "food_names": day_food_names})
-            if day_prot > 0:
-                daily_protein.append({"date": d, "protein": day_prot})
 
-    # --- Data confidence check ---
+    # --- Data confidence ---
     data_confidence = {
         "sufficient": True,
         "issues": [],
@@ -274,278 +268,132 @@ def analyze(args):
         data_confidence["sufficient"] = False
         data_confidence["issues"].append("no_data")
 
-    # --- Early exit if data insufficient ---
-    if not data_confidence["sufficient"]:
-        result = {
-            "trend": {"direction": "unknown", "net_change": 0},
-            "data_confidence": data_confidence,
-            "top_factors": ["insufficient_data"],
-            "diagnosis": {},
-            "suggested_strategies": [{"type": "improve_logging", "description": "先完善饮食记录再分析"}],
-        }
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-        return
+    # === RAW STATISTICS OUTPUT (no diagnostic judgments) ===
+    # AI interprets these numbers in context to determine causes.
 
+    # --- Calorie statistics ---
+    calorie_stats = {
+        "calorie_target": calorie_target,
+        "logged_days": len(daily_cals),
+        "avg_daily_intake": 0,
+        "min_daily_intake": 0,
+        "max_daily_intake": 0,
+        "std_dev": 0,
+        "days_over_target": 0,
+        "days_under_60pct_target": 0,
+        "daily_breakdown": [],  # [{date, cal, protein, meal_count}]
+    }
     if daily_cals:
-        avg_intake = round(sum(c["cal"] for c in daily_cals) / len(daily_cals))
-        calorie_diagnosis["avg_daily_intake"] = avg_intake
-        calorie_diagnosis["days_total"] = len(daily_cals)
-
+        cals = [c["cal"] for c in daily_cals]
+        calorie_stats["avg_daily_intake"] = round(sum(cals) / len(cals))
+        calorie_stats["min_daily_intake"] = round(min(cals))
+        calorie_stats["max_daily_intake"] = round(max(cals))
+        if len(cals) > 1:
+            calorie_stats["std_dev"] = round(statistics.stdev(cals))
         if calorie_target:
-            surplus = avg_intake - calorie_target
-            calorie_diagnosis["surplus_kcal"] = surplus
-            calorie_diagnosis["days_over_target"] = sum(
-                1 for c in daily_cals if c["cal"] > calorie_target
-            )
-            if surplus > 50:
-                calorie_diagnosis["detected"] = True
+            calorie_stats["days_over_target"] = sum(1 for c in cals if c > calorie_target)
+            calorie_stats["days_under_60pct_target"] = sum(1 for c in cals if c < calorie_target * 0.6)
+        calorie_stats["daily_breakdown"] = [
+            {"date": d["date"], "cal": round(d["cal"]), "protein": round(d.get("protein", 0)),
+             "meal_count": d.get("meal_count", 0)}
+            for d in daily_cals
+        ]
 
-    # --- Diagnose: exercise decline ---
-    exercise_diagnosis = {
-        "detected": False,
+    # --- Protein statistics ---
+    protein_stats = {
+        "user_weight_kg": float(readings[-1].get("value", 0)) if readings else None,
+        "recommended_daily_g": None,
+        "avg_daily_g": 0,
+        "days_with_protein_data": 0,
+        "days_below_70pct": 0,
+    }
+    if readings:
+        w = float(readings[-1].get("value", 0))
+        protein_stats["recommended_daily_g"] = round(w * 1.2, 1)
+    protein_data = [d for d in daily_cals if d.get("protein", 0) > 0]
+    if protein_data:
+        avg_p = sum(d["protein"] for d in protein_data) / len(protein_data)
+        protein_stats["avg_daily_g"] = round(avg_p, 1)
+        protein_stats["days_with_protein_data"] = len(protein_data)
+        rec = protein_stats["recommended_daily_g"]
+        if rec:
+            protein_stats["days_below_70pct"] = sum(1 for d in protein_data if d["protein"] < rec * 0.7)
+
+    # --- Exercise statistics ---
+    exercise_stats = {
         "current_week_sessions": 0,
         "previous_week_sessions": 0,
         "current_week_minutes": 0,
         "previous_week_minutes": 0,
     }
+    exercise_path = os.path.join(args.data_dir, "exercise.json")
+    if os.path.exists(exercise_path):
+        ex_data = load_json(exercise_path)
+        entries = ex_data if isinstance(ex_data, list) else ex_data.get("entries", [])
+        current_week_start = (local_now - timedelta(days=local_now.weekday())).strftime("%Y-%m-%d")
+        prev_week_start = (local_now - timedelta(days=local_now.weekday() + 7)).strftime("%Y-%m-%d")
+        current_sessions = [e for e in entries if e.get("date", "") >= current_week_start]
+        previous_sessions = [e for e in entries if prev_week_start <= e.get("date", "") < current_week_start]
+        exercise_stats["current_week_sessions"] = len(current_sessions)
+        exercise_stats["previous_week_sessions"] = len(previous_sessions)
+        exercise_stats["current_week_minutes"] = sum(e.get("duration_minutes", 0) for e in current_sessions)
+        exercise_stats["previous_week_minutes"] = sum(e.get("duration_minutes", 0) for e in previous_sessions)
 
-    exercise_data = load_json(os.path.join(args.data_dir, "exercise.json"))
-    if isinstance(exercise_data, list):
-        exercises = exercise_data
-    elif isinstance(exercise_data, dict):
-        exercises = exercise_data.get("entries", exercise_data.get("sessions", []))
-    else:
-        exercises = []
-
-    current_week_start = (local_now - timedelta(days=7)).strftime("%Y-%m-%d")
-    previous_week_start = (local_now - timedelta(days=14)).strftime("%Y-%m-%d")
-
-    current_sessions = []
-    previous_sessions = []
-
-    for ex in exercises:
-        ex_date = ex.get("date", ex.get("datetime", ""))[:10]
-        if current_week_start <= ex_date <= end_date:
-            current_sessions.append(ex)
-        elif previous_week_start <= ex_date < current_week_start:
-            previous_sessions.append(ex)
-
-    cur_minutes = sum(e.get("duration", e.get("duration_minutes", 0)) or 0 for e in current_sessions)
-    prev_minutes = sum(e.get("duration", e.get("duration_minutes", 0)) or 0 for e in previous_sessions)
-
-    exercise_diagnosis["current_week_sessions"] = len(current_sessions)
-    exercise_diagnosis["previous_week_sessions"] = len(previous_sessions)
-    exercise_diagnosis["current_week_minutes"] = cur_minutes
-    exercise_diagnosis["previous_week_minutes"] = prev_minutes
-
-    if len(previous_sessions) > 0 and len(current_sessions) < len(previous_sessions):
-        exercise_diagnosis["detected"] = True
-    elif prev_minutes > 0 and cur_minutes < prev_minutes * 0.6:
-        exercise_diagnosis["detected"] = True
-
-    # --- Diagnose: logging gaps ---
-    logging_gaps = {
-        "detected": False,
-        "unlogged_days": 0,
-        "total_days": window,
-    }
-    logged_days = len(daily_cals)
-    unlogged = window - logged_days
-    logging_gaps["unlogged_days"] = unlogged
-    if unlogged > window * 0.5:
-        logging_gaps["detected"] = True
-
-    # --- Diagnose: water retention ---
-    water_retention = {
-        "detected": False,
-        "note": "Sudden spike >= 0.5 kg in 1-2 days without calorie surplus",
-    }
-    if len(readings) >= 2:
-        for i in range(1, len(readings)):
-            prev_val = float(readings[i - 1].get("value", readings[i - 1].get("display_value", 0)))
-            curr_val = float(readings[i].get("value", readings[i].get("display_value", 0)))
-            if curr_val - prev_val >= 0.5 and not calorie_diagnosis["detected"]:
-                water_retention["detected"] = True
-                break
-
-    # --- Diagnose: normal fluctuation ---
-    normal_fluctuation = {
-        "detected": False,
-        "note": "Net change < 0.3 kg over the analysis window with no sustained trend",
-    }
-    if abs(net_change) < 0.3:
-        normal_fluctuation["detected"] = True
-
-    # --- Diagnose: calorie volatility ---
-    import statistics
-    calorie_volatility = {
-        "detected": False,
-        "high_days": 0,
-        "low_days": 0,
-        "std_dev": 0,
-        "pattern": None,
-    }
-    if daily_cals and calorie_target and data_confidence["sufficient"]:
-        cals = [c["cal"] for c in daily_cals]
-        std = statistics.stdev(cals) if len(cals) > 1 else 0
-        high = sum(1 for c in cals if c > calorie_target + 300)
-        low = sum(1 for c in cals if c < calorie_target * 0.6)
-        calorie_volatility["std_dev"] = round(std)
-        calorie_volatility["high_days"] = high
-        calorie_volatility["low_days"] = low
-        if high >= 2 and low >= 2:
-            calorie_volatility["detected"] = True
-            calorie_volatility["pattern"] = "binge_restrict"
-        elif std > 400:
-            calorie_volatility["detected"] = True
-
-    # --- Food quality: output raw food list for AI analysis ---
-    # No keyword matching — AI judges food quality from the list
-    food_quality_data = {
-        "total_food_count": len(all_food_names),
-        "recent_foods": list(set(all_food_names))[:30],  # dedupe, cap at 30
-        "note": "AI should analyze food quality: processed/high-sodium items, variety, cooking methods. Script provides data only.",
+    # --- Logging coverage ---
+    logging_stats = {
+        "window_days": window,
+        "logged_days": len(daily_cals),
+        "coverage_pct": round(len(daily_cals) / window * 100) if window > 0 else 0,
+        "single_meal_days": sum(1 for d in daily_cals if d.get("meal_count", 0) <= 1),
+        "unlogged_days": window - len(daily_cals),
     }
 
-    # --- Diagnose: low protein ---
-    low_protein = {
-        "detected": False,
-        "avg_daily_protein": None,
-        "recommended_protein": None,
-        "deficit_g": None,
-        "note": "Insufficient protein can increase hunger, reduce satiety, and cause muscle loss",
+    # --- Weight pattern ---
+    weight_pattern = {
+        "largest_daily_jump": 0,
+        "largest_jump_dates": "",
     }
-    if daily_protein:
-        avg_prot = round(sum(p["protein"] for p in daily_protein) / len(daily_protein), 1)
-        low_protein["avg_daily_protein"] = avg_prot
-        # Try to get weight for recommended calculation (1.2g per kg)
-        weight_path = os.path.join(args.data_dir, "weight.json")
-        weight_data = load_json(weight_path)
-        user_weight = None
-        if readings:
-            user_weight = float(readings[-1].get("value", 0))
-        if user_weight:
-            recommended = round(user_weight * 1.2, 1)
-            low_protein["recommended_protein"] = recommended
-            deficit = round(recommended - avg_prot, 1)
-            low_protein["deficit_g"] = deficit
-            if avg_prot < recommended * 0.7:  # below 70% of recommended
-                low_protein["detected"] = True
+    sorted_readings = sorted(readings, key=lambda r: r["date"])
+    for i in range(1, len(sorted_readings)):
+        jump = abs(float(sorted_readings[i]["value"]) - float(sorted_readings[i-1]["value"]))
+        if jump > weight_pattern["largest_daily_jump"]:
+            weight_pattern["largest_daily_jump"] = round(jump, 2)
+            weight_pattern["largest_jump_dates"] = f"{sorted_readings[i-1]['date']} → {sorted_readings[i]['date']}"
 
-    # --- Build top factors ---
-    diagnosis = {
-        "calorie_surplus": calorie_diagnosis,
-        "calorie_volatility": calorie_volatility,
-        "exercise_decline": exercise_diagnosis,
-        "logging_gaps": logging_gaps,
-        "possible_water_retention": water_retention,
-        "food_quality": food_quality_data,
-        "low_protein": low_protein,
-        "normal_fluctuation": normal_fluctuation,
-    }
+    # --- Food list (raw, for AI quality analysis) ---
+    food_list = list(set(all_food_names))[:50]
 
-    top_factors = []
-    if normal_fluctuation["detected"]:
-        top_factors = ["normal_fluctuation"]
-    else:
-        if calorie_diagnosis["detected"]:
-            top_factors.append("calorie_surplus")
-        if calorie_volatility["detected"]:
-            top_factors.append("calorie_volatility")
-        if low_protein["detected"]:
-            top_factors.append("low_protein")
-        if exercise_diagnosis["detected"]:
-            top_factors.append("exercise_decline")
-        if logging_gaps["detected"]:
-            top_factors.append("logging_gaps")
-        if water_retention["detected"] and not calorie_diagnosis["detected"]:
-            top_factors.append("possible_water_retention")
-        # food_quality is ALWAYS included when foods exist — AI decides if it's a problem
-        if food_quality_data["total_food_count"] > 0:
-            top_factors.append("food_quality")
+    # --- Active strategy check ---
+    strategy_path = os.path.join(args.data_dir, "weight-gain-strategy.json")
+    active_strategy = None
+    if os.path.exists(strategy_path):
+        strat_data = load_json(strategy_path)
+        act = strat_data.get("active_strategy", {})
+        if act and act.get("status") == "active":
+            end_date_str = act.get("end_date", "")
+            if end_date_str >= local_now.strftime("%Y-%m-%d"):
+                active_strategy = {
+                    "type": act.get("type"),
+                    "started": act.get("start_date"),
+                    "ends": act.get("end_date"),
+                    "description": act.get("description"),
+                }
 
-    # --- Generate suggested strategies ---
-    strategies = []
-
-    if calorie_diagnosis["detected"] and calorie_target:
-        surplus = calorie_diagnosis["surplus_kcal"]
-        reduction = min(surplus, 300)  # Cap reduction at 300 kcal
-        new_target = calorie_target - reduction
-        # Enforce calorie floor (1000 kcal minimum)
-        new_target = max(new_target, 1000)
-        actual_reduction = calorie_target - new_target
-
-        if actual_reduction > 0:
-            strategies.append({
-                "type": "reduce_calories",
-                "description": f"Reduce daily intake by {actual_reduction} kcal",
-                "target_kcal": new_target,
-                "original_target_kcal": calorie_target,
-                "reduction_kcal": actual_reduction,
-                "duration_days": 7,
-                "expected_impact": f"~{round(actual_reduction * 7 / 7700, 2)} kg deficit per week",
-            })
-
-    if exercise_diagnosis["detected"] or (direction == "up" and not calorie_diagnosis["detected"]):
-        prev_sessions = exercise_diagnosis["previous_week_sessions"]
-        target_sessions = max(prev_sessions, 3)
-        strategies.append({
-            "type": "increase_exercise",
-            "description": f"Target {target_sessions} exercise sessions this week",
-            "target_sessions": target_sessions,
-            "target_minutes_per_session": 30,
-            "duration_days": 7,
-            "expected_impact": "~150-300 kcal additional burn per session",
-        })
-
-    if low_protein["detected"]:
-        deficit = low_protein["deficit_g"] or 0
-        strategies.append({
-            "type": "increase_protein",
-            "description": f"Increase daily protein by ~{round(deficit)}g",
-            "current_avg": low_protein["avg_daily_protein"],
-            "recommended": low_protein["recommended_protein"],
-            "deficit_g": deficit,
-            "duration_days": 14,
-            "expected_impact": "Better satiety, preserved muscle mass, reduced cravings",
-            "habit_suggestion": {
-                "action_id": "add-protein",
-                "description": "每餐确保有一份优质蛋白（鸡蛋/鸡胸/鱼/豆腐）",
-                "trigger": "every meal",
-                "behavior": "拍照前检查：这餐有蛋白质吗？",
-                "trigger_cadence": "every_meal",
-                "bound_to_meal": None,
-            },
-        })
-
-    if len(strategies) >= 2:
-        # Offer a combined option with more modest adjustments
-        combined_params = {}
-        if calorie_diagnosis["detected"] and calorie_target:
-            modest_reduction = min(100, calorie_diagnosis["surplus_kcal"])
-            combined_params["target_kcal"] = max(calorie_target - modest_reduction, 1000)
-            combined_params["reduction_kcal"] = calorie_target - combined_params["target_kcal"]
-        combined_params["target_sessions"] = max(
-            exercise_diagnosis["current_week_sessions"] + 1, 2
-        )
-        combined_params["target_minutes_per_session"] = 30
-        strategies.append({
-            "type": "combined",
-            "description": "Modest calorie reduction + 1 extra exercise session",
-            "params": combined_params,
-            "duration_days": 7,
-            "expected_impact": "Balanced approach — smaller changes, easier to sustain",
-        })
-
+    # --- Final output ---
     result = {
         "trend": trend,
         "data_confidence": data_confidence,
-        "diagnosis": diagnosis,
-        "top_factors": top_factors,
-        "suggested_strategies": strategies,
+        "calorie_stats": calorie_stats,
+        "protein_stats": protein_stats,
+        "exercise_stats": exercise_stats,
+        "logging_stats": logging_stats,
+        "weight_pattern": weight_pattern,
+        "food_list": food_list,
+        "active_strategy": active_strategy,
     }
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
+
 
 
 def save_strategy(args):
