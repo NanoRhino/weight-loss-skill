@@ -36,3 +36,5 @@ Immediately follow the consequence with a positive, aspirational pull tied to th
 | Late-night eating | "One small timing shift and your body gets way more time to do its thing overnight." |
 | Logging gaps | "Hard to win a game you're not keeping score in — but the fix is easy." |
 | Calorie creep | "No single meal is the villain here — just a tiny trim and the math starts working for you again." |
+| Processed food / high sodium | "加工食品里的钠含量很高，身体会多留住水分。换几顿新鲜食材，体重可能很快就回来了。" |
+| Low protein | "蛋白质不够容易饿、容易掉肌肉，基础代谢也会慢慢降。每餐加一份蛋白质，饱腹感和效果都会好很多。" |
