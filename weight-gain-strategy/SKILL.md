@@ -43,7 +43,7 @@ persistent the trend is.
 | `none` | 0 | Weight stable or down — just confirm the log. |
 | `comfort` | 1 | Comfort and encourage. Mention temporary causes lightly. See `references/diagnosis-templates.md` for examples. |
 | `cause-check` | 2–3 | Multi-step guided discovery: hook → user guesses → data + challenge → mutual pact → habit created in `habit-builder`. See `references/cause-check-flow.md`. |
-| `significant` | 4+ | Full analysis → strategy options. See `references/interactive-flow.md`. |
+| `significant` | 2–3 (7d after cause-check) or 4+ | Follow-up analysis with **承接感**. Reference the previous cause-check conversation ("上次我们聊过…"), note trend continued, escalate to strategy. When `previous_context` is present in script output, use it for callback tone. See `references/interactive-flow.md`. |
 
 ---
 

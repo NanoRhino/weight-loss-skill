@@ -641,7 +641,17 @@ def deviation_check(args):
         else:
             break
 
-    # --- Map streak to severity ---
+    # --- Map streak to severity (with cooldown-aware escalation) ---
+    # Load previous state for escalation logic
+    wgs_state_path = os.path.join(args.data_dir, "weight-gain-state.json")
+    wgs_state = {}
+    if os.path.exists(wgs_state_path):
+        try:
+            with open(wgs_state_path) as f:
+                wgs_state = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            wgs_state = {}
+
     if consecutive_increases == 0:
         severity = "none"
         triggered = False
@@ -649,9 +659,29 @@ def deviation_check(args):
         severity = "comfort"
         triggered = True
     elif consecutive_increases <= 3:
-        severity = "cause-check"
-        triggered = True
+        # Check if we should escalate to significant:
+        # Only if last trigger was cause-check AND >= 7 days ago
+        last_severity = wgs_state.get("last_severity", "")
+        last_trigger_date = wgs_state.get("last_trigger_date", "")
+        if last_severity == "cause-check" and last_trigger_date:
+            try:
+                days_since = (local_now.date() - datetime.strptime(
+                    last_trigger_date, "%Y-%m-%d"
+                ).date()).days
+                if days_since >= 7:
+                    severity = "significant"
+                    triggered = True
+                else:
+                    severity = "cause-check"
+                    triggered = True
+            except ValueError:
+                severity = "cause-check"
+                triggered = True
+        else:
+            severity = "cause-check"
+            triggered = True
     else:
+        # 4+ consecutive increases
         severity = "significant"
         triggered = True
 
@@ -671,16 +701,8 @@ def deviation_check(args):
             pass
 
     # --- Cooldown: skip if same severity was triggered recently ---
-    # comfort: 3 day cooldown, cause-check: 5 days, significant: 7 days
-    cooldown_map = {"comfort": 3, "cause-check": 5, "significant": 7}
-    wgs_state_path = os.path.join(args.data_dir, "weight-gain-state.json")
-    wgs_state = {}
-    if os.path.exists(wgs_state_path):
-        try:
-            with open(wgs_state_path) as f:
-                wgs_state = json.load(f)
-        except (json.JSONDecodeError, IOError):
-            wgs_state = {}
+    # comfort: 3 day cooldown, cause-check: 7 days, significant: 7 days
+    cooldown_map = {"comfort": 3, "cause-check": 7, "significant": 7}
 
     if triggered and severity in cooldown_map:
         last_trigger_date = wgs_state.get("last_trigger_date", "")
@@ -751,6 +773,22 @@ def deviation_check(args):
     # --- Latest increase amount ---
     latest_increase_kg = round(readings[-1]["value"] - readings[-2]["value"], 2)
 
+    # --- Build previous context for escalation callback ---
+    previous_context = None
+    if severity == "significant" and wgs_state.get("last_severity") == "cause-check":
+        previous_context = {
+            "last_trigger_date": wgs_state.get("last_trigger_date"),
+            "days_since_cause_check": None,
+            "message": "This is a follow-up. Last time we did a cause-check and identified potential issues. Reference that conversation — acknowledge what was discussed, note that the trend continued despite the analysis, and escalate to strategy suggestions. Do NOT repeat the same cause-check flow. The tone should show continuity: '上次我们聊过...' / '之前分析过一次...'",
+        }
+        if wgs_state.get("last_trigger_date"):
+            try:
+                previous_context["days_since_cause_check"] = (local_now.date() - datetime.strptime(
+                    wgs_state["last_trigger_date"], "%Y-%m-%d"
+                ).date()).days
+            except ValueError:
+                pass
+
     result = {
         "triggered": triggered,
         "severity": severity,
@@ -768,6 +806,9 @@ def deviation_check(args):
         "temporary_causes": temporary_causes,
         "deviation_context": deviation_context,
     }
+
+    if previous_context:
+        result["previous_context"] = previous_context
 
     if severity == "comfort":
         result["recommendation"] = (
