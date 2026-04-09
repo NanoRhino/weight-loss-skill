@@ -54,14 +54,16 @@ The `analyze` command evaluates these factors:
 | Factor | Detection | Strategy |
 |--------|-----------|----------|
 | `calorie_surplus` | Average intake > target by 50+ kcal | Reduce daily intake (max -300 kcal) |
+| `calorie_volatility` | Std dev > 400 kcal, or ≥2 binge + ≥2 restrict days | Stabilize daily intake pattern |
 | `food_quality` | Raw food list provided → **AI judges** | AI proposes specific swaps based on actual foods eaten |
 | `low_protein` | Avg protein < 70% of recommended (weight×1.2g) | Add protein source per meal |
 | `exercise_decline` | Current week < previous week sessions | Restore exercise sessions |
 | `logging_gaps` | <50% of days have logged meals | Strict mode + daily logging habit |
 | `possible_water_retention` | Sudden ≥0.5kg spike, no calorie surplus | Reassurance, wait it out |
 | `normal_fluctuation` | Net change < 0.3kg | Reassurance, no action |
+| `insufficient_data` | Coverage < 40% or >50% single-meal days | Improve logging first |
 
-> ⚠️ **`food_quality` is always included when food data exists.** The script outputs the raw food list; the AI must analyze it for: high-sodium/processed patterns, lack of variety, poor cooking methods, excessive sugar, etc. The AI decides if food quality is a contributing factor and proposes specific, personalized swap suggestions based on what the user actually ate — not generic advice.
+> ⚠️ **Data confidence gate:** When `data_confidence.sufficient = false`, analysis short-circuits — returns only `insufficient_data` factor and `improve_logging` strategy. No other diagnosis is attempted on unreliable data.
 
 ---
 

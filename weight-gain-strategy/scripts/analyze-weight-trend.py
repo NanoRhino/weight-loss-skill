@@ -199,10 +199,15 @@ def analyze(args):
             day_data = load_json(meal_path)
             day_cal = 0
             day_prot = 0
+            day_meal_count = 0
+            day_food_names = []
             meals = day_data if isinstance(day_data, list) else day_data.get("meals", [])
             for meal in meals:
                 if isinstance(meal, dict):
-                    day_cal += get_meal_calories(meal)
+                    mc = get_meal_calories(meal)
+                    day_cal += mc
+                    if mc > 0:
+                        day_meal_count += 1
                     foods = meal.get("foods", meal.get("items", []))
                     if foods:
                         for f in foods:
@@ -210,11 +215,50 @@ def analyze(args):
                                 name = f.get("name", "")
                                 if name:
                                     all_food_names.append(name)
+                                    day_food_names.append(name)
                                 day_prot += f.get("protein", 0) or 0
             if day_cal > 0:
-                daily_cals.append({"date": d, "cal": day_cal})
+                daily_cals.append({"date": d, "cal": day_cal, "protein": day_prot,
+                                   "meal_count": day_meal_count, "food_names": day_food_names})
             if day_prot > 0:
                 daily_protein.append({"date": d, "protein": day_prot})
+
+    # --- Data confidence check ---
+    data_confidence = {
+        "sufficient": True,
+        "issues": [],
+        "logged_days": len(daily_cals),
+        "window_days": window,
+        "coverage": round(len(daily_cals) / window, 2) if window > 0 else 0,
+        "avg_meals_per_day": 0,
+        "single_meal_days": 0,
+    }
+    if daily_cals:
+        avg_meals = sum(d["meal_count"] for d in daily_cals) / len(daily_cals)
+        single_meal = sum(1 for d in daily_cals if d["meal_count"] <= 1)
+        data_confidence["avg_meals_per_day"] = round(avg_meals, 1)
+        data_confidence["single_meal_days"] = single_meal
+        if data_confidence["coverage"] < 0.4:
+            data_confidence["sufficient"] = False
+            data_confidence["issues"].append("low_coverage")
+        if single_meal / len(daily_cals) > 0.5:
+            data_confidence["sufficient"] = False
+            data_confidence["issues"].append("incomplete_logging")
+    else:
+        data_confidence["sufficient"] = False
+        data_confidence["issues"].append("no_data")
+
+    # --- Early exit if data insufficient ---
+    if not data_confidence["sufficient"]:
+        result = {
+            "trend": {"direction": "unknown", "net_change": 0},
+            "data_confidence": data_confidence,
+            "top_factors": ["insufficient_data"],
+            "diagnosis": {},
+            "suggested_strategies": [{"type": "improve_logging", "description": "先完善饮食记录再分析"}],
+        }
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
 
     if daily_cals:
         avg_intake = round(sum(c["cal"] for c in daily_cals) / len(daily_cals))
@@ -306,6 +350,29 @@ def analyze(args):
     if abs(net_change) < 0.3:
         normal_fluctuation["detected"] = True
 
+    # --- Diagnose: calorie volatility ---
+    import statistics
+    calorie_volatility = {
+        "detected": False,
+        "high_days": 0,
+        "low_days": 0,
+        "std_dev": 0,
+        "pattern": None,
+    }
+    if daily_cals and calorie_target and data_confidence["sufficient"]:
+        cals = [c["cal"] for c in daily_cals]
+        std = statistics.stdev(cals) if len(cals) > 1 else 0
+        high = sum(1 for c in cals if c > calorie_target + 300)
+        low = sum(1 for c in cals if c < calorie_target * 0.6)
+        calorie_volatility["std_dev"] = round(std)
+        calorie_volatility["high_days"] = high
+        calorie_volatility["low_days"] = low
+        if high >= 2 and low >= 2:
+            calorie_volatility["detected"] = True
+            calorie_volatility["pattern"] = "binge_restrict"
+        elif std > 400:
+            calorie_volatility["detected"] = True
+
     # --- Food quality: output raw food list for AI analysis ---
     # No keyword matching — AI judges food quality from the list
     food_quality_data = {
@@ -344,6 +411,7 @@ def analyze(args):
     # --- Build top factors ---
     diagnosis = {
         "calorie_surplus": calorie_diagnosis,
+        "calorie_volatility": calorie_volatility,
         "exercise_decline": exercise_diagnosis,
         "logging_gaps": logging_gaps,
         "possible_water_retention": water_retention,
@@ -358,6 +426,8 @@ def analyze(args):
     else:
         if calorie_diagnosis["detected"]:
             top_factors.append("calorie_surplus")
+        if calorie_volatility["detected"]:
+            top_factors.append("calorie_volatility")
         if low_protein["detected"]:
             top_factors.append("low_protein")
         if exercise_diagnosis["detected"]:
@@ -445,6 +515,7 @@ def analyze(args):
 
     result = {
         "trend": trend,
+        "data_confidence": data_confidence,
         "diagnosis": diagnosis,
         "top_factors": top_factors,
         "suggested_strategies": strategies,
