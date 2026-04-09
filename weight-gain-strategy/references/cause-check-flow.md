@@ -155,9 +155,9 @@ The AI side of the pact must be enforced with actual cron reminders. Use the not
 | **Exercise decline** | `0 {time} * * {days}` (用户运动日) | `[custom] habit-checkin: 今天是运动日哦，{具体运动}安排上了吗？` |
 | **Late-night eating** | `0 20 * * *` (每天 20:00) | `[custom] habit-checkin: 厨房要关门啦🔒 晚饭吃完了吗？` |
 | **Logging gaps** | 已有三餐 cron，进入严格模式即可，无需额外 cron |
-| **Food quality issues** | `0 12 * * *` + `0 18 * * *` (午餐晚餐前) | `[custom] habit-checkin: {AI根据具体食物生成的个性化提醒}` |
-| **Low protein** | `0 12 * * *` (午餐前) | `[custom] habit-checkin: 这顿有蛋白质吗？鸡蛋/鸡胸/鱼/豆腐 选一个加上～💪` |
-| **Calorie volatility** | `0 12 * * *` + `0 18 * * *` (午餐晚餐前) | `[custom] habit-checkin: 今天吃到{目标}附近了吗？稳定最重要📊` |
+| **Food quality issues** | 不建新 cron — 通过 `should-mention` 嵌入三餐提醒 | notification-composer 自动在餐前提及 |
+| **Low protein** | 不建新 cron — 通过 `should-mention` 嵌入三餐提醒 | notification-composer 自动在餐前提及"这餐有蛋白质吗？" |
+| **Calorie volatility** | 不建新 cron — 通过 `should-mention` 嵌入三餐提醒 | notification-composer 自动提及"今天吃够了吗？" |
 | **Insufficient data** | 已有三餐 cron，进入严格模式即可，无需额外 cron |
 
 **Cron 创建方法：** 使用 `openclaw cron add` 命令：
