@@ -83,7 +83,7 @@ Structure: **"I will do X" + "you do Y"**
 | **Exercise decline** | Exercise check-in mid-week | Restore one specific session | "I'll check in Wednesday to see if you ran — just add that one session back. That's it, just the one." |
 | **Late-night eating** | Evening check-in before kitchen-closes time | Move last meal earlier | "I'll ping you at 8 PM to ask if you're done eating — try to wrap up dinner before 8. Sound fair?" |
 | **Logging gaps** | Daily meal-log reminder, gentler tone | Log one specific meal daily | "From now on, tell me everything you eat — start with lunch and dinner, just a photo is fine!" |
-| **Processed food / high sodium** | Flag processed food in meal reviews | Swap one processed item per day for whole food | "我发现你最近吃了不少加工食品，高钠容易水肿。这样吧，每天挑一餐把方便面/炸鸡换成鸡胸肉或鱼，我来帮你盯着📋" |
+| **Food quality issues** (AI-identified) | Review meals more carefully, flag specific items | Swap specific problematic foods per AI's suggestion | AI generates personalized suggestion based on actual food list. Example: "你最近方便面吃了好几次了，钠太高容易水肿。试试换成挂面煮个青菜鸡蛋面？" |
 | **Low protein** | Check protein in each meal review | Add one protein source per meal | "你的蛋白质摄入有点低哦，容易饿也容易掉肌肉。试试每餐加一份蛋白质——鸡蛋、鸡胸、豆腐都行，我帮你留意📸" |
 
 ### Pact rules
@@ -153,7 +153,7 @@ The AI side of the pact must be enforced with actual cron reminders. Use the not
 | **Exercise decline** | `0 {time} * * {days}` (用户运动日) | `[custom] habit-checkin: 今天是运动日哦，{具体运动}安排上了吗？` |
 | **Late-night eating** | `0 20 * * *` (每天 20:00) | `[custom] habit-checkin: 厨房要关门啦🔒 晚饭吃完了吗？` |
 | **Logging gaps** | 已有三餐 cron，进入严格模式即可，无需额外 cron |
-| **Processed food / high sodium** | `0 12 * * *` + `0 18 * * *` (午餐晚餐前) | `[custom] habit-checkin: 今天有没有用新鲜食材替代加工食品？拍给我看看🥦` |
+| **Food quality issues** | `0 12 * * *` + `0 18 * * *` (午餐晚餐前) | `[custom] habit-checkin: {AI根据具体食物生成的个性化提醒}` |
 | **Low protein** | `0 12 * * *` (午餐前) | `[custom] habit-checkin: 这顿有蛋白质吗？鸡蛋/鸡胸/鱼/豆腐 选一个加上～💪` |
 
 **Cron 创建方法：** 使用 `openclaw cron add` 命令：
