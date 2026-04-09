@@ -47,6 +47,22 @@ persistent the trend is.
 
 ---
 
+## Diagnosis Dimensions
+
+The `analyze` command evaluates these factors:
+
+| Factor | Detection | Strategy |
+|--------|-----------|----------|
+| `calorie_surplus` | Average intake > target by 50+ kcal | Reduce daily intake (max -300 kcal) |
+| `processed_food` | ≥30% processed items or ≥5 items flagged | Swap processed → whole foods habit |
+| `low_protein` | Avg protein < 70% of recommended (weight×1.2g) | Add protein source per meal |
+| `exercise_decline` | Current week < previous week sessions | Restore exercise sessions |
+| `logging_gaps` | <50% of days have logged meals | Strict mode + daily logging habit |
+| `possible_water_retention` | Sudden ≥0.5kg spike, no calorie surplus | Reassurance, wait it out |
+| `normal_fluctuation` | Net change < 0.3kg | Reassurance, no action |
+
+---
+
 ## Analysis Script
 
 Script path: `python3 {baseDir}/scripts/analyze-weight-trend.py`

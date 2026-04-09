@@ -190,18 +190,31 @@ def analyze(args):
     }
 
     daily_cals = []
+    all_food_names = []  # collect food names for quality analysis
+    daily_protein = []   # collect daily protein totals
     for day_offset in range(window):
         d = (local_now - timedelta(days=window - 1 - day_offset)).strftime("%Y-%m-%d")
         meal_path = os.path.join(args.data_dir, "meals", f"{d}.json")
         if os.path.exists(meal_path):
             day_data = load_json(meal_path)
             day_cal = 0
+            day_prot = 0
             meals = day_data if isinstance(day_data, list) else day_data.get("meals", [])
             for meal in meals:
                 if isinstance(meal, dict):
                     day_cal += get_meal_calories(meal)
+                    foods = meal.get("foods", meal.get("items", []))
+                    if foods:
+                        for f in foods:
+                            if isinstance(f, dict):
+                                name = f.get("name", "")
+                                if name:
+                                    all_food_names.append(name)
+                                day_prot += f.get("protein", 0) or 0
             if day_cal > 0:
                 daily_cals.append({"date": d, "cal": day_cal})
+            if day_prot > 0:
+                daily_protein.append({"date": d, "protein": day_prot})
 
     if daily_cals:
         avg_intake = round(sum(c["cal"] for c in daily_cals) / len(daily_cals))
@@ -293,12 +306,70 @@ def analyze(args):
     if abs(net_change) < 0.3:
         normal_fluctuation["detected"] = True
 
+    # --- Diagnose: processed food / high sodium ---
+    PROCESSED_KEYWORDS = [
+        "方便面", "泡面", "杯面", "速食", "炸鸡", "炸", "薯条", "薯片",
+        "培根", "午餐肉", "火腿肠", "香肠", "丸子", "汉堡", "披萨",
+        "可乐", "雪碧", "奶茶", "蛋糕", "饼干", "巧克力", "冰淇淋",
+        "辣条", "卤味", "烧烤", "烤串", "麻辣烫", "外卖",
+        "fried", "instant noodle", "burger", "pizza", "chips", "soda",
+        "bacon", "sausage", "hot dog", "fries", "nugget",
+    ]
+    processed_food = {
+        "detected": False,
+        "processed_count": 0,
+        "total_food_count": len(all_food_names),
+        "processed_ratio": 0.0,
+        "processed_items": [],
+        "note": "High processed food intake may cause water retention from sodium and inflammation",
+    }
+    if all_food_names:
+        processed_items = []
+        for name in all_food_names:
+            name_lower = name.lower()
+            if any(kw in name_lower for kw in PROCESSED_KEYWORDS):
+                processed_items.append(name)
+        processed_food["processed_count"] = len(processed_items)
+        processed_food["processed_ratio"] = round(len(processed_items) / len(all_food_names), 2)
+        processed_food["processed_items"] = list(set(processed_items))[:10]  # dedupe, cap at 10
+        if processed_food["processed_ratio"] >= 0.3 or len(processed_items) >= 5:
+            processed_food["detected"] = True
+
+    # --- Diagnose: low protein ---
+    low_protein = {
+        "detected": False,
+        "avg_daily_protein": None,
+        "recommended_protein": None,
+        "deficit_g": None,
+        "note": "Insufficient protein can increase hunger, reduce satiety, and cause muscle loss",
+    }
+    if daily_protein:
+        avg_prot = round(sum(p["protein"] for p in daily_protein) / len(daily_protein), 1)
+        low_protein["avg_daily_protein"] = avg_prot
+        # Try to get weight for recommended calculation (1.2g per kg)
+        weight_path = os.path.join(args.data_dir, "weight.json")
+        weight_data = load_json(weight_path)
+        user_weight = None
+        if weight_data:
+            latest_key = sorted(weight_data.keys())[-1]
+            v = weight_data[latest_key]
+            user_weight = float(v.get("value", v) if isinstance(v, dict) else v)
+        if user_weight:
+            recommended = round(user_weight * 1.2, 1)
+            low_protein["recommended_protein"] = recommended
+            deficit = round(recommended - avg_prot, 1)
+            low_protein["deficit_g"] = deficit
+            if avg_prot < recommended * 0.7:  # below 70% of recommended
+                low_protein["detected"] = True
+
     # --- Build top factors ---
     diagnosis = {
         "calorie_surplus": calorie_diagnosis,
         "exercise_decline": exercise_diagnosis,
         "logging_gaps": logging_gaps,
         "possible_water_retention": water_retention,
+        "processed_food": processed_food,
+        "low_protein": low_protein,
         "normal_fluctuation": normal_fluctuation,
     }
 
@@ -308,11 +379,15 @@ def analyze(args):
     else:
         if calorie_diagnosis["detected"]:
             top_factors.append("calorie_surplus")
+        if processed_food["detected"]:
+            top_factors.append("processed_food")
+        if low_protein["detected"]:
+            top_factors.append("low_protein")
         if exercise_diagnosis["detected"]:
             top_factors.append("exercise_decline")
         if logging_gaps["detected"]:
             top_factors.append("logging_gaps")
-        if water_retention["detected"] and not calorie_diagnosis["detected"]:
+        if water_retention["detected"] and not calorie_diagnosis["detected"] and not processed_food["detected"]:
             top_factors.append("possible_water_retention")
 
     # --- Generate suggested strategies ---
@@ -347,6 +422,44 @@ def analyze(args):
             "target_minutes_per_session": 30,
             "duration_days": 7,
             "expected_impact": "~150-300 kcal additional burn per session",
+        })
+
+    if processed_food["detected"]:
+        strategies.append({
+            "type": "reduce_processed",
+            "description": "Replace processed foods with whole foods",
+            "processed_items": processed_food["processed_items"],
+            "processed_ratio": processed_food["processed_ratio"],
+            "duration_days": 14,
+            "expected_impact": "Reduced sodium → less water retention, better satiety",
+            "habit_suggestion": {
+                "action_id": "swap-processed-food",
+                "description": "每天至少一餐用新鲜食材替代加工食品",
+                "trigger": "lunch or dinner",
+                "behavior": "选一餐把加工食品换成鸡胸肉/鱼/蔬菜",
+                "trigger_cadence": "daily_fixed",
+                "bound_to_meal": "lunch",
+            },
+        })
+
+    if low_protein["detected"]:
+        deficit = low_protein["deficit_g"] or 0
+        strategies.append({
+            "type": "increase_protein",
+            "description": f"Increase daily protein by ~{round(deficit)}g",
+            "current_avg": low_protein["avg_daily_protein"],
+            "recommended": low_protein["recommended_protein"],
+            "deficit_g": deficit,
+            "duration_days": 14,
+            "expected_impact": "Better satiety, preserved muscle mass, reduced cravings",
+            "habit_suggestion": {
+                "action_id": "add-protein",
+                "description": "每餐确保有一份优质蛋白（鸡蛋/鸡胸/鱼/豆腐）",
+                "trigger": "every meal",
+                "behavior": "拍照前检查：这餐有蛋白质吗？",
+                "trigger_cadence": "every_meal",
+                "bound_to_meal": None,
+            },
         })
 
     if len(strategies) >= 2:
