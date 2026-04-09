@@ -328,6 +328,32 @@ def _resolve_tz_offset(workspace_dir: str) -> int:
     return 28800  # default UTC+8
 
 
+def _check_pending_feedback(workspace_dir: str) -> dict:
+    """Check short-term.json for a pending guided-feedback reply.
+    Returns a warning dict if found, None otherwise.
+    This reads the file in real-time (not from agent's cached session start)."""
+    st_path = os.path.join(workspace_dir, "memory", "short-term.json")
+    if not os.path.isfile(st_path):
+        return None
+    try:
+        with open(st_path, 'r', encoding='utf-8') as f:
+            entries = json.load(f)
+        for entry in entries:
+            if entry.get("topic") == "guided-feedback-pending-reply":
+                gf = entry.get("_guided_feedback", {})
+                return {
+                    "WARNING": "A preference survey question was sent to the user. "
+                               "If the user's NEXT message is a number (1/2/3) or short text, "
+                               "it is a reply to the preference question, NOT a food log or clarification reply. "
+                               "Route to notification-composer 'Handling replies' section.",
+                    "question_id": gf.get("question_id", ""),
+                    "hint": entry.get("summary", "")
+                }
+    except Exception:
+        pass
+    return None
+
+
 def _check_ambiguous_foods(meal: dict) -> list:
     """Check if any foods in the meal match the ambiguous-foods dictionary.
     Returns a list of clarification prompts for foods that need user input."""
@@ -402,6 +428,12 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None,
         json.dump(existing, f, ensure_ascii=False, indent=2)
 
     result = {"saved": True, "file": path, "meals_count": len(existing), "meals": existing}
+
+    # Check for pending guided-feedback reply (real-time file read, not cached)
+    ws = workspace_dir or os.path.normpath(os.path.join(os.path.abspath(data_dir), '..', '..'))
+    pending_hint = _check_pending_feedback(ws)
+    if pending_hint:
+        result["⚠️ GUIDED_FEEDBACK_PENDING"] = pending_hint
 
     # Check for ambiguous foods that need clarification
     clarifications = _check_ambiguous_foods(meal)
