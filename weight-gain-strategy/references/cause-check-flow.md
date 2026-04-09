@@ -51,20 +51,50 @@ consequence lines, and cause-specific motivation lines.
 - **Purely temporary causes with no behavioral issue:** If `deviation-check` returned `temporary_causes` and there is no calorie surplus or other actionable behavioral cause, end the flow here. Use the cause's `message` field to explain: "This looks like [temporary cause message] — no action needed, let's check again next time."
 
 **Temporary causes with behavioral issues — continue flow:**
-If `deviation-check` returned `temporary_causes` AND there is also an actionable cause, incorporate the temporary causes into the Step C data reveal to provide context (e.g., "Part of this is water retention from your cycle, but the data also shows [actionable cause]..."). Then proceed to Step D as normal.
+If `deviation-check` returned `temporary_causes` AND there is also an actionable cause, incorporate the temporary causes into the Step C data reveal to provide context (e.g., "Part of this is water retention from your cycle, but the data also shows [actionable cause]..."). Then proceed to Step C2 as normal.
 
 **Adaptation period WITH actionable cause:**
-Still show the data (Step C) but soften the tone — "Your body is still adjusting, so some fluctuation is expected. That said, I did notice [cause]..." Proceed to Step D but frame the pact as lighter/optional ("No pressure — but if you want a small experiment...").
+Still show the data (Step C) but soften the tone — "Your body is still adjusting, so some fluctuation is expected. That said, I did notice [cause]..." Proceed to Step C2 but frame it as lighter/optional ("No pressure — but if you want to pick one small experiment...").
 
-## Step D: Challenge + suspense → reveal pact
+## Step C2: Present top issues + user chooses
 
-Step D flows directly from Step C (same message, no wait). After the
-motivation line, immediately tease the challenge. Do NOT wait for user
-response between Step C and Step D — they are one continuous message.
+After the data reveal in Step C, present the **top 3 issues** found in the
+analysis (or fewer if fewer exist). Number them clearly. Each issue gets a
+one-liner explaining what the data shows and why it matters.
+
+**Format:**
+
+```
+根据数据，我发现了几个问题：
+
+1️⃣ 蛋白质严重不足 — 每天只有33g，推荐91g，掉肌肉代谢变慢
+2️⃣ 全碳水饮食 — 白粥油条炒饭面条，几乎没有优质蛋白来源
+3️⃣ 热量偏低 — 平均1500，目标1800，吃太少反而容易反弹
+
+你觉得哪个最想先搞定？选个数字就行～
+```
+
+**Rules:**
+- Issues ranked by impact (most impactful first), derived from `analyze` output
+- Each issue: **name + data evidence + consequence**, one line
+- If only 1-2 issues → present what exists, still let user pick
+- If `suggested_actions` contains `strict_mode` → list "打卡记录不完整" as one of the options
+- Tone: factual but not scary, like showing a menu not a diagnosis report
+
+**Wait for user response.** User picks a number (or describes which one).
+If user picks → proceed to Step D with that specific issue.
+If user says "all" or "都要" → pick the highest-impact one, say "一个一个来，先搞定最重要的"
+If user ignores → drop it (single-ask rule).
+
+---
+
+## Step D: Challenge + pact for chosen issue
+
+Based on the user's choice in Step C2, present a targeted pact.
 
 **Tease the challenge:**
-- "Want to hear my plan?"
-- "I've got a little challenge for you — dare to take it?"
+- "好，那我有个小约定想跟你提——敢接吗？😏"
+- "那我们就从这个开始，我有个小挑战给你——"
 
 **Wait for user response.** If yes → reveal the pact immediately.
 
