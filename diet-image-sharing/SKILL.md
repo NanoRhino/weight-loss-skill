@@ -55,10 +55,10 @@ If no meals are logged for the requested date, tell the user:
 - zh: "今天还没有饮食记录，记录了再来生成吧！"
 - en: "No meals logged for today yet — log some food first!"
 
-### Step 2: Generate HTML Card
+### Step 2: Generate Vintage Card HTML
 
 ```bash
-python3 {baseDir}/scripts/generate-daily-diet-html.py \
+python3 {baseDir}/scripts/generate-vintage-card.py \
   --meals-json '<load output>' \
   --cal-target <from PLAN.md> \
   --user-name '<from USER.md>' \
@@ -74,6 +74,12 @@ Parameters:
 - `--lang`: `zh` if `USER.md > Language` contains Chinese, else `en`
 - `--cal-unit`: `Cal` for US locale, `kcal` for all others
 - `--output`: Write HTML to `data/diet-cards/` directory
+
+The vintage card generates a hand-drawn style "food journal" with:
+- SVG food illustrations auto-matched to each food item by keyword
+- Vintage paper texture background with warm brown tones
+- Each meal shown with its food icons + detail table
+- Daily summary with macro breakdown and progress bar
 
 ### Step 3: Convert to Image (image mode — default)
 

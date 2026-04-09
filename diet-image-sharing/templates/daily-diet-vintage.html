@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<style>
+  @page { size: 460px; margin: 0; }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 14px; }
+
+  body {
+    font-family: "Georgia", "Noto Serif SC", "Source Han Serif SC",
+                 "Songti SC", "SimSun", "Times New Roman", serif;
+    color: #4a3728;
+    background: #f7f0e3;
+    padding: 0; margin: 0;
+    line-height: 1.5;
+  }
+
+  .page {
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 28px 22px 32px;
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(200,170,120,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 90%, rgba(180,150,100,0.10) 0%, transparent 60%),
+      linear-gradient(180deg, #f7f0e3 0%, #f2e8d5 40%, #efe2cf 100%);
+  }
+
+  /* ===== Header ===== */
+  .card-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+  }
+
+  .header-deco {
+    font-size: 11px;
+    color: #b8a080;
+    letter-spacing: 6px;
+    margin-bottom: 6px;
+  }
+
+  .header-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #5c3d1e;
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+  }
+
+  .header-date {
+    font-size: 12px;
+    color: #9a8468;
+  }
+
+  .header-name {
+    font-size: 11px;
+    color: #b8a080;
+    margin-top: 2px;
+  }
+
+  .header-line {
+    margin-top: 14px;
+    border: none;
+    height: 0;
+    border-top: 1px dashed #c8b090;
+  }
+
+  /* ===== Meal Section ===== */
+  .meal-section {
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.45);
+    border: 1px solid #ddd0b8;
+    border-radius: 8px;
+  }
+
+  .meal-header {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #d4c4a8;
+  }
+
+  .meal-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #5c3d1e;
+    letter-spacing: 1px;
+  }
+
+  .meal-deco {
+    font-size: 11px;
+    color: #c8a870;
+    margin-left: 6px;
+  }
+
+  .meal-kcal {
+    float: right;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8b6914;
+  }
+
+  .meal-header::after { content: ""; display: table; clear: both; }
+
+  /* ===== Food Icons Row ===== */
+  .food-icons-row {
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .food-icon-item {
+    display: inline-block;
+    text-align: center;
+    margin: 6px 10px;
+    vertical-align: top;
+  }
+
+  .food-svg {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 3px;
+  }
+
+  .food-svg svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .food-label {
+    font-size: 10px;
+    color: #7c5e2a;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ===== Food Detail Table ===== */
+  .food-detail {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .food-detail td {
+    padding: 2px 0;
+    border-bottom: 1px dotted #e0d5c0;
+  }
+
+  .food-detail tr:last-child td {
+    border-bottom: none;
+  }
+
+  .fd-name {
+    color: #5c3d1e;
+  }
+
+  .fd-amt {
+    text-align: right;
+    color: #a08860;
+    font-size: 11px;
+    width: 50px;
+  }
+
+  .fd-cal {
+    text-align: right;
+    color: #8b6914;
+    font-weight: 600;
+    width: 40px;
+  }
+
+  /* ===== Time-of-day accents ===== */
+  .meal-section.morning { border-left: 3px solid #e8b84a; }
+  .meal-section.noon    { border-left: 3px solid #c49340; }
+  .meal-section.evening { border-left: 3px solid #8b6914; }
+  .meal-section.snack   { border-left: 3px solid #c8b090; }
+
+  /* ===== Summary Section ===== */
+  .summary-section {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid #ddd0b8;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .summary-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8b6914;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+
+  .summary-macros {
+    font-size: 13px;
+    color: #5c3d1e;
+    margin-bottom: 8px;
+  }
+
+  .macro-item {
+    font-weight: 600;
+  }
+
+  .macro-item.cal {
+    font-size: 16px;
+    color: #8b6914;
+  }
+
+  .macro-item small {
+    font-size: 11px;
+    font-weight: 400;
+  }
+
+  .macro-sep {
+    color: #c8b090;
+    margin: 0 4px;
+  }
+
+  /* ===== Progress Bar ===== */
+  .progress-row {
+    margin-top: 8px;
+  }
+
+  .progress-track {
+    height: 8px;
+    background: #e8dcc8;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .progress-fill.ok    { background: #8b9e56; }
+  .progress-fill.over  { background: #c27044; }
+  .progress-fill.under { background: #b8a060; }
+
+  .progress-note {
+    font-size: 10px;
+    color: #9a8468;
+    margin-top: 3px;
+  }
+
+  /* ===== Footer ===== */
+  .card-footer {
+    text-align: center;
+    margin-top: 18px;
+    padding-top: 10px;
+  }
+
+  .footer-deco {
+    font-size: 11px;
+    color: #c8b090;
+    letter-spacing: 4px;
+    margin-bottom: 4px;
+  }
+
+  .footer-text {
+    font-size: 10px;
+    color: #b8a080;
+  }
+
+  /* ===== Responsive ===== */
+  @media screen and (max-width: 400px) {
+    html { font-size: 12px; }
+    .page { padding: 18px 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="card-header">
+    <div class="header-deco">· · · ✿ · · ·</div>
+    <div class="header-title">{{TITLE}}</div>
+    <div class="header-date">{{DATE_DISPLAY}}</div>
+    <div class="header-name">{{USER_NAME}}</div>
+    <hr class="header-line">
+  </header>
+
+  {{MEAL_SECTIONS}}
+
+  {{SUMMARY_SECTION}}
+
+  <footer class="card-footer">
+    <div class="footer-deco">· · · ✿ · · ·</div>
+    <div class="footer-text">{{FOOTER_TEXT}}</div>
+  </footer>
+
+</div>
+</body>
+</html>
