@@ -41,6 +41,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 
@@ -311,9 +312,44 @@ def analyze(weight: float, daily_cal: int, meals: int, log: list,
     }
 
 
+def _strip_food_noise(text: str) -> str:
+    """Strip quantity, measure, temperature, size, cooking-method and particle
+    noise from a food-name fragment.  Returns only meaningful modifiers."""
+    # Layer 1: multi-char phrases (before single-char to avoid partial removal)
+    for phrase in ('常温', '去冰', '少冰', '多冰', '加冰'):
+        text = text.replace(phrase, '')
+    # Layer 2: digits, symbols, whitespace
+    text = re.sub(r'[\s\dx×*]+', '', text)
+    # Layer 3: Chinese number characters
+    text = re.sub(r'[一二三四五六七八九十两半几]', '', text)
+    # Layer 4: measure / counter words
+    #   NOTE: 包/条/串 intentionally excluded — they appear in food names
+    #   (面包, 粉条) and would cause false positives on single-char keywords.
+    text = re.sub(r'[碗份个盘杯袋盒块片根勺只颗粒瓶罐]', '', text)
+    # Layer 5: temperature
+    text = re.sub(r'[冰热温凉]', '', text)
+    # Layer 6: size
+    text = re.sub(r'[大小中]', '', text)
+    # Layer 7: cooking methods
+    text = re.sub(r'[蒸煮煎炸炒烤烙焖卤涮炖焗熏烘灼拌烩煲酿烫]', '', text)
+    # Layer 8: structural particles
+    text = re.sub(r'[的]', '', text)
+    return text.strip()
+
+
 def _check_ambiguous_foods(meal: dict) -> list:
     """Check if any foods in the meal match the ambiguous-foods dictionary.
-    Returns a list of clarification hints for foods that need user input."""
+    Returns a list of clarification hints for foods that need user input.
+
+    Matching strategy (replaces the old keyword-substring + exclude-list
+    approach):
+      1. For each food, find matching keyword or alias (prefer keyword).
+      2. Remove the matched term from the food name.
+      3. Strip noise (quantity, measure words, temperature, size, cooking
+         methods, particles).
+      4. If nothing meaningful remains → food is ambiguous → ask.
+         If something remains → user already specified details → skip.
+    """
     ambiguous_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         'references', 'ambiguous-foods.json')
@@ -333,22 +369,29 @@ def _check_ambiguous_foods(meal: dict) -> list:
             continue
         for entry in dictionary:
             keyword = entry.get("keyword", "")
-            if keyword not in food_name:
+            aliases = entry.get("aliases", [])
+
+            # Find the matched term — prefer longest match so that e.g.
+            # alias "汉堡包" beats keyword "汉堡" when the food name is
+            # exactly "汉堡包".
+            candidates = ([keyword] if keyword else []) + aliases
+            candidates.sort(key=len, reverse=True)
+            matched = None
+            for candidate in candidates:
+                if candidate in food_name:
+                    matched = candidate
+                    break
+            if not matched:
                 continue
-            # For single-char keywords (饼/面/粉), only match if the food name
-            # is essentially just the keyword + optional quantity
-            if len(keyword) == 1:
-                import re
-                stripped = re.sub(r'[\s\dx×*]+', '', food_name)
-                stripped = re.sub(r'[一二三四五六七八九十两半几]', '', stripped)
-                stripped = re.sub(r'[碗份个盘杯袋包盒块片根条勺]', '', stripped)
-                if stripped != keyword:
-                    continue
-            # Check if user already specified a variant
-            excludes = entry.get("exclude", [])
-            already_specified = any(ex in food_name for ex in excludes)
-            if already_specified:
-                continue
+
+            # Remove matched term, strip noise, check if anything meaningful
+            # remains.  If remainder is empty the food name was just
+            # "quantity + keyword" → ambiguous.
+            remainder = food_name.replace(matched, '', 1)
+            remainder = _strip_food_noise(remainder)
+            if remainder:
+                continue  # user specified something meaningful — skip
+
             # Found ambiguous food — build clarification
             variants = entry.get("variants", [])
             default_variant = next((v for v in variants if v.get("default")), variants[0] if variants else None)
