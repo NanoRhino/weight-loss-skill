@@ -152,7 +152,7 @@ Use the cron tool directly for listing and removing:
 7. **Feature tips** — special handling (same pattern as diet pattern detection):
    - Read `health-profile.md > Automation > Feature Tips Completed`
    - If has a date → job already completed. If job still exists, remove it (stale).
-   - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it (cron time = lunch time + 2h).
+   - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it (cron time = 21:00 user local time).
    - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
 8. Do all of this **silently** — do not mention it to the user.
 
@@ -246,13 +246,13 @@ bash {baseDir}/scripts/create-reminder.sh \
 
 ### Feature tips (self-destructing, onboarding + 3 days)
 
-Daily feature introduction for new users. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = lunch time + 2h (from `health-profile.md > Meal Schedule`). Introduces one unused feature per day, skipping features the user has already discovered on their own. Self-destructs after all features are introduced or used.
+Daily feature introduction for new users. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = 21:00 user local time (same slot as weekly report and diet pattern detection). The feature-tips skill handles conflicts internally — it yields when Sunday weekly report or diet pattern detection takes priority.
 
 ```bash
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Feature tips" \
   --message "Run feature-tips skill." \
-  --cron "0 14 * * *"
+  --cron "0 21 * * *"
 ```
 
 **Not included in normal auto-sync** — this job is managed by its own lifecycle:

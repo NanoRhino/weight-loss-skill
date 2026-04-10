@@ -14,20 +14,30 @@ metadata:
 
 ## Trigger
 
-Daily cron job. Start date: `Onboarding Completed` + 3 days (from `health-profile.md > Automation`). Cron time: lunch time + 2h (from `health-profile.md > Meal Schedule`).
+Daily cron job. Start date: `Onboarding Completed` + 3 days (from `health-profile.md > Automation`). Cron time: 21:00 (user local time) — same slot as weekly report and diet pattern detection.
+
+**Conflict rule:** Other 21:00 tasks take priority. Before sending a feature tip, check if another task already ran in this session:
+- **Sunday** → weekly report fires at 21:00 → feature tips yields, output `NO_REPLY`.
+- **Diet pattern detection not yet completed** (i.e., `health-profile.md > Automation > Pattern Detection Completed` is `—`) → diet pattern detection fires at 21:00 → feature tips yields, output `NO_REPLY`.
+- **Neither of the above** → feature tips proceeds normally.
 
 ## Workflow
 
 1. **Check precondition** — read `health-profile.md > Automation > Feature Tips Completed`. If already has a date → output nothing (`NO_REPLY`), skip.
 
-2. **Check engagement stage** — run:
+2. **Check conflict** — determine if another 21:00 task takes priority today:
+   - If today is **Sunday** → output `NO_REPLY` (weekly report has priority).
+   - If `health-profile.md > Automation > Pattern Detection Completed` is `—` → output `NO_REPLY` (diet pattern detection has priority).
+   - Otherwise → continue.
+
+3. **Check engagement stage** — run:
    ```bash
    python3 {notification-manager:baseDir}/scripts/check-stage.py \
      --workspace-dir {workspaceDir} --tz-offset {tz_offset}
    ```
    Read `data/engagement.json > notification_stage`. If stage ≥ 2 → output nothing (`NO_REPLY`). Feature tips only send during active engagement.
 
-3. **Detect used features** — run:
+4. **Detect used features** — run:
    ```bash
    python3 {baseDir}/scripts/check-feature-usage.py \
      --workspace-dir {workspaceDir}
@@ -41,28 +51,28 @@ Daily cron job. Start date: `Onboarding Completed` + 3 days (from `health-profil
    }
    ```
 
-4. **Supplement detection with cron check** — list current cron jobs (`cron list`). If any job name starts with `[custom]` → the user has already used the custom reminder feature. If `custom_reminders` is not already in `used_features`, add it mentally for this run.
+5. **Supplement detection with cron check** — list current cron jobs (`cron list`). If any job name starts with `[custom]` → the user has already used the custom reminder feature. If `custom_reminders` is not already in `used_features`, add it mentally for this run.
 
-5. **Supplement detection with memory check** — read `memory/medium-term.md` (if exists):
+6. **Supplement detection with memory check** — read `memory/medium-term.md` (if exists):
    - Keywords "包装食品", "营养成分表", "配料表", "nutrition label", "packaged" found in context of user querying → treat `packaged_food` as used.
    - Keywords indicating the AI provided emotional support (e.g., user expressed "焦虑", "难过", "自责", "压力大", "body image" and got support) → treat `emotional_support` as used.
    - Keywords indicating user asked about nutrition/health knowledge (e.g., "蛋白质怎么补", "碳水是什么", "什么是 TDEE", "how much protein") → treat `nutrition_knowledge` as used.
 
-6. **Determine next tip** — from the Feature Queue below, find the first feature that is:
+7. **Determine next tip** — from the Feature Queue below, find the first feature that is:
    - NOT in `used_features` (user hasn't discovered it on their own)
    - NOT in `sent_tips` (haven't introduced it yet)
-   - NOT detected as used in steps 4-5
+   - NOT detected as used in steps 5-6
 
-   If no tip remains → go to step 8 (self-destruct).
+   If no tip remains → go to step 9 (self-destruct).
 
-7. **Send tip** — compose a message using the template from `references/tips-content.md` for the selected feature. Then mark it as sent:
+8. **Send tip** — compose a message using the template from `references/tips-content.md` for the selected feature. Then mark it as sent:
    ```bash
    python3 {baseDir}/scripts/check-feature-usage.py \
      --workspace-dir {workspaceDir} \
      --mark-sent <feature_id>
    ```
 
-8. **Self-destruct** (when no tips remain):
+9. **Self-destruct** (when no tips remain):
    1. List current agent's cron jobs (`cron list`)
    2. Find job with name containing "Feature tips" or "feature-tips"
    3. Delete it (`cron remove`)
