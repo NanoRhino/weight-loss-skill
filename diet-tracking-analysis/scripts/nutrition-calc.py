@@ -318,8 +318,8 @@ def _strip_food_noise(text: str) -> str:
         text = text.replace(phrase, '')
     text = re.sub(r'[\s\dx×*]+', '', text)
     text = re.sub(r'[一二三四五六七八九十两半几]', '', text)
-    # 包/条/串 excluded — they appear in food names (面包, 粉条).
-    text = re.sub(r'[碗份个盘杯袋盒块片根勺只颗粒瓶罐]', '', text)
+    # 包/串 excluded — they appear in food names (面包).
+    text = re.sub(r'[碗份个盘杯袋盒块片根条勺只颗粒瓶罐]', '', text)
     text = re.sub(r'[冰热温凉]', '', text)
     text = re.sub(r'[大小中]', '', text)
     text = re.sub(r'[蒸煮煎炸炒烤烙焖卤涮炖焗熏烘灼拌烩煲酿烫]', '', text)
