@@ -60,9 +60,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Default channel: slack (backward-compatible)
+# Auto-detect channel from agentId prefix, fallback to slack
 if [[ -z "$CHANNEL" ]]; then
-  CHANNEL="slack"
+  if [[ "$AGENT" == wechat-dm-* ]]; then
+    CHANNEL="wechat"
+  elif [[ "$AGENT" == wecom-dm-* ]]; then
+    CHANNEL="wecom"
+  else
+    CHANNEL="slack"
+  fi
 fi
 
 # Validate required params
@@ -188,14 +194,16 @@ Do NOT output the message as your reply. Instead, put your full message text int
     --json
   )
 else
+  # Derive sessionKey from agentId: wechat-dm-xxx → agent:wechat-dm-xxx:direct:xxx
+  PEER_ID=$(echo "$AGENT" | sed -E 's/^(wechat|wecom)-dm-//')
+  SESSION_KEY="agent:${AGENT}:direct:${PEER_ID}"
+
   CMD=(openclaw cron add
     --name "$NAME"
     --session main
     --agent "$AGENT"
+    --session-key "$SESSION_KEY"
     --system-event "$MESSAGE"
-    --announce
-    --channel "$CHANNEL"
-    --to "$TO"
   )
 fi
 
