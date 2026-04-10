@@ -149,7 +149,12 @@ Use the cron tool directly for listing and removing:
    - If has a date → job already completed. If job still exists, remove it (stale).
    - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it.
    - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
-7. Do all of this **silently** — do not mention it to the user.
+7. **Feature tips** — special handling (same pattern as diet pattern detection):
+   - Read `health-profile.md > Automation > Feature Tips Completed`
+   - If has a date → job already completed. If job still exists, remove it (stale).
+   - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it (cron time = lunch time + 2h).
+   - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
+8. Do all of this **silently** — do not mention it to the user.
 
 ---
 
@@ -237,6 +242,22 @@ bash {baseDir}/scripts/create-reminder.sh \
 **Not included in normal auto-sync** — this job is managed by its own lifecycle:
 - Created once at onboarding (by notification-manager)
 - Self-deleted by diet-pattern-detection skill after successful execution
+- See auto-sync special handling below
+
+### Feature tips (self-destructing, onboarding + 3 days)
+
+Daily feature introduction for new users. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = lunch time + 2h (from `health-profile.md > Meal Schedule`). Introduces one unused feature per day, skipping features the user has already discovered on their own. Self-destructs after all features are introduced or used.
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Feature tips" \
+  --message "Run feature-tips skill." \
+  --cron "0 14 * * *"
+```
+
+**Not included in normal auto-sync** — this job is managed by its own lifecycle:
+- Created once at onboarding (by notification-manager)
+- Self-deleted by feature-tips skill after all features are introduced or used
 - See auto-sync special handling below
 
 ---

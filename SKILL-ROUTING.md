@@ -29,7 +29,7 @@ when conflicts arise.
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
 | **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder`, `weight-gain-strategy` | Designing programs and plans. |
-| **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
+| **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer`, `feature-tips` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
 **Rule:** When two skills from different tiers conflict, the higher-priority
