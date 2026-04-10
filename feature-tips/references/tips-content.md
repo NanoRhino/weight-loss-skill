@@ -1,9 +1,16 @@
-# Feature Tips — Message Templates
+# Feature Tips — Message Templates & Detection
 
-Each feature tip has a **template** and a **concrete example** showing the
-actual usage effect. The agent should follow the template's structure but
-vary wording each time. Keep the tone casual — like a friend sharing a
-useful trick.
+Vary wording each time. Tone: friend sharing a trick, not product tutorial.
+
+## Memory Keywords
+
+Check `memory/medium-term.md` for these keywords to detect already-used features:
+
+| Feature ID | Keywords |
+|-----------|----------|
+| `packaged_food` | 包装食品, 营养成分表, 配料表, nutrition label, packaged |
+| `emotional_support` | User expressed 焦虑/难过/自责/压力大/body image AND got support |
+| `nutrition_knowledge` | User asked 蛋白质怎么补/碳水是什么/什么是 TDEE/how much protein or similar |
 
 ---
 

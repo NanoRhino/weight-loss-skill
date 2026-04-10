@@ -246,7 +246,7 @@ bash {baseDir}/scripts/create-reminder.sh \
 
 ### Feature tips (self-destructing, onboarding + 3 days)
 
-Daily feature introduction for new users. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = 21:00 user local time (same slot as weekly report and diet pattern detection). The feature-tips skill handles conflicts internally — it yields when Sunday weekly report or diet pattern detection takes priority.
+Daily 21:00 cron. Created at onboarding, starts `Onboarding Completed` + 3 days. Conflicts with weekly report / diet-pattern-detection handled by feature-tips skill internally.
 
 ```bash
 bash {baseDir}/scripts/create-reminder.sh \
@@ -255,10 +255,7 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 21 * * *"
 ```
 
-**Not included in normal auto-sync** — this job is managed by its own lifecycle:
-- Created once at onboarding (by notification-manager)
-- Self-deleted by feature-tips skill after all features are introduced or used
-- See auto-sync special handling below
+Same lifecycle pattern as diet pattern detection — created once, self-deleted by the skill when done.
 
 ---
 
