@@ -41,6 +41,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 
@@ -311,9 +312,27 @@ def analyze(weight: float, daily_cal: int, meals: int, log: list,
     }
 
 
+def _strip_food_noise(text: str) -> str:
+    """Strip quantity/measure/temperature/size/cooking-method/particle noise."""
+    for phrase in ('常温', '去冰', '少冰', '多冰', '加冰'):
+        text = text.replace(phrase, '')
+    text = re.sub(r'[\s\dx×*]+', '', text)
+    text = re.sub(r'[一二三四五六七八九十两半几]', '', text)
+    # 包/串 excluded — they appear in food names (面包).
+    text = re.sub(r'[碗份个盘杯袋盒块片根条勺只颗粒瓶罐]', '', text)
+    text = re.sub(r'[冰热温凉]', '', text)
+    text = re.sub(r'[大小中]', '', text)
+    text = re.sub(r'[蒸煮煎炸炒烤烙焖卤涮炖焗熏烘灼拌烩煲酿烫]', '', text)
+    text = re.sub(r'[的]', '', text)
+    return text.strip()
+
+
 def _check_ambiguous_foods(meal: dict) -> list:
-    """Check if any foods in the meal match the ambiguous-foods dictionary.
-    Returns a list of clarification hints for foods that need user input."""
+    """Return clarification hints for ambiguous foods in *meal*.
+
+    Match keyword/alias → remove it → strip noise → if remainder is empty
+    the food is ambiguous.
+    """
     ambiguous_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         'references', 'ambiguous-foods.json')
@@ -333,23 +352,22 @@ def _check_ambiguous_foods(meal: dict) -> list:
             continue
         for entry in dictionary:
             keyword = entry.get("keyword", "")
-            if keyword not in food_name:
+            aliases = entry.get("aliases", [])
+
+            # Longest match first (e.g. alias "汉堡包" over keyword "汉堡")
+            candidates = ([keyword] if keyword else []) + aliases
+            candidates.sort(key=len, reverse=True)
+            matched = None
+            for candidate in candidates:
+                if candidate in food_name:
+                    matched = candidate
+                    break
+            if not matched:
                 continue
-            # For single-char keywords (饼/面/粉), only match if the food name
-            # is essentially just the keyword + optional quantity
-            if len(keyword) == 1:
-                import re
-                stripped = re.sub(r'[\s\dx×*]+', '', food_name)
-                stripped = re.sub(r'[一二三四五六七八九十两半几]', '', stripped)
-                stripped = re.sub(r'[碗份个盘杯袋包盒块片根条勺]', '', stripped)
-                if stripped != keyword:
-                    continue
-            # Check if user already specified a variant
-            excludes = entry.get("exclude", [])
-            already_specified = any(ex in food_name for ex in excludes)
-            if already_specified:
+
+            remainder = _strip_food_noise(food_name.replace(matched, '', 1))
+            if remainder:
                 continue
-            # Found ambiguous food — build clarification
             variants = entry.get("variants", [])
             default_variant = next((v for v in variants if v.get("default")), variants[0] if variants else None)
             emoji = entry.get("emoji", "🤔")

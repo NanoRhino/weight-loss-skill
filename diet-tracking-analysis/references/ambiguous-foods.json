@@ -1,7 +1,7 @@
 [
   {
     "keyword": "包子",
-    "exclude": ["菜包", "肉包", "猪肉包", "鲜肉包", "豆沙包", "叉烧包", "灌汤包", "小笼包", "奶黄包", "糖包", "酱肉包"],
+    "aliases": ["煎包", "蒸包"],
     "variants": [
       {"name": "鲜肉包", "calories": 280, "protein": 12, "carbs": 30, "fat": 12, "default": true},
       {"name": "菜包", "calories": 160, "protein": 6, "carbs": 25, "fat": 4},
@@ -12,7 +12,7 @@
   },
   {
     "keyword": "饺子",
-    "exclude": ["素饺", "猪肉饺", "鲜肉饺", "虾饺", "虾仁饺", "韭菜饺", "白菜饺", "牛肉饺", "三鲜饺", "玉米饺", "蒸饺", "煎饺", "锅贴"],
+    "aliases": ["水饺", "蒸饺", "煎饺", "锅贴"],
     "variants": [
       {"name": "猪肉白菜饺", "calories": 45, "protein": 2, "carbs": 5, "fat": 2, "default": true, "note": "per piece"},
       {"name": "素三鲜饺", "calories": 30, "protein": 1, "carbs": 5, "fat": 0.8, "note": "per piece"},
@@ -23,7 +23,6 @@
   },
   {
     "keyword": "粽子",
-    "exclude": ["白粽", "碱水粽", "肉粽", "蛋黄粽", "蛋黄肉粽", "豆沙粽", "红枣粽", "甜粽", "咸粽"],
     "variants": [
       {"name": "鲜肉粽", "calories": 350, "protein": 12, "carbs": 45, "fat": 14, "default": true},
       {"name": "蛋黄肉粽", "calories": 450, "protein": 14, "carbs": 48, "fat": 22},
@@ -34,7 +33,6 @@
   },
   {
     "keyword": "馅饼",
-    "exclude": ["素馅", "猪肉馅", "牛肉馅", "韭菜", "鸡蛋"],
     "variants": [
       {"name": "猪肉馅饼", "calories": 300, "protein": 12, "carbs": 30, "fat": 15, "default": true},
       {"name": "韭菜鸡蛋馅饼", "calories": 220, "protein": 8, "carbs": 28, "fat": 8}
@@ -44,7 +42,7 @@
   },
   {
     "keyword": "烧麦",
-    "exclude": ["糯米烧麦", "猪肉烧麦", "虾仁烧麦", "素烧麦"],
+    "aliases": ["烧卖"],
     "variants": [
       {"name": "糯米烧麦", "calories": 200, "protein": 5, "carbs": 35, "fat": 5, "default": true},
       {"name": "猪肉烧麦", "calories": 250, "protein": 10, "carbs": 28, "fat": 11}
@@ -54,7 +52,7 @@
   },
   {
     "keyword": "面条",
-    "exclude": ["清汤", "牛肉面", "炸酱面", "拌面", "担担面", "热干面", "刀削面", "阳春面", "打卤面", "肉丝面", "鸡蛋面", "番茄面", "番茄鸡蛋面", "酸汤面", "米粉", "米线", "方便面", "泡面", "挂面"],
+    "aliases": ["汤面", "捞面"],
     "variants": [
       {"name": "清汤面/阳春面", "calories": 350, "protein": 10, "carbs": 65, "fat": 5},
       {"name": "牛肉面", "calories": 550, "protein": 25, "carbs": 70, "fat": 18, "default": true},
@@ -65,7 +63,7 @@
   },
   {
     "keyword": "米粉",
-    "exclude": ["汤粉", "炒粉", "螺蛳粉", "桂林米粉", "牛肉粉", "肠粉", "河粉", "炒河粉"],
+    "aliases": ["汤粉"],
     "variants": [
       {"name": "汤米粉", "calories": 380, "protein": 10, "carbs": 65, "fat": 8, "default": true},
       {"name": "炒米粉", "calories": 500, "protein": 12, "carbs": 70, "fat": 18},
@@ -76,7 +74,6 @@
   },
   {
     "keyword": "煎饼",
-    "exclude": ["煎饼果子", "杂粮煎饼", "鸡蛋煎饼"],
     "variants": [
       {"name": "杂粮煎饼（不加料）", "calories": 250, "protein": 8, "carbs": 40, "fat": 6},
       {"name": "煎饼果子（加薄脆+蛋）", "calories": 450, "protein": 14, "carbs": 55, "fat": 18, "default": true}
@@ -86,7 +83,7 @@
   },
   {
     "keyword": "手抓饼",
-    "exclude": ["原味", "加蛋", "加肠", "加培根"],
+    "aliases": ["抓饼"],
     "variants": [
       {"name": "原味手抓饼", "calories": 300, "protein": 6, "carbs": 38, "fat": 14},
       {"name": "手抓饼加蛋", "calories": 380, "protein": 13, "carbs": 40, "fat": 18, "default": true},
@@ -97,7 +94,7 @@
   },
   {
     "keyword": "三明治",
-    "exclude": ["蔬菜三明治", "金枪鱼", "鸡肉三明治", "培根", "火腿", "牛肉三明治"],
+    "aliases": ["三文治"],
     "variants": [
       {"name": "蔬菜三明治", "calories": 250, "protein": 8, "carbs": 32, "fat": 10},
       {"name": "金枪鱼三明治", "calories": 350, "protein": 20, "carbs": 30, "fat": 15, "default": true},
@@ -108,7 +105,7 @@
   },
   {
     "keyword": "汉堡",
-    "exclude": ["鸡肉堡", "牛肉堡", "鱼肉堡", "虾堡", "双层", "芝士"],
+    "aliases": ["汉堡包"],
     "variants": [
       {"name": "鸡肉堡", "calories": 400, "protein": 22, "carbs": 38, "fat": 16, "default": true},
       {"name": "牛肉堡", "calories": 500, "protein": 28, "carbs": 40, "fat": 22},
@@ -119,7 +116,6 @@
   },
   {
     "keyword": "饭团",
-    "exclude": ["素饭团", "肉松", "鳗鱼", "金枪鱼", "三角饭团"],
     "variants": [
       {"name": "肉松饭团", "calories": 280, "protein": 8, "carbs": 45, "fat": 8, "default": true},
       {"name": "素饭团", "calories": 200, "protein": 4, "carbs": 42, "fat": 2},
@@ -130,7 +126,7 @@
   },
   {
     "keyword": "沙拉",
-    "exclude": ["蔬菜沙拉", "凯撒", "鸡肉沙拉", "水果沙拉", "土豆沙拉", "金枪鱼沙拉"],
+    "aliases": ["色拉"],
     "variants": [
       {"name": "蔬菜沙拉（油醋汁）", "calories": 150, "protein": 3, "carbs": 12, "fat": 10},
       {"name": "凯撒沙拉", "calories": 350, "protein": 15, "carbs": 18, "fat": 25, "default": true},
@@ -141,7 +137,7 @@
   },
   {
     "keyword": "馄饨",
-    "exclude": ["鲜肉馄饨", "虾仁馄饨", "菜肉馄饨", "荠菜馄饨"],
+    "aliases": ["云吞", "抄手"],
     "variants": [
       {"name": "鲜肉馄饨", "calories": 350, "protein": 15, "carbs": 40, "fat": 14, "default": true},
       {"name": "荠菜馄饨", "calories": 280, "protein": 10, "carbs": 38, "fat": 9},
@@ -152,7 +148,6 @@
   },
   {
     "keyword": "月饼",
-    "exclude": ["豆沙月饼", "蛋黄", "莲蓉", "五仁", "冰皮", "鲜肉月饼"],
     "variants": [
       {"name": "蛋黄莲蓉月饼", "calories": 420, "protein": 8, "carbs": 55, "fat": 20, "default": true},
       {"name": "豆沙月饼", "calories": 350, "protein": 7, "carbs": 52, "fat": 13},
@@ -163,7 +158,6 @@
   },
   {
     "keyword": "青团",
-    "exclude": ["豆沙青团", "芝麻青团", "肉松青团", "蛋黄青团"],
     "variants": [
       {"name": "豆沙青团", "calories": 200, "protein": 4, "carbs": 40, "fat": 3, "default": true},
       {"name": "肉松蛋黄青团", "calories": 280, "protein": 8, "carbs": 38, "fat": 11}
@@ -173,7 +167,6 @@
   },
   {
     "keyword": "奶茶",
-    "exclude": ["无糖", "半糖", "全糖", "少糖", "三分糖", "去冰", "加珍珠", "加椰果", "加波霸"],
     "variants": [
       {"name": "奶茶（半糖）", "calories": 350, "protein": 4, "carbs": 55, "fat": 12, "default": true},
       {"name": "奶茶（无糖）", "calories": 200, "protein": 4, "carbs": 28, "fat": 10},
@@ -184,7 +177,6 @@
   },
   {
     "keyword": "咖啡",
-    "exclude": ["美式", "黑咖啡", "拿铁", "摩卡", "卡布奇诺", "澳白", "dirty", "生椰拿铁", "燕麦拿铁", "冰美式", "热美式"],
     "variants": [
       {"name": "美式咖啡", "calories": 15, "protein": 0, "carbs": 3, "fat": 0},
       {"name": "拿铁", "calories": 200, "protein": 8, "carbs": 18, "fat": 10, "default": true},
@@ -195,7 +187,7 @@
   },
   {
     "keyword": "盖饭",
-    "exclude": ["蔬菜", "鸡肉", "牛肉", "猪肉", "鱼香肉丝", "宫保鸡丁", "红烧肉", "卤肉", "咖喱"],
+    "aliases": ["盖浇饭"],
     "variants": [
       {"name": "家常盖饭（荤素搭配）", "calories": 600, "protein": 22, "carbs": 75, "fat": 22, "default": true},
       {"name": "蔬菜盖饭", "calories": 400, "protein": 10, "carbs": 70, "fat": 8},
@@ -206,7 +198,6 @@
   },
   {
     "keyword": "盒饭",
-    "exclude": ["素菜", "荤素", "大荤", "鸡腿", "排骨"],
     "variants": [
       {"name": "荤素搭配盒饭", "calories": 650, "protein": 22, "carbs": 80, "fat": 25, "default": true},
       {"name": "素菜盒饭", "calories": 450, "protein": 12, "carbs": 75, "fat": 10},
@@ -217,7 +208,6 @@
   },
   {
     "keyword": "便当",
-    "exclude": ["素菜", "荤素", "大荤", "鸡腿", "排骨"],
     "variants": [
       {"name": "荤素搭配便当", "calories": 650, "protein": 22, "carbs": 80, "fat": 25, "default": true},
       {"name": "素菜便当", "calories": 450, "protein": 12, "carbs": 75, "fat": 10},
@@ -228,7 +218,7 @@
   },
   {
     "keyword": "麻辣烫",
-    "exclude": ["纯蔬菜", "多肉", "多粉", "麻辣拌"],
+    "aliases": ["麻辣拌"],
     "variants": [
       {"name": "麻辣烫（正常荤素）", "calories": 500, "protein": 20, "carbs": 55, "fat": 22, "default": true},
       {"name": "麻辣烫（纯蔬菜）", "calories": 300, "protein": 8, "carbs": 45, "fat": 10},
@@ -239,7 +229,7 @@
   },
   {
     "keyword": "寿司",
-    "exclude": ["三文鱼", "金枪鱼", "鳗鱼", "虾", "蟹棒", "黄瓜", "纳豆", "手卷"],
+    "aliases": ["手卷"],
     "variants": [
       {"name": "三文鱼寿司", "calories": 50, "protein": 3, "carbs": 7, "fat": 1.5, "default": true, "note": "per piece"},
       {"name": "鳗鱼寿司", "calories": 70, "protein": 3, "carbs": 9, "fat": 2.5, "note": "per piece"},
@@ -250,7 +240,7 @@
   },
   {
     "keyword": "披萨",
-    "exclude": ["玛格丽特", "培根", "夏威夷", "芝士", "海鲜", "牛肉"],
+    "aliases": ["比萨"],
     "variants": [
       {"name": "培根披萨（1片）", "calories": 280, "protein": 12, "carbs": 30, "fat": 12, "default": true},
       {"name": "玛格丽特（1片）", "calories": 220, "protein": 10, "carbs": 28, "fat": 8},
@@ -261,7 +251,6 @@
   },
   {
     "keyword": "拌面",
-    "exclude": ["葱油", "麻酱", "肉酱", "鸡丝", "凉面"],
     "variants": [
       {"name": "葱油拌面", "calories": 400, "protein": 10, "carbs": 62, "fat": 12, "default": true},
       {"name": "麻酱拌面", "calories": 500, "protein": 15, "carbs": 60, "fat": 22},
@@ -272,7 +261,6 @@
   },
   {
     "keyword": "饼",
-    "exclude": ["煎饼", "煎饼果子", "手抓饼", "馅饼", "烧饼", "葱花饼", "葱油饼", "鸡蛋饼", "薄饼", "春饼", "烙饼", "大饼", "月饼", "铜锣烧", "饼干", "蛋糕饼", "披萨饼"],
     "variants": [
       {"name": "葱油饼", "calories": 300, "protein": 6, "carbs": 38, "fat": 14, "default": true},
       {"name": "鸡蛋饼", "calories": 250, "protein": 10, "carbs": 30, "fat": 10},
@@ -283,7 +271,6 @@
   },
   {
     "keyword": "面",
-    "exclude": ["面条", "牛肉面", "炸酱面", "拌面", "担担面", "热干面", "刀削面", "阳春面", "打卤面", "肉丝面", "鸡蛋面", "番茄面", "番茄鸡蛋面", "酸汤面", "方便面", "泡面", "挂面", "凉面", "炒面", "焖面", "烩面", "板面", "重庆小面", "油泼面", "葱油面", "清汤面", "汤面", "拉面", "乌冬面", "荞麦面", "意面", "意大利面", "面包", "面粉", "面膜", "面试", "面前", "面对", "面积", "面貌", "方面", "里面", "外面", "上面", "下面", "前面", "后面", "左面", "右面", "全面", "米粉", "米线", "河粉", "粉丝", "螺蛳粉"],
     "variants": [
       {"name": "清汤面", "calories": 350, "protein": 10, "carbs": 65, "fat": 5},
       {"name": "牛肉面", "calories": 550, "protein": 25, "carbs": 70, "fat": 18, "default": true},
@@ -294,7 +281,6 @@
   },
   {
     "keyword": "粉",
-    "exclude": ["米粉", "汤粉", "炒粉", "螺蛳粉", "桂林米粉", "牛肉粉", "肠粉", "河粉", "炒河粉", "粉丝", "粉条", "红薯粉", "土豆粉", "酸辣粉", "凉粉", "面粉", "淀粉", "粉色", "粉末", "粉笔", "粉刷", "粉底"],
     "variants": [
       {"name": "汤米粉", "calories": 380, "protein": 10, "carbs": 65, "fat": 8, "default": true},
       {"name": "炒米粉", "calories": 500, "protein": 12, "carbs": 70, "fat": 18},
