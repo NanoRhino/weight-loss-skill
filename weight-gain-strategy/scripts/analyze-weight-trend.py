@@ -641,7 +641,7 @@ def deviation_check(args):
 
     Returns:
       - triggered: true if the latest weigh-in is higher than the previous
-      - severity: "none" | "comfort" | "cause-check" | "significant"
+      - severity: "none" | "light" | "cause-check"
       - consecutive_increases: the streak count driving severity
       - temporary_causes: list of detected temporary explanations (if any)
     """
@@ -860,23 +860,7 @@ def deviation_check(args):
         }
 
     # --- Latest increase amount ---
-    latest_increase_kg = round(readings[-1]["value"] - readings[-2]["value"], 2)
-
-    # --- Build previous context for escalation callback ---
-    previous_context = None
-    if severity == "significant" and wgs_state.get("last_severity") == "cause-check":
-        previous_context = {
-            "last_trigger_date": wgs_state.get("last_trigger_date"),
-            "days_since_cause_check": None,
-            "message": "This is a follow-up. Last time we did a cause-check and identified potential issues. Reference that conversation — acknowledge what was discussed, note that the trend continued despite the analysis, and escalate to strategy suggestions. Do NOT repeat the same cause-check flow. The tone should show continuity: '上次我们聊过...' / '之前分析过一次...'",
-        }
-        if wgs_state.get("last_trigger_date"):
-            try:
-                previous_context["days_since_cause_check"] = (local_now.date() - datetime.strptime(
-                    wgs_state["last_trigger_date"], "%Y-%m-%d"
-                ).date()).days
-            except ValueError:
-                pass
+    latest_increase_kg = round(deduped[-1]["value"] - deduped[-2]["value"], 2) if len(deduped) >= 2 else 0.0
 
     result = {
         "triggered": triggered,
@@ -896,27 +880,16 @@ def deviation_check(args):
         "deviation_context": deviation_context,
     }
 
-    if previous_context:
-        result["previous_context"] = previous_context
-
-    if severity == "comfort":
+    if severity == "light":
         result["recommendation"] = (
-            "Weight is up compared to last weigh-in. "
-            "Comfort and encourage — this is normal, keep going. "
-            "If a temporary cause was detected, mention it lightly."
+            "Weight is up. Give a brief, comforting response. "
+            "If temporary causes detected, mention lightly."
         )
     elif severity == "cause-check":
         result["recommendation"] = (
-            "Weight has been going up for {0} consecutive weigh-ins. "
-            "Run analyze to identify probable causes (weekend overeating, "
-            "exercise decline, menstrual cycle, calorie surplus) and tell "
-            "the user what to watch out for. Do NOT offer strategy yet."
-        ).format(consecutive_increases)
-    elif severity == "significant":
-        result["recommendation"] = (
-            "Weight has been going up for {0} consecutive weigh-ins. "
-            "Run full analyze, present diagnosis, and offer adjustment strategies."
-        ).format(consecutive_increases)
+            "Weight trending up. Follow cause-check-flow.md: "
+            "run analyze, identify causes, present 3 choices."
+        )
     else:
         result["recommendation"] = "Weight stable or down. No action needed."
 

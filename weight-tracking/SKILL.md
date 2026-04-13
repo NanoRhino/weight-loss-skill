@@ -48,7 +48,7 @@ Returns:
 ```json
 {
   "save": { "action": "created"|"updated", "key": "<datetime>", "value": 79.5, "unit": "kg" },
-  "deviation": { "triggered": true|false, "severity": "none"|"comfort"|"cause-check"|"significant", ... }
+  "deviation": { "triggered": true|false, "severity": "none"|"light"|"cause-check", ... }
 }
 ```
 

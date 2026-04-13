@@ -109,9 +109,7 @@ See `references/script-api.md` for full usage, parameters, and return schemas.
 
 | File | Contents |
 |------|----------|
-| `references/cause-check-flow.md` | Full cause-check guided discovery flow (Steps A–D), pact table, pact rules |
-| `references/interactive-flow.md` | Interactive Flow Steps 1–3, strategy types, ranking rules |
-| `references/diagnosis-templates.md` | Per-factor diagnosis lines, consequence lines, motivation lines |
+| `references/cause-check-flow.md` | Full cause-check flow (Steps A→D), habit creation, cron rules |
 | `references/script-api.md` | Script commands, parameters, return schemas |
-| `references/strict-mode.md` | Strict mode: trigger, behavior rules, duration, failure escalation, ownership |
-| `references/data-schemas.md` | Data sources, strategy JSON schema, skill integration, routing conflicts, edge cases |
+| `references/strict-mode.md` | Strict mode: trigger, behavior rules, duration, failure escalation |
+| `references/data-schemas.md` | Data sources, strategy JSON schema, skill integration, edge cases |
