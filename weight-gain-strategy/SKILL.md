@@ -38,12 +38,11 @@ persistent the trend is.
 
 ## Severity → Response
 
-| Severity | Streak | Behavior |
-|----------|--------|----------|
-| `none` | 0 | Weight stable or down — just confirm the log. |
-| `comfort` | 1 | Comfort and encourage. Mention temporary causes lightly. See `references/diagnosis-templates.md` for examples. |
-| `cause-check` | 2–3 | Multi-step guided discovery: hook → user guesses → data reveal + **top 3 issues** → **user chooses which to tackle** → mutual pact → habit created in `habit-builder`. See `references/cause-check-flow.md`. |
-| `significant` | 2–3 (7d after cause-check) or 4+ | Follow-up analysis with **承接感**. Reference the previous cause-check conversation ("上次我们聊过…"), note trend continued, escalate to strategy. When `previous_context` is present in script output, use it for callback tone. See `references/interactive-flow.md`. |
+| Severity | When | Behavior |
+|----------|------|----------|
+| `none` | No increase | Weight stable or down — just confirm the log. |
+| `light` | First increase, or within 7 days of cause-check | Quick data glance + comfort + encouragement. No deep analysis. Mention possible temporary causes. |
+| `cause-check` | Second increase ≥3 days after light, or ≥7 days after previous cause-check | Full multi-step guided discovery: hook → user guesses → data reveal + **top 3 issues** → **user chooses** → mutual pact → habit. See `references/cause-check-flow.md`. |
 
 ---
 
@@ -94,7 +93,7 @@ Script path: `python3 {baseDir}/scripts/analyze-weight-trend.py`
 Commands: `analyze`, `deviation-check`, `save-strategy`, `check-strategy`.
 See `references/script-api.md` for full usage, parameters, and return schemas.
 
-> ⚠️ **`deviation-check` anti-repeat:** If `weight-gain-strategy.json` contains an `active_strategy` (status=active, end_date ≥ today), cause-check and significant triggers are suppressed (returns `severity: "none", reason: "active_strategy"`). comfort level is unaffected — a simple reassurance is still appropriate even during an active strategy.
+> ⚠️ **`deviation-check` anti-repeat:** If `weight-gain-strategy.json` contains an `active_strategy` (status=active, end_date ≥ today), cause-check is downgraded to light (simple comfort). Light responses have a 1-day cooldown. cause-check becomes available again ≥3 days after light or ≥7 days after a previous cause-check.
 
 ---
 
