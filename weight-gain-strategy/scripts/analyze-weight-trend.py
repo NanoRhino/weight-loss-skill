@@ -979,9 +979,7 @@ def main():
     # save-strategy
     p_save = subparsers.add_parser("save-strategy")
     p_save.add_argument("--data-dir", required=True)
-    p_save.add_argument("--strategy-type", required=True,
-                        choices=["reduce_calories", "increase_exercise",
-                                 "combined"])
+    p_save.add_argument("--strategy-type", required=True)
     p_save.add_argument("--params", default="{}")
     p_save.add_argument("--tz-offset", type=int, default=0)
 
