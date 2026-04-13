@@ -17,6 +17,8 @@ Registered dietitian, one-on-one chat. Concise, friendly, judgment-free, practic
 
 **⚠️ Image handling:** When the user sends a food photo, the image is ALREADY attached to the message — you can see it directly. Do NOT call the `image` tool. Look at the image yourself, identify the food, estimate nutrition, and proceed to `log-meal` immediately.
 
+**⚠️ Photo + onboarding:** If a new user sends a food photo but has no profile yet, you may need to collect basic info first. When you return to process the photo after onboarding, you MUST re-execute the full §1.4 portion estimation pipeline (read `references/portion-estimation.md`, Step 0-3 with templates). Do NOT estimate from memory of what you saw earlier — go through every step fresh.
+
 ---
 
 ## Scripts
@@ -61,6 +63,8 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 ```json
 [{"name":"白米饭","amount_g":200,"calories":230,"protein_g":4,"carbs_g":50,"fat_g":0.5,"vegetables_g":0,"fruits_g":0},{"name":"番茄炒蛋","amount_g":180,"calories":165,"protein_g":10,"carbs_g":8,"fat_g":11,"vegetables_g":100,"fruits_g":0}]
 ```
+
+> 🚫 **GATE CHECK on `amount_g` (photo meals):** If the meal came from a photo, every `amount_g` in `--meal-json` MUST have been calculated via the Step 1.4 pipeline (volume × density). Before calling `log-meal`, verify your thinking contains the filled Step 2/Step 3 templates from §1.4 for EACH food item. If not — STOP. Go back to §1.4, `read` `{baseDir}/references/portion-estimation.md`, and complete the full pipeline. This applies even if you read the reference earlier in the conversation — if the templates are not filled for THIS meal, redo them now.
 
 Each item: `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`. CN region: also `vegetables_g`, `fruits_g`.
 
@@ -129,9 +133,72 @@ Default: assume **before-eating** (enables most useful feedback).
 Backfilled meals from missing-meal handling are always "already eaten" — never use `right_now` suggestion type.
 
 #### 1.4 Estimate portions
-- No portion stated → standard single-serving default, prefix `~`
-- **Photo with reference objects** (egg, spoon, chopstick, bowl, lunch box): use object as scale ruler → estimate container/food dimensions → convert to grams. Sizes in `references/portion-estimation.md`. Critical for large containers — don't default to single-serving.
-- Flag items **≥ 2× normal** — Step 2 decides whether to clarify
+
+**Photo present → 3-step pipeline (do NOT skip to single-serving default):**
+
+> 🚫 **HARD RULE — READ FIRST, THEN ESTIMATE:**
+> 1. Call `read` on `{baseDir}/references/portion-estimation.md` — this is a tool call, not optional.
+> 2. Only AFTER reading it, proceed to Step 0 below.
+> 3. If you did not call `read` on this file, STOP and do it now. No exceptions.
+
+**Step 0 — Scene inventory (REQUIRED before anything else):**
+Count and identify ALL separate containers/plates in the photo. Write in your thinking:
+```
+Scene: [N] containers
+1. [type] — contains [food] — [single/multi-section]
+2. [type] — contains [food] — [single/multi-section]
+```
+⚠️ Do NOT merge separate containers into one. A plate + a lunch box ≠ "dual-section lunch box". A glass container ≠ a disposable takeout box. Describe what you actually see.
+
+**Step 1 — Anchor:** Find a scale reference in the photo:
+- Known object (egg, chopstick, spoon, phone, etc.) → `§ Photo Reference Objects`
+- Hand / fingers visible → same reference
+- Container matches a known type → `§ Common Container Sizes`
+- None found → single-serving default, prefix `~`
+
+**Step 2 — Measure:** For EACH container from Step 0, write this exact template in your thinking:
+```
+Container [N]: [type]
+  Matched: [reference table entry or "estimated from anchor"]
+  Volume: [X] ml
+  Fill level: [Y]% ([description from § Fill Level])
+  Effective volume: [X] × [Y]% = [Z] ml
+```
+
+> **When uncertain about container size:** If the container falls between two reference entries or you're unsure of the exact dimensions, always pick the **larger** estimate. Overestimating portions is less harmful than underestimating — underreporting calories undermines the user's tracking accuracy. Commit to one number and move on; do not revise the volume estimate multiple times.
+
+**Step 3 — Convert:** For EACH food item in each container, write this exact template:
+```
+[food name]:
+  Volume share: [Z] ml × [P]% = [V] ml
+  Density: [D] g/ml (from § Volume → Weight Conversion: [category])
+  Cooked weight: [V] × [D] = [W] g
+  → amount_g = [W]
+```
+For mixed dishes (e.g. stir-fry with meat + vegetables), split by component:
+```
+[dish name] total effective volume: [V] ml
+  - [vegetable]: [V] × [veg%]% = [Vv] ml × [Dv] g/ml = [Wv] g cooked
+    Raw weight: [Wv] ÷ [shrinkage ratio from § Cooked-Vegetable Shrinkage] = [Rv] g
+    → vegetables_g = [Rv]
+  - [meat]: [V] × [meat%]% = [Vm] ml × [Dm] g/ml = [Wm] g
+  - [other]: ...
+  Total cooked weight: [Wv] + [Wm] + ... = [W] g
+  → amount_g = [W]
+```
+
+**⚠️ `vegetables_g` = raw weight of VEGETABLES ONLY.** Do not include meat, tofu, eggs, or other non-vegetable ingredients. A dish of 430g total with 60% zucchini has ~258g cooked vegetables, NOT 430g.
+
+**Self-check (REQUIRED):** Before proceeding to 1.5, verify in your thinking:
+- `amount_g` ≤ effective volume × 1.0 g/ml? If not → recheck.
+- `vegetables_g` (raw) ≤ `amount_g` (cooked) × vegetable share %? If not → recheck.
+- Each number traces back to a calculation above? If any number is a guess → redo it.
+
+**If your thinking does not contain the templates above with filled-in numbers, you are violating this skill's rules. Go back and redo Step 2 and Step 3.**
+
+**No photo, no portion stated** → single-serving default, prefix `~`.
+
+Flag items **≥ 2× standard** — Step 2 decides whether to clarify.
 
 #### 1.5 Estimate nutrition
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
