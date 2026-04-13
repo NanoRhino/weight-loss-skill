@@ -66,7 +66,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 
 > 🚫 **GATE CHECK on `amount_g` (photo meals):** If the meal came from a photo, every `amount_g` in `--meal-json` MUST have been calculated via the Step 1.4 pipeline (volume × density). Before calling `log-meal`, verify your thinking contains the filled Step 2/Step 3 templates from §1.4 for EACH food item. If not — STOP. Go back to §1.4, `read` `{baseDir}/references/portion-estimation.md`, and complete the full pipeline. This applies even if you read the reference earlier in the conversation — if the templates are not filled for THIS meal, redo them now.
 
-Each item: `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`. CN region: also `vegetables_g`, `fruits_g`.
+Each item: `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`. CN region: also `vegetables_g` (cooked weight — script auto-converts to raw), `fruits_g`.
 
 Runs detect → load → check-missing → save → evaluate → produce internally. Returns combined JSON with `meal_detection`, `existing_meals`, `missing_meals`, `save`, `evaluation`, `produce`. Same meal name overwrites (supports corrections).
 
@@ -154,7 +154,7 @@ Scene: [N] containers
 - Known object (egg, chopstick, spoon, phone, etc.) → `§ Photo Reference Objects`
 - Hand / fingers visible → same reference
 - Container matches a known type → `§ Common Container Sizes`
-- None found → single-serving default, prefix `~`
+- None found → estimate based on common large sizes in daily life (e.g. a plate of stir-fry defaults to a home stir-fry plate M ~20 cm, a bowl of rice defaults to a standard rice bowl ~300 ml, a lunch box defaults to a standard rect box ~750 ml). Always lean toward the **larger** common size. Prefix `~`
 
 **Step 2 — Measure:** For EACH container from Step 0, write this exact template in your thinking:
 ```
@@ -179,19 +179,18 @@ For mixed dishes (e.g. stir-fry with meat + vegetables), split by component:
 ```
 [dish name] total effective volume: [V] ml
   - [vegetable]: [V] × [veg%]% = [Vv] ml × [Dv] g/ml = [Wv] g cooked
-    Raw weight: [Wv] ÷ [shrinkage ratio from § Cooked-Vegetable Shrinkage] = [Rv] g
-    → vegetables_g = [Rv]
+    → vegetables_g = [Wv]
   - [meat]: [V] × [meat%]% = [Vm] ml × [Dm] g/ml = [Wm] g
   - [other]: ...
   Total cooked weight: [Wv] + [Wm] + ... = [W] g
   → amount_g = [W]
 ```
 
-**⚠️ `vegetables_g` = raw weight of VEGETABLES ONLY.** Do not include meat, tofu, eggs, or other non-vegetable ingredients. A dish of 430g total with 60% zucchini has ~258g cooked vegetables, NOT 430g.
+**⚠️ `vegetables_g` = cooked weight of VEGETABLES ONLY (the script auto-converts to raw weight via shrinkage ratio).** Do not include meat, tofu, eggs, or other non-vegetable ingredients. A dish of 430g total with 60% zucchini has ~258g cooked vegetables, NOT 430g. You do NOT need to reverse-calculate raw weight — just pass the cooked weight you estimated.
 
 **Self-check (REQUIRED):** Before proceeding to 1.5, verify in your thinking:
 - `amount_g` ≤ effective volume × 1.0 g/ml? If not → recheck.
-- `vegetables_g` (raw) ≤ `amount_g` (cooked) × vegetable share %? If not → recheck.
+- `vegetables_g` (cooked) ≤ `amount_g` (cooked) × vegetable share %? If not → recheck.
 - Each number traces back to a calculation above? If any number is a guess → redo it.
 
 **If your thinking does not contain the templates above with filled-in numbers, you are violating this skill's rules. Go back and redo Step 2 and Step 3.**
@@ -203,7 +202,7 @@ Flag items **≥ 2× standard** — Step 2 decides whether to clarify.
 #### 1.5 Estimate nutrition
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
 
-- China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
+- China region: also estimate `vegetables_g` (cooked weight; script auto-converts to raw) and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
 - Data source: USDA FoodData Central primary; for regional foods, use local databases (e.g. China CDC)
 
 **Cooking oil** (1g ≈ 9 kcal, pure fat) — fold into each dish's calories, never list separately:
@@ -218,8 +217,8 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 - Deep-fried: oil already in standard nutrition data — don't double-count
 - Soups: only count visible floating oil; clear broth → 0g
 
-**Cooked-vegetable shrinkage:** Cooked vegetables weigh less than raw. Use shrinkage ratios in `references/portion-estimation.md` to reverse-estimate raw weight.
-- `vegetables_g` = estimated raw weight (before cooking)
+**Cooked-vegetable shrinkage:** The script (`nutrition-calc.py`) automatically converts cooked `vegetables_g` to raw weight using a default shrinkage ratio. You do NOT need to do this conversion yourself.
+- `vegetables_g` = estimated **cooked** weight of vegetables (pass as-is; script converts to raw)
 - `amount_g` / calories = cooked weight (what was eaten)
 
 ### Step 2: Respond

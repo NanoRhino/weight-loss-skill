@@ -169,6 +169,13 @@ PRODUCE_VEG_TARGETS: dict = {
 PRODUCE_FRUIT_DAILY_MIN = 200  # g — minimum daily fruit intake
 PRODUCE_FRUIT_DAILY_MAX = 350  # g — maximum daily fruit intake
 
+# Default cooked-vegetable shrinkage ratio (cooked ÷ raw).
+# Used to reverse-calculate raw weight from the cooked weight the agent estimates.
+# 0.6 is a balanced middle-ground across categories:
+#   leafy greens 0.2–0.3, cruciferous/stems 0.5–0.6,
+#   firm/low-water 0.7–0.8, root/gourd 0.8–0.9
+VEG_DEFAULT_SHRINKAGE = 0.6
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -196,6 +203,20 @@ def find_block_index(meal_name: str, meals: int) -> int:
 
 def _in_range(value: float, lo: float, hi: float) -> bool:
     return lo <= value <= hi
+
+
+def _cooked_veg_to_raw(items: list) -> list:
+    """Convert vegetables_g from cooked weight to estimated raw weight.
+
+    The agent estimates cooked weight from photos. This function applies
+    the default shrinkage ratio to reverse-calculate raw weight for
+    produce tracking:  raw = cooked / VEG_DEFAULT_SHRINKAGE
+    """
+    for item in items:
+        veg_g = item.get("vegetables_g")
+        if veg_g and veg_g > 0:
+            item["vegetables_g"] = round(veg_g / VEG_DEFAULT_SHRINKAGE)
+    return items
 
 
 def _range_status(value: float, lo: float, hi: float) -> str:
@@ -1453,6 +1474,10 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         new_items = meal_json
     else:
         new_items = meal_json.get("items", [meal_json] if "name" in meal_json else [])
+
+    # 3b. Auto-convert vegetables_g from cooked weight to raw weight
+    if region and region.upper() == "CN":
+        _cooked_veg_to_raw(new_items)
 
     # --append: merge new items into existing meal instead of replacing
     if append:
