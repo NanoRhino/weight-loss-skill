@@ -368,6 +368,20 @@ Determine if the user acted on it by inspecting relevant data for the current we
 
 ---
 
+## ⚠️ CRITICAL: Execution Order
+
+**You MUST complete ALL tool calls BEFORE writing your final message to the user.**
+
+The correct sequence is:
+1. Collect data (nutrition-calc, weight-tracker, etc.)
+2. Generate HTML file → write to `data/reports/weekly-report-{start_date}.html`
+3. Upload via `upload-to-s3.sh` → capture the URL from stdout
+4. **ONLY THEN** compose and send the final message (Part 1 + URL)
+
+**NEVER write "完整数据 👇" or any link placeholder without having the actual URL from step 3.** If upload fails, omit the "完整数据" line entirely — do not leave a broken link.
+
+---
+
 ## Output
 
 ### Delivery (two parts)

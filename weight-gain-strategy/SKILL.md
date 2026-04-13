@@ -38,12 +38,11 @@ persistent the trend is.
 
 ## Severity → Response
 
-| Severity | Streak | Behavior |
-|----------|--------|----------|
-| `none` | 0 | Weight stable or down — just confirm the log. |
-| `comfort` | 1 | Comfort and encourage. Mention temporary causes lightly. See `references/diagnosis-templates.md` for examples. |
-| `cause-check` | 2–3 | Multi-step guided discovery: hook → user guesses → data reveal + **top 3 issues** → **user chooses which to tackle** → mutual pact → habit created in `habit-builder`. See `references/cause-check-flow.md`. |
-| `significant` | 2–3 (7d after cause-check) or 4+ | Follow-up analysis with **承接感**. Reference the previous cause-check conversation ("上次我们聊过…"), note trend continued, escalate to strategy. When `previous_context` is present in script output, use it for callback tone. See `references/interactive-flow.md`. |
+| Severity | When | Behavior |
+|----------|------|----------|
+| `none` | No increase | Weight stable or down — just confirm the log. |
+| `light` | First increase, or within 7 days of cause-check | Quick data glance + comfort + encouragement. No deep analysis. |
+| `cause-check` | ≥3 days after light, or ≥7 days after previous cause-check | Run `analyze` → 告诉用户增重原因 → 给 3 个可选改变 → 用户选 → 建习惯。See `references/cause-check-flow.md`. |
 
 ---
 
@@ -94,7 +93,7 @@ Script path: `python3 {baseDir}/scripts/analyze-weight-trend.py`
 Commands: `analyze`, `deviation-check`, `save-strategy`, `check-strategy`.
 See `references/script-api.md` for full usage, parameters, and return schemas.
 
-> ⚠️ **`deviation-check` anti-repeat:** If `weight-gain-strategy.json` contains an `active_strategy` (status=active, end_date ≥ today), cause-check and significant triggers are suppressed (returns `severity: "none", reason: "active_strategy"`). comfort level is unaffected — a simple reassurance is still appropriate even during an active strategy.
+> ⚠️ **`deviation-check` anti-repeat:** If `weight-gain-strategy.json` contains an `active_strategy` (status=active, end_date ≥ today), cause-check is downgraded to light (simple comfort). Light responses have a 1-day cooldown. cause-check becomes available again ≥3 days after light or ≥7 days after a previous cause-check.
 
 ---
 
@@ -110,9 +109,7 @@ See `references/script-api.md` for full usage, parameters, and return schemas.
 
 | File | Contents |
 |------|----------|
-| `references/cause-check-flow.md` | Full cause-check guided discovery flow (Steps A–D), pact table, pact rules |
-| `references/interactive-flow.md` | Interactive Flow Steps 1–3, strategy types, ranking rules |
-| `references/diagnosis-templates.md` | Per-factor diagnosis lines, consequence lines, motivation lines |
+| `references/cause-check-flow.md` | Full cause-check flow (Steps A→D), habit creation, cron rules |
 | `references/script-api.md` | Script commands, parameters, return schemas |
-| `references/strict-mode.md` | Strict mode: trigger, behavior rules, duration, failure escalation, ownership |
-| `references/data-schemas.md` | Data sources, strategy JSON schema, skill integration, routing conflicts, edge cases |
+| `references/strict-mode.md` | Strict mode: trigger, behavior rules, duration, failure escalation |
+| `references/data-schemas.md` | Data sources, strategy JSON schema, skill integration, edge cases |

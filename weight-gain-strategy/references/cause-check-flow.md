@@ -1,214 +1,114 @@
-# cause-check Guided Discovery Flow (streak 2–3)
+# cause-check 体重分析流程
 
-A multi-turn conversational flow with **push-pull rhythm** — playful teasing,
-user opt-in at each step, suspense before the reveal. Run `analyze` silently
-at the very start so data is ready, but don't reveal findings until the user
-is engaged. Each step waits for the user's response before proceeding.
+当 deviation-check 返回 `severity: "cause-check"` 时触发。
+
+## 准备
+
+进入流程前，**静默跑 `analyze`**，拿到数据备用，但不立即展示。
 
 ## Step A: Hook + opt-in
 
-Open with a playful, light-hearted observation about the streak. Frame it as
-entering **"减重分析模式"** — a special mode name that makes the investigation
-feel structured and fun, not scary. Ask if the user wants to enter this mode
-to give them a chance to opt in.
+轻松开场，告诉用户体重在涨，问要不要一起看看原因。给用户选择权。
 
-Examples:
-- "唔，这两次秤有点不太乖哦。先别急，让我们一起来看看是怎么回事。进入减重分析模式吗？"
-- "Hmm, scale's been naughty twice in a row. No rush — want to enter weight-loss analysis mode and figure it out together?"
-- "连着两次往上走了。想开启减重分析模式，一起当回侦探吗？"
+示例：
+- "唔，连着两次往上走了。想一起看看是怎么回事吗？🔍"
+- "秤又调皮了，要不要进入分析模式看看？"
 
-**Wait for user response.** If the user says no or ignores → drop it (single-
-ask rule). If yes → proceed.
+**等用户回复。** 说不要 → 放弃。说好 → 继续。
 
-## Step B: Let the user guess
+## Step B: 让用户先猜
 
-Don't show data yet. Ask the user to guess the cause first. This surfaces
-context the data can't capture (stress, social events, mood) and makes the
-user an active participant, not a passive recipient of a report.
+不急着亮数据。先问用户自己觉得是什么原因。这能捕捉数据看不到的上下文（压力、聚餐、情绪）。
 
-Examples:
-- "Take a guess first — what do you think is going on?"
-- "Before I show my cards — what's your hunch?"
+示例：
+- "在我亮底牌之前——你自己觉得是什么原因？"
+- "你先猜猜，然后我们对答案"
 
-**Wait for user response.** If the user has a guess → validate in Step C.
-If the user says "no idea" or shrugs → that's fine, move to Step C and lead
-with the data.
+**等用户回复。**
 
-## Step C: Data reveal + consequence + motivation
+## Step C: AI 分析原因
 
-Structure: **validate → data → consequence → motivation**. See
-`references/diagnosis-templates.md` for per-factor diagnosis lines,
-consequence lines, and cause-specific motivation lines.
+基于 `analyze` 数据 + 用户在 Step B 的回答，**AI 自行判断增重原因**。
 
-**Validation** — If the user guessed in Step B, validate first:
-- **Right:** "Spot on! The data backs you up — {data finding}."
-- **Partially right:** "That's part of it — data also shows {finding}."
-- **Didn't know:** "I dug into the data — {data finding}."
+**要求：**
+- **专业分析**：像营养师一样解读数据，给出机制层面的解释（代谢适应、胰岛素波动、肌肉流失、水钠潴留等），不是泛泛说"吃多了"
+- **贴合用户行为**：分析必须指向用户**实际做了什么**（"你周三和周五各吃了一顿方便面，钠摄入飙到3000mg"），不是笼统的"你吃太咸"
+- 用数据说话（引用具体数字：热量、蛋白质克数、波动幅度、具体日期、具体食物）
+- 结合用户上下文（如果 Step B 提到了压力/聚餐等，纳入分析）
+- 因果链要完整：行为 → 生理机制 → 结果。例如："你连续3天只吃800卡 → 身体进入节能模式降低代谢 → 第4天正常吃1500卡身体就当多余的存起来了"
+- 如果用户 Step B 猜对了，先肯定再补充
+- 如果猜错了，温和纠正
 
-**Special cases — end flow here, skip Step D:**
-- **Menstrual cycle:** "Your intake looks fine — timing lines up with your cycle, likely water retention. Let's check again after it passes."
-- **Adaptation period with no actionable cause:** "Still early and your body is adjusting — fluctuation is expected."
-- **Purely temporary causes with no behavioral issue:** If `deviation-check` returned `temporary_causes` and there is no calorie surplus or other actionable behavioral cause, end the flow here. Use the cause's `message` field to explain: "This looks like [temporary cause message] — no action needed, let's check again next time."
+**不限定分析方向。** AI 根据实际数据判断，可能是热量、蛋白质、食物质量、运动、打卡不全、水肿、节食反弹、或任何组合。
 
-**Temporary causes with behavioral issues — continue flow:**
-If `deviation-check` returned `temporary_causes` AND there is also an actionable cause, incorporate the temporary causes into the Step C data reveal to provide context (e.g., "Part of this is water retention from your cycle, but the data also shows [actionable cause]..."). Then proceed to Step C2 as normal.
+## Step C2: 过渡 + 给 3 个可选改变
 
-**Adaptation period WITH actionable cause:**
-Still show the data (Step C) but soften the tone — "Your body is still adjusting, so some fluctuation is expected. That said, I did notice [cause]..." Proceed to Step C2 but frame it as lighter/optional ("No pressure — but if you want to pick one small experiment...").
+Step C 分析完后，**不要直接列选项**。先加一句过渡，制造参与感和期待：
 
-## Step C2: Present top issues + user chooses
+示例：
+- "我有个想法想跟你说——要不要听听？😏"
+- "问题找到了，我有三个方案给你挑，想听吗？"
+- "原因差不多清楚了。要不我给你支个招？"
 
-After the data reveal in Step C, present the **top 3 issues** found in the
-analysis (or fewer if fewer exist). Number them clearly. Each issue gets a
-one-liner explaining what the data shows and why it matters.
+**等用户回复。** 用户说好 → 列选项。
 
-**Format:**
+然后给用户 3 个具体的、可执行的改变，让用户选一个。
 
+**格式：**
 ```
-根据数据，我发现了几个问题：
+1️⃣ xxx — 一句话说明
+2️⃣ xxx — 一句话说明
+3️⃣ xxx — 一句话说明
 
-1️⃣ 蛋白质严重不足 — 每天只有33g，推荐91g，掉肌肉代谢变慢
-2️⃣ 全碳水饮食 — 白粥油条炒饭面条，几乎没有优质蛋白来源
-3️⃣ 热量偏低 — 平均1500，目标1800，吃太少反而容易反弹
-
-你觉得哪个最想先搞定？选个数字就行～
+你觉得哪个最想试试？选个数字就行～
 ```
 
-**Rules:**
-- Issues ranked by impact (most impactful first), derived from `analyze` output
-- Each issue: **name + data evidence + consequence**, one line
-- If only 1-2 issues → present what exists, still let user pick
-- If `suggested_actions` contains `strict_mode` → list "打卡记录不完整" as one of the options
-- Tone: factual but not scary, like showing a menu not a diagnosis report
+**要求：**
+- AI 根据分析结果自行生成，不用固定模板
+- 每个改变要**具体可执行**（"每餐加个鸡蛋"不是"多吃蛋白质"）
+- 难度递增（1 最简单，3 稍难）
+- 不要和已有提醒重复（三餐提醒已有，不需要再建打卡提醒）
 
-**Wait for user response.** User picks a number (or describes which one).
-If user picks → proceed to Step D with that specific issue.
-If user says "all" or "都要" → pick the highest-impact one, say "一个一个来，先搞定最重要的"
-If user ignores → drop it (single-ask rule).
+**特殊情况 — 打卡不全：**
+如果 `analyze` 数据显示打卡覆盖率低（coverage_pct < 50% 或大量单餐日），"打卡不全"本身就是一个原因——数据不够无法准确分析。这种情况：
+- 可以把"先把每餐都记下来"作为 3 个选项之一
+- 如果用户选了这个 → 进入**严格模式**（`--strict` 参数），已有三餐提醒变严格，不建新 cron
+- 严格模式详见 `references/strict-mode.md`
 
----
+**等用户回复。** 用户选一个 → Step D。说"都要" → 选最简单的那个，"一个一个来"。
 
-## Step D: Challenge + pact for chosen issue
+## Step D: 建立习惯
 
-Based on the user's choice in Step C2, present a targeted pact.
+用户选了之后，执行以下步骤：
 
-**Tease the challenge:**
-- "好，那我有个小约定想跟你提——敢接吗？😏"
-- "那我们就从这个开始，我有个小挑战给你——"
-
-**Wait for user response.** If yes → reveal the pact immediately.
-
-**Reveal the habit as a pact:** Frame the habit as a mutual commitment, not a
-one-sided instruction. The AI is committing to something too (stricter
-monitoring, closer attention, daily check-ins).
-
-Structure: **"I will do X" + "you do Y"**
-
-### Pact examples by cause
-
-| Detected cause | AI commits to | User commits to | Example |
-|---------------|--------------|----------------|---------|
-| **Snacking / calorie surplus** | Tighter meal review, flag when close to target | Log every meal, swap the specific snack | "I'm going to keep a closer eye on your meals from now on — and you? Tell me everything you eat, and swap those afternoon chips for yogurt. One week, deal?" |
-| **Weekend overeating** | Weekend meal check-in reminder | Photo-log weekend meals | "I'll check in on weekends to see what you ate — just snap a photo for me. No need to restrict, just let me see it." |
-| **Exercise decline** | Exercise check-in mid-week | Restore one specific session | "I'll check in Wednesday to see if you ran — just add that one session back. That's it, just the one." |
-| **Late-night eating** | Evening check-in before kitchen-closes time | Move last meal earlier | "I'll ping you at 8 PM to ask if you're done eating — try to wrap up dinner before 8. Sound fair?" |
-| **Logging gaps** | Enter strict mode (existing meal reminders become more insistent) | Respond to every meal reminder | "三餐提醒我都会发，你回复就好——严格模式启动，我会盯紧一点 😤" |
-| **Food quality issues** (AI-identified) | Review meals more carefully, flag specific items | Swap specific problematic foods per AI's suggestion | AI generates personalized suggestion based on actual food list. Example: "你最近方便面吃了好几次了，钠太高容易水肿。试试换成挂面煮个青菜鸡蛋面？" |
-| **Low protein** | Check protein in each meal review | Add one protein source per meal | "你的蛋白质摄入有点低哦，容易饿也容易掉肌肉。试试每餐加一份蛋白质——鸡蛋、鸡胸、豆腐都行，我帮你留意📸" |
-| **Calorie volatility** | Daily calorie range check-in | Keep daily intake within ±200 kcal of target | "你的热量忽高忽低，身体会应激。这周试试每天都吃到{目标}附近，不用完美，稳就行。我每天帮你看📊" |
-| **Insufficient data** | Enter strict mode (same as logging gaps) | Respond to every meal reminder | "数据不够我没法分析——先把三餐都回复给我，一周后我再帮你看" |
-
-### Pact rules
-
-- **AI side is real.** The commitment from the AI side (stricter monitoring,
-  check-ins, daily review) must actually be followed through. If promising
-  "closer eye on your meals", subsequent meal logs should get more detailed
-  calorie feedback. Coordinate with `notification-composer` for check-in
-  reminders.
-- **Mutual, not one-sided.** The user shouldn't feel like they're the only one
-  making an effort. The AI is stepping up too.
-- **Playful accountability.** The tone is "we're in this together" with a
-  dash of playful strictness — like a coach who teases you but clearly cares.
-
-### After user agrees
-
-> ⚠️ **MUST execute both script calls below before replying.** Do not skip.
-
-**Step 1 — Create habit** via `action-pipeline.py activate`:
-
+**Step 1 — 建习惯：**
 ```bash
 python3 {habit-builder:baseDir}/scripts/action-pipeline.py activate \
   --action '{
-    "action_id": "<cause-derived-id>",
-    "description": "<user side of pact>",
-    "trigger": "<meal or time>",
-    "behavior": "<tiny version>",
-    "trigger_cadence": "<every_meal|daily_fixed|daily_random|weekly|conditional>",
+    "action_id": "<id>",
+    "description": "<用户选的改变>",
+    "trigger": "<触发场景>",
+    "behavior": "<最小动作>",
+    "trigger_cadence": "<every_meal|daily_fixed|weekly|conditional>",
     "bound_to_meal": "<breakfast|lunch|dinner|null>"
   }' \
   --source weight-gain-strategy \
-  [--strict] \
-  --source-advice "<AI side of pact + context>"
+  --source-advice "<context>"
 ```
 
-Field mapping:
-- `action_id`: derive from cause (e.g., `"swap-afternoon-snack"`, `"log-meals"`, `"restore-wed-run"`)
-- `trigger_cadence`: `daily_fixed` for meal-bound pacts, `weekly` for exercise, `conditional` for situational
-- `--source weight-gain-strategy`: marks this habit as originating from a cause-check pact
-- `--strict`: add when the cause includes `logging_gaps` AND `calorie_surplus`. See `references/strict-mode.md`.
+输出写入 `habits.active`。
 
-The script outputs the complete `habits.active` entry JSON. **Write it to `habits.active` immediately.**
-
-**Step 2 — Save strategy metadata:**
-
+**Step 2 — 保存策略：**
 ```bash
 python3 {baseDir}/scripts/analyze-weight-trend.py save-strategy \
   --data-dir {workspaceDir}/data \
-  --strategy-type <reduce_calories|increase_exercise|combined> \
+  --strategy-type <类型> \
   --params '{"duration_days": 7, ...}' \
   --tz-offset {tz_offset}
 ```
 
-This is for `check-strategy` / `weekly-report` only — `habits.active` is
-the source of truth for daily execution.
+**Step 3 — 按需建 cron：**
+- 餐时习惯（蛋白质、食物替换等）→ 不建 cron，通过 should-mention 嵌入三餐提醒
+- 非餐时习惯（零食、晚间、周末、运动日）→ 建 cron
 
-**Step 3 — Create habit check-in cron reminder:**
-
-The AI side of the pact must be enforced with actual cron reminders. Use the notification-manager custom reminder system.
-
-**Cron mapping by cause:**
-
-| Detected cause | Cron schedule | Prompt template |
-|---|---|---|
-| **Snacking / calorie surplus** | `0 15 * * *` (每天 15:00) | `[custom] habit-checkin: 下午零食时间到了，记得今天的约定哦～换成{替代食物}试试？` |
-| **Weekend overeating** | `0 12 * * 6,0` + `0 18 * * 6,0` (周六日 12:00/18:00) | `[custom] habit-checkin: 周末啦，吃了什么拍给我看看📸` |
-| **Exercise decline** | `0 {time} * * {days}` (用户运动日) | `[custom] habit-checkin: 今天是运动日哦，{具体运动}安排上了吗？` |
-| **Late-night eating** | `0 20 * * *` (每天 20:00) | `[custom] habit-checkin: 厨房要关门啦🔒 晚饭吃完了吗？` |
-| **Logging gaps** | 已有三餐 cron，进入严格模式即可，无需额外 cron |
-| **Food quality issues** | 不建新 cron — 通过 `should-mention` 嵌入三餐提醒 | notification-composer 自动在餐前提及 |
-| **Low protein** | 不建新 cron — 通过 `should-mention` 嵌入三餐提醒 | notification-composer 自动在餐前提及"这餐有蛋白质吗？" |
-| **Calorie volatility** | 不建新 cron — 通过 `should-mention` 嵌入三餐提醒 | notification-composer 自动提及"今天吃够了吗？" |
-| **Insufficient data** | 已有三餐 cron，进入严格模式即可，无需额外 cron |
-
-**Cron 创建方法：** 使用 `openclaw cron add` 命令：
-
-```bash
-openclaw cron add \
-  --schedule "<cron expression>" \
-  --prompt "[custom] habit-checkin: <check-in message>" \
-  --label "habit:<action_id>" \
-  --target "wechat-dm-<userId>"
-```
-
-**规则：**
-- 所有 habit cron 用 `[custom] habit-checkin:` 前缀，方便识别和清理
-- `--label` 用 `habit:<action_id>` 格式，和 `habits.active` 关联
-- 习惯毕业（graduated）或失败（failed）时，必须同步删除对应 cron
-- 一个习惯最多 2 个 cron job
-
-**Step 4 — Reply** with a short, cheeky confirmation:
-- "Deal! Don't say I didn't warn you 😏"
-- "Alright, you're on my watch list this week 👀"
-
-If the user says no, ignores, or changes topic → drop it. Single-ask rule
-applies at each step.
+**Step 4 — 回复用户**，简短确认。**周期固定为一周**（7天后复盘）。

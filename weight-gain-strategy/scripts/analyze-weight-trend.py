@@ -224,6 +224,9 @@ def analyze(args):
             day_meal_count = 0
             day_food_names = []
             meals = day_data if isinstance(day_data, list) else day_data.get("meals", [])
+            # Support dict format: {"breakfast": {...}, "lunch": {...}, ...}
+            if isinstance(day_data, dict) and not meals:
+                meals = list(day_data.values())
             for meal in meals:
                 if isinstance(meal, dict):
                     mc = get_meal_calories(meal)
@@ -534,6 +537,8 @@ def detect_temporary_causes(args, local_now, readings, calorie_target):
     if os.path.exists(meal_path) and calorie_target:
         day_data = load_json(meal_path)
         meals = day_data if isinstance(day_data, list) else day_data.get("meals", [])
+        if isinstance(day_data, dict) and not meals:
+            meals = list(day_data.values())
         day_cal = 0
         for meal in meals:
             if isinstance(meal, dict):
@@ -576,6 +581,8 @@ def detect_temporary_causes(args, local_now, readings, calorie_target):
                         if os.path.exists(mp):
                             dd = load_json(mp)
                             ms = dd if isinstance(dd, list) else dd.get("meals", [])
+                            if isinstance(dd, dict) and not ms:
+                                ms = list(dd.values())
                             dc = sum(
                                 get_meal_calories(m)
                                 for m in ms if isinstance(m, dict)
@@ -641,7 +648,7 @@ def deviation_check(args):
 
     Returns:
       - triggered: true if the latest weigh-in is higher than the previous
-      - severity: "none" | "comfort" | "cause-check" | "significant"
+      - severity: "none" | "light" | "cause-check"
       - consecutive_increases: the streak count driving severity
       - temporary_causes: list of detected temporary explanations (if any)
     """
@@ -720,37 +727,50 @@ def deviation_check(args):
         except (json.JSONDecodeError, IOError):
             wgs_state = {}
 
+    # --- Two-tier severity: light-analysis vs full cause-check ---
+    # Tier 1 "light": first increase → quick data glance + comfort
+    # Tier 2 "cause-check": second+ increase (>=3 days after light) → full analysis mode
+    # During cause-check 7-day window: additional increases get "light" only
+    last_severity = wgs_state.get("last_severity", "")
+    last_trigger_date = wgs_state.get("last_trigger_date", "")
+
     if consecutive_increases == 0:
         severity = "none"
         triggered = False
-    elif consecutive_increases == 1:
-        severity = "comfort"
-        triggered = True
-    elif consecutive_increases <= 3:
-        # Check if we should escalate to significant:
-        # Only if last trigger was cause-check AND >= 7 days ago
-        last_severity = wgs_state.get("last_severity", "")
-        last_trigger_date = wgs_state.get("last_trigger_date", "")
-        if last_severity == "cause-check" and last_trigger_date:
-            try:
-                days_since = (local_now.date() - datetime.strptime(
-                    last_trigger_date, "%Y-%m-%d"
-                ).date()).days
-                if days_since >= 7:
-                    severity = "significant"
-                    triggered = True
-                else:
-                    severity = "cause-check"
-                    triggered = True
-            except ValueError:
-                severity = "cause-check"
-                triggered = True
+    elif last_severity == "cause-check" and last_trigger_date:
+        # We already did a full cause-check — check if within 7-day window
+        try:
+            days_since = (local_now.date() - datetime.strptime(
+                last_trigger_date, "%Y-%m-%d"
+            ).date()).days
+        except ValueError:
+            days_since = 999
+        if days_since < 7:
+            # Within 7-day window → light analysis only
+            severity = "light"
+            triggered = True
         else:
+            # Past 7 days → eligible for new cause-check
             severity = "cause-check"
             triggered = True
+    elif last_severity == "light" and last_trigger_date:
+        # Previously triggered light → check if >=3 days for cause-check
+        try:
+            days_since = (local_now.date() - datetime.strptime(
+                last_trigger_date, "%Y-%m-%d"
+            ).date()).days
+        except ValueError:
+            days_since = 999
+        if days_since >= 3:
+            severity = "cause-check"
+            triggered = True
+        else:
+            # <3 days since light → stay light (no spam)
+            severity = "light"
+            triggered = True
     else:
-        # 4+ consecutive increases
-        severity = "significant"
+        # First increase or no previous state → light
+        severity = "light"
         triggered = True
 
     # --- Detect adaptation period (first 2 weeks of plan) ---
@@ -768,8 +788,8 @@ def deviation_check(args):
         except ValueError:
             pass
 
-    # --- Active strategy suppression: skip cause-check/significant if strategy still active ---
-    if triggered and severity in ("cause-check", "significant"):
+    # --- Active strategy suppression: cause-check suppressed if strategy still active ---
+    if triggered and severity == "cause-check":
         strategy_path = os.path.join(args.data_dir, "weight-gain-strategy.json")
         if os.path.exists(strategy_path):
             try:
@@ -779,47 +799,31 @@ def deviation_check(args):
                 if active and active.get("status") == "active":
                     end_date = active.get("end_date", "")
                     if end_date >= local_now.strftime("%Y-%m-%d"):
-                        print(json.dumps({
-                            "triggered": False,
-                            "severity": "none",
-                            "actual_severity": severity,
-                            "reason": "active_strategy",
-                            "consecutive_increases": consecutive_increases,
-                            "strategy_end_date": end_date,
-                            "message": f"Active strategy in place until {end_date}. Suppressing {severity} trigger.",
-                        }, indent=2, ensure_ascii=False))
-                        return
+                        # Downgrade to light instead of blocking entirely
+                        severity = "light"
             except (json.JSONDecodeError, IOError):
                 pass
 
-    # --- Cooldown: skip if same severity was triggered recently ---
-    # comfort: 3 day cooldown, cause-check: 7 days, significant: 7 days
-    cooldown_map = {"comfort": 3, "cause-check": 7, "significant": 7}
-
-    if triggered and severity in cooldown_map:
-        last_trigger_date = wgs_state.get("last_trigger_date", "")
-        last_severity = wgs_state.get("last_severity", "")
-        cooldown_days = cooldown_map[severity]
-        if last_trigger_date and last_severity == severity:
-            try:
-                days_since = (local_now.date() - datetime.strptime(
-                    last_trigger_date, "%Y-%m-%d"
-                ).date()).days
-                if days_since < cooldown_days:
-                    print(json.dumps({
-                        "triggered": False,
-                        "severity": "none",
-                        "reason": "cooldown",
-                        "actual_severity": severity,
-                        "consecutive_increases": consecutive_increases,
-                        "cooldown_days": cooldown_days,
-                        "days_since_last": days_since,
-                        "message": f"Same severity '{severity}' triggered {days_since}d ago, cooldown is {cooldown_days}d. Skipped.",
-                    }, indent=2, ensure_ascii=False))
-                    return
-            except ValueError:
-                pass
-        # Severity escalated — always trigger (e.g. comfort → cause-check)
+    # --- Cooldown: light has 1-day cooldown (no spam), cause-check handled above ---
+    if triggered and severity == "light" and last_trigger_date:
+        try:
+            days_since = (local_now.date() - datetime.strptime(
+                last_trigger_date, "%Y-%m-%d"
+            ).date()).days
+            if days_since < 1:
+                print(json.dumps({
+                    "triggered": False,
+                    "severity": "none",
+                    "reason": "cooldown",
+                    "actual_severity": "light",
+                    "consecutive_increases": consecutive_increases,
+                    "cooldown_days": 1,
+                    "days_since_last": days_since,
+                    "message": "Light analysis already triggered today. Skipped.",
+                }, indent=2, ensure_ascii=False))
+                return
+        except ValueError:
+            pass
 
     # If we will trigger, persist state for future cooldown checks
     if triggered:
@@ -863,23 +867,7 @@ def deviation_check(args):
         }
 
     # --- Latest increase amount ---
-    latest_increase_kg = round(readings[-1]["value"] - readings[-2]["value"], 2)
-
-    # --- Build previous context for escalation callback ---
-    previous_context = None
-    if severity == "significant" and wgs_state.get("last_severity") == "cause-check":
-        previous_context = {
-            "last_trigger_date": wgs_state.get("last_trigger_date"),
-            "days_since_cause_check": None,
-            "message": "This is a follow-up. Last time we did a cause-check and identified potential issues. Reference that conversation — acknowledge what was discussed, note that the trend continued despite the analysis, and escalate to strategy suggestions. Do NOT repeat the same cause-check flow. The tone should show continuity: '上次我们聊过...' / '之前分析过一次...'",
-        }
-        if wgs_state.get("last_trigger_date"):
-            try:
-                previous_context["days_since_cause_check"] = (local_now.date() - datetime.strptime(
-                    wgs_state["last_trigger_date"], "%Y-%m-%d"
-                ).date()).days
-            except ValueError:
-                pass
+    latest_increase_kg = round(deduped[-1]["value"] - deduped[-2]["value"], 2) if len(deduped) >= 2 else 0.0
 
     result = {
         "triggered": triggered,
@@ -899,27 +887,16 @@ def deviation_check(args):
         "deviation_context": deviation_context,
     }
 
-    if previous_context:
-        result["previous_context"] = previous_context
-
-    if severity == "comfort":
+    if severity == "light":
         result["recommendation"] = (
-            "Weight is up compared to last weigh-in. "
-            "Comfort and encourage — this is normal, keep going. "
-            "If a temporary cause was detected, mention it lightly."
+            "Weight is up. Give a brief, comforting response. "
+            "If temporary causes detected, mention lightly."
         )
     elif severity == "cause-check":
         result["recommendation"] = (
-            "Weight has been going up for {0} consecutive weigh-ins. "
-            "Run analyze to identify probable causes (weekend overeating, "
-            "exercise decline, menstrual cycle, calorie surplus) and tell "
-            "the user what to watch out for. Do NOT offer strategy yet."
-        ).format(consecutive_increases)
-    elif severity == "significant":
-        result["recommendation"] = (
-            "Weight has been going up for {0} consecutive weigh-ins. "
-            "Run full analyze, present diagnosis, and offer adjustment strategies."
-        ).format(consecutive_increases)
+            "Weight trending up. Follow cause-check-flow.md: "
+            "run analyze, identify causes, present 3 choices."
+        )
     else:
         result["recommendation"] = "Weight stable or down. No action needed."
 
@@ -982,9 +959,7 @@ def main():
     # save-strategy
     p_save = subparsers.add_parser("save-strategy")
     p_save.add_argument("--data-dir", required=True)
-    p_save.add_argument("--strategy-type", required=True,
-                        choices=["reduce_calories", "increase_exercise",
-                                 "combined"])
+    p_save.add_argument("--strategy-type", required=True)
     p_save.add_argument("--params", default="{}")
     p_save.add_argument("--tz-offset", type=int, default=0)
 
