@@ -209,13 +209,6 @@ fi
 
 echo "Agent: $AGENT → Channel: $CHANNEL → To: $TO"
 
-# --- Inject user workspace path into message for cron isolated sessions ---
-if [[ -n "$USER_WORKSPACE" ]]; then
-  MESSAGE="$MESSAGE
-User workspace: $USER_WORKSPACE"
-  echo "Injected user workspace into message"
-fi
-
 # --- Build the cron command ---
 # Note: Do NOT wrap $MESSAGE with delivery instructions here.
 # The no-self-delivery rule is enforced in notification-composer SKILL.md
@@ -232,7 +225,7 @@ exec command: curl -s -X POST '$BRIDGE_URL' -H 'Content-Type: application/json' 
 Do NOT output the message as your reply. Instead, put your full message text into the curl command above and execute it. Reply with only: NO_REPLY"
   CMD=(openclaw cron add
     --name "$NAME"
-    --session isolated
+    --session main
     --agent "$AGENT"
     --message "$WRAPPED_MESSAGE"
     --no-deliver
@@ -241,12 +234,9 @@ Do NOT output the message as your reply. Instead, put your full message text int
 else
   CMD=(openclaw cron add
     --name "$NAME"
-    --session isolated
+    --session main
     --agent "$AGENT"
-    --message "$MESSAGE"
-    --announce
-    --channel "$CHANNEL"
-    --to "$TO"
+    --system-event "$MESSAGE"
   )
 fi
 
