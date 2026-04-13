@@ -132,38 +132,63 @@ Backfilled meals from missing-meal handling are always "already eaten" — never
 
 **Photo present → 3-step pipeline (do NOT skip to single-serving default):**
 
-> ⚠️ **MANDATORY BEFORE ESTIMATING:** You MUST `read` `{baseDir}/references/portion-estimation.md` first. Do NOT estimate from memory — the reference tables contain the density and shrinkage values you need. Every `amount_g` must come from a volume × density calculation, not a visual guess.
+> 🚫 **HARD RULE — READ FIRST, THEN ESTIMATE:**
+> 1. Call `read` on `{baseDir}/references/portion-estimation.md` — this is a tool call, not optional.
+> 2. Only AFTER reading it, proceed to Step 0 below.
+> 3. If you did not call `read` on this file, STOP and do it now. No exceptions.
 
 **Step 0 — Scene inventory (REQUIRED before anything else):**
-Count and identify ALL separate containers/plates in the photo. For each one, note in your thinking:
-- Container type (plate, bowl, lunch box, glass container, takeout box, etc.)
-- What food is in it
-- Single container or multi-section
-
+Count and identify ALL separate containers/plates in the photo. Write in your thinking:
+```
+Scene: [N] containers
+1. [type] — contains [food] — [single/multi-section]
+2. [type] — contains [food] — [single/multi-section]
+```
 ⚠️ Do NOT merge separate containers into one. A plate + a lunch box ≠ "dual-section lunch box". A glass container ≠ a disposable takeout box. Describe what you actually see.
 
-1. **Anchor** — find a scale reference in the photo:
-   - Known object (egg, chopstick, spoon, phone, etc.) → `references/portion-estimation.md § Photo Reference Objects`
-   - Hand / fingers visible → same reference
-   - Container matches a known type → `references/portion-estimation.md § Common Container Sizes`
-   - None found → single-serving default, prefix `~`
-2. **Measure** — for EACH container from Step 0, determine volume:
-   - Match container type → look up volume in `§ Common Container Sizes`
-   - No match → estimate dimensions relative to anchor
-   - Estimate fill level → `§ Fill Level`
-   - **Write in thinking:** `[container type] → volume: [X] ml × fill: [Y]% = effective [Z] ml`
-3. **Convert** — for EACH food item, calculate weight:
-   - `weight(g) = effective volume(ml) × density(g/ml)` per `§ Volume → Weight Conversion`
-   - **Write in thinking:** `[food]: [Z] ml × [density] g/ml = [W] g cooked`
-   - For vegetables: apply shrinkage ratio from `§ Cooked-Vegetable Shrinkage`
-   - **Write in thinking:** `[veg]: [W]g cooked ÷ [ratio] = [R]g raw`
-   - Multi-section containers: estimate each section separately.
+**Step 1 — Anchor:** Find a scale reference in the photo:
+- Known object (egg, chopstick, spoon, phone, etc.) → `§ Photo Reference Objects`
+- Hand / fingers visible → same reference
+- Container matches a known type → `§ Common Container Sizes`
+- None found → single-serving default, prefix `~`
+
+**Step 2 — Measure:** For EACH container from Step 0, write this exact template in your thinking:
+```
+Container [N]: [type]
+  Matched: [reference table entry or "estimated from anchor"]
+  Volume: [X] ml
+  Fill level: [Y]% ([description from § Fill Level])
+  Effective volume: [X] × [Y]% = [Z] ml
+```
+
+**Step 3 — Convert:** For EACH food item in each container, write this exact template:
+```
+[food name]:
+  Volume share: [Z] ml × [P]% = [V] ml
+  Density: [D] g/ml (from § Volume → Weight Conversion: [category])
+  Cooked weight: [V] × [D] = [W] g
+  → amount_g = [W]
+```
+For mixed dishes (e.g. stir-fry with meat + vegetables), split by component:
+```
+[dish name] total effective volume: [V] ml
+  - [vegetable]: [V] × [veg%]% = [Vv] ml × [Dv] g/ml = [Wv] g cooked
+    Raw weight: [Wv] ÷ [shrinkage ratio from § Cooked-Vegetable Shrinkage] = [Rv] g
+    → vegetables_g = [Rv]
+  - [meat]: [V] × [meat%]% = [Vm] ml × [Dm] g/ml = [Wm] g
+  - [other]: ...
+  Total cooked weight: [Wv] + [Wm] + ... = [W] g
+  → amount_g = [W]
+```
+
+**⚠️ `vegetables_g` = raw weight of VEGETABLES ONLY.** Do not include meat, tofu, eggs, or other non-vegetable ingredients. A dish of 430g total with 60% zucchini has ~258g cooked vegetables, NOT 430g.
 
 **Self-check (REQUIRED):** Before proceeding to 1.5, verify in your thinking:
-- Does `amount_g` ≤ effective volume × 1.0 g/ml? If not, your estimate is wrong.
-- Does `vegetables_g` (raw) > `amount_g` (cooked) for the same item? If so, recheck — raw weight of a single vegetable dish should be close to or slightly above cooked weight for gourds/roots (ratio 0.8–0.9), NOT double.
+- `amount_g` ≤ effective volume × 1.0 g/ml? If not → recheck.
+- `vegetables_g` (raw) ≤ `amount_g` (cooked) × vegetable share %? If not → recheck.
+- Each number traces back to a calculation above? If any number is a guess → redo it.
 
-**If you skip any step above or produce an `amount_g` without a volume × density calculation in your thinking, you are violating this skill's rules.**
+**If your thinking does not contain the templates above with filled-in numbers, you are violating this skill's rules. Go back and redo Step 2 and Step 3.**
 
 **No photo, no portion stated** → single-serving default, prefix `~`.
 
