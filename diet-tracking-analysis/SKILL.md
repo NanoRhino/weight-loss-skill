@@ -108,7 +108,7 @@ python3 {baseDir}/scripts/nutrition-calc.py calibration-lookup \
   --foods '<JSON array of food name strings>'
 ```
 
-Returns `matches` (with `user_portion_g`, `correction_count`, match type `exact`/`contains`) and `no_match`. Data file `{workspaceDir}/data/portion-calibrations.json` is auto-maintained by `log-meal` on corrections.
+Returns `matches` (with `user_portion_g`, `correction_count`, match type `exact`/`contains`) and `no_match`. Calibrations are stored in `health-preferences.md > ## Portion Calibrations` and auto-maintained by `log-meal` on corrections.
 
 ---
 

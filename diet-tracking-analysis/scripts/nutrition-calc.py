@@ -385,34 +385,80 @@ def _check_ambiguous_foods(meal: dict) -> list:
 
 
 # ---------------------------------------------------------------------------
-# Portion calibration memory
+# Portion calibration memory (stored in health-preferences.md)
 # ---------------------------------------------------------------------------
 
 _MAX_CALIBRATIONS = 200
+_CAL_SECTION_HEADER = "## Portion Calibrations\n"
+_CAL_LINE_RE = re.compile(
+    r'^- \[(\d{4}-\d{2}-\d{2})\] (.+?) → (\d+)g \(×(\d+)\)$')
 
 
-def _calibrations_path(data_dir: str) -> str:
-    """Return path to portion-calibrations.json (sibling of meals dir)."""
-    return os.path.join(os.path.dirname(os.path.normpath(data_dir)),
-                        "portion-calibrations.json")
+def _hp_path(data_dir: str) -> str:
+    """Return path to health-preferences.md at workspace root."""
+    workspace = os.path.dirname(os.path.dirname(os.path.normpath(data_dir)))
+    return os.path.join(workspace, "health-preferences.md")
 
 
 def _load_calibrations(data_dir: str) -> dict:
-    path = _calibrations_path(data_dir)
+    path = _hp_path(data_dir)
     if not os.path.exists(path):
         return {}
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
+            content = f.read()
+    except IOError:
         return {}
+    idx = content.find(_CAL_SECTION_HEADER)
+    if idx == -1:
+        return {}
+    section_start = idx + len(_CAL_SECTION_HEADER)
+    next_header = content.find("\n## ", section_start)
+    section = content[section_start:next_header] if next_header != -1 else content[section_start:]
+    calibrations = {}
+    for line in section.strip().split("\n"):
+        m = _CAL_LINE_RE.match(line.strip())
+        if m:
+            calibrations[m.group(2)] = {
+                "user_portion_g": int(m.group(3)),
+                "correction_count": int(m.group(4)),
+                "last_corrected": m.group(1),
+            }
+    return calibrations
 
 
-def _save_calibrations_file(data_dir: str, calibrations: dict):
-    path = _calibrations_path(data_dir)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+def _save_calibrations_to_hp(data_dir: str, calibrations: dict):
+    path = _hp_path(data_dir)
+    lines = []
+    for name, cal in sorted(calibrations.items(),
+                            key=lambda x: x[1].get("correction_count", 0),
+                            reverse=True):
+        lines.append(
+            f"- [{cal['last_corrected']}] {name} → {cal['user_portion_g']}g"
+            f" (×{cal['correction_count']})")
+    new_body = "\n".join(lines) + "\n" if lines else ""
+
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        content = ""
+
+    idx = content.find(_CAL_SECTION_HEADER)
+    if idx != -1:
+        section_start = idx + len(_CAL_SECTION_HEADER)
+        next_header = content.find("\n## ", section_start)
+        if next_header != -1:
+            content = content[:section_start] + new_body + content[next_header:]
+        else:
+            content = content[:section_start] + new_body
+    else:
+        if content and not content.endswith("\n"):
+            content += "\n"
+        content += "\n" + _CAL_SECTION_HEADER + new_body
+
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(calibrations, f, ensure_ascii=False, indent=2)
+        f.write(content)
 
 
 def _cleanup_calibrations(calibrations: dict) -> dict:
@@ -447,25 +493,22 @@ def _update_calibrations_on_correction(data_dir: str, old_foods: list,
     calibrations = _load_calibrations(data_dir)
     today = day or date.today().isoformat()
     updated = []
-    for food_name, old_g, new_g in changes:
+    for food_name, _old_g, new_g in changes:
         if food_name in calibrations:
             entry = calibrations[food_name]
             entry["user_portion_g"] = new_g
-            entry["default_portion_g"] = old_g
             entry["correction_count"] = entry.get("correction_count", 0) + 1
             entry["last_corrected"] = today
         else:
             calibrations[food_name] = {
                 "user_portion_g": new_g,
-                "default_portion_g": old_g,
                 "correction_count": 1,
-                "first_corrected": today,
                 "last_corrected": today,
             }
         updated.append(food_name)
 
     calibrations = _cleanup_calibrations(calibrations)
-    _save_calibrations_file(data_dir, calibrations)
+    _save_calibrations_to_hp(data_dir, calibrations)
     return updated
 
 
