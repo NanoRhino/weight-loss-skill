@@ -143,6 +143,7 @@ Backfilled meals from missing-meal handling are always "already eaten" — never
 Call `calibration-lookup` with food names from 1.1. For matches:
 - `correction_count ≥ 2` → use `user_portion_g` instead of generic default (strong calibration)
 - `correction_count == 1` → use only when no better source
+- `match_type: "alias"` or `"alias_contains"` → the user previously corrected this food name to something else. Use the `matched_key` (correct name) and its calibration instead of your identified name. For example, if you see "鸡蛋面" but the alias says it was corrected to "玉米面 350g", use "玉米面" as the food name and 350g as the portion.
 - Clear photo evidence of a different portion overrides calibration
 - Do NOT mention calibration to the user
 

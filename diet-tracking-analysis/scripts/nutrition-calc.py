@@ -392,6 +392,10 @@ _MAX_CALIBRATIONS = 200
 _CAL_SECTION_HEADER = "## Portion Calibrations\n"
 _CAL_LINE_RE = re.compile(
     r'^- \[(\d{4}-\d{2}-\d{2})\] (.+?) → (\d+)g \(×(\d+)\)$')
+# Confusion pairs: AI guessed X but user corrected to Y
+_CONFUSION_SECTION_HEADER = "## Correction Aliases\n"
+_CONFUSION_LINE_RE = re.compile(
+    r'^- (.+?) → (.+?)$')
 
 
 def _hp_path(data_dir: str) -> str:
@@ -425,6 +429,59 @@ def _load_calibrations(data_dir: str) -> dict:
                 "last_corrected": m.group(1),
             }
     return calibrations
+
+
+def _load_confusion_aliases(data_dir: str) -> dict:
+    """Load correction aliases: {ai_guessed_name: user_corrected_name}."""
+    path = _hp_path(data_dir)
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except IOError:
+        return {}
+    idx = content.find(_CONFUSION_SECTION_HEADER)
+    if idx == -1:
+        return {}
+    section_start = idx + len(_CONFUSION_SECTION_HEADER)
+    next_header = content.find("\n## ", section_start)
+    section = content[section_start:next_header] if next_header != -1 else content[section_start:]
+    aliases = {}
+    for line in section.strip().split("\n"):
+        m = _CONFUSION_LINE_RE.match(line.strip())
+        if m:
+            aliases[m.group(1)] = m.group(2)
+    return aliases
+
+
+def _save_confusion_aliases(data_dir: str, aliases: dict):
+    """Save correction aliases to health-preferences.md."""
+    path = _hp_path(data_dir)
+    lines = [f"- {ai_name} → {real_name}" for ai_name, real_name in sorted(aliases.items())]
+    new_body = "\n".join(lines) + "\n" if lines else ""
+
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        content = ""
+
+    idx = content.find(_CONFUSION_SECTION_HEADER)
+    if idx != -1:
+        section_start = idx + len(_CONFUSION_SECTION_HEADER)
+        next_header = content.find("\n## ", section_start)
+        if next_header != -1:
+            content = content[:section_start] + new_body + content[next_header:]
+        else:
+            content = content[:section_start] + new_body
+    else:
+        if content and not content.endswith("\n"):
+            content += "\n"
+        content += "\n" + _CONFUSION_SECTION_HEADER + new_body
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
 
 
 def _save_calibrations_to_hp(data_dir: str, calibrations: dict):
@@ -475,19 +532,37 @@ def _cleanup_calibrations(calibrations: dict) -> dict:
 
 def _update_calibrations_on_correction(data_dir: str, old_foods: list,
                                        new_foods: list, day: str = None):
-    """Compare old and new food items; save calibrations for changed portions."""
+    """Compare old and new food items; save calibrations for changed portions.
+    Also detects name+portion corrections (e.g. 鸡蛋面→玉米面) and stores
+    confusion aliases so future lookups can resolve them."""
     old_by_name = {f.get("name", ""): f for f in old_foods if f.get("name")}
+    new_by_name = {f.get("name", ""): f for f in new_foods if f.get("name")}
     changes = []
+    name_changes = []  # (ai_guessed_name, user_corrected_name, new_g)
+
     for nf in new_foods:
         name = nf.get("name", "")
-        if not name or name not in old_by_name:
+        if not name:
             continue
-        old_g = old_by_name[name].get("amount_g", 0)
-        new_g = nf.get("amount_g", 0)
-        if old_g and new_g and old_g != new_g:
-            changes.append((name, old_g, new_g))
+        if name in old_by_name:
+            # Same name — portion-only correction
+            old_g = old_by_name[name].get("amount_g", 0)
+            new_g = nf.get("amount_g", 0)
+            if old_g and new_g and old_g != new_g:
+                changes.append((name, old_g, new_g))
+        elif name not in old_by_name:
+            # New name not in old foods — check if it replaced a removed item
+            # A removed item = old food name that's no longer in new_foods
+            removed = [oname for oname in old_by_name if oname not in new_by_name]
+            if len(removed) == 1 and len([n for n in new_by_name if n not in old_by_name]) == 1:
+                # 1-to-1 replacement: AI guessed removed[0], user corrected to name
+                ai_name = removed[0]
+                new_g = nf.get("amount_g", 0)
+                if new_g:
+                    name_changes.append((ai_name, name, new_g))
+                    changes.append((name, 0, new_g))
 
-    if not changes:
+    if not changes and not name_changes:
         return []
 
     calibrations = _load_calibrations(data_dir)
@@ -509,25 +584,49 @@ def _update_calibrations_on_correction(data_dir: str, old_foods: list,
 
     calibrations = _cleanup_calibrations(calibrations)
     _save_calibrations_to_hp(data_dir, calibrations)
+
+    # Save confusion aliases for name changes
+    if name_changes:
+        aliases = _load_confusion_aliases(data_dir)
+        for ai_name, real_name, _g in name_changes:
+            aliases[ai_name] = real_name
+        _save_confusion_aliases(data_dir, aliases)
+
     return updated
 
 
 def calibration_lookup(data_dir: str, food_names: list) -> dict:
-    """Look up portion calibrations for a list of food names."""
+    """Look up portion calibrations for a list of food names.
+    Also checks confusion aliases: if AI guessed 'X' and we have an alias
+    X→Y with calibration for Y, return Y's calibration with a hint."""
     calibrations = _load_calibrations(data_dir)
+    aliases = _load_confusion_aliases(data_dir)
     matches = []
     no_match = []
 
     for query in food_names:
         if not query:
             continue
-        # Exact match
+        # Exact match on calibrations
         if query in calibrations:
             matches.append({
                 "query": query,
                 "match_type": "exact",
                 "matched_key": query,
                 "calibration": calibrations[query],
+            })
+            continue
+        # Check confusion aliases: AI might be guessing the same wrong name again
+        if query in aliases:
+            real_name = aliases[query]
+            cal = calibrations.get(real_name)
+            matches.append({
+                "query": query,
+                "match_type": "alias",
+                "matched_key": real_name,
+                "alias_from": query,
+                "calibration": cal or {"user_portion_g": None, "correction_count": 0},
+                "hint": f"Previously corrected: '{query}' was actually '{real_name}'",
             })
             continue
         # Contains match: query contains a key, or key contains query
@@ -544,9 +643,26 @@ def calibration_lookup(data_dir: str, food_names: list) -> dict:
                 "calibration": best[1],
             })
         else:
-            no_match.append(query)
+            # Also check aliases with contains match
+            alias_best = None
+            for ai_name, real_name in aliases.items():
+                if ai_name in query or query in ai_name:
+                    cal = calibrations.get(real_name)
+                    if cal and (alias_best is None or cal.get("correction_count", 0) > alias_best[2].get("correction_count", 0)):
+                        alias_best = (ai_name, real_name, cal)
+            if alias_best:
+                matches.append({
+                    "query": query,
+                    "match_type": "alias_contains",
+                    "matched_key": alias_best[1],
+                    "alias_from": alias_best[0],
+                    "calibration": alias_best[2],
+                    "hint": f"Previously corrected: '{alias_best[0]}' was actually '{alias_best[1]}'",
+                })
+            else:
+                no_match.append(query)
 
-    matches.sort(key=lambda m: m["calibration"].get("correction_count", 0),
+    matches.sort(key=lambda m: m["calibration"].get("correction_count", 0) if m["calibration"] else 0,
                  reverse=True)
     return {"matches": matches, "no_match": no_match}
 
