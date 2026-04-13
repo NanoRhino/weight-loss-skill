@@ -17,6 +17,8 @@ set -euo pipefail
 #   --only <type>            Only create specific type: meal, weight, review, report, pattern, all (default: all)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+STATE_DIR="${OPENCLAW_STATE_DIR:-$PROJECT_ROOT/.openclaw-gateway}"
 CREATE_REMINDER="$SCRIPT_DIR/create-reminder.sh"
 
 AGENT=""
@@ -180,7 +182,7 @@ calc_cron_time() {
 # Get existing cron job names (for --skip-existing)
 get_existing_cron_names() {
   if command -v openclaw &> /dev/null; then
-    openclaw cron list --json 2>/dev/null | python3 -c "
+    (cd "$STATE_DIR" && openclaw cron list --json) 2>/dev/null | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)

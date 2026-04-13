@@ -29,6 +29,8 @@ set -euo pipefail
 #   bash create-reminder.sh --agent some-agent --channel telegram --to "123456789" --name "提醒" --message "test" --at "2m"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+STATE_DIR="${OPENCLAW_STATE_DIR:-$PROJECT_ROOT/.openclaw-gateway}"
 
 AGENT=""
 NAME=""
@@ -74,8 +76,6 @@ if [[ -z "$AT" && -z "$CRON_EXPR" ]]; then echo "ERROR: --at or --cron is requir
 # --- Timezone auto-detection ---
 # Read from USER.md in workspace
 if [[ "$TZ_EXPLICIT" == "false" && -n "$CRON_EXPR" ]]; then
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
   HELPERS="$PROJECT_ROOT/.openclaw-strategic-management/scripts/usermd-helpers.sh"
   if [[ -f "$HELPERS" ]]; then
     source "$HELPERS"
@@ -246,4 +246,5 @@ elif [[ -n "$CRON_EXPR" ]]; then
 fi
 
 echo "Running: ${CMD[*]}"
+cd "$STATE_DIR"
 "${CMD[@]}"
