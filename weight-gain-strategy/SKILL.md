@@ -41,8 +41,8 @@ persistent the trend is.
 | Severity | When | Behavior |
 |----------|------|----------|
 | `none` | No increase | Weight stable or down — just confirm the log. |
-| `light` | First increase, or within 7 days of cause-check | Quick data glance + comfort + encouragement. No deep analysis. Mention possible temporary causes. |
-| `cause-check` | Second increase ≥3 days after light, or ≥7 days after previous cause-check | Full multi-step guided discovery: hook → user guesses → data reveal + **top 3 issues** → **user chooses** → mutual pact → habit. See `references/cause-check-flow.md`. |
+| `light` | First increase, or within 7 days of cause-check | Quick data glance + comfort + encouragement. No deep analysis. |
+| `cause-check` | ≥3 days after light, or ≥7 days after previous cause-check | Run `analyze` → 告诉用户增重原因 → 给 3 个可选改变 → 用户选 → 建习惯。See `references/cause-check-flow.md`. |
 
 ---
 
