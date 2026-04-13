@@ -224,6 +224,9 @@ def analyze(args):
             day_meal_count = 0
             day_food_names = []
             meals = day_data if isinstance(day_data, list) else day_data.get("meals", [])
+            # Support dict format: {"breakfast": {...}, "lunch": {...}, ...}
+            if isinstance(day_data, dict) and not meals:
+                meals = list(day_data.values())
             for meal in meals:
                 if isinstance(meal, dict):
                     mc = get_meal_calories(meal)
@@ -534,6 +537,8 @@ def detect_temporary_causes(args, local_now, readings, calorie_target):
     if os.path.exists(meal_path) and calorie_target:
         day_data = load_json(meal_path)
         meals = day_data if isinstance(day_data, list) else day_data.get("meals", [])
+        if isinstance(day_data, dict) and not meals:
+            meals = list(day_data.values())
         day_cal = 0
         for meal in meals:
             if isinstance(meal, dict):
@@ -576,6 +581,8 @@ def detect_temporary_causes(args, local_now, readings, calorie_target):
                         if os.path.exists(mp):
                             dd = load_json(mp)
                             ms = dd if isinstance(dd, list) else dd.get("meals", [])
+                            if isinstance(dd, dict) and not ms:
+                                ms = list(dd.values())
                             dc = sum(
                                 get_meal_calories(m)
                                 for m in ms if isinstance(m, dict)
