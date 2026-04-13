@@ -100,4 +100,4 @@ python3 {baseDir}/scripts/analyze-weight-trend.py save-strategy \
 - 餐时习惯（蛋白质、食物替换等）→ 不建 cron，通过 should-mention 嵌入三餐提醒
 - 非餐时习惯（零食、晚间、周末、运动日）→ 建 cron
 
-**Step 4 — 回复用户**，简短确认。
+**Step 4 — 回复用户**，简短确认。**周期固定为一周**（7天后复盘）。
