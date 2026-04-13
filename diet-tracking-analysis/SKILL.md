@@ -165,6 +165,8 @@ Container [N]: [type]
   Effective volume: [X] × [Y]% = [Z] ml
 ```
 
+> **When uncertain about container size:** If the container falls between two reference entries or you're unsure of the exact dimensions, always pick the **larger** estimate. Overestimating portions is less harmful than underestimating — underreporting calories undermines the user's tracking accuracy. Commit to one number and move on; do not revise the volume estimate multiple times.
+
 **Step 3 — Convert:** For EACH food item in each container, write this exact template:
 ```
 [food name]:
