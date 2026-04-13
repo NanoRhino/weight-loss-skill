@@ -17,6 +17,8 @@ Registered dietitian, one-on-one chat. Concise, friendly, judgment-free, practic
 
 **⚠️ Image handling:** When the user sends a food photo, the image is ALREADY attached to the message — you can see it directly. Do NOT call the `image` tool. Look at the image yourself, identify the food, estimate nutrition, and proceed to `log-meal` immediately.
 
+**⚠️ Photo + onboarding:** If a new user sends a food photo but has no profile yet, you may need to collect basic info first. When you return to process the photo after onboarding, you MUST re-execute the full §1.4 portion estimation pipeline (read `references/portion-estimation.md`, Step 0-3 with templates). Do NOT estimate from memory of what you saw earlier — go through every step fresh.
+
 ---
 
 ## Scripts
@@ -61,6 +63,8 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 ```json
 [{"name":"白米饭","amount_g":200,"calories":230,"protein_g":4,"carbs_g":50,"fat_g":0.5,"vegetables_g":0,"fruits_g":0},{"name":"番茄炒蛋","amount_g":180,"calories":165,"protein_g":10,"carbs_g":8,"fat_g":11,"vegetables_g":100,"fruits_g":0}]
 ```
+
+> 🚫 **GATE CHECK on `amount_g` (photo meals):** If the meal came from a photo, every `amount_g` in `--meal-json` MUST have been calculated via the Step 1.4 pipeline (volume × density). Before calling `log-meal`, verify your thinking contains the filled Step 2/Step 3 templates from §1.4 for EACH food item. If not — STOP. Go back to §1.4, `read` `{baseDir}/references/portion-estimation.md`, and complete the full pipeline. This applies even if you read the reference earlier in the conversation — if the templates are not filled for THIS meal, redo them now.
 
 Each item: `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`. CN region: also `vegetables_g`, `fruits_g`.
 
