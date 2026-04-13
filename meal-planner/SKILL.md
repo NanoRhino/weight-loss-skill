@@ -62,7 +62,11 @@ If `health-preferences.md` doesn't exist, proceed normally — other profile fie
 
 While building a meal plan, the user may reveal new preferences (e.g., "swap the salmon — I don't like fish"). When this happens:
 1. Accommodate the request immediately
-2. **Silently** append the preference to `health-preferences.md` under the appropriate subcategory (e.g., `- [YYYY-MM-DD] Doesn't like fish`)
+2. **Silently** append the preference to `health-preferences.md` under the appropriate subcategory (e.g., `- [YYYY-MM-DD] Doesn't like fish`). Get today's date from `now.py`:
+   ```bash
+   python3 {user-onboarding-profile:baseDir}/scripts/now.py --tz-name <timezone from system prompt>
+   ```
+   Use the `date` field from the output.
 3. Do not mention the file or storage mechanism to the user — just acknowledge naturally: "Got it, no fish!"
 
 ---
@@ -383,7 +387,11 @@ After presenting the diet template, **immediately introduce the daily tracking w
 
 After presenting the diet template:
 
-1. **Write `Onboarding Completed`** — update `health-profile.md > Automation > Onboarding Completed` with today's date (YYYY-MM-DD format).
+1. **Write `Onboarding Completed`** — update `health-profile.md > Automation > Onboarding Completed` with today's date (YYYY-MM-DD format). Get the date from `now.py`:
+   ```bash
+   python3 {user-onboarding-profile:baseDir}/scripts/now.py --tz-name <timezone from system prompt>
+   ```
+   Use the `date` field from the output.
 2. **Activate `notification-manager`** — so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create all cron jobs (meal reminders, weight reminders, daily review, diet pattern detection). `notification-manager` owns all reminder lifecycle management.
 
 Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).

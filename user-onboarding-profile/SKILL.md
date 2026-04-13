@@ -27,6 +27,26 @@ This is a conversation, not a questionnaire. Keep it light, keep it fast. Every 
 - 1 ft = 30.48 cm
 - Example: 5'10" = 177.8 cm, 180 lbs = 81.6 kg
 
+## Get Current Timestamp
+
+**⚠️ NEVER write dates/times yourself.** Always use this script to get the current timestamp for `Created:`, `Updated:`, `Onboarding Completed:`, and `health-preferences.md` date entries:
+
+```bash
+python3 {baseDir}/scripts/now.py --tz-name <timezone from system prompt>
+```
+
+Example: if your system prompt says `Time zone: Asia/Shanghai`:
+```bash
+python3 {baseDir}/scripts/now.py --tz-name Asia/Shanghai
+```
+
+Output: `{"now": "2026-04-13T16:30:00+08:00", "date": "2026-04-13", "tz_source": "arg_tz_name"}`
+
+- Use `now` for `Created:` / `Updated:` fields in USER.md and health-profile.md
+- Use `date` for `Onboarding Completed:` in health-profile.md and `[YYYY-MM-DD]` entries in health-preferences.md
+
+Run this **once** at the start of the save step and reuse the values — do not call it multiple times.
+
 ## Pre-check: Skip Already-Collected Data
 
 Before starting the conversation flow, run this script to check which fields are already filled:
@@ -209,8 +229,8 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 ```markdown
 # User Profile
 
-**Created:** [ISO-8601 timestamp]
-**Updated:** [ISO-8601 timestamp]
+**Created:** [use `now` from now.py output]
+**Updated:** [use `now` from now.py output]
 
 ## Basic Info
 
@@ -235,8 +255,8 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 ```markdown
 # Health Profile
 
-**Created:** [ISO-8601 timestamp]
-**Updated:** [ISO-8601 timestamp]
+**Created:** [use `now` from now.py output]
+**Updated:** [use `now` from now.py output]
 
 ## Body
 - **Unit Preference:** [kg | lb]
@@ -292,7 +312,7 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 [Kitchen equipment, cooking skill, meal prep willingness, grocery access — or empty if none mentioned]
 ```
 
-Each entry follows the format: `- [YYYY-MM-DD] Preference description`
+Each entry follows the format: `- [YYYY-MM-DD] Preference description` (use `date` from now.py output)
 
 > **Note:** The `health-preferences.md` file starts with whatever the user reveals during onboarding. It grows over time as other skills (meal-planner, diet-tracking, exercise-tracking-planning, restaurant-meal-finder, etc.) detect and append new preferences during future conversations.
 
@@ -309,7 +329,7 @@ When a user wants to update (not create) their profile:
    - Health/fitness info (weight, activity, goals, restrictions) → `health-profile.md`
    - Health Flags → `USER.md`
    - Communication preferences → `USER.md`
-4. Bump `Updated:` timestamp on the file(s) that changed, keep `Created:` timestamp
+4. Bump `Updated:` timestamp on the file(s) that changed (use `now` from now.py), keep `Created:` timestamp
 5. Save the updated file(s)
 
 ## Tone Guidelines
@@ -339,7 +359,7 @@ During onboarding, the user often reveals preferences beyond the standard profil
 **How to save:**
 1. After generating files, check if the user mentioned any preferences during the conversation that aren't covered by standard profile fields
 2. If yes, write them to `health-preferences.md` under the appropriate subcategory
-3. Each entry follows the format: `- [YYYY-MM-DD] Preference description`
+3. Each entry follows the format: `- [YYYY-MM-DD] Preference description` (use `date` from now.py output)
 4. Do this silently — never mention internal file details to the user
 
 **What NOT to duplicate:**
