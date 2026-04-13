@@ -17,6 +17,7 @@ Commands:
   save-recommendation — Save meal recommendations for today.
   weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
   produce-check — Evaluate cumulative vegetable and fruit intake (China region).
+  calibration-lookup — Look up user's portion calibrations for food items.
 
 Usage:
   python3 nutrition-calc.py detect-meal --tz-offset 28800 --meals 3 \
@@ -383,6 +384,289 @@ def _check_ambiguous_foods(meal: dict) -> list:
     return clarifications
 
 
+# ---------------------------------------------------------------------------
+# Portion calibration memory (stored in health-preferences.md)
+# ---------------------------------------------------------------------------
+
+_MAX_CALIBRATIONS = 200
+_CAL_SECTION_HEADER = "## Portion Calibrations\n"
+_CAL_LINE_RE = re.compile(
+    r'^- \[(\d{4}-\d{2}-\d{2})\] (.+?) → (\d+)g \(×(\d+)\)$')
+# Confusion pairs: AI guessed X but user corrected to Y
+_CONFUSION_SECTION_HEADER = "## Correction Aliases\n"
+_CONFUSION_LINE_RE = re.compile(
+    r'^- (.+?) → (.+?)$')
+
+
+def _hp_path(data_dir: str) -> str:
+    """Return path to health-preferences.md at workspace root."""
+    workspace = os.path.dirname(os.path.dirname(os.path.normpath(data_dir)))
+    return os.path.join(workspace, "health-preferences.md")
+
+
+def _load_calibrations(data_dir: str) -> dict:
+    path = _hp_path(data_dir)
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except IOError:
+        return {}
+    idx = content.find(_CAL_SECTION_HEADER)
+    if idx == -1:
+        return {}
+    section_start = idx + len(_CAL_SECTION_HEADER)
+    next_header = content.find("\n## ", section_start)
+    section = content[section_start:next_header] if next_header != -1 else content[section_start:]
+    calibrations = {}
+    for line in section.strip().split("\n"):
+        m = _CAL_LINE_RE.match(line.strip())
+        if m:
+            calibrations[m.group(2)] = {
+                "user_portion_g": int(m.group(3)),
+                "correction_count": int(m.group(4)),
+                "last_corrected": m.group(1),
+            }
+    return calibrations
+
+
+def _load_confusion_aliases(data_dir: str) -> dict:
+    """Load correction aliases: {ai_guessed_name: user_corrected_name}."""
+    path = _hp_path(data_dir)
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except IOError:
+        return {}
+    idx = content.find(_CONFUSION_SECTION_HEADER)
+    if idx == -1:
+        return {}
+    section_start = idx + len(_CONFUSION_SECTION_HEADER)
+    next_header = content.find("\n## ", section_start)
+    section = content[section_start:next_header] if next_header != -1 else content[section_start:]
+    aliases = {}
+    for line in section.strip().split("\n"):
+        m = _CONFUSION_LINE_RE.match(line.strip())
+        if m:
+            aliases[m.group(1)] = m.group(2)
+    return aliases
+
+
+def _save_confusion_aliases(data_dir: str, aliases: dict):
+    """Save correction aliases to health-preferences.md."""
+    path = _hp_path(data_dir)
+    lines = [f"- {ai_name} → {real_name}" for ai_name, real_name in sorted(aliases.items())]
+    new_body = "\n".join(lines) + "\n" if lines else ""
+
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        content = ""
+
+    idx = content.find(_CONFUSION_SECTION_HEADER)
+    if idx != -1:
+        section_start = idx + len(_CONFUSION_SECTION_HEADER)
+        next_header = content.find("\n## ", section_start)
+        if next_header != -1:
+            content = content[:section_start] + new_body + content[next_header:]
+        else:
+            content = content[:section_start] + new_body
+    else:
+        if content and not content.endswith("\n"):
+            content += "\n"
+        content += "\n" + _CONFUSION_SECTION_HEADER + new_body
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def _save_calibrations_to_hp(data_dir: str, calibrations: dict):
+    path = _hp_path(data_dir)
+    lines = []
+    for name, cal in sorted(calibrations.items(),
+                            key=lambda x: x[1].get("correction_count", 0),
+                            reverse=True):
+        lines.append(
+            f"- [{cal['last_corrected']}] {name} → {cal['user_portion_g']}g"
+            f" (×{cal['correction_count']})")
+    new_body = "\n".join(lines) + "\n" if lines else ""
+
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        content = ""
+
+    idx = content.find(_CAL_SECTION_HEADER)
+    if idx != -1:
+        section_start = idx + len(_CAL_SECTION_HEADER)
+        next_header = content.find("\n## ", section_start)
+        if next_header != -1:
+            content = content[:section_start] + new_body + content[next_header:]
+        else:
+            content = content[:section_start] + new_body
+    else:
+        if content and not content.endswith("\n"):
+            content += "\n"
+        content += "\n" + _CAL_SECTION_HEADER + new_body
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def _cleanup_calibrations(calibrations: dict) -> dict:
+    """Remove lowest-frequency entries when over limit."""
+    if len(calibrations) <= _MAX_CALIBRATIONS:
+        return calibrations
+    sorted_keys = sorted(calibrations.keys(),
+                         key=lambda k: calibrations[k].get("correction_count", 1))
+    to_remove = len(calibrations) - _MAX_CALIBRATIONS
+    for key in sorted_keys[:to_remove]:
+        del calibrations[key]
+    return calibrations
+
+
+def _update_calibrations_on_correction(data_dir: str, old_foods: list,
+                                       new_foods: list, day: str = None):
+    """Compare old and new food items; save calibrations for changed portions.
+    Also detects name+portion corrections (e.g. 鸡蛋面→玉米面) and stores
+    confusion aliases so future lookups can resolve them."""
+    old_by_name = {f.get("name", ""): f for f in old_foods if f.get("name")}
+    new_by_name = {f.get("name", ""): f for f in new_foods if f.get("name")}
+    changes = []
+    name_changes = []  # (ai_guessed_name, user_corrected_name, new_g)
+
+    for nf in new_foods:
+        name = nf.get("name", "")
+        if not name:
+            continue
+        if name in old_by_name:
+            # Same name — portion-only correction
+            old_g = old_by_name[name].get("amount_g", 0)
+            new_g = nf.get("amount_g", 0)
+            if old_g and new_g and old_g != new_g:
+                changes.append((name, old_g, new_g))
+        elif name not in old_by_name:
+            # New name not in old foods — check if it replaced a removed item
+            # A removed item = old food name that's no longer in new_foods
+            removed = [oname for oname in old_by_name if oname not in new_by_name]
+            if len(removed) == 1 and len([n for n in new_by_name if n not in old_by_name]) == 1:
+                # 1-to-1 replacement: AI guessed removed[0], user corrected to name
+                ai_name = removed[0]
+                new_g = nf.get("amount_g", 0)
+                if new_g:
+                    name_changes.append((ai_name, name, new_g))
+                    changes.append((name, 0, new_g))
+
+    if not changes and not name_changes:
+        return []
+
+    calibrations = _load_calibrations(data_dir)
+    today = day or date.today().isoformat()
+    updated = []
+    for food_name, _old_g, new_g in changes:
+        if food_name in calibrations:
+            entry = calibrations[food_name]
+            entry["user_portion_g"] = new_g
+            entry["correction_count"] = entry.get("correction_count", 0) + 1
+            entry["last_corrected"] = today
+        else:
+            calibrations[food_name] = {
+                "user_portion_g": new_g,
+                "correction_count": 1,
+                "last_corrected": today,
+            }
+        updated.append(food_name)
+
+    calibrations = _cleanup_calibrations(calibrations)
+    _save_calibrations_to_hp(data_dir, calibrations)
+
+    # Save confusion aliases for name changes
+    if name_changes:
+        aliases = _load_confusion_aliases(data_dir)
+        for ai_name, real_name, _g in name_changes:
+            aliases[ai_name] = real_name
+        _save_confusion_aliases(data_dir, aliases)
+
+    return updated
+
+
+def calibration_lookup(data_dir: str, food_names: list) -> dict:
+    """Look up portion calibrations for a list of food names.
+    Also checks confusion aliases: if AI guessed 'X' and we have an alias
+    X→Y with calibration for Y, return Y's calibration with a hint."""
+    calibrations = _load_calibrations(data_dir)
+    aliases = _load_confusion_aliases(data_dir)
+    matches = []
+    no_match = []
+
+    for query in food_names:
+        if not query:
+            continue
+        # Exact match on calibrations
+        if query in calibrations:
+            matches.append({
+                "query": query,
+                "match_type": "exact",
+                "matched_key": query,
+                "calibration": calibrations[query],
+            })
+            continue
+        # Check confusion aliases: AI might be guessing the same wrong name again
+        if query in aliases:
+            real_name = aliases[query]
+            cal = calibrations.get(real_name)
+            matches.append({
+                "query": query,
+                "match_type": "alias",
+                "matched_key": real_name,
+                "alias_from": query,
+                "calibration": cal or {"user_portion_g": None, "correction_count": 0},
+                "hint": f"Previously corrected: '{query}' was actually '{real_name}'",
+            })
+            continue
+        # Contains match: query contains a key, or key contains query
+        best = None
+        for key, cal in calibrations.items():
+            if key in query or query in key:
+                if best is None or cal.get("correction_count", 0) > best[1].get("correction_count", 0):
+                    best = (key, cal)
+        if best:
+            matches.append({
+                "query": query,
+                "match_type": "contains",
+                "matched_key": best[0],
+                "calibration": best[1],
+            })
+        else:
+            # Also check aliases with contains match
+            alias_best = None
+            for ai_name, real_name in aliases.items():
+                if ai_name in query or query in ai_name:
+                    cal = calibrations.get(real_name)
+                    if cal and (alias_best is None or cal.get("correction_count", 0) > alias_best[2].get("correction_count", 0)):
+                        alias_best = (ai_name, real_name, cal)
+            if alias_best:
+                matches.append({
+                    "query": query,
+                    "match_type": "alias_contains",
+                    "matched_key": alias_best[1],
+                    "alias_from": alias_best[0],
+                    "calibration": alias_best[2],
+                    "hint": f"Previously corrected: '{alias_best[0]}' was actually '{alias_best[1]}'",
+                })
+            else:
+                no_match.append(query)
+
+    matches.sort(key=lambda m: m["calibration"].get("correction_count", 0) if m["calibration"] else 0,
+                 reverse=True)
+    return {"matches": matches, "no_match": no_match}
+
+
 def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None) -> dict:
     """Save a meal to the daily log. Same meal name overwrites (supports corrections)."""
     os.makedirs(data_dir, exist_ok=True)
@@ -398,6 +682,10 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None)
     replaced = False
     for i, m in enumerate(existing):
         if m.get("name") == meal_name:
+            # Auto-save portion calibrations on correction
+            _update_calibrations_on_correction(
+                data_dir, m.get("foods", []), meal.get("foods", []),
+                day or _local_date(tz_offset))
             existing[i] = meal
             replaced = True
             break
@@ -1512,6 +1800,33 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     if save_clarifications:
         result["needs_clarification"] = save_clarifications
 
+    # 8. Calibration warnings (safety net when lookup was skipped)
+    cal_data = _load_calibrations(data_dir)
+    if cal_data:
+        cal_warnings = []
+        for food in new_items:
+            fname = food.get("name", "")
+            logged_g = food.get("amount_g", 0)
+            if not fname or not logged_g:
+                continue
+            cal_entry = cal_data.get(fname)
+            if not cal_entry:
+                for key, entry in cal_data.items():
+                    if key in fname or fname in key:
+                        cal_entry = entry
+                        break
+            if cal_entry:
+                cal_g = cal_entry.get("user_portion_g", 0)
+                if cal_g and abs(cal_g - logged_g) / max(cal_g, 1) > 0.2:
+                    cal_warnings.append({
+                        "food": fname,
+                        "logged_g": logged_g,
+                        "calibrated_g": cal_g,
+                        "correction_count": cal_entry.get("correction_count", 0),
+                    })
+        if cal_warnings:
+            result["calibration_warnings"] = cal_warnings
+
     return result
 
 
@@ -1814,6 +2129,11 @@ def main():
     dm_cmd.add_argument("--mode", type=str, default="balanced", help="Diet mode for evaluate")
     dm_cmd.add_argument("--region", type=str, default=None, help="Region code for produce-check")
 
+    clk = sub.add_parser("calibration-lookup",
+                          help="Look up user's portion calibrations for food items")
+    clk.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
+    clk.add_argument("--foods", type=str, required=True, help="JSON array of food name strings")
+
     qd = sub.add_parser("query-day",
                           help="Load a day's records and evaluate current status")
     qd.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
@@ -1943,6 +2263,13 @@ def main():
             suggestion_text=args.suggestion_text,
             day=args.date, tz_offset=getattr(args, 'tz_offset', None),
         )
+    elif args.cmd == "calibration-lookup":
+        try:
+            foods = json.loads(args.foods)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --foods JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = calibration_lookup(args.data_dir, foods)
     elif args.cmd == "query-day":
         result = query_day(
             data_dir=args.data_dir, tz_offset=args.tz_offset,

@@ -104,6 +104,16 @@ python3 {baseDir}/scripts/nutrition-calc.py query-day \
 python3 {baseDir}/scripts/nutrition-calc.py load --data-dir {workspaceDir}/data/meals [--date 2026-02-27]
 ```
 
+### `calibration-lookup` — user's portion calibrations
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py calibration-lookup \
+  --data-dir {workspaceDir}/data/meals \
+  --foods '<JSON array of food name strings>'
+```
+
+Returns `matches` (with `user_portion_g`, `correction_count`, match type `exact`/`contains`) and `no_match`. Calibrations are stored in `health-preferences.md > ## Portion Calibrations` and auto-maintained by `log-meal` on corrections.
+
 ---
 
 ## Workflow — Log Food
@@ -131,6 +141,17 @@ Infer from tense/context. When ambiguous, check:
 
 Default: assume **before-eating** (enables most useful feedback).
 Backfilled meals from missing-meal handling are always "already eaten" — never use `right_now` suggestion type.
+
+#### 1.3b Look up portion calibrations
+
+Call `calibration-lookup` with food names from 1.1. For matches:
+- `correction_count ≥ 2` → use `user_portion_g` instead of generic default (strong calibration)
+- `correction_count == 1` → use only when no better source
+- `match_type: "alias"` or `"alias_contains"` → the user previously corrected this food name to something else. Use the `matched_key` (correct name) and its calibration instead of your identified name. For example, if you see "鸡蛋面" but the alias says it was corrected to "玉米面 350g", use "玉米面" as the food name and 350g as the portion.
+- Clear photo evidence of a different portion overrides calibration
+- Do NOT mention calibration to the user
+
+**Safety net:** `log-meal` returns `calibration_warnings` when logged amount differs >20% from a known calibration — confirm with the user if triggered.
 
 #### 1.4 Estimate portions
 
@@ -246,7 +267,7 @@ User asks "how much have I eaten today" / "how much can I still eat" → call `q
 ## Workflow — Correct / Delete / Append
 
 - **Adding food to an already-logged meal**: user says "I also had..." or sends another photo for the same meal → call `log-meal` with `--append` and only the NEW items in `--meal-json`. The script auto-merges with existing items. **Do NOT re-send old items.** One `log-meal --append` call is enough.
-- **Correcting a record**: user fixes portion → re-run `log-meal` (same meal name overwrites) → **must follow the format templates in the Response Schemas section below.**
+- **Correcting a record**: user fixes portion → re-run `log-meal` (same meal name overwrites) → **must follow the format templates in the Response Schemas section below.** Calibrations auto-saved by script.
 - **Delete**: call `delete-meal` with the meal name
 
 ---
