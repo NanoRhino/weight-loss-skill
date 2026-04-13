@@ -82,6 +82,7 @@ if [[ "$TZ_EXPLICIT" == "false" && -n "$CRON_EXPR" ]]; then
   fi
 
   WS_CANDIDATES=(
+    "$STATE_DIR/workspace-$AGENT"
     "$PROJECT_ROOT/.openclaw-user-service/workspaces/$AGENT"
   )
   for WS_DIR in "${WS_CANDIDATES[@]}"; do
@@ -117,6 +118,19 @@ if [[ -z "$USER_WORKSPACE" && ("$CHANNEL" == "wechat" || "$CHANNEL" == "wecom") 
     for DIR in "$WORKSPACES_DIR"/*; do
       DIR_NAME=$(basename "$DIR")
       # Case-insensitive match on the agent ID (which is lowercased)
+      if [[ "${DIR_NAME,,}" == "${AGENT,,}"* ]]; then
+        USER_WORKSPACE="$DIR"
+        break
+      fi
+    done
+  fi
+
+  # Also try STATE_DIR workspace directories
+  if [[ -z "$USER_WORKSPACE" ]]; then
+    for DIR in "$STATE_DIR"/workspace-*; do
+      [[ -d "$DIR" ]] || continue
+      DIR_NAME=$(basename "$DIR")
+      DIR_NAME="${DIR_NAME#workspace-}"  # strip prefix
       if [[ "${DIR_NAME,,}" == "${AGENT,,}"* ]]; then
         USER_WORKSPACE="$DIR"
         break
