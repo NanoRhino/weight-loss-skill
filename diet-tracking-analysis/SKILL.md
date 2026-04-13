@@ -130,33 +130,23 @@ Backfilled meals from missing-meal handling are always "already eaten" — never
 
 #### 1.4 Estimate portions
 
-**When a photo is present, ALWAYS follow the 3-step pipeline below. Do NOT skip to a single-serving default.**
+**Photo present → 3-step pipeline (do NOT skip to single-serving default):**
 
-##### 1.4a Anchor — find a size reference
-Scan the photo for ANY scale reference (priority order):
-1. Known objects in frame (egg, chopstick, spoon, phone, water bottle, bank card — sizes in `references/portion-estimation.md § Photo Reference Objects`)
-2. Human hand / fingers visible (palm ≈ 10 × 8 cm, fist ≈ 200 ml)
-3. Container itself if it matches a known type (rice bowl, lunch box, cafeteria tray, takeout box — see `references/portion-estimation.md § Common Container Sizes`)
-4. **None found** → fall back to standard single-serving default, prefix `~`
+1. **Anchor** — find a scale reference in the photo:
+   - Known object (egg, chopstick, spoon, phone, etc.) → `references/portion-estimation.md § Photo Reference Objects`
+   - Hand / fingers visible → same reference
+   - Container matches a known type → `references/portion-estimation.md § Common Container Sizes`
+   - None found → single-serving default, prefix `~`
+2. **Measure** — determine container volume:
+   - Match container type → look up volume in `§ Common Container Sizes`
+   - No match → estimate dimensions relative to anchor
+   - Estimate fill level → `§ Fill Level`
+   - Effective volume = container volume × fill level
+3. **Convert** — `weight(g) = effective volume(ml) × density(g/ml)` per `§ Volume → Weight Conversion`. Multi-section containers: estimate each section separately.
 
-##### 1.4b Measure — determine container volume
-Using the anchor from 1.4a:
-1. Identify the container type → look up dimensions & volume in `references/portion-estimation.md § Common Container Sizes`
-2. If container doesn't match any listed type → estimate diameter & depth relative to the anchor, then compute approximate volume
-3. Estimate fill level → look up ratio in `references/portion-estimation.md § Fill Level` (heaped 120% / level-full 100% / 80% / half 50% / thin layer 30%)
-4. Effective volume = container volume × fill level
+**No photo, no portion stated** → single-serving default, prefix `~`.
 
-##### 1.4c Convert — volume to weight
-For each food in the container:
-> **weight(g) = effective volume(ml) × food density(g/ml)**
-
-Use density values from `references/portion-estimation.md § Volume → Weight Conversion`.
-Multi-item containers (e.g. cafeteria tray): estimate each section separately.
-
-##### No-photo fallback
-Text only, no portion stated → standard single-serving default, prefix `~`.
-
-Flag items **≥ 2× standard** for possible clarification in Step 2.
+Flag items **≥ 2× standard** — Step 2 decides whether to clarify.
 
 #### 1.5 Estimate nutrition
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.

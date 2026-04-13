@@ -48,19 +48,19 @@
 
 ## Volume → Weight Conversion
 
-**Formula: weight (g) = effective volume (ml) × food density (g/ml)**
+**weight (g) = effective volume (ml) × density (g/ml)**
 
-| Food type | Density (g/ml) | Example |
-|-----------|---------------|---------|
-| Rice (loose) | 0.7–0.8 | 300 ml bowl level-full ≈ 210–240 g |
-| Rice (packed / 盖饭) | 0.9–1.0 | 300 ml bowl packed ≈ 270–300 g |
-| Noodles in soup (noodle portion only, ~40–50% of bowl volume) | 0.5–0.6 | 700 ml bowl → noodle volume ~315 ml → ~160–190 g |
-| Dry / stir-fried noodles | 0.6–0.7 | 500 ml box ≈ 300–350 g |
-| Stir-fry (leafy veg dominant) | 0.3–0.5 | Fluffy, large air gaps |
-| Stir-fry (meat / root veg dominant) | 0.7–0.9 | Dense, little air |
-| Soup / congee (solids only, ~30–50% of volume) | — | 700 ml bowl → solids ~150–250 g |
-| Salad / cold dish | 0.3–0.5 | Fluffy, low actual weight |
-| Fruit chunks | 0.6–0.8 | Cut pieces with air gaps |
+| Food type | Density (g/ml) | Note |
+|-----------|---------------|------|
+| Rice (loose) | 0.7–0.8 | |
+| Rice (packed / 盖饭) | 0.9–1.0 | |
+| Noodles in soup | 0.5–0.6 | Noodle portion only; noodles occupy ~40–50% of bowl volume |
+| Dry / stir-fried noodles | 0.6–0.7 | |
+| Stir-fry (leafy veg) | 0.3–0.5 | |
+| Stir-fry (meat / root veg) | 0.7–0.9 | |
+| Soup / congee solids | — | Solids occupy ~30–50% of volume |
+| Salad / cold dish | 0.3–0.5 | |
+| Fruit chunks | 0.6–0.8 | |
 
 ## Cooked-Vegetable Shrinkage (cooked ÷ raw)
 
