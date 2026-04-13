@@ -15,7 +15,6 @@
 | Water bottle (standard) | ~6.5 cm ⌀, ~20 cm tall, 550 ml |
 | Adult palm (no fingers) | ~10 × 8 cm, ~2 cm thick |
 | Adult fist | ~8 × 7 × 8 cm, ≈ 200 ml |
-| One-yuan coin | ⌀ 2.5 cm |
 
 ## Common Container Sizes
 

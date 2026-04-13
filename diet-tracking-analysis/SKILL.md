@@ -134,7 +134,7 @@ Backfilled meals from missing-meal handling are always "already eaten" — never
 
 ##### 1.4a Anchor — find a size reference
 Scan the photo for ANY scale reference (priority order):
-1. Known objects in frame (egg, chopstick, spoon, phone, water bottle, coin, bank card — sizes in `references/portion-estimation.md § Photo Reference Objects`)
+1. Known objects in frame (egg, chopstick, spoon, phone, water bottle, bank card — sizes in `references/portion-estimation.md § Photo Reference Objects`)
 2. Human hand / fingers visible (palm ≈ 10 × 8 cm, fist ≈ 200 ml)
 3. Container itself if it matches a known type (rice bowl, lunch box, cafeteria tray, takeout box — see `references/portion-estimation.md § Common Container Sizes`)
 4. **None found** → fall back to standard single-serving default, prefix `~`
