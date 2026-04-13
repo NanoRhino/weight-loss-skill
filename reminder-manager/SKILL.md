@@ -9,6 +9,8 @@ Manage the user's cron jobs: create, list, edit, delete. All scripts enforce age
 
 > ⚠️ **SILENT OPERATION:** Do not narrate tool calls or internal steps. Just do it and present the result.
 
+> 🚫 **NEVER use the `cron` tool directly to create jobs.** Always use `create-reminder.sh` below. The script handles sessionKey routing, channel auto-detection, and anti-burst logic that the raw cron tool does not. Using the cron tool directly WILL cause the reminder to be delivered to the wrong session (a black hole). Even if the script fails, do NOT fall back to the cron tool — report the error instead.
+
 ## Scripts
 
 All scripts are in `{skillDir}/scripts/`. Always pass `--agent {agentId}` (your own agent ID).
