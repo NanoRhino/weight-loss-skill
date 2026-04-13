@@ -100,6 +100,18 @@ python3 {baseDir}/scripts/nutrition-calc.py query-day \
 python3 {baseDir}/scripts/nutrition-calc.py load --data-dir {workspaceDir}/data/meals [--date 2026-02-27]
 ```
 
+### `calibration-lookup` — check user's portion calibrations
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py calibration-lookup \
+  --data-dir {workspaceDir}/data/meals \
+  --foods '<JSON array of food name strings>'
+```
+
+Returns `matches` (with `user_portion_g`, `correction_count`) and `no_match`. Matches are sorted by `correction_count` descending. Match types: `exact` (name equals key) and `contains` (name contains key or vice versa).
+
+Data file: `{workspaceDir}/data/portion-calibrations.json` (auto-created and updated by `log-meal` when a correction overwrites a previous record — no manual action needed).
+
 ---
 
 ## Workflow — Log Food
@@ -127,6 +139,22 @@ Infer from tense/context. When ambiguous, check:
 
 Default: assume **before-eating** (enables most useful feedback).
 Backfilled meals from missing-meal handling are always "already eaten" — never use `right_now` suggestion type.
+
+#### 1.3b Look up portion calibrations
+
+Before estimating portions, call `calibration-lookup` with the food names identified in 1.1:
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py calibration-lookup \
+  --data-dir {workspaceDir}/data/meals \
+  --foods '["烧鹅","煎蛋","全麦面包"]'
+```
+
+For any food with a match: use `user_portion_g` as the starting estimate instead of generic defaults. `correction_count ≥ 2` = strong calibration (prefer over rough visual estimate); `correction_count == 1` = weak calibration (use only when no better source). Photo evidence of a clearly different portion still overrides calibration. Do NOT mention calibration to the user.
+
+If `calibration-lookup` returns empty matches, proceed normally.
+
+**Safety net:** If you skip this step, `log-meal` will return `calibration_warnings` when the logged amount differs >20% from a known calibration — check and confirm with the user.
 
 #### 1.4 Estimate portions
 - No portion stated → standard single-serving default, prefix `~`
@@ -179,7 +207,7 @@ User asks "how much have I eaten today" / "how much can I still eat" → call `q
 ## Workflow — Correct / Delete / Append
 
 - **Adding food to an already-logged meal**: user says "I also had..." or sends another photo for the same meal → call `log-meal` with `--append` and only the NEW items in `--meal-json`. The script auto-merges with existing items. **Do NOT re-send old items.** One `log-meal --append` call is enough.
-- **Correcting a record**: user fixes portion → re-run `log-meal` (same meal name overwrites) → **must follow the format templates in the Response Schemas section below.**
+- **Correcting a record**: user fixes portion → re-run `log-meal` (same meal name overwrites) → **must follow the format templates in the Response Schemas section below.** Portion calibrations are saved automatically by the script on correction — no additional action needed.
 - **Delete**: call `delete-meal` with the meal name
 
 ---
