@@ -20,10 +20,15 @@ Exit codes:
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from datetime import timezone, timedelta
 from zoneinfo import ZoneInfo
+
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.normpath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
+_STATE_DIR = os.environ.get("OPENCLAW_STATE_DIR", os.path.join(_PROJECT_ROOT, ".openclaw-gateway"))
 
 MAX_PER_MINUTE = 2
 
@@ -107,6 +112,7 @@ def get_existing_jobs() -> list[dict]:
             capture_output=True,
             text=True,
             timeout=15,
+            cwd=_STATE_DIR,
         )
         if result.returncode != 0:
             print(f"WARNING: cron list failed: {result.stderr}", file=sys.stderr)

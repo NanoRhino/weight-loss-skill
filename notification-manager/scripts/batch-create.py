@@ -29,8 +29,11 @@ import subprocess
 import sys
 
 # Re-use find-slot logic
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, SCRIPT_DIR)
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.normpath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
+_STATE_DIR = os.environ.get("OPENCLAW_STATE_DIR", os.path.join(_PROJECT_ROOT, ".openclaw-gateway"))
+
+sys.path.insert(0, _SCRIPT_DIR)
 from importlib import import_module
 find_slot = import_module("find-slot")
 
@@ -49,8 +52,7 @@ def detect_timezone(agent: str) -> str:
     """Auto-detect timezone from USER.md, same logic as create-reminder.sh."""
     helpers_path = os.path.expanduser("~/.openclaw/backend-service/scripts/usermd-helpers.sh")
     ws_candidates = [
-        os.path.expanduser(f"~/.openclaw/workspace-{agent}"),
-        os.path.expanduser(f"~/.openclaw/workspace-nutritionist/{agent}"),
+        os.path.join(_STATE_DIR, f"workspace-{agent}"),
     ]
     for ws_dir in ws_candidates:
         usermd = os.path.join(ws_dir, "USER.md")
@@ -91,7 +93,7 @@ def resolve_delivery_target(agent: str, channel: str, explicit_to: str) -> str:
         return explicit_to
 
     if channel == "slack":
-        config_path = os.path.expanduser("~/.openclaw/openclaw.json")
+        config_path = os.path.join(_STATE_DIR, "openclaw.json")
         with open(config_path, "r") as f:
             cfg = json.load(f)
         for b in cfg.get("bindings", []):
@@ -227,7 +229,7 @@ def main():
         cmd = build_cron_cmd(args.agent, args.channel, to_target, name, message, cron_expr, tz)
         print(f"  Creating: {name} ({cron_expr})", file=sys.stderr)
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=_STATE_DIR)
             if result.returncode == 0:
                 print(f"  ✓ Created", file=sys.stderr)
                 results.append({"name": name, "cron": cron_expr, "status": "created"})
