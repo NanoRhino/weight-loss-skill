@@ -132,17 +132,38 @@ Backfilled meals from missing-meal handling are always "already eaten" — never
 
 **Photo present → 3-step pipeline (do NOT skip to single-serving default):**
 
+> ⚠️ **MANDATORY BEFORE ESTIMATING:** You MUST `read` `{baseDir}/references/portion-estimation.md` first. Do NOT estimate from memory — the reference tables contain the density and shrinkage values you need. Every `amount_g` must come from a volume × density calculation, not a visual guess.
+
+**Step 0 — Scene inventory (REQUIRED before anything else):**
+Count and identify ALL separate containers/plates in the photo. For each one, note in your thinking:
+- Container type (plate, bowl, lunch box, glass container, takeout box, etc.)
+- What food is in it
+- Single container or multi-section
+
+⚠️ Do NOT merge separate containers into one. A plate + a lunch box ≠ "dual-section lunch box". A glass container ≠ a disposable takeout box. Describe what you actually see.
+
 1. **Anchor** — find a scale reference in the photo:
    - Known object (egg, chopstick, spoon, phone, etc.) → `references/portion-estimation.md § Photo Reference Objects`
    - Hand / fingers visible → same reference
    - Container matches a known type → `references/portion-estimation.md § Common Container Sizes`
    - None found → single-serving default, prefix `~`
-2. **Measure** — determine container volume:
+2. **Measure** — for EACH container from Step 0, determine volume:
    - Match container type → look up volume in `§ Common Container Sizes`
    - No match → estimate dimensions relative to anchor
    - Estimate fill level → `§ Fill Level`
-   - Effective volume = container volume × fill level
-3. **Convert** — `weight(g) = effective volume(ml) × density(g/ml)` per `§ Volume → Weight Conversion`. Multi-section containers: estimate each section separately.
+   - **Write in thinking:** `[container type] → volume: [X] ml × fill: [Y]% = effective [Z] ml`
+3. **Convert** — for EACH food item, calculate weight:
+   - `weight(g) = effective volume(ml) × density(g/ml)` per `§ Volume → Weight Conversion`
+   - **Write in thinking:** `[food]: [Z] ml × [density] g/ml = [W] g cooked`
+   - For vegetables: apply shrinkage ratio from `§ Cooked-Vegetable Shrinkage`
+   - **Write in thinking:** `[veg]: [W]g cooked ÷ [ratio] = [R]g raw`
+   - Multi-section containers: estimate each section separately.
+
+**Self-check (REQUIRED):** Before proceeding to 1.5, verify in your thinking:
+- Does `amount_g` ≤ effective volume × 1.0 g/ml? If not, your estimate is wrong.
+- Does `vegetables_g` (raw) > `amount_g` (cooked) for the same item? If so, recheck — raw weight of a single vegetable dish should be close to or slightly above cooked weight for gourds/roots (ratio 0.8–0.9), NOT double.
+
+**If you skip any step above or produce an `amount_g` without a volume × density calculation in your thinking, you are violating this skill's rules.**
 
 **No photo, no portion stated** → single-serving default, prefix `~`.
 
