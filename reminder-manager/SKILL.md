@@ -57,7 +57,7 @@ Returns JSON:
       "schedule_expr": "0 12 * * *",
       "timezone": "Asia/Shanghai",
       "message": "Run notification-composer for lunch.",
-      "session_target": "main"
+      "session_target": "isolated"
     }
   ]
 }
