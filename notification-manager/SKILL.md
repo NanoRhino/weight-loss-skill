@@ -193,7 +193,9 @@ bash {baseDir}/scripts/create-reminder.sh \
 
 ### Weight reminders (2x/week + followups)
 
-**Primary reminder:** Cron time = breakfast time minus **30 min**. Fires Wed & Sat.
+> ⚠️ **Breakfast fallback:** If user has no breakfast (BREAKFAST_TIME is empty/null), use the **earliest meal time** from `health-profile.md > Meal Schedule` as the reference for all "breakfast time − 30 min" calculations below. For example, if user only eats lunch (12:00) and dinner (18:00), weight primary reminder = 11:30, morning followup = 11:30. The condition for creating weight reminders is that **at least one meal time exists** — not specifically breakfast.
+
+**Primary reminder:** Cron time = breakfast time (or earliest meal) minus **30 min**. Fires Wed & Sat.
 
 ```bash
 # Example assumes breakfast at 07:00 → weight cron at 06:30
@@ -213,7 +215,7 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 19 * * 3,6"
 ```
 
-**Next-morning followup:** Cron time = breakfast time minus **30 min**. Fires Thu & Sun (day after primary). Only sends if the user did NOT weigh in yesterday OR today. Pre-send-check uses `weight_morning_followup` type.
+**Next-morning followup:** Cron time = breakfast time (or earliest meal) minus **30 min**. Fires Thu & Sun (day after primary). Only sends if the user did NOT weigh in yesterday OR today. Pre-send-check uses `weight_morning_followup` type.
 
 ```bash
 # Example assumes breakfast at 07:00 → morning followup at 06:30
