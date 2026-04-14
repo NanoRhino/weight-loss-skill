@@ -308,8 +308,7 @@ CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~X
 |------|------|----------|
 | `right_now` | ⚡ | Before eating, reduce/swap current meal items. Tell user they can have it later. No per-item calories. Multiple options → list and ask. |
 | `next_meal` | 💡 | Forward-looking. Over at last meal → "aim for usual pattern tomorrow." |
-| `next_time` | 💡 | On track — habit tip or next-meal pairing, specific food, no calorie listing |
-| `next_day_optimize` | ✅💡 | Calories within range but macros or produce low. Affirm calorie control first ("今天热量控制得很好！"), then suggest specific swaps for **tomorrow** ("明天可以试试把 XX 换成 YY，蛋白质会更充足"). Never suggest eating more today. |
+| `next_time` | 💡 | On track — habit tip or next-meal pairing, specific food, no calorie listing. **If `cal_in_range_macro_off == true`:** affirm calorie control first ("今天热量控制得很好！"), then suggest specific food swaps for **tomorrow** ("明天可以试试把 XX 换成 YY，蛋白质会更充足"). Never suggest eating more today just to fix a macro or produce gap. |
 | `case_d_snack` | 🍽 | Final meal, daily total below 90% of BMR — warmly suggest eating a bit more today: "今天吃得有点少，再来点 XX 吧，对身体好一些". Tone: caring, not pushy. |
 | `case_d_ok` | 💡 | Final meal, above 90% BMR but below target range — "如果饿的话可以再吃一点 XX，不饿的话不吃也没关系". No pressure; user decides. |
 

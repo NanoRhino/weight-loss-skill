@@ -1666,18 +1666,21 @@ def detect_meal(tz_offset: int, meals: int,
 
 
 def _resolve_suggestion_type(evaluation: dict, eaten: bool,
-                             is_final_meal: bool, bmr: float = None,
-                             produce: dict = None) -> str:
+                             is_final_meal: bool, bmr: float = None) -> str:
     """Determine the suggestion type based on evaluation results and meal timing.
 
     Returns one of: "right_now", "next_meal", "next_time",
-                    "case_d_snack", "case_d_ok", "next_day_optimize"
+                    "case_d_snack", "case_d_ok"
+
+    Note: cal_in_range_macro_off is exposed in evaluation output for the
+    LLM to adjust tone (defer macro/produce gaps to tomorrow), but does
+    NOT create a separate suggestion_type — it stays "next_time".
     """
     needs_adj = evaluation.get("needs_adjustment", False)
     daily_total = evaluation.get("daily_total", 0)
     cal_in_range_macro_off = evaluation.get("cal_in_range_macro_off", False)
 
-    # Case D: final meal + under calorie target
+    # Case D: final meal + under calorie target range
     if is_final_meal:
         cal_min = evaluation.get("checkpoint_range", {}).get("calories_min", 0)
         if daily_total < cal_min:
@@ -1685,10 +1688,10 @@ def _resolve_suggestion_type(evaluation: dict, eaten: bool,
                 return "case_d_snack"
             return "case_d_ok"
 
-    # Calories in range but macros or produce off → next-day optimization
-    # Priority: controlling calories is #1; macro/produce issues defer to tomorrow
+    # Calories in range but macros off → still "next_time" (on track);
+    # the LLM uses cal_in_range_macro_off flag to suggest tomorrow swaps
     if cal_in_range_macro_off:
-        return "next_day_optimize"
+        return "next_time"
 
     # Case A: before eating + adjustment needed
     if needs_adj and not eaten:
@@ -1698,13 +1701,7 @@ def _resolve_suggestion_type(evaluation: dict, eaten: bool,
     if needs_adj and eaten:
         return "next_meal"
 
-    # Case C: on track — check if produce is low despite macros being fine
-    if produce:
-        veg_low = produce.get("vegetable_status") == "low"
-        fruit_low = produce.get("fruit_status") == "low"
-        if veg_low or fruit_low:
-            return "next_day_optimize"
-
+    # Case C: on track
     return "next_time"
 
 
@@ -1842,23 +1839,21 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     blocks = get_meal_blocks(meals)
     is_final = find_block_index(current_meal, meals) == len(blocks) - 1
 
-    # 6. Produce check (China region only) — run before suggestion type resolution
-    if region and region.upper() == "CN":
-        produce_result = produce_check(meals, current_meal, all_meals)
-        result["produce"] = produce_result
-    else:
-        produce_result = None
-        result["produce"] = None
-
-    # Resolve suggestion type (produce info needed for next_day_optimize)
+    # Resolve suggestion type
     eval_result["suggestion_type"] = _resolve_suggestion_type(
-        eval_result, eaten, is_final, bmr, produce_result)
+        eval_result, eaten, is_final, bmr)
     eval_result["is_final_meal"] = is_final
 
     result["evaluation"] = eval_result
 
     # 5b. Persist evaluation into saved meal record for notification-composer
     _save_evaluation_to_meal(data_dir, local_date, current_meal, eval_result)
+
+    # 6. Produce check (China region only)
+    if region and region.upper() == "CN":
+        result["produce"] = produce_check(meals, current_meal, all_meals)
+    else:
+        result["produce"] = None
 
     # 7. Ambiguous food clarification
     save_clarifications = save_result.get("needs_clarification", [])
