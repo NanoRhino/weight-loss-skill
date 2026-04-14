@@ -20,6 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 STATE_DIR="${OPENCLAW_STATE_DIR:-$PROJECT_ROOT/.openclaw-gateway}"
 CREATE_REMINDER="$SCRIPT_DIR/create-reminder.sh"
+FIND_SLOT="$SCRIPT_DIR/find-slot.py"
 
 AGENT=""
 CHANNEL=""
@@ -200,26 +201,6 @@ job_exists() {
   echo "$EXISTING_JOBS" | grep -qxF "$name"
 }
 
-# Execute or print a command
-run_cmd() {
-  if [[ "$DRY_RUN" == true ]]; then
-    # Print command with proper quoting for readability
-    local cmd_str=""
-    for arg in "$@"; do
-      # Quote arguments that contain spaces or special chars
-      if [[ "$arg" =~ [[:space:]] || "$arg" =~ \* ]]; then
-        cmd_str+="\"$arg\" "
-      else
-        cmd_str+="$arg "
-      fi
-    done
-    echo "[DRY-RUN] $cmd_str"
-  else
-    echo "Creating: $*"
-    "$@"
-  fi
-}
-
 # Check if we should create this type
 should_create_type() {
   local type="$1"
@@ -260,6 +241,13 @@ CREATED=0
 SKIPPED=0
 TOTAL=0
 
+# Job collection arrays for batch processing
+declare -a JOB_NAMES=()
+declare -a JOB_TYPES=()
+declare -a JOB_MESSAGES=()
+declare -a JOB_CRONS=()
+declare -a JOB_BATCH_SLOTS=()  # For batch slot finding
+
 # Extract specific meal times for later use
 BREAKFAST_TIME=""
 DINNER_TIME=""
@@ -280,6 +268,12 @@ while IFS= read -r meal_line; do
   fi
 done <<< "$MEAL_SCHEDULE"
 
+# ============================================================================
+# PHASE 1: COLLECT — Build list of all jobs to create
+# ============================================================================
+
+echo "Phase 1: Collecting jobs to create..."
+
 # --- 1. Meal reminders ---
 if should_create_type "meal"; then
   while IFS= read -r meal_line; do
@@ -295,6 +289,7 @@ if should_create_type "meal"; then
 
     job_name="$(tr '[:lower:]' '[:upper:]' <<< ${meal_name:0:1})${meal_name:1} reminder"
     message="Run notification-composer for $(tr '[:upper:]' '[:lower:]' <<< $meal_name)."
+    cron_expr="$cron_min $cron_hour * * *"
 
     TOTAL=$((TOTAL + 1))
 
@@ -304,15 +299,12 @@ if should_create_type "meal"; then
       continue
     fi
 
-    run_cmd bash "$CREATE_REMINDER" \
-      --agent "$AGENT" \
-      --channel "$CHANNEL" \
-      --type meal \
-      --name "$job_name" \
-      --message "$message" \
-      --cron "$cron_min $cron_hour * * *"
-
-    CREATED=$((CREATED + 1))
+    # Collect job parameters
+    JOB_NAMES+=("$job_name")
+    JOB_TYPES+=("meal")
+    JOB_MESSAGES+=("$message")
+    JOB_CRONS+=("$cron_expr")
+    JOB_BATCH_SLOTS+=("{\"cron\": \"$cron_expr\", \"type\": \"meal\"}")
   done <<< "$MEAL_SCHEDULE"
 fi
 
@@ -322,6 +314,7 @@ if should_create_type "weight" && [[ -n "$FIRST_MEAL_TIME" ]] && [[ -n "$DINNER_
   cron_time=$(calc_cron_time "$FIRST_MEAL_TIME" -30)
   cron_min=$(echo "$cron_time" | awk '{print $1}')
   cron_hour=$(echo "$cron_time" | awk '{print $2}')
+  cron_expr="$cron_min $cron_hour * * 3,6"
 
   job_name="Weight check-in reminder"
   TOTAL=$((TOTAL + 1))
@@ -330,20 +323,18 @@ if should_create_type "weight" && [[ -n "$FIRST_MEAL_TIME" ]] && [[ -n "$DINNER_
     echo "Skipping (exists): $job_name"
     SKIPPED=$((SKIPPED + 1))
   else
-    run_cmd bash "$CREATE_REMINDER" \
-      --agent "$AGENT" \
-      --channel "$CHANNEL" \
-      --type weight \
-      --name "$job_name" \
-      --message "Run notification-composer for weight." \
-      --cron "$cron_min $cron_hour * * 3,6"
-    CREATED=$((CREATED + 1))
+    JOB_NAMES+=("$job_name")
+    JOB_TYPES+=("weight")
+    JOB_MESSAGES+=("Run notification-composer for weight.")
+    JOB_CRONS+=("$cron_expr")
+    JOB_BATCH_SLOTS+=("{\"cron\": \"$cron_expr\", \"type\": \"weight\"}")
   fi
 
   # Weight evening followup (Wed & Sat, dinner + 30 min)
   cron_time=$(calc_cron_time "$DINNER_TIME" 30)
   cron_min=$(echo "$cron_time" | awk '{print $1}')
   cron_hour=$(echo "$cron_time" | awk '{print $2}')
+  cron_expr="$cron_min $cron_hour * * 3,6"
 
   job_name="Weight evening followup"
   TOTAL=$((TOTAL + 1))
@@ -352,20 +343,18 @@ if should_create_type "weight" && [[ -n "$FIRST_MEAL_TIME" ]] && [[ -n "$DINNER_
     echo "Skipping (exists): $job_name"
     SKIPPED=$((SKIPPED + 1))
   else
-    run_cmd bash "$CREATE_REMINDER" \
-      --agent "$AGENT" \
-      --channel "$CHANNEL" \
-      --type weight \
-      --name "$job_name" \
-      --message "Run notification-composer for weight_evening." \
-      --cron "$cron_min $cron_hour * * 3,6"
-    CREATED=$((CREATED + 1))
+    JOB_NAMES+=("$job_name")
+    JOB_TYPES+=("weight")
+    JOB_MESSAGES+=("Run notification-composer for weight_evening.")
+    JOB_CRONS+=("$cron_expr")
+    JOB_BATCH_SLOTS+=("{\"cron\": \"$cron_expr\", \"type\": \"weight\"}")
   fi
 
   # Weight morning followup (Thu & Sun, first meal - 30 min)
   cron_time=$(calc_cron_time "$FIRST_MEAL_TIME" -30)
   cron_min=$(echo "$cron_time" | awk '{print $1}')
   cron_hour=$(echo "$cron_time" | awk '{print $2}')
+  cron_expr="$cron_min $cron_hour * * 4,0"
 
   job_name="Weight morning followup"
   TOTAL=$((TOTAL + 1))
@@ -374,19 +363,17 @@ if should_create_type "weight" && [[ -n "$FIRST_MEAL_TIME" ]] && [[ -n "$DINNER_
     echo "Skipping (exists): $job_name"
     SKIPPED=$((SKIPPED + 1))
   else
-    run_cmd bash "$CREATE_REMINDER" \
-      --agent "$AGENT" \
-      --channel "$CHANNEL" \
-      --type weight \
-      --name "$job_name" \
-      --message "Run notification-composer for weight_morning_followup." \
-      --cron "$cron_min $cron_hour * * 4,0"
-    CREATED=$((CREATED + 1))
+    JOB_NAMES+=("$job_name")
+    JOB_TYPES+=("weight")
+    JOB_MESSAGES+=("Run notification-composer for weight_morning_followup.")
+    JOB_CRONS+=("$cron_expr")
+    JOB_BATCH_SLOTS+=("{\"cron\": \"$cron_expr\", \"type\": \"weight\"}")
   fi
 fi
 
 # --- 3. Weekly report ---
 if should_create_type "report"; then
+  cron_expr="0 21 * * 0"
   job_name="Weekly report"
   TOTAL=$((TOTAL + 1))
 
@@ -394,13 +381,11 @@ if should_create_type "report"; then
     echo "Skipping (exists): $job_name"
     SKIPPED=$((SKIPPED + 1))
   else
-    run_cmd bash "$CREATE_REMINDER" \
-      --agent "$AGENT" \
-      --channel "$CHANNEL" \
-      --name "$job_name" \
-      --message "Run weekly-report to generate this week's progress report." \
-      --cron "0 21 * * 0"
-    CREATED=$((CREATED + 1))
+    JOB_NAMES+=("$job_name")
+    JOB_TYPES+=("other")
+    JOB_MESSAGES+=("Run weekly-report to generate this week's progress report.")
+    JOB_CRONS+=("$cron_expr")
+    JOB_BATCH_SLOTS+=("{\"cron\": \"$cron_expr\", \"type\": \"other\"}")
   fi
 fi
 
@@ -409,6 +394,7 @@ if should_create_type "review" && [[ -n "$DINNER_TIME" ]]; then
   cron_time=$(calc_cron_time "$DINNER_TIME" 180)  # +3 hours
   cron_min=$(echo "$cron_time" | awk '{print $1}')
   cron_hour=$(echo "$cron_time" | awk '{print $2}')
+  cron_expr="$cron_min $cron_hour * * *"
 
   job_name="Daily review"
   TOTAL=$((TOTAL + 1))
@@ -417,13 +403,141 @@ if should_create_type "review" && [[ -n "$DINNER_TIME" ]]; then
     echo "Skipping (exists): $job_name"
     SKIPPED=$((SKIPPED + 1))
   else
-    run_cmd bash "$CREATE_REMINDER" \
-      --agent "$AGENT" \
-      --channel "$CHANNEL" \
-      --name "$job_name" \
-      --message "Run daily-review to generate today's nutrition summary." \
-      --cron "$cron_min $cron_hour * * *"
+    JOB_NAMES+=("$job_name")
+    JOB_TYPES+=("other")
+    JOB_MESSAGES+=("Run daily-review to generate today's nutrition summary.")
+    JOB_CRONS+=("$cron_expr")
+    JOB_BATCH_SLOTS+=("{\"cron\": \"$cron_expr\", \"type\": \"other\"}")
+  fi
+fi
+
+# ============================================================================
+# PHASE 2: FIND SLOTS — Batch slot finding
+# ============================================================================
+
+NUM_JOBS=${#JOB_NAMES[@]}
+echo ""
+echo "Phase 2: Finding slots for $NUM_JOBS jobs..."
+
+if [[ $NUM_JOBS -eq 0 ]]; then
+  echo "No jobs to create."
+  echo ""
+  echo "====================================="
+  echo "Created 0/$TOTAL jobs ($SKIPPED skipped)"
+  echo "====================================="
+  exit 0
+fi
+
+# Build JSON array for batch slot finding
+BATCH_JSON="["
+for i in "${!JOB_BATCH_SLOTS[@]}"; do
+  if [[ $i -gt 0 ]]; then
+    BATCH_JSON+=","
+  fi
+  BATCH_JSON+="${JOB_BATCH_SLOTS[$i]}"
+done
+BATCH_JSON+="]"
+
+# Call find-slot.py in batch mode
+ADJUSTED_CRONS=()
+if command -v python3 &> /dev/null; then
+  SLOT_OUTPUT=$(python3 "$FIND_SLOT" --batch "$BATCH_JSON" --tz "$TIMEZONE" 2>&1)
+  SLOT_EXIT=$?
+
+  # Print stderr output for logging (contains adjustment info)
+  echo "$SLOT_OUTPUT" | grep -v "^[0-9]" >&2 || true
+
+  # Parse adjusted cron expressions from stdout (one per line)
+  while IFS= read -r line; do
+    # Skip empty lines and lines that look like warnings
+    if [[ -n "$line" && ! "$line" =~ ^(WARNING|Adjusted|ERROR) ]]; then
+      ADJUSTED_CRONS+=("$line")
+    fi
+  done <<< "$SLOT_OUTPUT"
+
+  # Validate we got the right number of results
+  if [[ ${#ADJUSTED_CRONS[@]} -ne $NUM_JOBS ]]; then
+    echo "WARNING: Expected $NUM_JOBS adjusted crons, got ${#ADJUSTED_CRONS[@]}. Using original crons." >&2
+    # Fall back to original crons
+    ADJUSTED_CRONS=("${JOB_CRONS[@]}")
+  fi
+else
+  echo "WARNING: python3 not found, skipping batch slot finding" >&2
+  ADJUSTED_CRONS=("${JOB_CRONS[@]}")
+fi
+
+# ============================================================================
+# PHASE 3: CREATE — Parallel creation (or sequential for --dry-run)
+# ============================================================================
+
+echo ""
+echo "Phase 3: Creating $NUM_JOBS jobs..."
+
+if [[ "$DRY_RUN" == true ]]; then
+  # Dry-run: sequential, deterministic output
+  for i in "${!JOB_NAMES[@]}"; do
+    job_name="${JOB_NAMES[$i]}"
+    job_type="${JOB_TYPES[$i]}"
+    job_message="${JOB_MESSAGES[$i]}"
+    adjusted_cron="${ADJUSTED_CRONS[$i]}"
+
+    # Print command with selective quoting for test compatibility
+    # Quote only arguments that contain spaces or special characters
+    echo -n "[DRY-RUN] bash $CREATE_REMINDER --agent $AGENT --channel $CHANNEL --type $job_type --name \"$job_name\" --message \"$job_message\" --cron \"$adjusted_cron\" --exact"
+    echo ""
+
     CREATED=$((CREATED + 1))
+  done
+else
+  # Real mode: parallel creation
+  declare -a PIDS=()
+  declare -a PID_NAMES=()
+
+  for i in "${!JOB_NAMES[@]}"; do
+    job_name="${JOB_NAMES[$i]}"
+    job_type="${JOB_TYPES[$i]}"
+    job_message="${JOB_MESSAGES[$i]}"
+    adjusted_cron="${ADJUSTED_CRONS[$i]}"
+
+    # Launch in background
+    (
+      echo "Creating: $job_name (cron: $adjusted_cron)"
+      bash "$CREATE_REMINDER" \
+        --agent "$AGENT" \
+        --channel "$CHANNEL" \
+        --type "$job_type" \
+        --name "$job_name" \
+        --message "$job_message" \
+        --cron "$adjusted_cron" \
+        --exact
+    ) &
+
+    PIDS+=($!)
+    PID_NAMES+=("$job_name")
+  done
+
+  # Wait for all jobs and collect exit codes
+  FAILED=0
+  for i in "${!PIDS[@]}"; do
+    pid="${PIDS[$i]}"
+    job_name="${PID_NAMES[$i]}"
+
+    if wait "$pid"; then
+      CREATED=$((CREATED + 1))
+    else
+      exit_code=$?
+      echo "ERROR: Failed to create '$job_name' (exit code $exit_code)" >&2
+      FAILED=$((FAILED + 1))
+    fi
+  done
+
+  if [[ $FAILED -gt 0 ]]; then
+    echo ""
+    echo "====================================="
+    echo "WARNING: $FAILED job(s) failed to create"
+    echo "Created $CREATED/$TOTAL jobs ($SKIPPED skipped, $FAILED failed)"
+    echo "====================================="
+    exit 1
   fi
 fi
 

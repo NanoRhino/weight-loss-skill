@@ -6,11 +6,15 @@ Given a target cron expression and timezone, examines all existing recurring cro
 jobs and finds a nearby minute where fewer than MAX_PER_MINUTE jobs are scheduled.
 
 Usage:
+  # Single mode
   python3 find-slot.py --cron "45 11 * * *" --tz "Asia/Shanghai" --type meal
   python3 find-slot.py --cron "30 7 * * 3,6" --tz "Asia/Shanghai" --type weight
 
+  # Batch mode
+  python3 find-slot.py --batch '[{"cron": "45 11 * * *", "type": "meal"}, {"cron": "0 21 * * *"}]' --tz "Asia/Shanghai"
+
 Output (stdout): adjusted cron expression (e.g. "47 11 * * *")
-If no adjustment needed, outputs the original expression unchanged.
+In batch mode, outputs one adjusted cron per line (same order as input).
 
 Exit codes:
   0 = success (adjusted or unchanged)
@@ -30,15 +34,24 @@ MAX_PER_MINUTE = 2
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--cron", required=True, help="5-field cron expression")
+    p.add_argument("--cron", help="5-field cron expression (single mode)")
+    p.add_argument("--batch", help="JSON array of slot requests (batch mode)")
     p.add_argument("--tz", required=True, help="Timezone for this cron")
     p.add_argument(
         "--type",
         choices=["meal", "weight", "other"],
         default="other",
-        help="Job type determines search window",
+        help="Job type determines search window (single mode default)",
     )
-    return p.parse_args()
+    args = p.parse_args()
+
+    # Validate that either --cron or --batch is provided, but not both
+    if not args.cron and not args.batch:
+        p.error("Either --cron or --batch is required")
+    if args.cron and args.batch:
+        p.error("Cannot use both --cron and --batch")
+
+    return args
 
 
 def cron_to_utc_minutes(expr: str, tz_name: str) -> list[int]:
@@ -196,37 +209,42 @@ def adjust_cron_expr(original_expr: str, new_hour: int, new_minute: int) -> str:
     return " ".join(fields)
 
 
-def main():
-    args = parse_args()
+def process_single_slot(
+    cron_expr: str,
+    tz_name: str,
+    job_type: str,
+    counts: dict[int, int],
+) -> tuple[str, int]:
+    """
+    Process a single slot request.
 
+    Returns (adjusted_cron, exit_code).
+    Also modifies counts dict in-place to reserve the chosen slot.
+    """
     # 1. Parse target cron -> UTC minute(s)
-    target_utc_mins = cron_to_utc_minutes(args.cron, args.tz)
+    target_utc_mins = cron_to_utc_minutes(cron_expr, tz_name)
     if not target_utc_mins:
-        print(f"ERROR: could not parse cron expression: {args.cron}", file=sys.stderr)
-        sys.exit(1)
+        print(f"ERROR: could not parse cron expression: {cron_expr}", file=sys.stderr)
+        return cron_expr, 1
 
     # For multi-time crons, use the first one (typical case is single hour:minute)
     target_utc_min = target_utc_mins[0]
 
     # 2. Determine window based on type
-    if args.type in ("meal", "weight"):
+    if job_type in ("meal", "weight"):
         window_before = 10
         window_after = 5
     else:  # other
         window_before = 10
         window_after = 0
 
-    # 3. Fetch existing jobs and count per-minute
-    jobs = get_existing_jobs()
-    counts = build_utc_minute_counts(jobs)
-
-    # 4. Check if target is already available
+    # 3. Check if target is already available
     if counts.get(target_utc_min, 0) < MAX_PER_MINUTE:
-        # No adjustment needed
-        print(args.cron)
-        sys.exit(0)
+        # No adjustment needed, but reserve the slot
+        counts[target_utc_min] = counts.get(target_utc_min, 0) + 1
+        return cron_expr, 0
 
-    # 5. Find available slot
+    # 4. Find available slot
     chosen_utc_min, is_fallback = find_available_slot(
         target_utc_min, window_before, window_after, counts
     )
@@ -239,23 +257,79 @@ def main():
             f"Using original time.",
             file=sys.stderr,
         )
-        print(args.cron)
-        sys.exit(2)
+        # Still reserve the slot even if it's over capacity
+        counts[target_utc_min] = counts.get(target_utc_min, 0) + 1
+        return cron_expr, 2
 
-    # 6. Convert chosen UTC minute back to local and adjust cron
-    new_hour, new_minute = utc_minute_to_local(chosen_utc_min, args.tz)
-    adjusted = adjust_cron_expr(args.cron, new_hour, new_minute)
+    # 5. Convert chosen UTC minute back to local and adjust cron
+    new_hour, new_minute = utc_minute_to_local(chosen_utc_min, tz_name)
+    adjusted = adjust_cron_expr(cron_expr, new_hour, new_minute)
 
-    if adjusted != args.cron:
+    if adjusted != cron_expr:
         print(
-            f"Adjusted cron: {args.cron} -> {adjusted} "
+            f"Adjusted cron: {cron_expr} -> {adjusted} "
             f"(slot {counts.get(target_utc_min, 0)} jobs at target, "
             f"moved to UTC :{chosen_utc_min % 60:02d})",
             file=sys.stderr,
         )
 
-    print(adjusted)
-    sys.exit(0)
+    # Reserve the chosen slot
+    counts[chosen_utc_min] = counts.get(chosen_utc_min, 0) + 1
+
+    return adjusted, 0
+
+
+def main():
+    args = parse_args()
+
+    # Fetch existing jobs once (for both single and batch modes)
+    jobs = get_existing_jobs()
+    counts = build_utc_minute_counts(jobs)
+
+    if args.batch:
+        # Batch mode
+        try:
+            requests = json.loads(args.batch)
+            if not isinstance(requests, list):
+                print("ERROR: --batch must be a JSON array", file=sys.stderr)
+                sys.exit(1)
+        except json.JSONDecodeError as e:
+            print(f"ERROR: invalid JSON in --batch: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        results = []
+        max_exit = 0
+
+        for req in requests:
+            if not isinstance(req, dict):
+                print(f"ERROR: batch request must be a dict: {req}", file=sys.stderr)
+                sys.exit(1)
+
+            cron_expr = req.get("cron")
+            if not cron_expr:
+                print(f"ERROR: batch request missing 'cron' field: {req}", file=sys.stderr)
+                sys.exit(1)
+
+            job_type = req.get("type", "other")
+            tz_name = req.get("tz", args.tz)
+
+            adjusted, exit_code = process_single_slot(cron_expr, tz_name, job_type, counts)
+            results.append(adjusted)
+            max_exit = max(max_exit, exit_code)
+
+        # Output all adjusted crons
+        for result in results:
+            print(result)
+
+        sys.exit(max_exit)
+
+    else:
+        # Single mode (backward compatible)
+        adjusted, exit_code = process_single_slot(
+            args.cron, args.tz, args.type, counts
+        )
+        print(adjusted)
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":
