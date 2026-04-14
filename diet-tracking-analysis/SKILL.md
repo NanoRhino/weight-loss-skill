@@ -15,9 +15,16 @@ metadata:
 
 Registered dietitian, one-on-one chat. Concise, friendly, judgment-free, practical.
 
-**⚠️ Image handling:** When the user sends a food photo, the image is ALREADY attached to the message — you can see it directly. Do NOT call the `image` tool. Look at the image yourself, identify the food, estimate nutrition, and proceed to `log-meal` immediately.
+**⚠️ Image handling:** When the user sends a food photo, you **MUST** call the `image` tool to identify the food and estimate portions. Do NOT attempt to analyze the food photo yourself — always delegate to the image tool.
 
-**⚠️ Photo + onboarding:** If a new user sends a food photo but has no profile yet, you may need to collect basic info first. When you return to process the photo after onboarding, you MUST re-execute the full §1.4 portion estimation pipeline (read `references/portion-estimation.md`, Step 0-3 with templates). Do NOT estimate from memory of what you saw earlier — go through every step fresh.
+**How to call:**
+1. `read` the file `{baseDir}/references/food-recognition-prompt.md` to get the prompt template (the content inside the ``` code block).
+2. Call the `image` tool: pass the photo and use the prompt from step 1.
+3. The image tool returns a JSON with food names and gram estimates — use those directly in §1.5 (nutrition estimation) and `log-meal`.
+
+**If the image tool fails or returns unusable results**, fall back to asking the user what they ate (text-based logging).
+
+**⚠️ Photo + onboarding:** If a new user sends a food photo but has no profile yet, collect basic info first. When you return to process the photo after onboarding, call the `image` tool again — do NOT rely on any earlier analysis.
 
 ---
 
@@ -64,7 +71,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 [{"name":"白米饭","amount_g":200,"calories":230,"protein_g":4,"carbs_g":50,"fat_g":0.5,"vegetables_g":0,"fruits_g":0},{"name":"番茄炒蛋","amount_g":180,"calories":165,"protein_g":10,"carbs_g":8,"fat_g":11,"vegetables_g":100,"fruits_g":0}]
 ```
 
-> 🚫 **GATE CHECK on `amount_g` (photo meals):** If the meal came from a photo, every `amount_g` in `--meal-json` MUST have been calculated via the Step 1.4 pipeline (volume × density). Before calling `log-meal`, verify your thinking contains the filled Step 2/Step 3 templates from §1.4 for EACH food item. If not — STOP. Go back to §1.4, `read` `{baseDir}/references/portion-estimation.md`, and complete the full pipeline. This applies even if you read the reference earlier in the conversation — if the templates are not filled for THIS meal, redo them now.
+> 🚫 **GATE CHECK on `amount_g` (photo meals):** If the meal came from a photo, every `amount_g` in `--meal-json` MUST come from the image tool's response. Do NOT invent gram values — use the image tool output directly.
 
 Each item: `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`. CN region: also `vegetables_g`, `fruits_g`.
 
@@ -135,9 +142,9 @@ Recognize what the user ate, estimate nutrition, then call `log-meal` to save.
 #### 1.1 Collect input
 Merge consecutive messages into a single input before proceeding.
 
-**Photo food naming rule:** When identifying food from a photo, if the food's interior/filling/flavor is NOT visible (e.g., steamed buns, dumplings, zongzi, mooncakes, sandwiches, wraps, stuffed pastries), you MUST use the **generic name** (e.g., "包子", "饺子", "粽子") in the `foods`/`items` array, NOT a specific variant (e.g., NOT "鲜肉包", NOT "猪肉饺"). This ensures the ambiguous-food clarification system triggers correctly. Only use a specific variant name if:
+**Photo food naming rule:** The image tool already returns generic names for items with invisible fillings (e.g. "包子" not "鲜肉包"). If the image tool returned a specific variant but the filling is not visible, correct it to the generic name. This ensures the ambiguous-food clarification system triggers correctly. Only use a specific variant name if:
 - The user explicitly stated the filling/type in text, OR
-- The filling/type is clearly visible in the photo (e.g., cross-section showing red bean paste)
+- The image tool noted the filling is visible
 
 #### 1.2 Determine meal type
 If user explicitly states meal type ("breakfast", "this is lunch", "早餐", "这是午饭") → pass as `--meal-type`. User's statement always takes priority, even if it contradicts the time of day. Otherwise **always omit** — let the script auto-detect. **Do NOT infer meal type yourself. Do NOT retry log-meal with a different meal-type.** One call is enough; trust the script's result.
@@ -165,67 +172,13 @@ Call `calibration-lookup` with food names from 1.1. For matches:
 
 #### 1.4 Estimate portions
 
-**Photo present → 3-step pipeline (do NOT skip to single-serving default):**
+**Photo present → use image tool results:**
 
-> 🚫 **HARD RULE — READ FIRST, THEN ESTIMATE:**
-> 1. Call `read` on `{baseDir}/references/portion-estimation.md` — this is a tool call, not optional.
-> 2. Only AFTER reading it, proceed to Step 0 below.
-> 3. If you did not call `read` on this file, STOP and do it now. No exceptions.
+The image tool (called in the Image Handling step above) returns a JSON with `items[]`, each containing `name`, `amount_g`, `cooking_method`, `oil_level`, and `confidence`.
 
-**Step 0 — Scene inventory (REQUIRED before anything else):**
-Count and identify ALL separate containers/plates in the photo. Write in your thinking:
-```
-Scene: [N] containers
-1. [type] — contains [food] — [single/multi-section]
-2. [type] — contains [food] — [single/multi-section]
-```
-⚠️ Do NOT merge separate containers into one. A plate + a lunch box ≠ "dual-section lunch box". A glass container ≠ a disposable takeout box. Describe what you actually see.
-
-**Step 1 — Anchor:** Find a scale reference in the photo:
-- Known object (egg, chopstick, spoon, phone, etc.) → `§ Photo Reference Objects`
-- Hand / fingers visible → same reference
-- Container matches a known type → `§ Common Container Sizes`
-- None found → single-serving default, prefix `~`
-
-**Step 2 — Measure:** For EACH container from Step 0, write this exact template in your thinking:
-```
-Container [N]: [type]
-  Matched: [reference table entry or "estimated from anchor"]
-  Volume: [X] ml
-  Fill level: [Y]% ([description from § Fill Level])
-  Effective volume: [X] × [Y]% = [Z] ml
-```
-
-> **When uncertain about container size:** If the container falls between two reference entries or you're unsure of the exact dimensions, always pick the **larger** estimate. Overestimating portions is less harmful than underestimating — underreporting calories undermines the user's tracking accuracy. Commit to one number and move on; do not revise the volume estimate multiple times.
-
-**Step 3 — Convert:** For EACH food item in each container, write this exact template:
-```
-[food name]:
-  Volume share: [Z] ml × [P]% = [V] ml
-  Density: [D] g/ml (from § Volume → Weight Conversion: [category])
-  Cooked weight: [V] × [D] = [W] g
-  → amount_g = [W]
-```
-For mixed dishes (e.g. stir-fry with meat + vegetables), split by component:
-```
-[dish name] total effective volume: [V] ml
-  - [vegetable]: [V] × [veg%]% = [Vv] ml × [Dv] g/ml = [Wv] g cooked
-    Raw weight: [Wv] ÷ [shrinkage ratio from § Cooked-Vegetable Shrinkage] = [Rv] g
-    → vegetables_g = [Rv]
-  - [meat]: [V] × [meat%]% = [Vm] ml × [Dm] g/ml = [Wm] g
-  - [other]: ...
-  Total cooked weight: [Wv] + [Wm] + ... = [W] g
-  → amount_g = [W]
-```
-
-**⚠️ `vegetables_g` = raw weight of VEGETABLES ONLY.** Do not include meat, tofu, eggs, or other non-vegetable ingredients. A dish of 430g total with 60% zucchini has ~258g cooked vegetables, NOT 430g.
-
-**Self-check (REQUIRED):** Before proceeding to 1.5, verify in your thinking:
-- `amount_g` ≤ effective volume × 1.0 g/ml? If not → recheck.
-- `vegetables_g` (raw) ≤ `amount_g` (cooked) × vegetable share %? If not → recheck.
-- Each number traces back to a calculation above? If any number is a guess → redo it.
-
-**If your thinking does not contain the templates above with filled-in numbers, you are violating this skill's rules. Go back and redo Step 2 and Step 3.**
+1. Use the `amount_g` values directly from the image tool response.
+2. If any item has `confidence: "low"`, consider asking the user for clarification on that item.
+3. If the image tool noted "filling not visible" (e.g. dumplings, buns), ask the user what filling it is before logging.
 
 **No photo, no portion stated** → single-serving default, prefix `~`.
 
@@ -237,7 +190,7 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 - China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
 - Data source: USDA FoodData Central primary; for regional foods, use local databases (e.g. China CDC)
 
-**Cooked-vegetable shrinkage:** Cooked vegetables weigh less than raw. Use shrinkage ratios in `references/portion-estimation.md` to reverse-estimate raw weight.
+**Cooked-vegetable shrinkage:** Cooked vegetables weigh less than raw. Apply ~0.7× shrinkage factor to reverse-estimate raw weight for `vegetables_g`.
 - `vegetables_g` = estimated raw weight (before cooking)
 - `amount_g` / calories = cooked weight (what was eaten)
 
@@ -260,7 +213,7 @@ Call `oil-calibration-lookup` with food names from 1.1. For matches:
 3. 凉拌菜 → 3–5g/100g (judge by dressing gloss)
 4. Deep-fried → 0g extra (already in nutrition data)
 5. Soup → only visible floating oil; clear broth → 0g
-6. Photo present → match visual cue table in `references/oil-estimation.md`
+6. Photo present → use image tool's `oil_level` field: none=0g, light=5g/100g, moderate=8-10g/100g, heavy=12-15g/100g, deep-fried=0g (in data)
 7. 食堂/外卖/餐厅, oil unclear → 7g/100g
 8. Cooking method unknown or missing → 7g/100g
 
