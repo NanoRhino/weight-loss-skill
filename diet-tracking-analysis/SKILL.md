@@ -203,30 +203,17 @@ Call `oil-calibration-lookup` with food names from 1.1. For matches:
 
 #### 1.5b Estimate cooking oil (REQUIRED — do NOT skip)
 
-> 🚫 **HARD RULE:** For EVERY cooked dish, estimate oil in your thinking using the template below. Do NOT skip this or use a generic fat number from memory.
-> 1. Call `read` on `{baseDir}/references/oil-estimation.md` — this is a tool call, not optional.
-> 2. Only AFTER reading it, proceed below.
+For EVERY cooked dish, estimate oil and fold into `calories` and `fat_g` — never list oil separately. 1g oil = 9 kcal.
 
 **Rule priority (first match wins):**
 1. Oil calibration from §1.5a → use calibrated value
-2. High-absorption dish → use fixed default from `references/oil-estimation.md § High-Absorption Dishes`
-3. 凉拌菜 → 3–5g/100g (judge by dressing gloss)
+2. 炒蛋/scrambled egg → 10g/100g; 干锅/dry pot → 15g/100g
+3. 凉拌菜 → 3–5g/100g
 4. Deep-fried → 0g extra (already in nutrition data)
 5. Soup → only visible floating oil; clear broth → 0g
-6. Photo present → use image tool's `oil_level` field: none=0g, light=5g/100g, moderate=8-10g/100g, heavy=12-15g/100g, deep-fried=0g (in data)
+6. Photo present → use image tool's `oil_level`: none=0, light=5, moderate=8–10, heavy=12–15 g/100g
 7. 食堂/外卖/餐厅, oil unclear → 7g/100g
-8. Cooking method unknown or missing → 7g/100g
-
-Fold oil into each dish's `calories` and `fat_g` — never list oil separately.
-
-**Thinking template (REQUIRED for each cooked dish):**
-```
-Oil — [dish name]:
-  Rule: [which rule # matched]
-  Oil: [X]g/100g → [W]g dish → [W/100 × X]g oil → +[kcal] kcal, +[fat]g fat
-```
-
-**Self-check:** If your thinking does not contain the oil template for every cooked dish, go back and fill it in.
+8. Unknown → 7g/100g
 
 ### Step 2: Respond
 
