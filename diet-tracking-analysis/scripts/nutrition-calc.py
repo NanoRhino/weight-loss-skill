@@ -1016,6 +1016,9 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     macros_outside = sum(1 for k in ["protein", "carbs", "fat"] if status[k] != "on_track")
     needs_adjustment = cal_outside or macros_outside >= 2
 
+    # Calories within range but macros imbalanced → defer to next-day optimization
+    cal_in_range_macro_off = (not cal_outside) and macros_outside >= 1
+
     suggestion_base = adjusted if assumed_meals else actual
     diff = {
         "calories": round(cp_target["calories"] - suggestion_base["calories"], 1),
@@ -1033,6 +1036,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
         "adjusted": adjusted if assumed_meals else None,
         "status": status,
         "needs_adjustment": needs_adjustment,
+        "cal_in_range_macro_off": cal_in_range_macro_off,
         "diff_for_suggestions": diff,
         "missing_meals": missing_meals,
         "meals_included": [m.get("name") for m in checkpoint_log],
@@ -1161,6 +1165,37 @@ def weekly_low_cal_check(data_dir: str, bmr: float,
         "days_below_floor": days_below,
         "days_below_count": len(days_below),
         "below_floor": below_floor,
+    }
+
+
+def recent_overshoot_check(data_dir: str, daily_cal: int,
+                           lookback_days: int = 7,
+                           ref_date: str = None,
+                           tz_offset: int = None) -> dict:
+    """Check how many of the recent days had calorie overshoot.
+
+    Counts ALL overshoot days in the lookback window (excluding today),
+    regardless of whether they are consecutive.
+    """
+    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
+    cal_hi = daily_cal + 100  # same range as calc_targets
+
+    overshoot_days: list[str] = []
+    for offset in range(1, lookback_days + 1):  # start at 1 to exclude today
+        day = (end - timedelta(days=offset)).isoformat()
+        path = get_log_path(data_dir, day)
+        if not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            meals = _migrate_meals(json.load(f))
+        day_cal = round(sum(m.get("calories", 0) for m in meals), 1)
+        if day_cal > cal_hi:
+            overshoot_days.append(day)
+
+    return {
+        "lookback_days": lookback_days,
+        "overshoot_days": overshoot_days,
+        "overshoot_count": len(overshoot_days),
     }
 
 
@@ -1806,17 +1841,27 @@ def _resolve_suggestion_type(evaluation: dict, eaten: bool,
 
     Returns one of: "right_now", "next_meal", "next_time",
                     "case_d_snack", "case_d_ok"
+
+    Note: cal_in_range_macro_off is exposed in evaluation output for the
+    LLM to adjust tone (defer macro/produce gaps to tomorrow), but does
+    NOT create a separate suggestion_type — it stays "next_time".
     """
     needs_adj = evaluation.get("needs_adjustment", False)
     daily_total = evaluation.get("daily_total", 0)
+    cal_in_range_macro_off = evaluation.get("cal_in_range_macro_off", False)
 
-    # Case D: final meal + under calorie target
+    # Case D: final meal + under calorie target range
     if is_final_meal:
-        checkpoint_cal = evaluation.get("checkpoint_target", {}).get("calories", 0)
-        if daily_total < checkpoint_cal:
-            if bmr and daily_total < bmr:
+        cal_min = evaluation.get("checkpoint_range", {}).get("calories_min", 0)
+        if daily_total < cal_min:
+            if bmr and daily_total < bmr * 0.9:
                 return "case_d_snack"
             return "case_d_ok"
+
+    # Calories in range but macros off → still "next_time" (on track);
+    # the LLM uses cal_in_range_macro_off flag to suggest tomorrow swaps
+    if cal_in_range_macro_off:
+        return "next_time"
 
     # Case A: before eating + adjustment needed
     if needs_adj and not eaten:
@@ -1942,6 +1987,23 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     else:
         daily_total = sum(m.get("calories", 0) for m in all_meals)
         eval_result["daily_total"] = daily_total
+
+    # Overshoot severity: how far over the upper calorie limit
+    cal_hi = daily_cal + 100  # same as calc_targets range
+    if daily_total > cal_hi:
+        overshoot_pct = round((daily_total - cal_hi) / cal_hi * 100, 1)
+        eval_result["overshoot_severity"] = "significant" if overshoot_pct >= 20 else "mild"
+        eval_result["overshoot_pct"] = overshoot_pct
+    else:
+        eval_result["overshoot_severity"] = None
+        eval_result["overshoot_pct"] = 0
+
+    # Recent overshoot history (past 3 days, excluding today)
+    overshoot_history = recent_overshoot_check(
+        data_dir, daily_cal, lookback_days=7,
+        ref_date=local_date, tz_offset=tz_offset)
+    eval_result["recent_overshoot_count"] = overshoot_history["overshoot_count"]
+    eval_result["recent_overshoot_days"] = overshoot_history["overshoot_days"]
 
     # Determine if this is the final meal of the day
     blocks = get_meal_blocks(meals)
@@ -2112,6 +2174,14 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
 
     result["evaluation"] = evaluate(weight, daily_cal, meals,
                                     latest_meal, all_meals, None, mode)
+
+    # Add overshoot history (same as log-meal does)
+    if result["evaluation"]:
+        overshoot_history = recent_overshoot_check(
+            data_dir, daily_cal, lookback_days=7,
+            ref_date=resolved_day, tz_offset=tz_offset)
+        result["evaluation"]["recent_overshoot_count"] = overshoot_history["overshoot_count"]
+        result["evaluation"]["recent_overshoot_days"] = overshoot_history["overshoot_days"]
 
     if region and region.upper() == "CN":
         result["produce"] = produce_check(meals, latest_meal, all_meals)
