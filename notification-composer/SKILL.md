@@ -12,7 +12,7 @@ metadata:
 
 > ⚠️ **静默执行：** 不要向用户描述内部动作、技能切换或工具调用。不说"让我检查一下…"、"现在切换到…"、"正在读取你的资料…"。默默执行，只输出结果。
 
-> ✅ **直接输出最终文本：** Cron 的 announce 机制会自动把你的输出投递给用户。compose 完最终提醒文本后，先调 `inject-context.sh` 注入 main session（见第五步），然后直接输出文本即可。如果判断不需要发送，直接回复 `NO_REPLY`。
+> ✅ **直接输出最终文本：** Cron 的 announce 机制会自动把你的输出投递给用户，同时自动注入 main session 上下文。compose 完最终提醒文本后，直接输出文本即可。如果判断不需要发送，直接回复 `NO_REPLY`。
 >
 > 不要把推理过程、检查结果或叙述放进输出——只输出最终的提醒文本。不要用 `message` 工具发送——会导致重复消息。
 
@@ -129,23 +129,13 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 **所有召回/回归消息绝不：** 数错过的天数/餐数 · 鸡汤口号 · 连续打卡语言 · 愧疚式措辞 · 正经的系统通知语气 · 脱离食物/营养的纯抽象关心。
 
-### 第五步：注入上下文 & 输出
+### 第五步：输出
 
-compose 完成后：
-
-1. **注入 main session**（让用户回复时主 agent 看到提醒上下文）：
-
-```bash
-bash {notification-composer:baseDir}/scripts/inject-context.sh \
-  --workspace-dir {workspaceDir} \
-  --message "<你组合好的完整提醒内容>"
-```
-
-2. **直接输出最终提醒文本**（announce 自动投递给用户）。
+compose 完成后，**直接输出最终提醒文本**（announce 自动投递给用户，同时自动注入 main session 上下文）。
 
 不指定 target、不用 message 工具——announce delivery 处理一切。
 
-如果第三步结果是 `NO_REPLY`，跳过 inject，直接回复 `NO_REPLY`。
+如果第三步结果是 `NO_REPLY`，直接回复 `NO_REPLY`。
 
 ---
 
