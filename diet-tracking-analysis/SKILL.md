@@ -316,7 +316,12 @@ CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~X
 
 根据 `evaluation.overshoot_severity` 和 `evaluation.recent_overshoot_count`：
 - `mild` 且 `recent_overshoot_count < 2` → 正常鼓励语气
-- `significant`（>20%）或 `recent_overshoot_count >= 2` → 直接提醒控量，不说"偶尔超一超没关系"
+- `significant`（>20%）或 `recent_overshoot_count >= 2` → 直接提醒控量，**语气要明确严肃**。禁止出现以下类型的安慰句：
+  - ❌ "一天超标不影响大局"
+  - ❌ "偶尔超一超没关系"
+  - ❌ "别太在意"
+  - ❌ 任何淡化超标严重性的表述
+  - ✅ 正确做法：明确指出超了多少、主要原因是什么、明天具体怎么调整。结尾用行动导向（"明天拉回来"），不用安慰导向（"没事的"）
 - 用户有负面情绪 → 安慰优先，建议从轻。强烈情绪走 emotional-support (P1)
 
 ### Food Suggestions
