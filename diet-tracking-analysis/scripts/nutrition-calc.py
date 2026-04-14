@@ -18,6 +18,7 @@ Commands:
   weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
   produce-check — Evaluate cumulative vegetable and fruit intake (China region).
   calibration-lookup — Look up user's portion calibrations for food items.
+  oil-calibration-lookup — Look up user's oil calibrations for food items.
 
 Usage:
   python3 nutrition-calc.py detect-meal --tz-offset 28800 --meals 3 \
@@ -667,6 +668,172 @@ def calibration_lookup(data_dir: str, food_names: list) -> dict:
     return {"matches": matches, "no_match": no_match}
 
 
+# ---------------------------------------------------------------------------
+# Oil calibration memory (stored in health-preferences.md)
+# ---------------------------------------------------------------------------
+
+_MAX_OIL_CALIBRATIONS = 200
+_OIL_CAL_SECTION_HEADER = "## Oil Calibrations\n"
+_OIL_CAL_LINE_RE = re.compile(
+    r'^- \[(\d{4}-\d{2}-\d{2})\] (.+?) → (\d+)g/100g \(×(\d+)\)$')
+
+
+def _load_oil_calibrations(data_dir: str) -> dict:
+    path = _hp_path(data_dir)
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except IOError:
+        return {}
+    idx = content.find(_OIL_CAL_SECTION_HEADER)
+    if idx == -1:
+        return {}
+    section_start = idx + len(_OIL_CAL_SECTION_HEADER)
+    next_header = content.find("\n## ", section_start)
+    section = content[section_start:next_header] if next_header != -1 else content[section_start:]
+    calibrations = {}
+    for line in section.strip().split("\n"):
+        m = _OIL_CAL_LINE_RE.match(line.strip())
+        if m:
+            calibrations[m.group(2)] = {
+                "oil_per_100g": int(m.group(3)),
+                "correction_count": int(m.group(4)),
+                "last_corrected": m.group(1),
+            }
+    return calibrations
+
+
+def _save_oil_calibrations_to_hp(data_dir: str, calibrations: dict):
+    path = _hp_path(data_dir)
+    lines = []
+    for name, cal in sorted(calibrations.items(),
+                            key=lambda x: x[1].get("correction_count", 0),
+                            reverse=True):
+        lines.append(
+            f"- [{cal['last_corrected']}] {name} → {cal['oil_per_100g']}g/100g"
+            f" (×{cal['correction_count']})")
+    new_body = "\n".join(lines) + "\n" if lines else ""
+
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        content = ""
+
+    idx = content.find(_OIL_CAL_SECTION_HEADER)
+    if idx != -1:
+        section_start = idx + len(_OIL_CAL_SECTION_HEADER)
+        next_header = content.find("\n## ", section_start)
+        if next_header != -1:
+            content = content[:section_start] + new_body + content[next_header:]
+        else:
+            content = content[:section_start] + new_body
+    else:
+        if content and not content.endswith("\n"):
+            content += "\n"
+        content += "\n" + _OIL_CAL_SECTION_HEADER + new_body
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def _cleanup_oil_calibrations(calibrations: dict) -> dict:
+    if len(calibrations) <= _MAX_OIL_CALIBRATIONS:
+        return calibrations
+    sorted_keys = sorted(calibrations.keys(),
+                         key=lambda k: calibrations[k].get("correction_count", 1))
+    to_remove = len(calibrations) - _MAX_OIL_CALIBRATIONS
+    for key in sorted_keys[:to_remove]:
+        del calibrations[key]
+    return calibrations
+
+
+def _update_oil_calibrations_on_correction(data_dir: str, old_foods: list,
+                                           new_foods: list, day: str = None):
+    """Compare old and new food items; save oil calibrations for changed fat_g."""
+    old_by_name = {f.get("name", ""): f for f in old_foods if f.get("name")}
+    new_by_name = {f.get("name", ""): f for f in new_foods if f.get("name")}
+    changes = []
+
+    for nf in new_foods:
+        name = nf.get("name", "")
+        if not name or name not in old_by_name:
+            continue
+        old_fat = old_by_name[name].get("fat", 0) or old_by_name[name].get("fat_g", 0)
+        new_fat = nf.get("fat", 0) or nf.get("fat_g", 0)
+        old_g = old_by_name[name].get("amount_g", 0)
+        new_g = nf.get("amount_g", 0)
+        if old_fat and new_fat and old_g and new_g:
+            old_oil_per100 = round(old_fat / old_g * 100)
+            new_oil_per100 = round(new_fat / new_g * 100)
+            if old_oil_per100 != new_oil_per100:
+                changes.append((name, new_oil_per100))
+
+    if not changes:
+        return []
+
+    calibrations = _load_oil_calibrations(data_dir)
+    today = day or date.today().isoformat()
+    updated = []
+    for food_name, new_oil in changes:
+        if food_name in calibrations:
+            entry = calibrations[food_name]
+            entry["oil_per_100g"] = new_oil
+            entry["correction_count"] = entry.get("correction_count", 0) + 1
+            entry["last_corrected"] = today
+        else:
+            calibrations[food_name] = {
+                "oil_per_100g": new_oil,
+                "correction_count": 1,
+                "last_corrected": today,
+            }
+        updated.append(food_name)
+
+    calibrations = _cleanup_oil_calibrations(calibrations)
+    _save_oil_calibrations_to_hp(data_dir, calibrations)
+    return updated
+
+
+def oil_calibration_lookup(data_dir: str, food_names: list) -> dict:
+    """Look up oil calibrations for a list of food names."""
+    calibrations = _load_oil_calibrations(data_dir)
+    matches = []
+    no_match = []
+
+    for query in food_names:
+        if not query:
+            continue
+        if query in calibrations:
+            matches.append({
+                "query": query,
+                "match_type": "exact",
+                "matched_key": query,
+                "calibration": calibrations[query],
+            })
+            continue
+        # Contains match
+        best = None
+        for key, cal in calibrations.items():
+            if key in query or query in key:
+                if best is None or cal.get("correction_count", 0) > best[1].get("correction_count", 0):
+                    best = (key, cal)
+        if best:
+            matches.append({
+                "query": query,
+                "match_type": "contains",
+                "matched_key": best[0],
+                "calibration": best[1],
+            })
+        else:
+            no_match.append(query)
+
+    matches.sort(key=lambda m: m["calibration"].get("correction_count", 0) if m["calibration"] else 0,
+                 reverse=True)
+    return {"matches": matches, "no_match": no_match}
+
+
 def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None) -> dict:
     """Save a meal to the daily log. Same meal name overwrites (supports corrections)."""
     os.makedirs(data_dir, exist_ok=True)
@@ -682,8 +849,11 @@ def save_meal(data_dir: str, meal: dict, day: str = None, tz_offset: int = None)
     replaced = False
     for i, m in enumerate(existing):
         if m.get("name") == meal_name:
-            # Auto-save portion calibrations on correction
+            # Auto-save portion and oil calibrations on correction
             _update_calibrations_on_correction(
+                data_dir, m.get("foods", []), meal.get("foods", []),
+                day or _local_date(tz_offset))
+            _update_oil_calibrations_on_correction(
                 data_dir, m.get("foods", []), meal.get("foods", []),
                 day or _local_date(tz_offset))
             existing[i] = meal
@@ -2134,6 +2304,11 @@ def main():
     clk.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
     clk.add_argument("--foods", type=str, required=True, help="JSON array of food name strings")
 
+    olk = sub.add_parser("oil-calibration-lookup",
+                          help="Look up user's oil calibrations for food items")
+    olk.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
+    olk.add_argument("--foods", type=str, required=True, help="JSON array of food name strings")
+
     qd = sub.add_parser("query-day",
                           help="Load a day's records and evaluate current status")
     qd.add_argument("--data-dir", type=str, required=True, help="Directory with daily JSON logs")
@@ -2270,6 +2445,13 @@ def main():
             print(f"Error: invalid --foods JSON: {e}", file=sys.stderr)
             sys.exit(1)
         result = calibration_lookup(args.data_dir, foods)
+    elif args.cmd == "oil-calibration-lookup":
+        try:
+            foods = json.loads(args.foods)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --foods JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = oil_calibration_lookup(args.data_dir, foods)
     elif args.cmd == "query-day":
         result = query_day(
             data_dir=args.data_dir, tz_offset=args.tz_offset,

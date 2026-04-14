@@ -114,6 +114,16 @@ python3 {baseDir}/scripts/nutrition-calc.py calibration-lookup \
 
 Returns `matches` (with `user_portion_g`, `correction_count`, match type `exact`/`contains`) and `no_match`. Calibrations are stored in `health-preferences.md > ## Portion Calibrations` and auto-maintained by `log-meal` on corrections.
 
+### `oil-calibration-lookup` — user's oil calibrations
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py oil-calibration-lookup \
+  --data-dir {workspaceDir}/data/meals \
+  --foods '<JSON array of food name strings>'
+```
+
+Returns `matches` (with `oil_per_100g`, `correction_count`) and `no_match`. Stored in `health-preferences.md > ## Oil Calibrations` and auto-maintained by `log-meal` on fat corrections.
+
 ---
 
 ## Workflow — Log Food
@@ -227,21 +237,43 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 - China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
 - Data source: USDA FoodData Central primary; for regional foods, use local databases (e.g. China CDC)
 
-**Cooking oil** (1g ≈ 9 kcal, pure fat) — fold into each dish's calories, never list separately:
-| Visual cue | Oil/200g |
-|-----------|---------|
-| Matte, no sheen | 5g |
-| Slight gloss | 8–10g |
-| Oil film, pooling at edges | 12–15g |
-| Heavy pooling, glisten | 18–25g |
-
-- Photo: judge by sheen/pooling; Text with no photo: default 5g/200g unless described as oily
-- Deep-fried: oil already in standard nutrition data — don't double-count
-- Soups: only count visible floating oil; clear broth → 0g
-
 **Cooked-vegetable shrinkage:** Cooked vegetables weigh less than raw. Use shrinkage ratios in `references/portion-estimation.md` to reverse-estimate raw weight.
 - `vegetables_g` = estimated raw weight (before cooking)
 - `amount_g` / calories = cooked weight (what was eaten)
+
+#### 1.5a Look up oil calibrations
+
+Call `oil-calibration-lookup` with food names from 1.1. For matches:
+- `correction_count ≥ 2` → use `oil_per_100g` instead of default (strong calibration)
+- `correction_count == 1` → use only when no better source
+- Do NOT mention calibration to the user
+
+#### 1.5b Estimate cooking oil (REQUIRED — do NOT skip)
+
+> 🚫 **HARD RULE:** For EVERY cooked dish, estimate oil in your thinking using the template below. Do NOT skip this or use a generic fat number from memory.
+> 1. Call `read` on `{baseDir}/references/oil-estimation.md` — this is a tool call, not optional.
+> 2. Only AFTER reading it, proceed below.
+
+**Rule priority (first match wins):**
+1. Oil calibration from §1.5a → use calibrated value
+2. High-absorption dish → use fixed default from `references/oil-estimation.md § High-Absorption Dishes`
+3. 凉拌菜 → 3–5g/100g (judge by dressing gloss)
+4. Deep-fried → 0g extra (already in nutrition data)
+5. Soup → only visible floating oil; clear broth → 0g
+6. Photo present → match visual cue table in `references/oil-estimation.md`
+7. 食堂/外卖/餐厅, oil unclear → 7g/100g
+8. Cooking method unknown or missing → 7g/100g
+
+Fold oil into each dish's `calories` and `fat_g` — never list oil separately.
+
+**Thinking template (REQUIRED for each cooked dish):**
+```
+Oil — [dish name]:
+  Rule: [which rule # matched]
+  Oil: [X]g/100g → [W]g dish → [W/100 × X]g oil → +[kcal] kcal, +[fat]g fat
+```
+
+**Self-check:** If your thinking does not contain the oil template for every cooked dish, go back and fill it in.
 
 ### Step 2: Respond
 
