@@ -1,42 +1,50 @@
 # Food Recognition Prompt (for image tool)
 
 ```
-Analyze this food photo. Identify every food and drink item, estimate weight in grams using visual references.
+Analyze this food photo. Identify every food/drink item, estimate weight in grams, and estimate nutrition.
 
 ## Instructions
 
 1. **Inventory**: List every distinct food/drink item visible.
-2. **Scale reference**: Find a known-size object in the photo (chopsticks ~24cm, standard rice bowl ~12cm diameter / ~300ml, dinner plate ~23-25cm, Chinese soup spoon ~14cm, disposable chopsticks ~20cm, teaspoon, 500ml bottle, adult hand width ~8-9cm). State which reference you used.
-3. **Portion estimation**: For each item, estimate the volume or count, then convert to grams using typical density. Show your reasoning briefly.
-4. **Cooking method & oil**: Note visible cooking method and oil level for each dish.
+2. **Scale reference**: Find a known-size object (chopsticks ~24cm, rice bowl ~12cm/~300ml, dinner plate ~23-25cm, soup spoon ~14cm, 500ml bottle, hand width ~8-9cm).
+3. **Portion estimation**: Estimate volume/count → convert to grams.
+4. **Nutrition estimation**: For each item, estimate calories, protein, carbs, fat based on standard nutrition data (USDA / China CDC). Include cooking oil in the calories/fat — do NOT list oil separately.
+5. **Oil estimation**: Use visual cues — matte/no sheen=minimal oil, slight gloss=5g/100g, oil film/pooling=10g/100g, heavy pooling=15g/100g, deep-fried=already in data.
 
 ## Output format
 
-Return ONLY a JSON object, no other text:
+Return ONLY a JSON object:
 
 {
-  "reference_object": "what you used for scale and its assumed size",
+  "reference_object": "what you used for scale",
   "items": [
     {
-      "name": "food name in Chinese (use generic name if filling/interior is not visible, e.g. 包子 not 鲜肉包, 饺子 not 猪肉饺)",
+      "name": "Chinese name (generic if filling not visible: 包子 not 鲜肉包)",
       "name_en": "English name",
-      "amount_g": estimated weight in grams (number),
-      "count": number of pieces if countable (null otherwise),
-      "container": "bowl size / plate size / description",
-      "cooking_method": "stir-fried / steamed / boiled / deep-fried / raw / grilled / etc.",
+      "amount_g": 200,
+      "count": 2,
+      "calories": 230,
+      "protein_g": 8,
+      "carbs_g": 45,
+      "fat_g": 3,
+      "vegetables_g": 0,
+      "fruits_g": 0,
+      "cooking_method": "stir-fried / steamed / boiled / deep-fried / raw / grilled",
       "oil_level": "none / light / moderate / heavy / deep-fried",
       "confidence": "high / medium / low",
-      "notes": "any uncertainty or assumptions"
+      "notes": "any uncertainty"
     }
   ]
 }
 
 ## Rules
 
-- If a dish has multiple components (e.g. rice + stir-fry on one plate), list each separately.
-- For items where the interior is not visible (buns, dumplings, wraps), use the generic name and note "filling not visible" in notes.
-- Estimate raw ingredient weight for cooked dishes (e.g. 200g cooked rice ≈ 200g, not the dry weight).
-- Beverages: estimate volume in ml, convert to grams (water-based ≈ 1g/ml; milk ≈ 1.03g/ml).
-- If no scale reference is found, state "no reference object" and estimate based on typical serving sizes. Set confidence to "low".
-- Do NOT guess nutrition values — only identify foods and estimate weights.
+- Multi-component dishes (rice + stir-fry): list each separately.
+- Filling not visible (buns, dumplings): use generic name, note "filling not visible".
+- Use cooked weight, not dry weight.
+- Beverages: ml ≈ grams for water-based drinks.
+- vegetables_g = raw weight of vegetables ONLY (not meat/tofu/egg). Starchy vegetables (potato, corn, taro) = 0.
+- fruits_g = weight of fruit items only.
+- Include cooking oil in each dish's calories and fat_g based on oil_level visual assessment.
+- No scale reference found → estimate from typical servings, confidence = "low".
 ```

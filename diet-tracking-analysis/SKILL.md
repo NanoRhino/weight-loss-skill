@@ -71,7 +71,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 [{"name":"白米饭","amount_g":200,"calories":230,"protein_g":4,"carbs_g":50,"fat_g":0.5,"vegetables_g":0,"fruits_g":0},{"name":"番茄炒蛋","amount_g":180,"calories":165,"protein_g":10,"carbs_g":8,"fat_g":11,"vegetables_g":100,"fruits_g":0}]
 ```
 
-> 🚫 **GATE CHECK on `amount_g` (photo meals):** If the meal came from a photo, every `amount_g` in `--meal-json` MUST come from the image tool's response. Do NOT invent gram values — use the image tool output directly.
+> 🚫 **GATE CHECK (photo meals):** If the meal came from a photo, ALL values in `--meal-json` (amount_g, calories, protein_g, carbs_g, fat_g, vegetables_g, fruits_g) MUST come from the image tool's response. Do NOT re-estimate — pass them through directly.
 
 Each item: `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`. CN region: also `vegetables_g`, `fruits_g`.
 
@@ -111,15 +111,7 @@ python3 {baseDir}/scripts/nutrition-calc.py query-day \
 python3 {baseDir}/scripts/nutrition-calc.py load --data-dir {workspaceDir}/data/meals [--date 2026-02-27]
 ```
 
-### `calibration-lookup` — user's portion calibrations
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py calibration-lookup \
-  --data-dir {workspaceDir}/data/meals \
-  --foods '<JSON array of food name strings>'
-```
-
-Returns `matches` (with `user_portion_g`, `correction_count`, match type `exact`/`contains`) and `no_match`. Calibrations are stored in `health-preferences.md > ## Portion Calibrations` and auto-maintained by `log-meal` on corrections.
+### `calibration-lookup` — ~~removed~~
 
 ### `oil-calibration-lookup` — ~~removed~~
 
@@ -151,38 +143,21 @@ Infer from tense/context. When ambiguous, check:
 Default: assume **before-eating** (enables most useful feedback).
 Backfilled meals from missing-meal handling are always "already eaten" — never use `right_now` suggestion type.
 
-#### 1.3b Look up portion calibrations
+#### 1.3b–1.5 Portion & nutrition estimation
 
-Call `calibration-lookup` with food names from 1.1. For matches:
-- `correction_count ≥ 2` → use `user_portion_g` instead of generic default (strong calibration)
-- `correction_count == 1` → use only when no better source
-- `match_type: "alias"` or `"alias_contains"` → the user previously corrected this food name to something else. Use the `matched_key` (correct name) and its calibration instead of your identified name. For example, if you see "鸡蛋面" but the alias says it was corrected to "玉米面 350g", use "玉米面" as the food name and 350g as the portion.
-- Clear photo evidence of a different portion overrides calibration
-- Do NOT mention calibration to the user
+**Photo present → use image tool results directly:**
 
-**Safety net:** `log-meal` returns `calibration_warnings` when logged amount differs >20% from a known calibration — confirm with the user if triggered.
+The image tool returns `items[]` with `name`, `amount_g`, `calories`, `protein_g`, `carbs_g`, `fat_g`, `vegetables_g`, `fruits_g`, `confidence`, and `notes`.
 
-#### 1.4 Estimate portions
-
-**Photo present → use image tool results:**
-
-The image tool (called in the Image Handling step above) returns a JSON with `items[]`, each containing `name`, `amount_g`, `cooking_method`, `oil_level`, and `confidence`.
-
-1. Use the `amount_g` values directly from the image tool response.
-2. If any item has `confidence: "low"`, consider asking the user for clarification on that item.
+1. Use these values directly — do NOT re-estimate nutrition yourself.
+2. If any item has `confidence: "low"`, consider asking the user for clarification.
 3. If the image tool noted "filling not visible" (e.g. dumplings, buns), ask the user what filling it is before logging.
 
-**No photo, no portion stated** → single-serving default, prefix `~`.
+**No photo → text-based logging:**
+- Use single-serving defaults for portions (prefix `~`).
+- Estimate nutrition from standard data (USDA / China CDC).
+- China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, corn, taro) → count as carbs, NOT toward vegetable target.
 
-Flag items **≥ 2× standard** — Step 2 decides whether to clarify.
-
-#### 1.5 Estimate nutrition
-For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
-
-- China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
-- Data source: USDA FoodData Central primary; for regional foods, use local databases (e.g. China CDC)
-
-**Cooked-vegetable shrinkage:** Cooked vegetables weigh less than raw. Apply ~0.7× shrinkage factor to reverse-estimate raw weight for `vegetables_g`.
 - `vegetables_g` = estimated raw weight (before cooking)
 - `amount_g` / calories = cooked weight (what was eaten)
 
