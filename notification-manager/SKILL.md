@@ -85,7 +85,7 @@ Timezone auto-detection searches these paths in order:
 1. `~/.openclaw/workspace-$AGENT/USER.md`
 2. `~/.openclaw/workspace-nutritionist/$AGENT/USER.md`
 
-Then calls `openclaw cron add` with `sessionTarget = "isolated"`, `payload.kind = "agentTurn"`, and `delivery.mode = "announce"` automatically. The isolated agent composes the reminder, injects context into the main session via `inject-context.sh`, and outputs the text — announce delivery sends it to the user.
+Then calls `openclaw cron add` with `sessionTarget = "isolated"`, `payload.kind = "agentTurn"`, and `delivery.mode = "announce"` automatically. The isolated agent composes the reminder and outputs the text — announce delivery sends it to the user and automatically injects the context into the main session.
 
 ### Anti-burst scheduling
 
