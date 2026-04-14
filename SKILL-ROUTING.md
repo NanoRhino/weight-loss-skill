@@ -29,7 +29,7 @@ when conflicts arise.
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
 | **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder`, `weight-gain-strategy` | Designing programs and plans. |
-| **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer`, `reminder-manager` | Summaries, proactive outreach, and user-created reminders. |
+| **P4 — Reporting** | `weekly-report`, `daily-calorie-summary`, `notification-manager`, `notification-composer`, `reminder-manager` | Summaries, proactive outreach, and user-created reminders. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
 **Rule:** When two skills from different tiers conflict, the higher-priority
@@ -87,6 +87,8 @@ I just said?"
 | "I ran 5K! I'm so proud!" | exercise-log + positive-emotion | exercise-tracking + emotional-support |
 | "ate too much again, I'm so fat" | after-meal-log + emotional-distress | diet-tracking + emotional-support |
 | "weekly summary" (on Sunday) | weekly-report-request + exercise-weekly-summary | weekly-report + exercise-tracking |
+| "今天的缺口" / "today's deficit" | daily-deficit-request | daily-calorie-summary |
+| "今日总结" / "daily summary" | daily-summary-request | daily-calorie-summary |
 | "make me a workout plan and a meal plan" | exercise-planning + meal-planning | exercise-tracking + meal-planner |
 | "I'm having oatmeal, feeling great today!" | food-log + positive-emotion | diet-tracking + emotional-support |
 | "skipped lunch, don't care anymore" | food-skip + emotional-distress | diet-tracking + emotional-support |
