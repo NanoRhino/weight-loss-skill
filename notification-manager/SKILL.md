@@ -85,9 +85,7 @@ Timezone auto-detection searches these paths in order:
 1. `~/.openclaw/workspace-$AGENT/USER.md`
 2. `~/.openclaw/workspace-nutritionist/$AGENT/USER.md`
 
-Then calls `openclaw cron add` with `sessionTarget = "isolated"` and `payload.kind = "agentTurn"` automatically, with `delivery.channel` and `delivery.to` set for the user's channel. This is required because OpenClaw only allows `sessionTarget = "main"` for the default agent — all other agents (including WeChat user agents) MUST use `sessionTarget = "isolated"`.
-
-**IMPORTANT: When creating cron jobs via the cron tool (not create-reminder.sh), always use `sessionTarget: "isolated"` with `payload.kind: "agentTurn"`. Never use `sessionTarget: "main"` for non-default agents — it will be rejected.**
+Then calls `openclaw cron add` with `sessionTarget = "isolated"`, `payload.kind = "agentTurn"`, and `delivery.mode = "announce"` automatically. The isolated agent composes the reminder, injects context into the main session via `inject-context.sh`, and outputs the text — announce delivery sends it to the user.
 
 ### Anti-burst scheduling
 

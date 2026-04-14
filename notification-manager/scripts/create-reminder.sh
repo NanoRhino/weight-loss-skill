@@ -194,16 +194,14 @@ Do NOT output the message as your reply. Instead, put your full message text int
     --json
   )
 else
-  # Derive sessionKey from agentId: wechat-dm-xxx → agent:wechat-dm-xxx:direct:xxx
-  PEER_ID=$(echo "$AGENT" | sed -E 's/^(wechat|wecom)-dm-//')
-  SESSION_KEY="agent:${AGENT}:direct:${PEER_ID}"
-
   CMD=(openclaw cron add
     --name "$NAME"
-    --session main
+    --session isolated
     --agent "$AGENT"
-    --session-key "$SESSION_KEY"
-    --system-event "$MESSAGE"
+    --message "$MESSAGE"
+    --announce
+    --channel "$CHANNEL"
+    --to "$TO"
   )
 fi
 
