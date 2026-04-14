@@ -29,7 +29,7 @@ when conflicts arise.
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
 | **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder`, `weight-gain-strategy` | Designing programs and plans. |
-| **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
+| **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer`, `reminder-manager` | Summaries, proactive outreach, and user-created reminders. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
 **Rule:** When two skills from different tiers conflict, the higher-priority
@@ -94,6 +94,13 @@ I just said?"
 | "I'm at Chipotle, what should I order?" | restaurant-recommendation | restaurant-meal-finder |
 | "附近有什么能吃的，帮我推荐一下" | restaurant-recommendation | restaurant-meal-finder |
 | "想点外卖，有什么推荐的？" | restaurant-recommendation | restaurant-meal-finder |
+| "一分钟后提醒我喝水" | create-reminder | reminder-manager |
+| "提醒我下午三点称体重" | create-reminder | reminder-manager |
+| "remind me to drink water in 10 minutes" | create-reminder | reminder-manager |
+| "我有哪些提醒" | list-reminders | reminder-manager |
+| "取消午餐提醒" | delete-reminder | reminder-manager |
+| "帮我每小时提醒一次喝水" | create-reminder | reminder-manager |
+| "每隔五分钟问我一个问题" | create-reminder | reminder-manager |
 | "why am I gaining weight?" | weight-gain-inquiry | weight-gain-strategy |
 | "体重怎么涨了" | weight-gain-inquiry | weight-gain-strategy |
 | "体重反弹了，好沮丧" | weight-gain-inquiry + emotional-distress | weight-gain-strategy + emotional-support |
