@@ -1002,34 +1002,30 @@ def recent_overshoot_check(data_dir: str, daily_cal: int,
                            lookback_days: int = 7,
                            ref_date: str = None,
                            tz_offset: int = None) -> dict:
-    """Check consecutive overshoot days ending yesterday.
+    """Check how many of the recent days had calorie overshoot.
 
-    Counts backwards from yesterday: as soon as a day is NOT overshoot
-    (or has no data), the streak stops. Returns the consecutive count
-    and the list of consecutive overshoot days.
+    Counts ALL overshoot days in the lookback window (excluding today),
+    regardless of whether they are consecutive.
     """
     end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
     cal_hi = daily_cal + 100  # same range as calc_targets
 
-    consecutive_days: list[str] = []
+    overshoot_days: list[str] = []
     for offset in range(1, lookback_days + 1):  # start at 1 to exclude today
         day = (end - timedelta(days=offset)).isoformat()
         path = get_log_path(data_dir, day)
         if not os.path.exists(path):
-            break  # no data = streak broken
+            continue
         with open(path, "r", encoding="utf-8") as f:
             meals = _migrate_meals(json.load(f))
         day_cal = round(sum(m.get("calories", 0) for m in meals), 1)
         if day_cal > cal_hi:
-            consecutive_days.append(day)
-        else:
-            break  # not overshoot = streak broken
+            overshoot_days.append(day)
 
     return {
         "lookback_days": lookback_days,
-        "overshoot_days": consecutive_days,
-        "overshoot_count": len(consecutive_days),
-        "consecutive": True,
+        "overshoot_days": overshoot_days,
+        "overshoot_count": len(overshoot_days),
     }
 
 
