@@ -271,6 +271,15 @@ while IFS= read -r meal_line; do
   fi
 done <<< "$MEAL_SCHEDULE"
 
+# Determine first meal time (for users who skip breakfast)
+FIRST_MEAL_TIME=""
+while IFS= read -r meal_line; do
+  if [[ -n "$meal_line" ]]; then
+    FIRST_MEAL_TIME=$(echo "$meal_line" | awk '{print $2}')
+    break
+  fi
+done <<< "$MEAL_SCHEDULE"
+
 # --- 1. Meal reminders ---
 if should_create_type "meal"; then
   while IFS= read -r meal_line; do
@@ -308,9 +317,9 @@ if should_create_type "meal"; then
 fi
 
 # --- 2. Weight reminders ---
-if should_create_type "weight" && [[ -n "$BREAKFAST_TIME" ]] && [[ -n "$DINNER_TIME" ]]; then
-  # Weight check-in (Wed & Sat, breakfast - 30 min)
-  cron_time=$(calc_cron_time "$BREAKFAST_TIME" -30)
+if should_create_type "weight" && [[ -n "$FIRST_MEAL_TIME" ]] && [[ -n "$DINNER_TIME" ]]; then
+  # Weight check-in (Wed & Sat, first meal - 30 min)
+  cron_time=$(calc_cron_time "$FIRST_MEAL_TIME" -30)
   cron_min=$(echo "$cron_time" | awk '{print $1}')
   cron_hour=$(echo "$cron_time" | awk '{print $2}')
 
@@ -353,8 +362,8 @@ if should_create_type "weight" && [[ -n "$BREAKFAST_TIME" ]] && [[ -n "$DINNER_T
     CREATED=$((CREATED + 1))
   fi
 
-  # Weight morning followup (Thu & Sun, breakfast - 30 min)
-  cron_time=$(calc_cron_time "$BREAKFAST_TIME" -30)
+  # Weight morning followup (Thu & Sun, first meal - 30 min)
+  cron_time=$(calc_cron_time "$FIRST_MEAL_TIME" -30)
   cron_min=$(echo "$cron_time" | awk '{print $1}')
   cron_hour=$(echo "$cron_time" | awk '{print $2}')
 
@@ -415,35 +424,6 @@ if should_create_type "review" && [[ -n "$DINNER_TIME" ]]; then
       --message "Run daily-review to generate today's nutrition summary." \
       --cron "$cron_min $cron_hour * * *"
     CREATED=$((CREATED + 1))
-  fi
-fi
-
-# --- 5. Diet pattern detection ---
-if should_create_type "pattern" && [[ -n "$DINNER_TIME" ]]; then
-  onboarding_completed=$(get_automation_field "Onboarding Completed")
-  pattern_completed=$(get_automation_field "Pattern Detection Completed")
-
-  # Only create if onboarding done AND pattern not done
-  if [[ "$onboarding_completed" != "—" && "$pattern_completed" == "—" ]]; then
-    cron_time=$(calc_cron_time "$DINNER_TIME" 180)  # +3 hours, same as daily review
-    cron_min=$(echo "$cron_time" | awk '{print $1}')
-    cron_hour=$(echo "$cron_time" | awk '{print $2}')
-
-    job_name="Diet pattern detection"
-    TOTAL=$((TOTAL + 1))
-
-    if [[ "$SKIP_EXISTING" == true ]] && job_exists "$job_name"; then
-      echo "Skipping (exists): $job_name"
-      SKIPPED=$((SKIPPED + 1))
-    else
-      run_cmd bash "$CREATE_REMINDER" \
-        --agent "$AGENT" \
-        --channel "$CHANNEL" \
-        --name "$job_name" \
-        --message "Run diet-pattern-detection skill." \
-        --cron "$cron_min $cron_hour * * *"
-      CREATED=$((CREATED + 1))
-    fi
   fi
 fi
 
