@@ -301,13 +301,25 @@ CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~X
 1-sentence comment bridging to ③. Optional `✨ Nice work` line if food choices noteworthy.
 
 ### ③ Suggestion (by `suggestion_type`)
+
+**Core principle: keeping calories within target range is the #1 priority.** When calories are on track, never suggest adding food today just to fix a macro or produce gap — defer those improvements to tomorrow.
+
 | Type | Icon | Guidance |
 |------|------|----------|
 | `right_now` | ⚡ | Before eating, reduce/swap current meal items. Tell user they can have it later. No per-item calories. Multiple options → list and ask. |
 | `next_meal` | 💡 | Forward-looking. Over at last meal → "aim for usual pattern tomorrow." |
 | `next_time` | 💡 | On track — habit tip or next-meal pairing, specific food, no calorie listing |
-| `case_d_snack` | 🍽 | Final meal, below BMR — gently recommend a snack |
-| `case_d_ok` | 💡 | Final meal, mild deficit — CAN snack if hungry, no pressure |
+| `next_day_optimize` | ✅💡 | Calories within range but macros or produce low. Affirm calorie control first ("今天热量控制得很好！"), then suggest specific swaps for **tomorrow** ("明天可以试试把 XX 换成 YY，蛋白质会更充足"). Never suggest eating more today. |
+| `case_d_snack` | 🍽 | Final meal, daily total below 90% of BMR — warmly suggest eating a bit more today: "今天吃得有点少，再来点 XX 吧，对身体好一些". Tone: caring, not pushy. |
+| `case_d_ok` | 💡 | Final meal, above 90% BMR but below target range — "如果饿的话可以再吃一点 XX，不饿的话不吃也没关系". No pressure; user decides. |
+
+### Overshoot tone rules (when `next_meal` or `right_now`)
+
+Check `evaluation.overshoot_severity` and `evaluation.recent_overshoot_count`:
+
+- **Mild overshoot (`overshoot_severity == "mild"`) AND first time (`recent_overshoot_count == 0`):** Normal encouraging tone. One gentle suggestion for next meal.
+- **Significant overshoot (`overshoot_severity == "significant"`, i.e. >20% over upper limit) OR repeated overshoot (`recent_overshoot_count >= 2`):** Be direct and honest — "最近几天热量都偏高了，注意控制一下量哦". Do NOT say "偶尔超一超没关系". Give a concrete portion-control tip.
+- **Negative emotion detected in user message** (guilt, frustration, self-blame, e.g. "又吃多了", "我好失败", "控制不住"): Even if overshoot is significant/repeated, soften the tone — lead with empathy and comfort ("没关系，能记录下来就是进步"), then gently offer one practical tip. Do NOT pile on criticism. Defer to `emotional-support` skill routing (P1) if emotion is strong.
 
 ### Food Suggestions
 Suggest by category ("high-protein", "complex carbs") + concrete examples from user's recent meals. Respect preferences (never disliked/allergenic foods; favor loved foods). No bare calorie numbers.

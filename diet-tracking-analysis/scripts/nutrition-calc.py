@@ -846,6 +846,9 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     macros_outside = sum(1 for k in ["protein", "carbs", "fat"] if status[k] != "on_track")
     needs_adjustment = cal_outside or macros_outside >= 2
 
+    # Calories within range but macros imbalanced → defer to next-day optimization
+    cal_in_range_macro_off = (not cal_outside) and macros_outside >= 1
+
     suggestion_base = adjusted if assumed_meals else actual
     diff = {
         "calories": round(cp_target["calories"] - suggestion_base["calories"], 1),
@@ -863,6 +866,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
         "adjusted": adjusted if assumed_meals else None,
         "status": status,
         "needs_adjustment": needs_adjustment,
+        "cal_in_range_macro_off": cal_in_range_macro_off,
         "diff_for_suggestions": diff,
         "missing_meals": missing_meals,
         "meals_included": [m.get("name") for m in checkpoint_log],
@@ -991,6 +995,37 @@ def weekly_low_cal_check(data_dir: str, bmr: float,
         "days_below_floor": days_below,
         "days_below_count": len(days_below),
         "below_floor": below_floor,
+    }
+
+
+def recent_overshoot_check(data_dir: str, daily_cal: int,
+                           lookback_days: int = 3,
+                           ref_date: str = None,
+                           tz_offset: int = None) -> dict:
+    """Check how many of the recent days had calorie overshoot.
+
+    Returns overshoot count and per-day details for the lookback window
+    (excluding today — today's overshoot is evaluated separately).
+    """
+    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
+    cal_hi = daily_cal + 100  # same range as calc_targets
+
+    overshoot_days: list[str] = []
+    for offset in range(1, lookback_days + 1):  # start at 1 to exclude today
+        day = (end - timedelta(days=offset)).isoformat()
+        path = get_log_path(data_dir, day)
+        if not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            meals = _migrate_meals(json.load(f))
+        day_cal = round(sum(m.get("calories", 0) for m in meals), 1)
+        if day_cal > cal_hi:
+            overshoot_days.append(day)
+
+    return {
+        "lookback_days": lookback_days,
+        "overshoot_days": overshoot_days,
+        "overshoot_count": len(overshoot_days),
     }
 
 
@@ -1631,22 +1666,29 @@ def detect_meal(tz_offset: int, meals: int,
 
 
 def _resolve_suggestion_type(evaluation: dict, eaten: bool,
-                             is_final_meal: bool, bmr: float = None) -> str:
+                             is_final_meal: bool, bmr: float = None,
+                             produce: dict = None) -> str:
     """Determine the suggestion type based on evaluation results and meal timing.
 
     Returns one of: "right_now", "next_meal", "next_time",
-                    "case_d_snack", "case_d_ok"
+                    "case_d_snack", "case_d_ok", "next_day_optimize"
     """
     needs_adj = evaluation.get("needs_adjustment", False)
     daily_total = evaluation.get("daily_total", 0)
+    cal_in_range_macro_off = evaluation.get("cal_in_range_macro_off", False)
 
     # Case D: final meal + under calorie target
     if is_final_meal:
-        checkpoint_cal = evaluation.get("checkpoint_target", {}).get("calories", 0)
-        if daily_total < checkpoint_cal:
-            if bmr and daily_total < bmr:
+        cal_min = evaluation.get("checkpoint_range", {}).get("calories_min", 0)
+        if daily_total < cal_min:
+            if bmr and daily_total < bmr * 0.9:
                 return "case_d_snack"
             return "case_d_ok"
+
+    # Calories in range but macros or produce off → next-day optimization
+    # Priority: controlling calories is #1; macro/produce issues defer to tomorrow
+    if cal_in_range_macro_off:
+        return "next_day_optimize"
 
     # Case A: before eating + adjustment needed
     if needs_adj and not eaten:
@@ -1656,7 +1698,13 @@ def _resolve_suggestion_type(evaluation: dict, eaten: bool,
     if needs_adj and eaten:
         return "next_meal"
 
-    # Case C: on track
+    # Case C: on track — check if produce is low despite macros being fine
+    if produce:
+        veg_low = produce.get("vegetable_status") == "low"
+        fruit_low = produce.get("fruit_status") == "low"
+        if veg_low or fruit_low:
+            return "next_day_optimize"
+
     return "next_time"
 
 
@@ -1773,25 +1821,44 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         daily_total = sum(m.get("calories", 0) for m in all_meals)
         eval_result["daily_total"] = daily_total
 
+    # Overshoot severity: how far over the upper calorie limit
+    cal_hi = daily_cal + 100  # same as calc_targets range
+    if daily_total > cal_hi:
+        overshoot_pct = round((daily_total - cal_hi) / cal_hi * 100, 1)
+        eval_result["overshoot_severity"] = "significant" if overshoot_pct >= 20 else "mild"
+        eval_result["overshoot_pct"] = overshoot_pct
+    else:
+        eval_result["overshoot_severity"] = None
+        eval_result["overshoot_pct"] = 0
+
+    # Recent overshoot history (past 3 days, excluding today)
+    overshoot_history = recent_overshoot_check(
+        data_dir, daily_cal, lookback_days=3,
+        ref_date=local_date, tz_offset=tz_offset)
+    eval_result["recent_overshoot_count"] = overshoot_history["overshoot_count"]
+    eval_result["recent_overshoot_days"] = overshoot_history["overshoot_days"]
+
     # Determine if this is the final meal of the day
     blocks = get_meal_blocks(meals)
     is_final = find_block_index(current_meal, meals) == len(blocks) - 1
 
-    # Resolve suggestion type
+    # 6. Produce check (China region only) — run before suggestion type resolution
+    if region and region.upper() == "CN":
+        produce_result = produce_check(meals, current_meal, all_meals)
+        result["produce"] = produce_result
+    else:
+        produce_result = None
+        result["produce"] = None
+
+    # Resolve suggestion type (produce info needed for next_day_optimize)
     eval_result["suggestion_type"] = _resolve_suggestion_type(
-        eval_result, eaten, is_final, bmr)
+        eval_result, eaten, is_final, bmr, produce_result)
     eval_result["is_final_meal"] = is_final
 
     result["evaluation"] = eval_result
 
     # 5b. Persist evaluation into saved meal record for notification-composer
     _save_evaluation_to_meal(data_dir, local_date, current_meal, eval_result)
-
-    # 6. Produce check (China region only)
-    if region and region.upper() == "CN":
-        result["produce"] = produce_check(meals, current_meal, all_meals)
-    else:
-        result["produce"] = None
 
     # 7. Ambiguous food clarification
     save_clarifications = save_result.get("needs_clarification", [])
