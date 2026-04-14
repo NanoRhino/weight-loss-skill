@@ -121,15 +121,7 @@ python3 {baseDir}/scripts/nutrition-calc.py calibration-lookup \
 
 Returns `matches` (with `user_portion_g`, `correction_count`, match type `exact`/`contains`) and `no_match`. Calibrations are stored in `health-preferences.md > ## Portion Calibrations` and auto-maintained by `log-meal` on corrections.
 
-### `oil-calibration-lookup` — user's oil calibrations
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py oil-calibration-lookup \
-  --data-dir {workspaceDir}/data/meals \
-  --foods '<JSON array of food name strings>'
-```
-
-Returns `matches` (with `oil_per_100g`, `correction_count`) and `no_match`. Stored in `health-preferences.md > ## Oil Calibrations` and auto-maintained by `log-meal` on fat corrections.
+### `oil-calibration-lookup` — ~~removed~~
 
 ---
 
@@ -194,26 +186,11 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 - `vegetables_g` = estimated raw weight (before cooking)
 - `amount_g` / calories = cooked weight (what was eaten)
 
-#### 1.5a Look up oil calibrations
+#### 1.5b Cooking oil
 
-Call `oil-calibration-lookup` with food names from 1.1. For matches:
-- `correction_count ≥ 2` → use `oil_per_100g` instead of default (strong calibration)
-- `correction_count == 1` → use only when no better source
-- Do NOT mention calibration to the user
-
-#### 1.5b Estimate cooking oil (REQUIRED — do NOT skip)
-
-For EVERY cooked dish, estimate oil and fold into `calories` and `fat_g` — never list oil separately. 1g oil = 9 kcal.
-
-**Rule priority (first match wins):**
-1. Oil calibration from §1.5a → use calibrated value
-2. 炒蛋/scrambled egg → 10g/100g; 干锅/dry pot → 15g/100g
-3. 凉拌菜 → 3–5g/100g
-4. Deep-fried → 0g extra (already in nutrition data)
-5. Soup → only visible floating oil; clear broth → 0g
-6. Photo present → use image tool's `oil_level`: none=0, light=5, moderate=8–10, heavy=12–15 g/100g
-7. 食堂/外卖/餐厅, oil unclear → 7g/100g
-8. Unknown → 7g/100g
+Photo → use image tool's `oil_level`: none=0, light=5, moderate=8–10, heavy=12–15 g/100g.
+No photo → 外食默认 7g/100g; 凉拌 3–5g; 炸物 0g (already in data); clear broth 0g.
+Fold into each dish's calories/fat — never list oil separately. 1g oil = 9 kcal.
 
 ### Step 2: Respond
 
