@@ -1830,7 +1830,7 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
 
     # Recent overshoot history (past 3 days, excluding today)
     overshoot_history = recent_overshoot_check(
-        data_dir, daily_cal, lookback_days=3,
+        data_dir, daily_cal, lookback_days=7,
         ref_date=local_date, tz_offset=tz_offset)
     eval_result["recent_overshoot_count"] = overshoot_history["overshoot_count"]
     eval_result["recent_overshoot_days"] = overshoot_history["overshoot_days"]
@@ -2004,6 +2004,14 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
 
     result["evaluation"] = evaluate(weight, daily_cal, meals,
                                     latest_meal, all_meals, None, mode)
+
+    # Add overshoot history (same as log-meal does)
+    if result["evaluation"]:
+        overshoot_history = recent_overshoot_check(
+            data_dir, daily_cal, lookback_days=7,
+            ref_date=resolved_day, tz_offset=tz_offset)
+        result["evaluation"]["recent_overshoot_count"] = overshoot_history["overshoot_count"]
+        result["evaluation"]["recent_overshoot_days"] = overshoot_history["overshoot_days"]
 
     if region and region.upper() == "CN":
         result["produce"] = produce_check(meals, latest_meal, all_meals)
