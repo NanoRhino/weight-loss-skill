@@ -152,11 +152,11 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 |--------|------|---------|
 | On track | Affirm | `今天节奏刚好。` |
 | Larger deficit (< 200 over) | Casual positive | `比计划多消耗了一些，不错。` |
-| Larger deficit (>= 200 over) | Gentle caution + analogy | `缺口偏大，相当于少吃了两碗米饭的量，明天可以多吃一点。` |
-| Below BMR | Safety note + analogy | `今天摄入低于基础代谢，差了大约一顿正餐的量，注意别太少。` |
+| Larger deficit (>= 200 over) | Gentle caution + analogy | `多消耗的部分约等于燃烧了 55g 脂肪，不过明天可以多吃一点。` |
+| Below BMR | Safety note + analogy | `今天摄入低于基础代谢，差了大约三个鸡翅的量，注意别太少。` |
 | Smaller deficit (mild) | Neutral | `比计划少了一点，正常波动。` |
-| Smaller deficit (large) | Forward-looking + analogy | `多出来大约一碗半米饭的量，明天回来就好。` |
-| Surplus | No guilt + analogy | `多了约 {surplus} kcal，大概走 {steps} 步能消耗，不过一天不影响趋势。` |
+| Smaller deficit (large) | Forward-looking + analogy | `多了大约一杯奶茶的量，明天回来就好。` |
+| Surplus | No guilt + analogy | `多了大约两小把花生米的量，不过一天不影响趋势。` |
 | No exercise | Never mention | Do NOT comment on lack of exercise — the follow-up question handles it. |
 | Has exercise | Brief acknowledgment | Incorporate naturally, e.g. `跑步贡献了 250 kcal 额外消耗。` |
 | Missing meals | Hint at incompleteness | E.g. `缺口比计划大不少，可能还有没记的。` — the follow-up question handles specifics. |
@@ -167,38 +167,53 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 planned deficit is **>= 200 kcal**. Small deviations don't need analogies —
 just state the number.
 
-**How to pick:** Choose ONE analogy per summary. Rotate across days — don't
-always use the same one. Pick whichever fits the magnitude most naturally.
+**How to pick:** Choose ONE analogy per summary. Only use a single food item or
+a single exercise item — never组合多种食材（e.g. "一块鸡胸肉加一杯牛奶" ✗）。
+Rotate across days, don't总是用同一个比喻。
 
-**Reference table** (approximate, for quick mental math):
+**Food reference** (approximate, pick one):
 
 | Item | Calories |
 |------|----------|
 | 一碗白米饭 (150g cooked) | ~195 kcal |
-| 一个鸡蛋 | ~75 kcal |
-| 一杯牛奶 (250ml) | ~160 kcal |
+| 一个鸡翅 | ~100 kcal |
+| 一小把花生米 (30g) | ~170 kcal |
 | 一根香蕉 | ~105 kcal |
-| 一片吐司 | ~80 kcal |
-| 一块鸡胸肉 (100g) | ~165 kcal |
+| 一块巧克力 (30g) | ~160 kcal |
+| 一杯奶茶 | ~300 kcal |
+| 一个肉包子 | ~200 kcal |
+
+**Exercise reference** (approximate, pick one):
+
+| Item | Calories |
+|------|----------|
 | 走 1,000 步 | ~30 kcal |
 | 慢跑 10 分钟 | ~100 kcal |
 | 骑车 15 分钟 | ~100 kcal |
 
+**Fat burn reference:**
+
+| | |
+|---|---|
+| 消耗 1g 脂肪 | ~7.7 kcal |
+
 **Direction matters:**
 
-- **Deficit too large** (ate too little / burned too much) → use food analogies:
-  `相当于少吃了一块鸡胸肉加一杯牛奶。` — 让用户知道明天可以多吃什么量级的东西。
+- **Deficit too large** (ate too little / burned too much) → two analogy types可选：
+  - Food: `相当于少吃了三个鸡翅的量。` — 让用户直观感受该多吃多少。
+  - Fat burn (positive framing): `多消耗的部分约等于燃烧了 55g 脂肪，也不错。` — 给努力一个正向意义。
 
-- **Deficit too small / surplus** (ate too much) → use exercise OR food analogies:
-  - Exercise: `相当于散步 40 分钟的量。` / `大概走 8,000 步能消耗。`
-  - Food: `大约多了一碗半米饭的量。`
+- **Deficit too small / surplus** (ate too much) → use exercise OR food analogy:
+  - Exercise: `相当于散步 40 分钟的量。`
+  - Food: `大约多了一杯奶茶的量。`
   — 让用户直观感受超出的量级，不是为了让他们去补运动。
 
 **Tone rules:**
 - Analogies are for **perspective**, not guilt. Frame as relatable context.
+- **Single item only.** 用数量调节（"三个鸡翅"、"两小把花生米"），不混搭食材。
 - Never say "you need to walk X steps to burn it off" — say "相当于走 X 步的量".
-- Never combine multiple analogies in one sentence — pick one, keep it clean.
-- For surplus: exercise analogies are fine but always follow with "不过一天不影响趋势" or similar reassurance.
+- For surplus: always follow with "不过一天不影响趋势" or similar reassurance.
+- For large deficit with fat burn analogy: always frame positively, never say "你饿过头了".
 
 ### No-Exercise Display
 
