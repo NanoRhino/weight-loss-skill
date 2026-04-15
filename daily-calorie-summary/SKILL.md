@@ -135,8 +135,8 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 ### Field Rules
 
 - **`date_display`**: weekday + date, e.g. `周二 · 4/14`
-- **`food_intake`**: sum of all logged meals. If some meals are missing, note it: `（午餐未记录）`
-- **`exercise_burn`**: sum of net exercise calories. `0` if no exercise logged — show `🏃 运动 —` instead of `🏃 运动 0 kcal`
+- **`food_intake`**: sum of all logged meals. Missing meals are handled by the Follow-Up Questions section — do not annotate inline.
+- **`exercise_burn`**: sum of net exercise calories. If no exercise logged, use the No-Exercise Display format instead.
 - **`total_burn`**: TDEE + exercise net. Parenthetical breakdown always shown.
 - **`actual_deficit`**: total_burn - food_intake
 - **`status_symbol`**:
@@ -157,9 +157,9 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 | Smaller deficit (mild) | Neutral | `比计划少了一点，正常波动。` |
 | Smaller deficit (large) | Forward-looking | `今天超了一些，明天回来就好。` |
 | Surplus | No guilt | `热量略有盈余，一天不影响趋势。` |
-| No exercise | Never mention | Do NOT comment on lack of exercise. |
+| No exercise | Never mention | Do NOT comment on lack of exercise — the follow-up question handles it. |
 | Has exercise | Brief acknowledgment | Incorporate naturally, e.g. `跑步贡献了 250 kcal 额外消耗。` |
-| Missing meals | Note which | Append `（{meal}未记录，数据不完整）` after the comment. |
+| Missing meals | Hint at incompleteness | E.g. `缺口比计划大不少，可能还有没记的。` — the follow-up question handles specifics. |
 
 ### No-Exercise Display
 
@@ -177,6 +177,76 @@ When no exercise is logged for the day, simplify the format:
 ```
 
 Omit the `🏃 运动` line and the `总消耗` breakdown entirely — show only TDEE as total burn.
+
+---
+
+## Follow-Up Questions
+
+After the summary, append up to two follow-up questions to help the user
+complete today's data. Questions appear at the **end** of the same message,
+separated by a blank line from the comment. Keep them casual — like a friend
+checking in, not a form.
+
+### Missing Meals
+
+Compare logged meals against the expected schedule from `health-profile.md >
+Meal Schedule` (or default: breakfast / lunch / dinner for 3-meal; meal_1 /
+meal_2 for 2-meal). If any meal has no record for today:
+
+```
+{meal_name} 好像没记，吃了什么？
+```
+
+Multiple missing meals → combine into one question:
+```
+午餐和晚餐还没记，吃了什么？
+```
+
+If ALL meals are logged → skip this question.
+
+### Unlogged Exercise
+
+If no exercise is logged for today, ask:
+
+```
+今天有运动吗？
+```
+
+If exercise IS logged → skip this question.
+
+### Combined Example
+
+```
+周二 · 4/14
+
+🍽 摄入 1,050 kcal
+🔥 TDEE 2,200 kcal
+
+📉 实际缺口 1,150 kcal ▲ 计划 500 kcal
+
+缺口比计划大不少，可能还有没记的。
+
+晚餐还没记，吃了什么？
+今天有运动吗？
+```
+
+### Rules
+
+1. **Max 2 follow-up questions per summary** — one for meals, one for exercise.
+2. **Single-ask only** — if the user ignores the questions, never repeat them. Respect the global Single-Ask Rule from `SKILL-ROUTING.md`.
+3. **Cron delivery:** follow-up questions are part of the output text — the user can reply naturally in the next message, which will be routed to `diet-tracking-analysis` or `exercise-tracking-planning` as appropriate.
+4. **Manual trigger:** same behavior — append questions if data is incomplete.
+
+### Handling Replies
+
+This skill does NOT handle replies. User responses are routed by the normal
+skill-routing system:
+- Food reply → `diet-tracking-analysis` logs the meal
+- Exercise reply → `exercise-tracking-planning` logs the workout
+- "没有" / "没运动" / "跳过了" → acknowledged, no further action
+
+After the user completes the missing data, **do NOT auto-regenerate the
+summary.** The user can request it again manually if they want an updated view.
 
 ---
 
@@ -231,6 +301,7 @@ None. This skill is read-only — it summarizes, it does not modify data.
 
 ## Performance
 
-- Output: single message, no back-and-forth
-- Length: 4–6 lines + 1 comment sentence
+- Output: single message with optional follow-up questions
+- Length: 4–6 lines + 1 comment + up to 2 follow-up questions
 - No HTML report, no file upload — chat only
+- Replies handled by other skills via normal routing — no multi-turn in this skill
