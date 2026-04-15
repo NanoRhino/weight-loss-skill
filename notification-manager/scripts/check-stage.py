@@ -109,47 +109,7 @@ def _meal_has_food(meal):
     return bool(items)
 
 
-def get_last_interaction_date(workspace_dir):
-    """
-    Check if user had any recent interaction by looking at session files.
-    Returns the most recent date (YYYY-MM-DD) a session file was modified,
-    or None if no sessions found.
-    """
-    sessions_dir = os.path.join(os.path.dirname(workspace_dir), 
-                                 "agents", 
-                                 os.path.basename(workspace_dir).replace("workspace-", ""),
-                                 "sessions")
-    # Also check a simpler path pattern
-    alt_sessions = os.path.join(workspace_dir, "..", "agents")
-    
-    # Look for session files modified recently
-    best_date = None
-    for pattern_dir in [sessions_dir]:
-        if not os.path.isdir(pattern_dir):
-            continue
-        for f in os.listdir(pattern_dir):
-            if f.endswith(".jsonl") and not ".deleted" in f and not ".bak" in f:
-                fpath = os.path.join(pattern_dir, f)
-                try:
-                    mtime = os.path.getmtime(fpath)
-                    mdate = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
-                    if best_date is None or mdate > best_date:
-                        best_date = mdate
-                except OSError:
-                    continue
-    return best_date
-
-
-def get_last_active_date(workspace_dir):
-    """
-    Get the most recent date the user was active, considering both
-    meal records AND chat session activity.
-    """
-    last_meal = get_last_logged_date(workspace_dir)
-    last_chat = get_last_interaction_date(workspace_dir)
-    
-    dates = [d for d in [last_meal, last_chat] if d]
-    return max(dates) if dates else None
+def get_last_logged_date(workspace_dir):
     """
     Scan data/meals/*.json to find the most recent date with at least one
     meal entry that contains actual food data. Returns a date string (YYYY-MM-DD)
@@ -208,11 +168,10 @@ def main():
     stage = normalize_stage(data.get("notification_stage", 1))
     stage_changed_at = parse_iso(data.get("stage_changed_at"))
 
-    # --- Derive last interaction from meal records + chat activity ---
+    # --- Derive last interaction from meal records ---
     last_logged = get_last_logged_date(args.workspace_dir)
-    last_active = get_last_active_date(args.workspace_dir)
 
-    if last_active is None and last_logged is None:
+    if last_logged is None:
         # No meal records at all — user hasn't started logging yet, stay at current stage
         if not existed:
             data["stage_changed_at"] = now.isoformat()
@@ -221,25 +180,18 @@ def main():
         print(f"{stage} 0")
         return
 
-    # Calculate days since last logged meal (for stage progression)
-    last_logged_date = datetime.strptime(last_logged, "%Y-%m-%d").date() if last_logged else None
+    # Calculate days since last logged meal
+    last_logged_date = datetime.strptime(last_logged, "%Y-%m-%d").date()
     today_date = now.date()
-    
-    # days_silent based on meals (for stage forward transitions)
-    days_silent = (today_date - last_logged_date).days if last_logged_date else 999
-    
-    # days_since_active based on any interaction (for reset check)
-    last_active_date = datetime.strptime(last_active, "%Y-%m-%d").date() if last_active else None
-    days_since_active = (today_date - last_active_date).days if last_active_date else 999
+    days_silent = (today_date - last_logged_date).days
 
-    log(f"Last logged meal: {last_logged}, last active: {last_active}, days silent: {days_silent}, days since active: {days_since_active}, stage: {stage}")
+    log(f"Last logged meal: {last_logged}, days silent: {days_silent}, stage: {stage}")
 
     old_stage = stage
     changed = False
 
-    # --- User returned: active today/yesterday but stage > 1 ---
-    # Reset on ANY interaction (chat or meal), not just meal logging
-    if stage > 1 and days_since_active <= 1:
+    # --- User returned: logged a meal today/yesterday but stage > 1 ---
+    if stage > 1 and days_silent <= 1:
         stage = 1
         data["notification_stage"] = 1
         data["stage_changed_at"] = now.isoformat()
@@ -248,7 +200,7 @@ def main():
         data["recall_count"] = 0
         data["last_nudge_date"] = None
         changed = True
-        log(f"RESET to stage 1 (user returned, last active {last_active})")
+        log(f"RESET to stage 1 (user returned, last meal {last_logged})")
 
     # --- Forward transitions ---
     elif stage == 1:
