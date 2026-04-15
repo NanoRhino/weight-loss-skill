@@ -57,6 +57,14 @@ SKIP_PATTERNS = [
     '"type":"custom"',
     '"type":"toolCall"',
     '"type":"toolResult"',
+    # Skip cron-injected user messages (isolated sessions)
+    "[cron:",
+    "Run notification-composer",
+    "Run notification-manager",
+    "memory consolidation",
+    "Your previous response was only an acknowledgement",
+    # Skip heartbeat polls
+    "Read HEARTBEAT.md if it exists",
 ]
 
 
