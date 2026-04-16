@@ -280,6 +280,13 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 - **Lunch:** —
 - **Dinner:** —
 
+> **2-meal users:** Only include the two meals they actually eat. For example, if a user eats at 12:00 and 18:30 (skips breakfast), write:
+> - **Meals per Day:** 2
+> - **Lunch:** 12:00
+> - **Dinner:** 18:30
+>
+> Always use standard names (Breakfast/Lunch/Dinner) — never "Meal 1"/"Meal 2".
+
 ## Goals
 - **Target Weight:** [X kg | —]
 - **Weight to Lose:** [X kg (calculated) | —]

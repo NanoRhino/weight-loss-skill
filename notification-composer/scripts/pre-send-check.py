@@ -137,6 +137,74 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
         return True, None  # fail-open: send if we can't read
 
 
+def _get_meals_per_day(workspace_dir):
+    """Read Meals per Day from health-profile.md. Returns 2 or 3 (default 3)."""
+    hp_path = os.path.join(workspace_dir, "health-profile.md")
+    if not os.path.exists(hp_path):
+        return 3
+    try:
+        with open(hp_path) as f:
+            for line in f:
+                if "Meals per Day" in line:
+                    if "2" in line:
+                        return 2
+                    return 3
+    except IOError:
+        pass
+    return 3
+
+
+def _get_2meal_schedule_names(workspace_dir):
+    """Read Meal Schedule from health-profile.md for 2-meal users.
+
+    Returns the two standard meal names (e.g. ("lunch", "dinner")).
+    Falls back to ("lunch", "dinner") if can't determine.
+    """
+    hp_path = os.path.join(workspace_dir, "health-profile.md")
+    standard = {"breakfast", "lunch", "dinner"}
+    found = []
+    legacy_times = {}  # "meal_1" → "12:00"
+    if not os.path.exists(hp_path):
+        return ("lunch", "dinner")
+    try:
+        with open(hp_path) as f:
+            for line in f:
+                low = line.lower().strip()
+                for name in standard:
+                    if low.startswith(f"- **{name}:") or low.startswith(f"- **{name.title()}:"):
+                        found.append(name)
+                # Also parse legacy "Meal 1: HH:MM" / "Meal 2: HH:MM"
+                for legacy in ("meal 1", "meal 2"):
+                    if low.startswith(f"- **{legacy}:"):
+                        # Extract time
+                        parts = line.strip().split(":", 2)
+                        if len(parts) >= 3:
+                            time_str = parts[-2].strip() + ":" + parts[-1].strip()
+                            # e.g. "12:00"
+                            legacy_times[legacy.replace(" ", "_")] = time_str
+    except IOError:
+        pass
+    if len(found) == 2:
+        return tuple(found)
+    # Infer from legacy times
+    if "meal_1" in legacy_times and "meal_2" in legacy_times:
+        names = []
+        for key in ("meal_1", "meal_2"):
+            try:
+                hour = int(legacy_times[key].split(":")[0])
+            except (ValueError, IndexError):
+                hour = 12
+            if hour < 10:
+                names.append("breakfast")
+            elif hour < 15:
+                names.append("lunch")
+            else:
+                names.append("dinner")
+        if len(set(names)) == 2:
+            return tuple(names)
+    return ("lunch", "dinner")
+
+
 def check_meal_logged(workspace_dir, meal_type, tz_offset):
     """Check 3: this meal is not already logged today."""
     local_date = get_local_date(tz_offset)
@@ -152,17 +220,39 @@ def check_meal_logged(workspace_dir, meal_type, tz_offset):
         log(f"Warning: could not read {meals_file}: {e}")
         return True, None  # fail-open
 
-    # Normalize meal_type for matching
-    # meal_1 -> check for "meal_1" or "breakfast" (first meal)
-    # meal_2 -> check for "meal_2" or "lunch" (second meal)
-    type_aliases = {
-        "breakfast": ["breakfast"],
-        "lunch": ["lunch"],
-        "dinner": ["dinner"],
-        "meal_1": ["meal_1", "meal 1"],
-        "meal_2": ["meal_2", "meal 2"],
-    }
-    match_types = type_aliases.get(meal_type, [meal_type])
+    # Build match types based on meals_per_day
+    meals_per_day = _get_meals_per_day(workspace_dir)
+
+    if meals_per_day == 2:
+        first, second = _get_2meal_schedule_names(workspace_dir)
+        # Cross-mapping: cron may pass breakfast/lunch/dinner,
+        # but meal file may have meal_1/meal_2 (legacy) or standard names.
+        first_aliases = {first, "meal_1", "meal 1"}
+        second_aliases = {second, "meal_2", "meal 2"}
+        # Also add any standard name that maps to first/second position
+        # breakfast/lunch often map to first meal, dinner to second
+        type_aliases = {
+            first: first_aliases,
+            second: second_aliases,
+            "meal_1": first_aliases,
+            "meal_2": second_aliases,
+        }
+        # If cron passes a standard name not in the user's 2-meal set,
+        # map it to the closest match
+        if "breakfast" not in (first, second):
+            type_aliases["breakfast"] = first_aliases  # breakfast → first meal
+        if "lunch" not in (first, second):
+            type_aliases["lunch"] = first_aliases if first != "dinner" else second_aliases
+        if "dinner" not in (first, second):
+            type_aliases["dinner"] = second_aliases  # dinner → second meal
+    else:
+        type_aliases = {
+            "breakfast": {"breakfast"},
+            "lunch": {"lunch"},
+            "dinner": {"dinner"},
+        }
+
+    match_types = type_aliases.get(meal_type, {meal_type})
 
     for meal in meals:
         mt = meal.get("meal_type", "") or meal.get("name", "")

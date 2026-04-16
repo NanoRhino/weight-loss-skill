@@ -159,6 +159,8 @@ Create recurring cron jobs using the script above. Derive the cron times from `h
 
 Every meal cron `--message` MUST tell the agent to run `notification-composer` for that meal. Keep it minimal — notification-composer owns pre-send checks, message composition, and reply handling. Do not duplicate its rules in the cron message.
 
+**Meal naming:** Always use standard meal names (`breakfast`, `lunch`, `dinner`) — never `meal_1`/`meal_2`. For 2-meal users, use whichever two standard names match their schedule (e.g., user eats at 12:00 and 18:30 → `lunch` and `dinner`).
+
 ```bash
 # Example: 3 meals, reminders 15 min before each (adjust times from health-profile.md)
 # Note: --type meal ensures anti-burst scheduling with [-10, +5] min window
@@ -176,6 +178,17 @@ bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --type meal --name "Dinner reminder" \
   --message "Run notification-composer for dinner." \
   --cron "45 17 * * *"
+
+# Example: 2 meals (lunch + dinner)
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --type meal --name "Lunch reminder" \
+  --message "Run notification-composer for lunch." \
+  --cron "45 11 * * *"
+
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --type meal --name "Dinner reminder" \
+  --message "Run notification-composer for dinner." \
+  --cron "15 18 * * *"
 ```
 
 ### Weight reminders (2x/week + followups)

@@ -49,7 +49,7 @@ python3 {baseDir}/scripts/nutrition-calc.py log-meal \
 | `--meal-type` | User's exact words ONLY | Only if user explicitly names the meal. Otherwise ALWAYS omit — script auto-detects. Do NOT infer or retry. |
 | `--timestamp` | Inbound message metadata | ISO-8601 UTC timestamp |
 | `--eaten` | §1.3 meal timing | Pass when user already ate (omit = before-eating) |
-| `--schedule` | `health-profile.md > Meal Schedule` | JSON: `{"breakfast":"07:00","lunch":"12:00","dinner":"18:00"}` |
+| `--schedule` | `health-profile.md > Meal Schedule` | JSON: `{"breakfast":"07:00","lunch":"12:00","dinner":"18:00"}` for 3-meal, or `{"lunch":"12:00","dinner":"18:30"}` for 2-meal (use the actual meal names from health-profile, never `meal_1`/`meal_2`). |
 | `--mode` | `health-profile.md > Diet Mode` | `balanced`, `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2` |
 | `--bmr` | `PLAN.md` | BMR in kcal (for case_d evaluation) |
 | `--append` | context | Adding to already-logged meal. Only NEW items; script auto-merges. |

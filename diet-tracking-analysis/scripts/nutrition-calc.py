@@ -114,19 +114,60 @@ MEAL_BLOCKS_3 = [
     {"label": "dinner",    "pct": 30, "meals": ["dinner"]},
 ]
 
-MEAL_BLOCKS_2 = [
-    {"label": "meal_1", "pct": 50, "meals": ["meal_1", "snack_1"]},
-    {"label": "meal_2", "pct": 50, "meals": ["meal_2", "snack_2"]},
+MEAL_BLOCKS_2_DEFAULT = [
+    {"label": "lunch",  "pct": 50, "meals": ["lunch", "snack_am"]},
+    {"label": "dinner", "pct": 50, "meals": ["dinner", "snack_pm"]},
 ]
 
-# Alias map: traditional 3-meal names → 2-meal equivalents.
-MEAL_ALIAS_2 = {
-    "breakfast": "meal_1",
-    "snack_am":  "snack_1",
-    "lunch":     "meal_1",
-    "snack_pm":  "snack_2",
-    "dinner":    "meal_2",
+# Backward-compat alias: old meal_1/meal_2 names → standard names.
+# Used when reading existing data. The actual mapping depends on the user's
+# schedule; this is the default (most common: skip breakfast → lunch + dinner).
+LEGACY_MEAL_ALIAS = {
+    "meal_1":   "lunch",
+    "meal_2":   "dinner",
+    "snack_1":  "snack_am",
+    "snack_2":  "snack_pm",
+    "meal 1":   "lunch",
+    "meal 2":   "dinner",
 }
+
+
+def _get_2meal_names(schedule: dict = None) -> tuple:
+    """Determine which two standard meal names a 2-meal user has.
+
+    Examines the schedule dict keys. If keys are standard names (breakfast,
+    lunch, dinner), returns them sorted by time. If keys are meal_1/meal_2
+    (legacy), infers from time windows. Falls back to ("lunch", "dinner").
+    """
+    if not schedule:
+        return ("lunch", "dinner")
+
+    standard = {"breakfast", "lunch", "dinner"}
+    sched_standard = [k for k in schedule if k in standard]
+
+    if len(sched_standard) == 2:
+        sorted_meals = sorted(sched_standard,
+                              key=lambda k: _parse_hhmm(schedule[k]))
+        return tuple(sorted_meals)
+
+    # Legacy keys: meal_1/meal_2 — infer from time windows
+    if "meal_1" in schedule and "meal_2" in schedule:
+        t1 = _parse_hhmm(schedule["meal_1"])
+        t2 = _parse_hhmm(schedule["meal_2"])
+        names = []
+        for t in (t1, t2):
+            if t < 10.5:
+                names.append("breakfast")
+            elif t < 15:
+                names.append("lunch")
+            else:
+                names.append("dinner")
+        # Deduplicate: if both map to the same (unlikely), use defaults
+        if len(set(names)) < 2:
+            return ("lunch", "dinner")
+        return tuple(names)
+
+    return ("lunch", "dinner")
 
 # ---------------------------------------------------------------------------
 # Diet mode configurations
@@ -176,21 +217,45 @@ PRODUCE_FRUIT_DAILY_MAX = 350  # g — maximum daily fruit intake
 # Helpers
 # ---------------------------------------------------------------------------
 
-def get_meal_blocks(meals: int) -> list:
-    return MEAL_BLOCKS_3 if meals == 3 else MEAL_BLOCKS_2
+def _make_2meal_blocks(first: str, second: str) -> list:
+    """Build 2-meal blocks from standard meal names."""
+    return [
+        {"label": first,  "pct": 50, "meals": [first, "snack_am"]},
+        {"label": second, "pct": 50, "meals": [second, "snack_pm"]},
+    ]
 
 
-def resolve_meal_name(meal_name: str, meals: int) -> str:
-    """Resolve a meal name, applying 2-meal aliases when needed."""
-    if meals == 2 and meal_name in MEAL_ALIAS_2:
-        return MEAL_ALIAS_2[meal_name]
+def get_meal_blocks(meals: int, schedule: dict = None) -> list:
+    if meals == 3:
+        return MEAL_BLOCKS_3
+    first, second = _get_2meal_names(schedule)
+    return _make_2meal_blocks(first, second)
+
+
+def resolve_meal_name(meal_name: str, meals: int, schedule: dict = None) -> str:
+    """Resolve a meal name to standard form.
+
+    For 3-meal mode: identity (breakfast/lunch/dinner pass through).
+    For 2-meal mode: legacy names (meal_1/meal_2) → standard names based on
+    schedule. Standard names pass through unchanged.
+    """
+    if meals == 2:
+        # Legacy backward compat: meal_1/meal_2 → standard name
+        if meal_name in LEGACY_MEAL_ALIAS:
+            first, second = _get_2meal_names(schedule)
+            legacy_to_standard = {
+                "meal_1": first, "meal 1": first,
+                "meal_2": second, "meal 2": second,
+                "snack_1": "snack_am", "snack_2": "snack_pm",
+            }
+            return legacy_to_standard.get(meal_name, meal_name)
     return meal_name
 
 
-def find_block_index(meal_name: str, meals: int) -> int:
+def find_block_index(meal_name: str, meals: int, schedule: dict = None) -> int:
     """Find which block a meal type belongs to."""
-    resolved = resolve_meal_name(meal_name, meals)
-    for i, block in enumerate(get_meal_blocks(meals)):
+    resolved = resolve_meal_name(meal_name, meals, schedule)
+    for i, block in enumerate(get_meal_blocks(meals, schedule)):
         if resolved in block["meals"]:
             return i
     return None
@@ -228,7 +293,7 @@ def get_log_path(data_dir: str, day: str = None, tz_offset: int = None) -> str:
 # ---------------------------------------------------------------------------
 
 def calc_targets(weight: float, daily_cal: int, meals: int = 3,
-                 mode: str = "balanced") -> dict:
+                 mode: str = "balanced", schedule: dict = None) -> dict:
     protein = round(weight * 1.4, 1)
     protein_lo = round(weight * 1.2, 1)
     protein_hi = round(weight * 1.6, 1)
@@ -247,7 +312,7 @@ def calc_targets(weight: float, daily_cal: int, meals: int = 3,
     cal_lo = daily_cal - 100
     cal_hi = daily_cal + 100
 
-    blocks = get_meal_blocks(meals)
+    blocks = get_meal_blocks(meals, schedule)
     alloc = []
     for b in blocks:
         alloc.append({"meal": b["label"], "pct": b["pct"],
@@ -945,7 +1010,8 @@ def load_meals(data_dir: str, day: str = None, tz_offset: int = None) -> dict:
 def evaluate(weight: float, daily_cal: int, meals: int,
              current_meal: str, log: list,
              assumed_meals: list = None,
-             mode: str = "balanced") -> dict:
+             mode: str = "balanced",
+             schedule: dict = None) -> dict:
     """Evaluate cumulative intake at the checkpoint for *current_meal*.
 
     Uses range-based evaluation:
@@ -957,10 +1023,10 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     if assumed_meals:
         assumed_meals = _migrate_meals(assumed_meals)
 
-    targets = calc_targets(weight, daily_cal, meals, mode)
-    blocks = get_meal_blocks(meals)
+    targets = calc_targets(weight, daily_cal, meals, mode, schedule)
+    blocks = get_meal_blocks(meals, schedule)
 
-    block_idx = find_block_index(current_meal, meals)
+    block_idx = find_block_index(current_meal, meals, schedule)
     if block_idx is None:
         return {"error": f"Unknown meal name: {current_meal}"}
 
@@ -970,10 +1036,10 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     for i in range(block_idx + 1):
         checkpoint_meal_names.update(blocks[i]["meals"])
 
-    logged_names = {resolve_meal_name(m.get("name", ""), meals) for m in log}
+    logged_names = {resolve_meal_name(m.get("name", ""), meals, schedule) for m in log}
 
     checkpoint_log = [m for m in log
-                      if resolve_meal_name(m.get("name", ""), meals) in checkpoint_meal_names]
+                      if resolve_meal_name(m.get("name", ""), meals, schedule) in checkpoint_meal_names]
 
     missing_meals: list = []
     for i in range(block_idx + 1):
@@ -1004,7 +1070,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     adjusted = dict(actual)
     if assumed_meals:
         for m in assumed_meals:
-            if resolve_meal_name(m.get("name", ""), meals) in checkpoint_meal_names:
+            if resolve_meal_name(m.get("name", ""), meals, schedule) in checkpoint_meal_names:
                 adjusted["calories"] = round(adjusted["calories"] + m.get("calories", 0), 1)
                 adjusted["protein"] = round(adjusted["protein"] + m.get("protein", 0), 1)
                 adjusted["carbs"] = round(adjusted["carbs"] + m.get("carbs", 0), 1)
@@ -1045,18 +1111,19 @@ def evaluate(weight: float, daily_cal: int, meals: int,
         "diff_for_suggestions": diff,
         "missing_meals": missing_meals,
         "meals_included": [m.get("name") for m in checkpoint_log],
-        "resolved_meal": resolve_meal_name(current_meal, meals),
+        "resolved_meal": resolve_meal_name(current_meal, meals, schedule),
     }
 
 
-def check_missing(meals: int, current_meal: str, log: list) -> dict:
+def check_missing(meals: int, current_meal: str, log: list,
+                  schedule: dict = None) -> dict:
     log = _migrate_meals(log)
-    blocks = get_meal_blocks(meals)
-    block_idx = find_block_index(current_meal, meals)
+    blocks = get_meal_blocks(meals, schedule)
+    block_idx = find_block_index(current_meal, meals, schedule)
     if block_idx is None:
         return {"error": f"Unknown meal name: {current_meal}"}
 
-    logged_names = {resolve_meal_name(m.get("name", ""), meals) for m in log}
+    logged_names = {resolve_meal_name(m.get("name", ""), meals, schedule) for m in log}
 
     missing: list = []
     for i in range(block_idx):
@@ -1074,7 +1141,8 @@ def check_missing(meals: int, current_meal: str, log: list) -> dict:
     }
 
 
-def produce_check(meals: int, current_meal: str, log: list) -> dict:
+def produce_check(meals: int, current_meal: str, log: list,
+                  schedule: dict = None) -> dict:
     """Evaluate cumulative vegetable and fruit intake at the current checkpoint.
 
     Vegetables: cumulative target based on checkpoint (None = no target at that point).
@@ -1086,8 +1154,8 @@ def produce_check(meals: int, current_meal: str, log: list) -> dict:
     Missing fields default to 0.
     """
     log = _migrate_meals(log)
-    blocks = get_meal_blocks(meals)
-    block_idx = find_block_index(current_meal, meals)
+    blocks = get_meal_blocks(meals, schedule)
+    block_idx = find_block_index(current_meal, meals, schedule)
     if block_idx is None:
         return {"error": f"Unknown meal name: {current_meal}"}
 
@@ -1097,7 +1165,7 @@ def produce_check(meals: int, current_meal: str, log: list) -> dict:
 
     checkpoint_log = [
         m for m in log
-        if resolve_meal_name(m.get("name", ""), meals) in checkpoint_meal_names
+        if resolve_meal_name(m.get("name", ""), meals, schedule) in checkpoint_meal_names
     ]
 
     veg_total = round(sum((m.get("vegetables_g") or 0) for m in checkpoint_log), 1)
@@ -1600,12 +1668,12 @@ DEFAULT_WINDOWS_3 = [
 ]
 
 DEFAULT_WINDOWS_2 = [
-    (5,  10, "meal_1"),
-    (10, 11, "snack_1"),
-    (11, 14, "meal_1"),
-    (14, 17, "snack_2"),
-    (17, 21, "meal_2"),
-    (21, 29, "snack_2"),
+    (5,  10, "breakfast"),
+    (10, 11, "snack_am"),
+    (11, 14, "lunch"),
+    (14, 17, "snack_pm"),
+    (17, 21, "dinner"),
+    (21, 29, "snack_pm"),
 ]
 
 
@@ -1623,7 +1691,8 @@ def _build_schedule_windows(schedule: dict, meals: int) -> list:
 
     Args:
         schedule: {"breakfast": "09:00", "lunch": "12:00", "dinner": "18:00"}
-                  or {"meal_1": "12:00", "meal_2": "18:00"} for 2-meal mode.
+                  or {"lunch": "12:00", "dinner": "18:30"} for 2-meal mode.
+                  Legacy {"meal_1": "12:00", "meal_2": "18:00"} also accepted.
         meals: 2 or 3.
 
     Returns: list of (start_hour, end_hour, meal_name) tuples.
@@ -1631,7 +1700,14 @@ def _build_schedule_windows(schedule: dict, meals: int) -> list:
     if meals == 3:
         keys = ["breakfast", "lunch", "dinner"]
     else:
-        keys = ["meal_1", "meal_2"]
+        # Accept standard names or legacy meal_1/meal_2
+        standard = [k for k in ("breakfast", "lunch", "dinner") if k in schedule]
+        if len(standard) == 2:
+            keys = sorted(standard, key=lambda k: _parse_hhmm(schedule[k]))
+        elif "meal_1" in schedule and "meal_2" in schedule:
+            keys = ["meal_1", "meal_2"]
+        else:
+            return None  # Can't determine schedule keys
 
     # Parse schedule times
     times = []
@@ -1673,6 +1749,12 @@ def _build_schedule_windows(schedule: dict, meals: int) -> list:
 
         windows.append((start, end, name))
 
+    # Normalize legacy meal_1/meal_2 names to standard names in output
+    if meals == 2:
+        first, second = _get_2meal_names(schedule)
+        legacy_map = {"meal_1": first, "meal_2": second}
+        windows = [(s, e, legacy_map.get(n, n)) for s, e, n in windows]
+
     return windows
 
 
@@ -1688,8 +1770,11 @@ _SNACK_MAP_3 = {
 }
 
 _SNACK_MAP_2 = {
-    "meal_1": "snack_1",
-    # meal_2 has no snack after it
+    # For 2-meal, first meal → snack_am; second meal has no snack after it.
+    # Dynamic: detect_meal builds this from schedule at runtime.
+    "breakfast": "snack_am",
+    "lunch": "snack_am",
+    # dinner has no snack after it (last meal)
 }
 
 
@@ -1784,11 +1869,12 @@ def detect_meal(tz_offset: int, meals: int,
     # Normalize local_hour for windows that cross midnight
     for start, end, name in windows:
         h = local_hour
-        # If window crosses midnight (end > 24), check both raw and +24
-        if end > 24:
+        # If window crosses midnight (end > 24 or end < start)
+        if end > 24 or end < start:
+            effective_end = end if end > 24 else end + 24
             if h < start:
                 h += 24
-            if start <= h < end:
+            if start <= h < effective_end:
                 detected = name
                 win_start_str = f"{int(start % 24):02d}:{int((start % 1) * 60):02d}"
                 win_end_str = f"{int(end % 24):02d}:{int((end % 1) * 60):02d}"
@@ -1802,12 +1888,17 @@ def detect_meal(tz_offset: int, meals: int,
 
     # Fallback if no window matched (shouldn't happen with proper windows)
     if detected is None:
-        detected = "snack_pm" if meals == 3 else "snack_2"
+        detected = "snack_pm" if meals == 3 else "snack_pm"
         method = "fallback"
 
     # 4. Snack upgrade: if the main meal is already logged and we're past
     #    the meal time by _SNACK_OFFSET_HOURS, switch to snack.
-    snack_map = _SNACK_MAP_3 if meals == 3 else _SNACK_MAP_2
+    if meals == 3:
+        snack_map = _SNACK_MAP_3
+    else:
+        # For 2-meal: first meal → snack_am, second meal has no snack
+        first, _ = _get_2meal_names(schedule)
+        snack_map = {first: "snack_am"}
     if detected in snack_map and log:
         logged_names = set()
         for m in log:
@@ -1918,7 +2009,7 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     if meal_type:
         # User explicitly stated the meal type
         local_date = existing.get("date") or _local_date(tz_offset)
-        resolved = resolve_meal_name(meal_type, meals)
+        resolved = resolve_meal_name(meal_type, meals, schedule)
         result["meal_detection"] = {
             "detected_meal": resolved,
             "local_date": local_date,
@@ -1935,13 +2026,13 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     result["existing_meals"] = existing_meals_list
 
     # 2. Check missing meals before current one
-    missing = check_missing(meals, current_meal, existing_meals_list)
+    missing = check_missing(meals, current_meal, existing_meals_list, schedule)
     result["missing_meals"] = missing
 
     # Build assumed meals for evaluate if there are missing meals
     assumed = None
     if missing.get("has_missing"):
-        targets = calc_targets(weight, daily_cal, meals, mode)
+        targets = calc_targets(weight, daily_cal, meals, mode, schedule)
         assumed = []
         for m in missing["missing"]:
             pct = m["expected_pct"] / 100.0
@@ -1982,7 +2073,7 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
 
     # 5. Evaluate
     eval_result = evaluate(weight, daily_cal, meals,
-                           current_meal, all_meals, assumed, mode)
+                           current_meal, all_meals, assumed, mode, schedule)
     # Attach BMR info for Case D if provided
     if bmr is not None:
         daily_total = sum(m.get("calories", 0) for m in all_meals)
@@ -2011,8 +2102,8 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     eval_result["recent_overshoot_days"] = overshoot_history["overshoot_days"]
 
     # Determine if this is the final meal of the day
-    blocks = get_meal_blocks(meals)
-    is_final = find_block_index(current_meal, meals) == len(blocks) - 1
+    blocks = get_meal_blocks(meals, schedule)
+    is_final = find_block_index(current_meal, meals, schedule) == len(blocks) - 1
 
     # Resolve suggestion type
     eval_result["suggestion_type"] = _resolve_suggestion_type(
@@ -2026,7 +2117,7 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
 
     # 6. Produce check (China region only)
     if region and region.upper() == "CN":
-        result["produce"] = produce_check(meals, current_meal, all_meals)
+        result["produce"] = produce_check(meals, current_meal, all_meals, schedule)
     else:
         result["produce"] = None
 
@@ -2135,7 +2226,8 @@ def delete_meal(data_dir: str, tz_offset: int, meal_name: str,
 
 def query_day(data_dir: str, tz_offset: int, weight: float,
               daily_cal: int, meals: int, day: str = None,
-              mode: str = "balanced", region: str = None) -> dict:
+              mode: str = "balanced", region: str = None,
+              schedule: dict = None) -> dict:
     """Load a day's records and evaluate current status.
 
     Args:
@@ -2166,10 +2258,10 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
         return result
 
     # Determine the latest logged meal as checkpoint
-    blocks = get_meal_blocks(meals)
+    blocks = get_meal_blocks(meals, schedule)
     latest_block_idx = -1
     for m in all_meals:
-        idx = find_block_index(m.get("name", ""), meals)
+        idx = find_block_index(m.get("name", ""), meals, schedule)
         if idx is not None and idx > latest_block_idx:
             latest_block_idx = idx
             latest_meal = m.get("name", "")
@@ -2178,7 +2270,7 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
         latest_meal = all_meals[-1].get("name", "breakfast")
 
     result["evaluation"] = evaluate(weight, daily_cal, meals,
-                                    latest_meal, all_meals, None, mode)
+                                    latest_meal, all_meals, None, mode, schedule)
 
     # Add overshoot history (same as log-meal does)
     if result["evaluation"]:
@@ -2189,7 +2281,7 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
         result["evaluation"]["recent_overshoot_days"] = overshoot_history["overshoot_days"]
 
     if region and region.upper() == "CN":
-        result["produce"] = produce_check(meals, latest_meal, all_meals)
+        result["produce"] = produce_check(meals, latest_meal, all_meals, schedule)
     else:
         result["produce"] = None
 
@@ -2339,7 +2431,7 @@ def main():
     pc.add_argument("--meals", type=int, default=3, choices=[2, 3],
                     help="Meals per day (2 or 3)")
     pc.add_argument("--current-meal", type=str, required=True,
-                    help="Current meal checkpoint (e.g. breakfast, lunch, dinner, meal_1, meal_2)")
+                    help="Current meal checkpoint (e.g. breakfast, lunch, dinner)")
     pc.add_argument("--log", type=str, required=True,
                     help="JSON array of all logged meals today (each may include vegetables_g, fruits_g)")
 
@@ -2394,6 +2486,7 @@ def main():
     qd.add_argument("--date", type=str, default=None, help="Date (YYYY-MM-DD), default today")
     qd.add_argument("--mode", type=str, default="balanced", help="Diet mode for evaluate")
     qd.add_argument("--region", type=str, default=None, help="Region code for produce-check")
+    qd.add_argument("--schedule", type=str, default=None, help="Meal schedule JSON")
 
     args = parser.parse_args()
 
@@ -2528,11 +2621,19 @@ def main():
             sys.exit(1)
         result = oil_calibration_lookup(args.data_dir, foods)
     elif args.cmd == "query-day":
+        qd_sched = None
+        if args.schedule:
+            try:
+                qd_sched = json.loads(args.schedule)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --schedule JSON: {e}", file=sys.stderr)
+                sys.exit(1)
         result = query_day(
             data_dir=args.data_dir, tz_offset=args.tz_offset,
             weight=args.weight, daily_cal=args.cal,
             meals=args.meals, day=args.date,
             mode=args.mode, region=args.region,
+            schedule=qd_sched,
         )
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
