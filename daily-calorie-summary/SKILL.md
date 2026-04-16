@@ -121,22 +121,23 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 ### Format
 
 ```
-{date_display}
+📋 今日总结 · {date_display}
 
-🍽 摄入 {food_intake} kcal
-🏃 运动 {exercise_burn} kcal
-🔥 总消耗 {total_burn} kcal（TDEE {tdee} + 运动 {exercise_burn}）
-
-📉 实际缺口 {actual_deficit} kcal {status_symbol} 计划 {planned_deficit} kcal
-
+📉 热量缺口 {actual_deficit} kcal {status_symbol} 计划 {planned_deficit} kcal
 {one_sentence_comment}
+
+---
+🍽 摄入 {food_intake} kcal
+🏃 运动消耗 {exercise_burn} kcal
+🔥 总消耗 {total_burn} kcal（TDEE {tdee} + 运动 {exercise_burn}）
 ```
 
 ### Field Rules
 
+- **Title**: Always `📋 今日总结 · {date_display}` — conclusion (deficit line + comment) comes FIRST, details below the divider.
 - **`date_display`**: weekday + date, e.g. `周二 · 4/14`
 - **`food_intake`**: sum of all logged meals. Missing meals are handled by the Follow-Up Questions section — do not annotate inline.
-- **`exercise_burn`**: sum of net exercise calories. If no exercise logged, use the No-Exercise Display format instead.
+- **`exercise_burn`**: sum of net exercise calories. **Always show this line, even if 0.** When no exercise is logged, display `🏃 运动消耗 0 kcal`.
 - **`total_burn`**: TDEE + exercise net. Parenthetical breakdown always shown.
 - **`actual_deficit`**: total_burn - food_intake
 - **`status_symbol`**:
@@ -215,23 +216,6 @@ Rotate across days, don't总是用同一个比喻。
 - For surplus: always follow with "不过一天不影响趋势" or similar reassurance.
 - For large deficit with fat burn analogy: always frame positively, never say "你饿过头了".
 
-### No-Exercise Display
-
-When no exercise is logged for the day, simplify the format:
-
-```
-{date_display}
-
-🍽 摄入 {food_intake} kcal
-🔥 TDEE {tdee} kcal
-
-📉 实际缺口 {actual_deficit} kcal {status_symbol} 计划 {planned_deficit} kcal
-
-{one_sentence_comment}
-```
-
-Omit the `🏃 运动` line and the `总消耗` breakdown entirely — show only TDEE as total burn.
-
 ---
 
 ## Follow-Up Questions
@@ -271,14 +255,15 @@ If exercise IS logged → skip this question.
 ### Combined Example
 
 ```
-周二 · 4/14
+📋 今日总结 · 周二 · 4/14
 
-🍽 摄入 1,050 kcal
-🔥 TDEE 2,200 kcal
-
-📉 实际缺口 1,150 kcal ▲ 计划 500 kcal
-
+📉 热量缺口 1,150 kcal ▲ 计划 500 kcal
 缺口比计划大不少，可能还有没记的。
+
+---
+🍽 摄入 1,050 kcal
+🏃 运动消耗 0 kcal
+🔥 总消耗 2,200 kcal（TDEE 2,200 + 运动 0）
 
 晚餐还没记，吃了什么？
 今天有运动吗？
