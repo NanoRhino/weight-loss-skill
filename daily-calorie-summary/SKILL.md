@@ -121,7 +121,7 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 ### Format
 
 ```
-📋 今日总结 · {date_display} {verdict}
+📋 今日总结 {verdict}
 
 📉 热量缺口 {actual_deficit} kcal {status_symbol}
 {one_sentence_comment}
@@ -135,7 +135,7 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 
 ### Field Rules
 
-- **Title**: `📋 今日总结 · {date_display} {verdict}` — verdict is a one-word tag: `达标` / `超标` / `不足` / `⚠️低于基代`
+- **Title**: `📋 今日总结 {verdict}` — no date. Verdict is a one-word tag: `达标` / `超标` / `不足` / `⚠️低于基代`
   - On track (within ±100 of plan): `达标`
   - Larger deficit than planned: `不足`（ate too little）
   - Smaller deficit / surplus: `超标`
@@ -258,7 +258,7 @@ If exercise IS logged → skip this question.
 ### Combined Example
 
 ```
-📋 今日总结 · 周二 · 4/14 不足
+📋 今日总结 不足
 
 📉 热量缺口 1,150 kcal ▲
 缺口比计划500kcal大不少，可能还有没记的。
