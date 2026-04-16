@@ -541,6 +541,15 @@ def _update_calibrations_on_correction(data_dir: str, old_foods: list,
     changes = []
     name_changes = []  # (ai_guessed_name, user_corrected_name, new_g)
 
+    # Detect name replacements: pair removed items with added items by position
+    removed = [oname for oname in old_by_name if oname not in new_by_name]
+    added = [nname for nname in new_by_name if nname not in old_by_name]
+    # Pair by order when counts match (N-to-N replacement)
+    replacement_pairs = {}  # added_name -> removed_name
+    if removed and len(removed) == len(added):
+        for r, a in zip(removed, added):
+            replacement_pairs[a] = r
+
     for nf in new_foods:
         name = nf.get("name", "")
         if not name:
@@ -551,17 +560,13 @@ def _update_calibrations_on_correction(data_dir: str, old_foods: list,
             new_g = nf.get("amount_g", 0)
             if old_g and new_g and old_g != new_g:
                 changes.append((name, old_g, new_g))
-        elif name not in old_by_name:
-            # New name not in old foods — check if it replaced a removed item
-            # A removed item = old food name that's no longer in new_foods
-            removed = [oname for oname in old_by_name if oname not in new_by_name]
-            if len(removed) == 1 and len([n for n in new_by_name if n not in old_by_name]) == 1:
-                # 1-to-1 replacement: AI guessed removed[0], user corrected to name
-                ai_name = removed[0]
-                new_g = nf.get("amount_g", 0)
-                if new_g:
-                    name_changes.append((ai_name, name, new_g))
-                    changes.append((name, 0, new_g))
+        elif name in replacement_pairs:
+            # Name changed — this item replaced an old one
+            ai_name = replacement_pairs[name]
+            new_g = nf.get("amount_g", 0)
+            if new_g:
+                name_changes.append((ai_name, name, new_g))
+                changes.append((name, 0, new_g))
 
     if not changes and not name_changes:
         return []
