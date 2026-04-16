@@ -432,6 +432,13 @@
     <p class="subtitle">{{DATE_RANGE}} · {{GREETING}}</p>
   </header>
 
+  <!-- ==================== WEEK NAVIGATION ==================== -->
+  <nav class="week-nav">
+    <a class="week-nav-btn week-nav-prev {{PREV_DISABLED}}" href="{{PREV_WEEK_URL}}">← 上一周</a>
+    <span class="week-nav-current">{{DATE_RANGE}}</span>
+    <a class="week-nav-btn week-nav-next {{NEXT_DISABLED}}" href="{{NEXT_WEEK_URL}}">下一周 →</a>
+  </nav>
+
   <!-- ==================== SECTION 2: LOGGING OVERVIEW ==================== -->
   <div class="report-card">
     <div class="card-header">📅 Logging Overview</div>
@@ -640,13 +647,6 @@
       </ul>
     </div>
   </div>
-
-  <!-- ==================== WEEK NAVIGATION ==================== -->
-  <nav class="week-nav">
-    <a class="week-nav-btn week-nav-prev {{PREV_DISABLED}}" href="{{PREV_WEEK_URL}}">← 上一周</a>
-    <span class="week-nav-current">{{DATE_RANGE}}</span>
-    <a class="week-nav-btn week-nav-next {{NEXT_DISABLED}}" href="{{NEXT_WEEK_URL}}">下一周 →</a>
-  </nav>
 
   <!-- ==================== FOOTER ==================== -->
   <footer class="report-footer">
