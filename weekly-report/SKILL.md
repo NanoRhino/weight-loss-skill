@@ -569,6 +569,13 @@ bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
 
 This ensures the `← 上一周` navigation links always resolve. Only upload files that haven't been uploaded yet (check if the dated URL returns 200, or simply re-upload — the operation is idempotent).
 
+**Navigation injection for legacy reports:** If an older report file does not contain the `week-nav` navigation bar (generated before this feature), inject it before uploading:
+1. Add the `.week-nav` CSS block to the `<style>` section
+2. Add the `<nav class="week-nav">` HTML after `</header>`
+3. Set `← 上一周` to link to the previous week's dated file (or `disabled` if none exists)
+4. Set `下一周 →` to link to the next week's dated file
+5. Then upload the patched file
+
 ### Week Navigation (Previous / Next)
 
 The HTML template includes `← 上一周` / `下一周 →` navigation buttons. When generating the HTML, replace these placeholders:
