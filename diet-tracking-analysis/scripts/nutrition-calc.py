@@ -1705,7 +1705,13 @@ def _build_schedule_windows(schedule: dict, meals: int) -> list:
         if len(standard) == 2:
             keys = sorted(standard, key=lambda k: _parse_hhmm(schedule[k]))
         elif "meal_1" in schedule and "meal_2" in schedule:
-            keys = ["meal_1", "meal_2"]
+            # Legacy keys → convert to standard names for window output
+            first, second = _get_2meal_names(schedule)
+            # Rebuild schedule with standard keys so windows use standard names
+            schedule = dict(schedule)  # don't mutate caller's dict
+            schedule[first] = schedule.pop("meal_1")
+            schedule[second] = schedule.pop("meal_2")
+            keys = [first, second]
         else:
             return None  # Can't determine schedule keys
 
