@@ -20,6 +20,7 @@ Reason is printed to stderr for debugging.
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone, timedelta
 
@@ -137,6 +138,38 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
         return True, None  # fail-open: send if we can't read
 
 
+def _read_meals_per_day(workspace_dir):
+    """Read Meals per Day from health-profile.md. Returns 3 if unreadable."""
+    path = os.path.join(workspace_dir, "health-profile.md")
+    if not os.path.exists(path):
+        return 3
+    try:
+        with open(path) as f:
+            content = f.read()
+    except IOError:
+        return 3
+    m = re.search(r"Meals per Day:\s*(\d+)", content, re.IGNORECASE)
+    return int(m.group(1)) if m else 3
+
+
+def _resolve_slot_for_meal_type(meal_type, meals_per_day):
+    """Return the stored slot name that corresponds to meal_type.
+
+    2-meal users store meals as meal_1/meal_2 (never as named types).
+    When a cron fires with a named type (breakfast/lunch/dinner) for a
+    2-meal user, map it using the same default windows that nutrition-calc.py
+    uses: breakfast-time and lunch-time both fall in the meal_1 window,
+    dinner-time falls in meal_2.
+    """
+    if meal_type in ("meal_1", "meal_2", "meal_3"):
+        return meal_type  # already a numbered slot
+    if meals_per_day != 2:
+        return meal_type  # 3-meal users store by name directly
+    # Default 2-meal mapping (mirrors nutrition-calc.py DEFAULT_WINDOWS_2).
+    default = {"breakfast": "meal_1", "lunch": "meal_1", "dinner": "meal_2"}
+    return default.get(meal_type, meal_type)
+
+
 def check_meal_logged(workspace_dir, meal_type, tz_offset):
     """Check 3: this meal is not already logged today."""
     local_date = get_local_date(tz_offset)
@@ -152,17 +185,16 @@ def check_meal_logged(workspace_dir, meal_type, tz_offset):
         log(f"Warning: could not read {meals_file}: {e}")
         return True, None  # fail-open
 
-    # Normalize meal_type for matching
-    # meal_1 -> check for "meal_1" or "breakfast" (first meal)
-    # meal_2 -> check for "meal_2" or "lunch" (second meal)
-    type_aliases = {
-        "breakfast": ["breakfast"],
-        "lunch": ["lunch"],
-        "dinner": ["dinner"],
-        "meal_1": ["meal_1", "meal 1"],
-        "meal_2": ["meal_2", "meal 2"],
-    }
-    match_types = type_aliases.get(meal_type, [meal_type])
+    # Resolve the cron's meal_type to the slot name actually stored in the
+    # JSON file.  3-meal users store by name (breakfast/lunch/dinner);
+    # 2-meal users always store as meal_1/meal_2.
+    meals_per_day = _read_meals_per_day(workspace_dir)
+    resolved = _resolve_slot_for_meal_type(meal_type, meals_per_day)
+    log(f"check_meal_logged: meal_type={meal_type} meals_per_day={meals_per_day} "
+        f"resolved={resolved}")
+
+    # Accept both the original name and the resolved slot (plus space variant).
+    match_types = {meal_type, resolved, resolved.replace("_", " ")}
 
     for meal in meals:
         mt = meal.get("meal_type", "") or meal.get("name", "")
