@@ -317,7 +317,14 @@ Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
   Example: `🔥 2,100/1,800 kcal (+300)` → `██████████ 117% ⚠️`
 
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar which shows both).
-CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~XXXg ✅/⬇️ — low → suggest at next meal; fruit only at final meal.
+
+**CN produce (REQUIRED — both lines, never skip):**
+🥦 蔬菜：~XXXg ✅/⬇️
+🍎 水果：~XXXg ✅/⬇️
+- Both lines are **mandatory** for CN region. Do NOT omit the fruit line even if fruit is 0g — show `🍎 水果：0g ⬇️`.
+- Vegetable low → suggest at next meal.
+- Fruit low → suggest only at final meal of the day. Otherwise just show status, no suggestion.
+
 1-sentence comment bridging to ③. Optional `✨ Nice work` line if food choices noteworthy.
 
 ### ③ Suggestion (by `suggestion_type`)
