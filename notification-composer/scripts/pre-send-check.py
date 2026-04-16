@@ -18,6 +18,7 @@ Reason is printed to stderr for debugging.
 """
 
 import argparse
+import fcntl
 import json
 import os
 import sys
@@ -79,11 +80,21 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
     Stage 4 (MONTHLY): SEND once per month (if >= 30 days since last_recall_date)
                         Weight reminders suppressed entirely.
     Stage 5 (SILENT):  NO_REPLY — suppress everything
+
+    Uses file locking to prevent concurrent crons from all passing the gate.
     """
     path = os.path.join(workspace_dir, "data", "engagement.json")
     if not os.path.exists(path):
         return True, None
+
+    # Acquire exclusive lock for the entire check-and-update operation.
+    # This prevents concurrent cron processes from all reading stale data.
+    lockfile = path + ".lock"
+    lock_fd = None
     try:
+        lock_fd = open(lockfile, "w")
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+
         with open(path) as f:
             data = json.load(f)
         stage = data.get("notification_stage", 1)
@@ -105,8 +116,10 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             last_recall_date = data.get("last_recall_date", "")
             if last_recall_date == local_date:
                 return False, f"notification_stage=2, recall already sent today ({local_date})"
-            # Lock today's date immediately to prevent duplicate sends
-            _update_engagement_field(workspace_dir, {"last_recall_date": local_date})
+            # Atomically claim today's slot under lock
+            data["last_recall_date"] = local_date
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
             return True, None
 
         if stage == 3:
@@ -119,8 +132,10 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
                         return False, f"notification_stage=3, weekly recall sent {last_recall_date} (<7 days)"
                 except ValueError:
                     pass
-            # Lock date immediately
-            _update_engagement_field(workspace_dir, {"last_recall_date": local_date})
+            # Atomically claim under lock
+            data["last_recall_date"] = local_date
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
             return True, None
 
         if stage == 4:
@@ -133,14 +148,23 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
                         return False, f"notification_stage=4, monthly recall sent {last_recall_date} (<30 days)"
                 except ValueError:
                     pass
-            # Lock date immediately
-            _update_engagement_field(workspace_dir, {"last_recall_date": local_date})
+            # Atomically claim under lock
+            data["last_recall_date"] = local_date
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
             return True, None
 
         return True, None
     except (json.JSONDecodeError, IOError) as e:
         log(f"Warning: could not read engagement.json: {e}")
         return True, None  # fail-open: send if we can't read
+    finally:
+        if lock_fd:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                lock_fd.close()
+            except Exception:
+                pass
 
 
 def _get_meals_per_day(workspace_dir):
@@ -438,6 +462,9 @@ def main():
             args.workspace_dir, args.meal_type, args.tz_offset)))
 
     # Run all checks
+    # Track stage info from engagement_stage check for output
+    stage_info = {"stage": 1}
+
     for check_name, check_fn in checks:
         passed, reason = check_fn()
         if not passed:
@@ -445,8 +472,25 @@ def main():
             print("NO_REPLY")
             return
 
+    # Read stage for output enrichment
+    eng_path = os.path.join(args.workspace_dir, "data", "engagement.json")
+    if os.path.exists(eng_path):
+        try:
+            with open(eng_path) as f:
+                eng = json.load(f)
+            s = eng.get("notification_stage", 1)
+            if isinstance(s, str):
+                s = {"active": 1, "pause": 2, "recall": 3, "silent": 4}.get(s.lower(), 1)
+            stage_info["stage"] = s
+            stage_info["days_silent"] = eng.get("days_silent", 0)
+        except Exception:
+            pass
+
     log("All checks passed")
-    print("SEND")
+    if stage_info["stage"] >= 2:
+        print(f"SEND recall stage={stage_info['stage']} days_silent={stage_info.get('days_silent', 0)}")
+    else:
+        print("SEND")
 
 
 if __name__ == "__main__":

@@ -55,9 +55,11 @@ python3 {baseDir}/scripts/pre-send-check.py \
 ```
 
 - **`NO_REPLY`** → 回复恰好 `NO_REPLY`，结束。不要继续。
-- **`SEND`** → 继续第四步。
+- **`SEND`** → Stage 1 正常提醒，继续第四步。
+- **`SEND recall stage=N days_silent=X`** → 用户处于召回阶段（Stage N）。**必须发召回消息，不是正常提醒。** 忽略 cron 原始的 meal-type，按召回阶段的语气和内容模板写。参考第四步的 Stage 2/3/4 分支。
 
 > ⚠️ 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。
+> ⚠️ **当输出包含 `recall` 时，绝对不能写正常的餐食提醒。** 即使 cron prompt 说 "Run notification-composer for breakfast"，你也必须发召回消息。
 
 ### 第四步：按阶段分支
 
