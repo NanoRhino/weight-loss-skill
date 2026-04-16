@@ -209,46 +209,39 @@ def main():
         changed = True
         log(f"RESET to stage 1 (user returned, last meal {last_logged})")
 
-    # --- Forward transitions ---
-    elif stage == 1:
-        if days_silent >= STAGE_1_TO_2_DAYS:
-            stage = 2
-            data["notification_stage"] = 2
+    # --- Forward transitions (fast-forward to correct stage) ---
+    else:
+        # Calculate target stage directly from days_silent.
+        # This avoids the one-step-per-cron problem where a user stuck at S1
+        # due to a reset takes multiple cron cycles to reach the correct stage.
+        def calc_target_stage(ds):
+            if ds >= STAGE_4_TO_5_DAYS:
+                return 5   # 90+ days → permanent silence
+            if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS * 1 + STAGE_3_TO_4_WEEKS * 7:
+                return 4   # 3 + 3 + 21 = 27+ days → monthly recall
+            if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS:
+                return 3   # 3 + 3 = 6+ days → weekly recall
+            if ds >= STAGE_1_TO_2_DAYS:
+                return 2   # 3+ days → daily recall
+            return 1
+
+        target = calc_target_stage(days_silent)
+        # Only move forward, never backward (backward is handled by reset above)
+        if target > stage:
+            old_stage = stage
+            stage = target
+            data["notification_stage"] = stage
             data["stage_changed_at"] = now.isoformat()
             data["last_recall_date"] = None
-            data["recall_2_sent"] = False
-            changed = True
-            log(f"TRANSITION 1 → 2 (silent {days_silent} days)")
-
-    elif stage == 2:
-        if stage_changed_at:
-            days_in_stage = (now - stage_changed_at).total_seconds() / 86400
-            if days_in_stage >= STAGE_2_TO_3_DAYS:
-                stage = 3
-                data["notification_stage"] = 3
-                data["stage_changed_at"] = now.isoformat()
+            # Reset stage-specific counters
+            if stage >= 2:
+                data["recall_2_sent"] = False
+            if stage >= 3:
                 data["weekly_recall_count"] = 0
-                changed = True
-                log(f"TRANSITION 2 → 3 (in stage 2 for {days_in_stage:.1f} days)")
-
-    elif stage == 3:
-        if stage_changed_at:
-            weeks_in_stage = (now - stage_changed_at).total_seconds() / (86400 * 7)
-            if weeks_in_stage >= STAGE_3_TO_4_WEEKS:
-                stage = 4
-                data["notification_stage"] = 4
-                data["stage_changed_at"] = now.isoformat()
+            if stage >= 4:
                 data["monthly_recall_count"] = 0
-                changed = True
-                log(f"TRANSITION 3 → 4 (in stage 3 for {weeks_in_stage:.1f} weeks)")
-
-    elif stage == 4:
-        if days_silent >= STAGE_4_TO_5_DAYS:
-            stage = 5
-            data["notification_stage"] = 5
-            data["stage_changed_at"] = now.isoformat()
             changed = True
-            log(f"TRANSITION 4 → 5 (total silence {days_silent} days)")
+            log(f"FAST-FORWARD {old_stage} → {stage} (silent {days_silent} days)")
 
     # Stage 5 is permanent silence — no further transitions
 
