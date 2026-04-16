@@ -155,16 +155,12 @@ def check_meal_logged(workspace_dir, meal_type, tz_offset):
     # Normalize meal_type for matching
     # meal_1 -> check for "meal_1" or "breakfast" (first meal)
     # meal_2 -> check for "meal_2" or "lunch" (second meal)
-    # Cross-map standard meal names ↔ numbered meal slots so that
-    # users on a 2-meal plan (who log "meal_1"/"meal_2") are correctly
-    # detected when the cron fires with --meal-type breakfast/lunch.
     type_aliases = {
-        "breakfast": ["breakfast", "meal_1", "meal 1"],
-        "lunch": ["lunch", "meal_2", "meal 2"],
-        "dinner": ["dinner", "meal_3", "meal 3"],
-        "meal_1": ["meal_1", "meal 1", "breakfast"],
-        "meal_2": ["meal_2", "meal 2", "lunch"],
-        "meal_3": ["meal_3", "meal 3", "dinner"],
+        "breakfast": ["breakfast"],
+        "lunch": ["lunch"],
+        "dinner": ["dinner"],
+        "meal_1": ["meal_1", "meal 1"],
+        "meal_2": ["meal_2", "meal 2"],
     }
     match_types = type_aliases.get(meal_type, [meal_type])
 
