@@ -890,7 +890,8 @@ def deviation_check(args):
     if severity == "light":
         result["recommendation"] = (
             "Weight is up. Give a brief, comforting response. "
-            "If temporary causes detected, mention lightly."
+            "If temporary causes detected, mention lightly. "
+            "Do NOT ask follow-up questions. No sarcasm or irony — warm and supportive only."
         )
     elif severity == "cause-check":
         result["recommendation"] = (

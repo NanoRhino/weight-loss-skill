@@ -20,7 +20,7 @@ Deviation-check is bundled into `save-and-check.py` — no separate call needed.
 | Severity | When | Action |
 |----------|------|--------|
 | `none` | No increase | Weight stable or down — just confirm the log. |
-| `light` | First increase, or within 7 days of a cause-check | Append a brief comfort line after log confirmation. Quick data glance if relevant, keep it light. If `temporary_causes` is non-empty, use the cause's `message` field. |
+| `light` | First increase, or within 7 days of a cause-check | Append a brief comfort line after log confirmation. If `temporary_causes` is non-empty, mention the cause lightly. **No follow-up questions. No sarcasm or irony — warm and supportive only.** |
 | `cause-check` | ≥3 days after light, or ≥7 days after previous cause-check | **Read `weight-gain-strategy/references/cause-check-flow.md` and follow the flow.** Run `analyze` silently at the start. |
 
 ---
