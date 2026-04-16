@@ -155,10 +155,9 @@ Backfilled meals from missing-meal handling are always "already eaten" — never
 #### 1.3b Look up portion calibrations
 
 Call `calibration-lookup` with food names from 1.1. For matches:
-- `correction_count ≥ 2` → use `user_portion_g` instead of generic default (strong calibration)
-- `correction_count == 1` → use only when no better source
+- `correction_count ≥ 1` → **use `user_portion_g` as the default portion.** One correction is enough — the user knows their own food better than any estimate. Do NOT wait for a second correction.
+- **Override exception (STRICT):** ONLY ignore a calibration when the photo **clearly and unmistakably** shows a very different portion (e.g., calibration says 100g but photo shows a heaping full large bowl). "Might be different" or "looks slightly off" is NOT enough to override — when in doubt, trust the calibration.
 - `match_type: "alias"` or `"alias_contains"` → the user previously corrected this food name to something else. Use the `matched_key` (correct name) and its calibration instead of your identified name. For example, if you see "鸡蛋面" but the alias says it was corrected to "玉米面 350g", use "玉米面" as the food name and 350g as the portion.
-- Clear photo evidence of a different portion overrides calibration
 - Do NOT mention calibration to the user
 
 **Safety net:** `log-meal` returns `calibration_warnings` when logged amount differs >20% from a known calibration — confirm with the user if triggered.
@@ -185,7 +184,16 @@ Scene: [N] containers
 - Known object (egg, chopstick, spoon, phone, etc.) → `§ Photo Reference Objects`
 - Hand / fingers visible → same reference
 - Container matches a known type → `§ Common Container Sizes`
-- None found → single-serving default, prefix `~`
+- None found → single-serving default, prefix `~`, **set `_no_anchor = true`**
+
+**Anchor check template (REQUIRED in your thinking):**
+```
+Anchor check:
+  Reference object: [object name / "none"]
+  Container type:   [matched type / "unrecognized"]
+  → Anchor status:  [anchored / no_anchor]
+```
+If `no_anchor` → you MUST include the fist-reference reminder in your reply (see Step 2).
 
 **Step 2 — Measure:** For EACH container from Step 0, write this exact template in your thinking:
 ```
@@ -232,10 +240,27 @@ For mixed dishes (e.g. stir-fry with meat + vegetables), split by component:
 Flag items **≥ 2× standard** — Step 2 decides whether to clarify.
 
 #### 1.5 Estimate nutrition
+
+> 🚫 **HARD RULE — LOOK UP FIRST, THEN CALCULATE:**
+> 1. Call `read` on `{baseDir}/references/common-foods-nutrition.md` — this is a tool call, not optional.
+> 2. For EACH food item, search the table for a match (exact name or obvious equivalent).
+> 3. **Match found** → use the table values. Calculate: `calories = table_cal_per_100g × amount_g / 100` (same for protein, carbs, fat). Do NOT substitute your own values.
+> 4. **No match** → fall back to USDA FoodData Central (US) or China CDC (CN).
+> 5. If you did not call `read` on this file, STOP and do it now. No exceptions.
+
+**Nutrition lookup template (REQUIRED in your thinking for EACH food):**
+```
+[food name]:
+  Source: [common-foods-nutrition.md / USDA / China CDC]
+  Per 100g: [cal] kcal, P [X]g, C [X]g, F [X]g
+  Amount: [W]g → [cal × W/100] kcal, P [X]g, C [X]g, F [X]g
+```
+
+**Self-check:** If any food's nutrition was calculated without the template above, go back and redo it. Every number must trace to a source.
+
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
 
 - China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
-- Data source: USDA FoodData Central primary; for regional foods, use local databases (e.g. China CDC)
 
 **Cooked-vegetable shrinkage:** Cooked vegetables weigh less than raw. Use shrinkage ratios in `references/portion-estimation.md` to reverse-estimate raw weight.
 - `vegetables_g` = estimated raw weight (before cooking)
@@ -244,8 +269,8 @@ For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amou
 #### 1.5a Look up oil calibrations
 
 Call `oil-calibration-lookup` with food names from 1.1. For matches:
-- `correction_count ≥ 2` → use `oil_per_100g` instead of default (strong calibration)
-- `correction_count == 1` → use only when no better source
+- `correction_count ≥ 1` → **use `oil_per_100g` as the default.** Same as portion calibration: one correction is enough.
+- **Override exception:** ONLY ignore when the photo clearly shows a very different oil level (e.g., calibration says low-oil but dish is swimming in oil). When in doubt, trust the calibration.
 - Do NOT mention calibration to the user
 
 #### 1.5b Estimate cooking oil (REQUIRED — do NOT skip)
@@ -282,6 +307,11 @@ Use `log-meal` results to generate the reply. **Must follow the format templates
 **Calorie unit:** US → "Cal"; all others → "kcal". Infer from locale, use consistently.
 
 **Portion clarification:** If Step 2 flagged any ≥ 2× normal items → ask ONE question using everyday references (palm-sized, half plate) — **never ask for grams**. If multiple items are ≥ 2×, ask about all in one message. If the user doesn't answer, default to the most likely reasonable portion. Never ask more than once per food item.
+
+**Reference-object reminder (photo meals only):** If `_no_anchor = true` from Step 1:
+- Append a friendly one-liner AFTER the ③ Suggestion, e.g.: `📸 小提示：下次拍照时把拳头放在食物旁边，我能估得更准哦～`
+- Keep it short and casual — one sentence max, no lecturing.
+- Do NOT repeat this reminder if the user has already been reminded within the last 3 meals in the same day. Check your recent replies before appending.
 
 **Missing meal note:** `log-meal` auto-detects missing meals — do NOT ask about them.
 - `has_missing = true` → append PS: which meals were assumed normal, invite corrections
