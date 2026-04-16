@@ -164,16 +164,30 @@ Scene: [N] containers
 Do NOT merge separate containers.
 
 **Step 1 — Anchor:**
-- Known object (egg, chopstick, spoon, phone, hand) → `§ Photo Reference Objects`
-- Container matches known type → `§ Common Container Sizes`
-- None found → single-serving default, prefix `~`, **set `_no_anchor = true`**
+
+**Only these count as anchor references** (size is fixed/predictable):
+- Egg (~6cm), chopstick (~24cm), fork, spoon (soup spoon ~6-7cm)
+- Hand / fist / palm
+- Phone (~15×7cm), bank card (8.5×5.4cm)
+- Water bottle (standard 550ml, ~6.5cm ⌀), disposable paper cup (~7cm ⌀)
+- Rice bowl (standard ~11cm ⌀)
+- Takeout box (disposable, standard S/L sizes), cafeteria tray (segmented ~27×20cm)
+
+**These do NOT count as anchors** (size varies too much):
+- Plates / dishes (20-28cm), soup bowls (14-22cm), clay pots, trays, large noodle bowls
+
+**Anchor logic:**
+- Anchor reference found → use `§ Photo Reference Objects` to calibrate
+- No anchor found → single-serving default, prefix `~`, **set `_no_anchor = true`**
+
+Container type from `§ Common Container Sizes` helps estimate volume AFTER anchoring, but **recognizing a container type alone is NOT anchoring**. You must have a separate reference object OR the container itself must be in the anchor list above (rice bowl, takeout box, cafeteria tray).
 
 **Anchor check (REQUIRED in thinking):**
 ```
 Anchor check:
   Reference object: [object name / "none"]
+  Anchor status:    [anchored / no_anchor]
   Container type:   [matched type / "unrecognized"]
-  → Anchor status:  [anchored / no_anchor]
 ```
 
 **Step 2 — Measure (REQUIRED in thinking for EACH container):**
