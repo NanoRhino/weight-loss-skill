@@ -555,6 +555,20 @@ bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
 - **Latest URL**: `{username}/weekly-report.html` — always points to the most recent report
 - `plan-url.json` is auto-updated with the `weekly-report` key.
 
+### Backfill historical reports
+
+After uploading the current report, check `data/reports/` for any older `weekly-report-*.html` files that may not have been uploaded with dated keys (i.e., from before the dated-upload feature). For each such file:
+
+```bash
+bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
+  --file {workspaceDir}/data/reports/weekly-report-{old_start_date}.html \
+  --bucket nanorhino-im-plans \
+  --key weekly-report-{old_start_date} \
+  --workspace {workspaceDir}
+```
+
+This ensures the `← 上一周` navigation links always resolve. Only upload files that haven't been uploaded yet (check if the dated URL returns 200, or simply re-upload — the operation is idempotent).
+
 ### Week Navigation (Previous / Next)
 
 The HTML template includes `← 上一周` / `下一周 →` navigation buttons. When generating the HTML, replace these placeholders:
