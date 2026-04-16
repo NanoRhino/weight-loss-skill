@@ -318,10 +318,9 @@ Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
 
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar which shows both).
 
-**CN produce (REQUIRED — both lines, never skip):**
-🥦 蔬菜：~XXXg ✅/⬇️
-🍎 水果：~XXXg ✅/⬇️
-- Both lines are **mandatory** for CN region. Do NOT omit the fruit line even if fruit is 0g — show `🍎 水果：0g ⬇️`.
+**CN produce (REQUIRED — never omit either item):**
+🥦 蔬菜：~XXXg ✅/⬇️  🍎 水果：~XXXg ✅/⬇️
+- This line is **mandatory** for CN region. Always include BOTH 🥦 and 🍎 on the same line, even if fruit is 0g — show `🍎 水果：0g ⬇️`.
 - Vegetable low → suggest at next meal.
 - Fruit low → suggest only at final meal of the day. Otherwise just show status, no suggestion.
 
