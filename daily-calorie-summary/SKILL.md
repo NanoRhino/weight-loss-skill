@@ -121,31 +121,34 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 ### Format
 
 ```
-📋 今日总结 · {date_display}
+📋 今日总结 · {date_display} {verdict}
 
-📉 热量缺口 {actual_deficit} kcal {status_symbol} 计划 {planned_deficit} kcal
+📉 热量缺口 {actual_deficit} kcal {status_symbol}
 {one_sentence_comment}
 
----
+热量明细：
 🍽 摄入 {food_intake} kcal
-🏃 运动消耗 {exercise_burn} kcal
 🔥 总消耗 {total_burn} kcal（TDEE {tdee} + 运动 {exercise_burn}）
+
+{follow_up_questions}
 ```
 
 ### Field Rules
 
-- **Title**: Always `📋 今日总结 · {date_display}` — conclusion (deficit line + comment) comes FIRST, details below the divider.
-- **`date_display`**: weekday + date, e.g. `周二 · 4/14`
-- **`food_intake`**: sum of all logged meals. Missing meals are handled by the Follow-Up Questions section — do not annotate inline.
-- **`exercise_burn`**: sum of net exercise calories. **Always show this line, even if 0.** When no exercise is logged, display `🏃 运动消耗 0 kcal`.
-- **`total_burn`**: TDEE + exercise net. Parenthetical breakdown always shown.
+- **Title**: `📋 今日总结 · {date_display} {verdict}` — verdict is a one-word tag: `达标` / `超标` / `不足` / `⚠️低于基代`
+  - On track (within ±100 of plan): `达标`
+  - Larger deficit than planned: `不足`（ate too little）
+  - Smaller deficit / surplus: `超标`
+  - Below BMR: `⚠️低于基代`
+- **`date_display`**: weekday + date, e.g. `周四 · 4/16`
+- **Deficit line**: `📉 热量缺口 {actual_deficit} kcal {status_symbol}` — no "计划 X kcal" suffix. The comment below explains vs plan.
+- **`one_sentence_comment`**: mentions planned deficit for context. E.g. `今天制造热量缺口高于计划500kcal，相当于大约四个鸡翅的量。`
+- **Details section**: labeled `热量明细：` (not a divider line). Lists intake and total burn. Exercise is always part of the total burn parenthetical — no separate exercise line.
+- **`food_intake`**: sum of all logged meals.
+- **`total_burn`**: TDEE + exercise. Always show parenthetical `（TDEE {tdee} + 运动 {exercise_burn}）`, even when exercise is 0.
 - **`actual_deficit`**: total_burn - food_intake
-- **`status_symbol`**:
-  - On track: `≈` — e.g. `📉 实际缺口 520 kcal ≈ 计划 500 kcal`
-  - Larger deficit: `▲` — e.g. `📉 实际缺口 720 kcal ▲ 计划 500 kcal`
-  - Smaller deficit: `▽` — e.g. `📉 实际缺口 280 kcal ▽ 计划 500 kcal`
-  - Surplus (negative deficit): `⚠️` — e.g. `📈 热量盈余 120 kcal ⚠️ 计划缺口 500 kcal`
-- **`one_sentence_comment`**: one short sentence, data-driven. See Commentary Rules.
+- **`status_symbol`**: only `▲` (larger deficit) or `▽` (smaller deficit) or `≈` (on track) or `⚠️` (surplus). Appended after kcal, no other text.
+- **Follow-up questions**: appear after a blank line from the details section. No separator needed.
 
 ### Commentary Rules
 
@@ -255,14 +258,13 @@ If exercise IS logged → skip this question.
 ### Combined Example
 
 ```
-📋 今日总结 · 周二 · 4/14
+📋 今日总结 · 周二 · 4/14 不足
 
-📉 热量缺口 1,150 kcal ▲ 计划 500 kcal
-缺口比计划大不少，可能还有没记的。
+📉 热量缺口 1,150 kcal ▲
+缺口比计划500kcal大不少，可能还有没记的。
 
----
+热量明细：
 🍽 摄入 1,050 kcal
-🏃 运动消耗 0 kcal
 🔥 总消耗 2,200 kcal（TDEE 2,200 + 运动 0）
 
 晚餐还没记，吃了什么？
