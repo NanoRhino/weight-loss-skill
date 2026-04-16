@@ -254,19 +254,19 @@ Oil — [dish name]:
 
 ### Step 2: Respond
 
-Follow `{baseDir}/references/response-schemas.md` for format.
-
 - Calorie unit: US → "Cal"; others → "kcal"
 - ≥ 2× normal items → ONE clarification question, everyday references (not grams)
 - `_no_anchor = true` → append: `📸 小提示：下次拍照时把拳头放在食物旁边，我能估得更准哦～` (skip if already reminded within last 3 meals same day)
 - `has_missing = true` → append PS about assumed meals, invite corrections
-- `needs_clarification` → append hint(s) directly; multiple → merge into ONE sentence (see `references/response-schemas.md § Ambiguous Food`)
+- `needs_clarification` → append hint(s) directly; multiple → merge into ONE sentence (see § Ambiguous Food below)
+
+**Must follow the Response Schemas below.**
 
 ---
 
 ## Workflow — Query Progress
 
-`query-day` → format per `references/response-schemas.md`.
+`query-day` → format per Response Schemas below.
 
 ---
 
@@ -281,3 +281,76 @@ Follow `{baseDir}/references/response-schemas.md` for format.
 ## Skill Routing
 
 P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKILL-ROUTING.md`.
+
+---
+
+## Response Schemas
+
+### ① Meal Details
+
+📝 [餐次] logged! → 🍽 This meal: XXX kcal | Protein Xg | Carbs Xg | Fat Xg → · Food — portion — XXX kcal
+
+### ② Nutrition Summary (from `evaluate`)
+
+📊 So far today:
+🔥 XXX/TARGET kcal
+███████░░░ XX%
+Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+
+**Progress bar:**
+- Fixed 10 chars: `█` filled, `░` remaining (each = 10%)
+- >100%: all filled + `(+XXX)` + `⚠️`
+
+Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no targets (except calorie bar).
+
+CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~XXXg ✅/⬇️
+- low → suggest at next meal; fruit only at final meal
+
+1-sentence bridge to ③. Optional `✨ Nice work` if noteworthy.
+
+### ③ Suggestion (by `suggestion_type`)
+
+**热量在目标范围内是第一优先级。** 热量 OK 时不要建议当天多吃，改到明天。
+
+| Type | Icon | Guidance |
+|------|------|----------|
+| `right_now` | ⚡ | Before eating — reduce/swap items. No per-item calories. Multiple → list and ask. |
+| `next_meal` | 💡 | Forward-looking. Over at last meal → "明天拉回来就好". |
+| `next_time` | 💡 | On track — habit tip. `cal_in_range_macro_off` → 肯定热量，建议**明天**换食材。 |
+| `case_d_snack` | 🍽 | Final meal, < BMR×0.9 — 温和建议再吃一些 |
+| `case_d_ok` | 💡 | Final meal, ≥ BMR×0.9 but below target — 饿就吃，不饿不吃 |
+
+### Overshoot tone (`next_meal` / `right_now`)
+
+By `evaluation.recent_overshoot_count` (past 7 days):
+
+- **0** → 正常语气，"明天拉回来就好"
+- **1** → "最近超标有点多，注意一下"
+- **2+** → **严肃告知后果**：
+  - 说清累计多摄入的热量和体重影响
+  - 分析原因（外卖？主食？）
+  - 给具体调整方案
+  - 禁止安慰句（❌ "没关系" ❌ "不影响大局"）
+- 用户有负面情绪 → 安慰优先。强烈情绪走 emotional-support (P1)
+
+### Food Suggestions
+
+Suggest by category + concrete examples from user's recent meals. Respect preferences. No bare calorie numbers.
+
+---
+
+## Ambiguous Food Clarification
+
+`needs_clarification` from `log-meal` → MUST append to reply.
+
+- Append `hint` field directly — do NOT rephrase or add "对了"
+- Multiple → merge into ONE sentence, ONE 🤔 at start, ONE "告诉我，我来改～" at end
+- User corrects → re-log with `log-meal`
+
+**Example (single):**
+```json
+"needs_clarification": [{"hint": "🤔 包子已先按鲜肉包记录，如果是其他馅的告诉我，我来改～"}]
+```
+
+**Example (multiple):**
+→ "🤔 粽子先按肉粽、包子先按鲜肉包记录了，不对的话告诉我，我来改～"
