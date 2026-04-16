@@ -152,18 +152,21 @@ Plain text in chat. No Markdown rendering. Scannable in under 10 seconds.
 
 ### Commentary Rules
 
-| Status | Tone | Example |
-|--------|------|---------|
-| On track | Affirm | `今天节奏刚好。` |
-| Larger deficit (< 200 over) | Casual positive | `比计划多消耗了一些，不错。` |
-| Larger deficit (>= 200 over) | Gentle caution + analogy | `多消耗的部分约等于燃烧了 55g 脂肪，不过明天可以多吃一点。` |
-| Below BMR | Safety note + analogy | `今天摄入低于基础代谢，差了大约三个鸡翅的量，注意别太少。` |
-| Smaller deficit (mild) | Neutral | `比计划少了一点，正常波动。` |
-| Smaller deficit (large) | Forward-looking + analogy | `多了大约一杯奶茶的量，明天回来就好。` |
-| Surplus | No guilt + analogy | `多了大约两小把花生米的量，不过一天不影响趋势。` |
-| No exercise | Never mention | Do NOT comment on lack of exercise — the follow-up question handles it. |
-| Has exercise | Brief acknowledgment | Incorporate naturally, e.g. `跑步贡献了 250 kcal 额外消耗。` |
-| Missing meals | Hint at incompleteness | E.g. `缺口比计划大不少，可能还有没记的。` — the follow-up question handles specifics. |
+The one-sentence comment should **only state the analogy** — no evaluation, no advice, no encouragement.
+
+| Status | Example |
+|--------|---------|
+| On track | `跟计划差不多。` |
+| Larger deficit (< 200 over) | `比计划多了一点。` |
+| Larger deficit (>= 200 over) | `比计划多消耗了大约四个鸡翅的量。` |
+| Below BMR | `摄入低于基础代谢，差了大约三个鸡翅的量。` |
+| Smaller deficit (mild) | `比计划少了一点。` |
+| Smaller deficit (large) | `多了大约一杯奶茶的量。` |
+| Surplus | `多了大约两小把花生米的量。` |
+| Has exercise | `跑步贡献了 250 kcal。` |
+| Missing meals | `可能还有没记的。` |
+
+**禁止：** 不要加"不错"、"明天回来就好"、"注意别太少"、"不影响趋势"等评价/建议。只说相当于多少食物或运动。
 
 ### Calorie Analogies
 
@@ -204,20 +207,17 @@ Rotate across days, don't总是用同一个比喻。
 **Direction matters:**
 
 - **Deficit too large** (ate too little / burned too much) → two analogy types可选：
-  - Food: `相当于少吃了三个鸡翅的量。` — 让用户直观感受该多吃多少。
-  - Fat burn (positive framing): `多消耗的部分约等于燃烧了 55g 脂肪，也不错。` — 给努力一个正向意义。
+  - Food: `相当于少吃了三个鸡翅的量。`
+  - Fat burn: `约等于燃烧了 55g 脂肪。`
 
 - **Deficit too small / surplus** (ate too much) → use exercise OR food analogy:
   - Exercise: `相当于散步 40 分钟的量。`
   - Food: `大约多了一杯奶茶的量。`
-  — 让用户直观感受超出的量级，不是为了让他们去补运动。
 
 **Tone rules:**
-- Analogies are for **perspective**, not guilt. Frame as relatable context.
+- **只说类比，不加评价。** 不说"不错"、"明天回来就好"、"注意"、"不影响趋势"。
 - **Single item only.** 用数量调节（"三个鸡翅"、"两小把花生米"），不混搭食材。
 - Never say "you need to walk X steps to burn it off" — say "相当于走 X 步的量".
-- For surplus: always follow with "不过一天不影响趋势" or similar reassurance.
-- For large deficit with fat burn analogy: always frame positively, never say "你饿过头了".
 
 ---
 
