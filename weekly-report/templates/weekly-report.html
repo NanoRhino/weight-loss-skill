@@ -358,6 +358,45 @@
     margin: 0.8rem 0;
   }
 
+  /* ===== Week Navigation ===== */
+  .week-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding: 1rem 0;
+    border-top: 2px solid #e0ddd5;
+  }
+
+  .week-nav-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #2d5016;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .week-nav-btn:hover {
+    background: #3d6b1f;
+  }
+
+  .week-nav-btn.disabled {
+    background: #ccc;
+    color: #999;
+    pointer-events: none;
+    cursor: default;
+  }
+
+  .week-nav-current {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 500;
+  }
+
   /* ===== Footer ===== */
   .report-footer {
     text-align: center;
@@ -601,6 +640,13 @@
       </ul>
     </div>
   </div>
+
+  <!-- ==================== WEEK NAVIGATION ==================== -->
+  <nav class="week-nav">
+    <a class="week-nav-btn week-nav-prev {{PREV_DISABLED}}" href="{{PREV_WEEK_URL}}">← 上一周</a>
+    <span class="week-nav-current">{{DATE_RANGE}}</span>
+    <a class="week-nav-btn week-nav-next {{NEXT_DISABLED}}" href="{{NEXT_WEEK_URL}}">下一周 →</a>
+  </nav>
 
   <!-- ==================== FOOTER ==================== -->
   <footer class="report-footer">

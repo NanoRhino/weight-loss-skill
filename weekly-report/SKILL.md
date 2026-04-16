@@ -529,9 +529,19 @@ Generate a self-contained HTML file using the template at
 - For the calorie bar chart: calculate bar widths as percentage of the max value in the week
 
 **Upload to cloud storage** using `plan-export`'s upload script (respects
-`PLAN_STORAGE_BACKEND` env var for AWS S3 / JD Cloud OSS auto-detection):
+`PLAN_STORAGE_BACKEND` env var for AWS S3 / JD Cloud OSS auto-detection).
+
+**Two uploads per report** — a dated archive copy + a latest redirect:
 
 ```bash
+# 1. Upload dated version (permanent archive)
+bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
+  --file {workspaceDir}/data/reports/weekly-report-{start_date}.html \
+  --bucket nanorhino-im-plans \
+  --key weekly-report-{start_date} \
+  --workspace {workspaceDir}
+
+# 2. Upload same file as latest (overwrites previous "latest")
 bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
   --file {workspaceDir}/data/reports/weekly-report-{start_date}.html \
   --bucket nanorhino-im-plans \
@@ -540,9 +550,29 @@ bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
 ```
 
 - The script **auto-resolves the username** from the workspace path (→ agentId → `agent-registry.json` shortId). Do NOT pass `--username` manually.
-- The script outputs the public URL to stdout. **Send this URL to the user** alongside the Part 1 message.
-- The URL is stable (`{username}/weekly-report.html`) — each upload overwrites the previous week's report.
+- The script outputs the public URL to stdout. **Send this URL to the user** alongside the Part 1 message (use the `weekly-report` latest URL).
+- **Dated URL**: `{username}/weekly-report-{start_date}.html` — permanent, never overwritten
+- **Latest URL**: `{username}/weekly-report.html` — always points to the most recent report
 - `plan-url.json` is auto-updated with the `weekly-report` key.
+
+### Week Navigation (Previous / Next)
+
+The HTML template includes `← 上一周` / `下一周 →` navigation buttons. When generating the HTML, replace these placeholders:
+
+| Placeholder | Value |
+|---|---|
+| `{{PREV_WEEK_URL}}` | Relative link to previous week: `weekly-report-{prev_start_date}.html` (e.g. `weekly-report-2026-04-07.html`) |
+| `{{NEXT_WEEK_URL}}` | Relative link to next week: `weekly-report-{next_start_date}.html` (e.g. `weekly-report-2026-04-21.html`) |
+| `{{PREV_DISABLED}}` | If no previous report exists in `data/reports/`, set to `disabled`. Otherwise empty string. |
+| `{{NEXT_DISABLED}}` | Always `disabled` for the current/latest report (no future data). Otherwise empty string. |
+
+**How to check if previous report exists:** Look for `data/reports/weekly-report-{prev_start_date}.html` in the workspace. If the file exists, the previous week has been generated → enable the link. Otherwise → add `disabled` class.
+
+**Date calculation:**
+- `{prev_start_date}` = `{start_date}` minus 7 days
+- `{next_start_date}` = `{start_date}` plus 7 days
+
+This means users can browse historical reports by clicking through the navigation chain. Each report links to its neighbors.
 
 ⚠️ **Do NOT use the `jdcloud-oss-upload` skill** for weekly reports. Always use
 `plan-export`'s `upload-to-s3.sh` to ensure consistent storage backend selection.
