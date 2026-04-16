@@ -23,6 +23,12 @@ import os
 import subprocess
 import sys
 
+def _normalize_path(p):
+    """Lowercase wechat-dm/wecom-dm segment to avoid case-mismatch directories."""
+    import re as _re
+    return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
+
+
 
 def run_script(cmd):
     """Run a subprocess and return (parsed JSON or None, stderr)."""
@@ -48,6 +54,7 @@ def main():
     parser.add_argument("--wgs-script", default=None,
                         help="Path to analyze-weight-trend.py")
     args = parser.parse_args()
+    args.data_dir = _normalize_path(args.data_dir)
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     tracker = os.path.join(script_dir, "weight-tracker.py")

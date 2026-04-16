@@ -47,6 +47,12 @@ import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 
+def _normalize_path(p):
+    """Lowercase wechat-dm/wecom-dm segment to avoid case-mismatch directories."""
+    import re as _re
+    return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
+
+
 
 def _local_date(tz_offset: int = None) -> str:
     """Return local date as YYYY-MM-DD string.
@@ -2495,6 +2501,7 @@ def main():
     qd.add_argument("--schedule", type=str, default=None, help="Meal schedule JSON")
 
     args = parser.parse_args()
+    args.data_dir = _normalize_path(args.data_dir)
 
     if args.cmd == "detect-meal":
         sched = None

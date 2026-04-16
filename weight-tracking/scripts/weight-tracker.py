@@ -20,6 +20,12 @@ import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
+def _normalize_path(p):
+    """Lowercase wechat-dm/wecom-dm segment to avoid case-mismatch directories."""
+    import re as _re
+    return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
+
+
 # ── Constants ────────────────────────────────────────────────────────────────
 
 KG_PER_LB = 0.45359237
@@ -103,6 +109,7 @@ def parse_iso(s: str) -> datetime:
         if not m:
             raise ValueError(f"Cannot parse datetime: {s}")
         from datetime import timezone, timedelta as _td
+
         base = datetime.strptime(m.group(1) + 'T' + m.group(2), '%Y-%m-%dT%H:%M:%S')
         if m.group(3):
             sign = 1 if m.group(3)[0] == '+' else -1
@@ -289,6 +296,7 @@ def main():
     p_unit.add_argument("--unit", required=True)
 
     args = parser.parse_args()
+    args.data_dir = _normalize_path(args.data_dir)
 
     if not args.command:
         parser.error("command is required")

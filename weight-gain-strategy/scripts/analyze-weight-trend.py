@@ -513,6 +513,12 @@ def parse_user_sex(user_file):
     with open(user_file, "r", encoding="utf-8") as f:
         content = f.read().lower()
     import re
+
+def _normalize_path(p):
+    """Lowercase wechat-dm/wecom-dm segment to avoid case-mismatch directories."""
+    import re as _re
+    return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
+
     match = re.search(r"sex[:\s]*(male|female|男|女)", content)
     if match:
         val = match.group(1)
@@ -980,6 +986,7 @@ def main():
     p_check.add_argument("--tz-offset", type=int, default=0)
 
     args = parser.parse_args()
+    args.data_dir = _normalize_path(args.data_dir)
 
     if args.command == "analyze":
         analyze(args)

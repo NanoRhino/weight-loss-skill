@@ -24,6 +24,12 @@ import re
 import sys
 from datetime import datetime, timezone, timedelta
 
+def _normalize_path(p):
+    """Lowercase wechat-dm/wecom-dm segment to avoid case-mismatch directories."""
+    import re as _re
+    return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
+
+
 
 MILESTONES = [3, 7, 14, 21, 30, 60, 90, 180, 365]
 
@@ -252,6 +258,8 @@ def main():
                         help="Milestone number to mark as celebrated")
 
     args = parser.parse_args()
+    args.workspace_dir = _normalize_path(args.workspace_dir)
+    args.data_dir = _normalize_path(args.data_dir)
 
     if args.command == "celebrate":
         cmd_celebrate(args)

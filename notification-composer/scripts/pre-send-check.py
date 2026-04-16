@@ -23,6 +23,12 @@ import os
 import sys
 from datetime import datetime, timezone, timedelta
 
+def _normalize_path(p):
+    """Lowercase wechat-dm/wecom-dm segment to avoid case-mismatch directories."""
+    import re as _re
+    return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
+
+
 
 def log(msg):
     """Log to stderr (not visible to user, only for debugging)."""
@@ -406,6 +412,7 @@ def main():
     parser.add_argument("--tz-offset", required=True, type=int,
                         help="Timezone offset in seconds from UTC")
     args = parser.parse_args()
+    args.workspace_dir = _normalize_path(args.workspace_dir)
 
     checks = [
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),

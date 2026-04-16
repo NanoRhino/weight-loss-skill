@@ -40,6 +40,12 @@ import sys
 from datetime import datetime, timezone, timedelta
 from typing import List, Tuple, Dict, Any, Optional
 
+def _normalize_path(p):
+    """Lowercase wechat-dm/wecom-dm segment to avoid case-mismatch directories."""
+    import re as _re
+    return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
+
+
 # ---------------------------------------------------------------------------
 # MET tables (from references/met-table.md)
 # ---------------------------------------------------------------------------
@@ -575,6 +581,7 @@ def main():
     p.add_argument("--log", required=True, help="Updated exercise JSON object")
 
     args = parser.parse_args()
+    args.data_dir = _normalize_path(args.data_dir)
     if not args.cmd:
         parser.print_help()
         sys.exit(1)
