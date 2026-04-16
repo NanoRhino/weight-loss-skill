@@ -2,31 +2,19 @@
 
 ## Photo Reference Objects
 
-These objects have **fixed/predictable sizes** and count as valid anchors:
-
 | Object | Size |
 |--------|------|
 | Chicken egg | ~6 cm, ~60 g |
 | Soup spoon (Chinese) | Bowl ~6–7 cm wide |
 | Chopstick | ~24 cm |
-| Fork | ~19–20 cm |
 | Standard rice bowl | ~11 cm ⌀, ~300 ml |
+| Lunch box (small / large) | ~500 ml / ~750–1000 ml |
 | Smartphone | ~15 × 7 cm |
 | Bank card | 8.5 × 5.4 cm |
 | Disposable paper cup | ~7 cm ⌀, ~9 cm tall, ~250 ml |
 | Water bottle (standard) | ~6.5 cm ⌀, ~20 cm tall, 550 ml |
 | Adult palm (no fingers) | ~10 × 8 cm, ~2 cm thick |
 | Adult fist | ~8 × 7 × 8 cm, ≈ 200 ml |
-| Disposable takeout box (S) | 14–15 cm ⌀, 4–5 cm deep, ~500 ml |
-| Disposable takeout box (L) | 18–19 cm ⌀, 5–6 cm deep, ~800–1000 ml |
-| Disposable rect box (single) | ~18 × 13 cm, 5 cm deep, ~750 ml |
-| Cafeteria tray (segmented) | ~27 × 20 cm, section depth ~2.5–3 cm |
-
-**⚠️ NOT valid anchors** (size varies too much — use for volume estimation only AFTER anchoring):
-- Plates / dishes (20–28 cm range)
-- Soup bowls / noodle bowls (14–22 cm range)
-- Clay pots (18–22 cm range)
-- Serving trays
 
 ## Common Container Sizes
 
