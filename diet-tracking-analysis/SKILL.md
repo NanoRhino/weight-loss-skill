@@ -240,27 +240,10 @@ For mixed dishes (e.g. stir-fry with meat + vegetables), split by component:
 Flag items **≥ 2× standard** — Step 2 decides whether to clarify.
 
 #### 1.5 Estimate nutrition
-
-> 🚫 **HARD RULE — LOOK UP FIRST, THEN CALCULATE:**
-> 1. Call `read` on `{baseDir}/references/common-foods-nutrition.md` — this is a tool call, not optional.
-> 2. For EACH food item, search the table for a match (exact name or obvious equivalent).
-> 3. **Match found** → use the table values. Calculate: `calories = table_cal_per_100g × amount_g / 100` (same for protein, carbs, fat). Do NOT substitute your own values.
-> 4. **No match** → fall back to USDA FoodData Central (US) or China CDC (CN).
-> 5. If you did not call `read` on this file, STOP and do it now. No exceptions.
-
-**Nutrition lookup template (REQUIRED in your thinking for EACH food):**
-```
-[food name]:
-  Source: [common-foods-nutrition.md / USDA / China CDC]
-  Per 100g: [cal] kcal, P [X]g, C [X]g, F [X]g
-  Amount: [W]g → [cal × W/100] kcal, P [X]g, C [X]g, F [X]g
-```
-
-**Self-check:** If any food's nutrition was calculated without the template above, go back and redo it. Every number must trace to a source.
-
 For each food item, estimate: `calories`, `protein_g`, `carbs_g`, `fat_g`, `amount_g`.
 
 - China region: also estimate `vegetables_g` and `fruits_g`. Starchy vegetables (potato, sweet potato, taro, corn) → count as carbs, NOT toward vegetable target
+- Data source: USDA FoodData Central primary; for regional foods, use local databases (e.g. China CDC)
 
 **Cooked-vegetable shrinkage:** Cooked vegetables weigh less than raw. Use shrinkage ratios in `references/portion-estimation.md` to reverse-estimate raw weight.
 - `vegetables_g` = estimated raw weight (before cooking)
