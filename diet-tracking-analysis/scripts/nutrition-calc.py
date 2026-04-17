@@ -2121,8 +2121,20 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     is_final = find_block_index(current_meal, meals, schedule) == len(blocks) - 1
 
     # Resolve suggestion type
-    eval_result["suggestion_type"] = _resolve_suggestion_type(
-        eval_result, eaten, is_final, bmr)
+    # When meals are missing, override daily_total with adjusted total
+    # so suggestion_type reflects estimated full-day intake
+    if assumed:
+        adjusted_total = daily_total_actual + sum(m.get("calories", 0) for m in assumed)
+        eval_result["daily_total_for_suggestion"] = adjusted_total
+        # Temporarily set daily_total to adjusted for suggestion_type calculation
+        orig_daily_total = eval_result["daily_total"]
+        eval_result["daily_total"] = adjusted_total
+        eval_result["suggestion_type"] = _resolve_suggestion_type(
+            eval_result, eaten, is_final, bmr)
+        eval_result["daily_total"] = orig_daily_total  # restore actual
+    else:
+        eval_result["suggestion_type"] = _resolve_suggestion_type(
+            eval_result, eaten, is_final, bmr)
     eval_result["is_final_meal"] = is_final
 
     result["evaluation"] = eval_result
