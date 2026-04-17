@@ -2048,7 +2048,7 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         assumed = []
         for m in missing["missing"]:
             pct = m["expected_pct"] / 100.0
-            assumed.append({
+            assumed_meal = {
                 "name": m["name"],
                 "meal_type": m["name"],
                 "calories": round(daily_cal * pct),
@@ -2056,7 +2056,13 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
                 "carbs": round(targets["carb"]["target"] * pct),
                 "fat": round(targets["fat"]["target"] * pct),
                 "assumed": True,
-            })
+            }
+            assumed.append(assumed_meal)
+            # Enrich missing_meals with assumed values for display
+            m["assumed_calories"] = assumed_meal["calories"]
+            m["assumed_protein"] = assumed_meal["protein"]
+            m["assumed_carbs"] = assumed_meal["carbs"]
+            m["assumed_fat"] = assumed_meal["fat"]
 
     # 3. Ensure meal_json has correct name/meal_type
     # meal_json may be a list of food items or a single dict
