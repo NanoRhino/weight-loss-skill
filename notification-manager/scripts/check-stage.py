@@ -245,7 +245,9 @@ def main():
             stage = target
             data["notification_stage"] = stage
             data["stage_changed_at"] = now.isoformat()
-            data["last_recall_date"] = None
+            # DO NOT reset last_recall_date here — pre-send-check uses it
+            # for same-day dedup. Resetting it would let a second cron
+            # through after the first already sent a recall message.
             # Reset stage-specific counters
             if stage >= 2:
                 data["recall_2_sent"] = False
