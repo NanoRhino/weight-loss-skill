@@ -1955,7 +1955,7 @@ def _resolve_suggestion_type(evaluation: dict, eaten: bool,
     NOT create a separate suggestion_type — it stays "next_time".
     """
     needs_adj = evaluation.get("needs_adjustment", False)
-    daily_total = evaluation.get("daily_total", 0)
+    daily_total = evaluation.get("daily_total_with_assumed") or evaluation.get("daily_total", 0)
     cal_in_range_macro_off = evaluation.get("cal_in_range_macro_off", False)
 
     # Case D: final meal + under calorie target range
@@ -2093,19 +2093,21 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     eval_result = evaluate(weight, daily_cal, meals,
                            current_meal, all_meals, assumed, mode, schedule)
     # Attach BMR info for Case D if provided
+    daily_total_actual = sum(m.get("calories", 0) for m in all_meals)
+    assumed_total = sum(m.get("calories", 0) for m in assumed) if assumed else 0
+    daily_total_with_assumed = daily_total_actual + assumed_total
+
+    eval_result["daily_total"] = daily_total_actual
+    eval_result["daily_total_with_assumed"] = daily_total_with_assumed if assumed else None
     if bmr is not None:
-        daily_total = sum(m.get("calories", 0) for m in all_meals)
         eval_result["bmr"] = bmr
-        eval_result["daily_total"] = daily_total
-        eval_result["below_bmr"] = daily_total < bmr
-    else:
-        daily_total = sum(m.get("calories", 0) for m in all_meals)
-        eval_result["daily_total"] = daily_total
+        eval_result["below_bmr"] = daily_total_with_assumed < bmr
 
     # Overshoot severity: how far over the upper calorie limit
+    # Use daily_total_with_assumed so suggestions account for assumed meals
     cal_hi = daily_cal + 100  # same as calc_targets range
-    if daily_total > cal_hi:
-        overshoot_pct = round((daily_total - cal_hi) / cal_hi * 100, 1)
+    if daily_total_with_assumed > cal_hi:
+        overshoot_pct = round((daily_total_with_assumed - cal_hi) / cal_hi * 100, 1)
         eval_result["overshoot_severity"] = "significant" if overshoot_pct >= 20 else "mild"
         eval_result["overshoot_pct"] = overshoot_pct
     else:

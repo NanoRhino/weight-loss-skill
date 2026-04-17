@@ -249,10 +249,10 @@ Oil — [dish name]:
 
 - Calorie unit: US → "Cal"; others → "kcal"
 - ≥ 2× normal items → ONE clarification question, everyday references (not grams)
-- `has_missing = true` → append PS about assumed meals, invite corrections
-  - Show `actual` values in ② Nutrition Summary (real intake only)
-  - Use `adjusted` values for ③ Suggestion (includes assumed meals)
-  - Append note: list each missing meal + assumed calories, e.g. "午餐按正常量估了约 XXX kcal，告诉我吃了什么会更准哦"
+- `has_missing = true` → **HARD RULE for missing meals:**
+  - ② Nutrition Summary: show `actual` values only (real intake, `daily_total`)
+  - ③ Suggestion: base ALL advice on `adjusted` / `daily_total_with_assumed` (includes assumed meals). Do NOT use `daily_total` for suggestions when `has_missing = true`
+  - Append note after suggestion: list each missing meal + assumed calories, e.g. "午餐按正常量估了约 XXX kcal，告诉我吃了什么会更准哦"
   - If user later provides the missed meal → re-log with `log-meal`, suggestions auto-update
 - `needs_clarification` → append hint(s) directly; multiple → merge into ONE sentence (see § Ambiguous Food below)
 
