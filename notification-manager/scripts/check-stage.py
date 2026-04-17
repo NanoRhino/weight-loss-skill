@@ -179,16 +179,29 @@ def main():
     last_logged = get_last_logged_date(args.workspace_dir)
 
     if last_logged is None:
-        # No meal records at all — user hasn't started logging yet, stay at current stage
+        # No meal records at all — user hasn't started logging yet.
+        # Use stage_changed_at (or engagement creation time) as fallback
+        # to calculate days_silent, so users who never logged still
+        # transition to recall stages instead of getting normal reminders forever.
         if not existed:
             data["stage_changed_at"] = now.isoformat()
             save_engagement(args.workspace_dir, data)
             log("No meal records found, initialized engagement.json")
-        print(f"{stage} 0")
-        return
+            print(f"{stage} 0")
+            return
 
-    # Calculate days since last logged meal
-    last_logged_date = datetime.strptime(last_logged, "%Y-%m-%d").date()
+        # Use stage_changed_at as the "last activity" reference
+        fallback_date = stage_changed_at
+        if fallback_date is None:
+            # No stage_changed_at either — treat as just created
+            log("No meal records and no stage_changed_at, assuming new user")
+            print(f"{stage} 0")
+            return
+
+        last_logged_date = fallback_date.date()
+        log(f"No meal records, using stage_changed_at as fallback: {fallback_date.isoformat()}")
+    else:
+        last_logged_date = datetime.strptime(last_logged, "%Y-%m-%d").date()
     today_date = now.date()
     days_silent = (today_date - last_logged_date).days
 
