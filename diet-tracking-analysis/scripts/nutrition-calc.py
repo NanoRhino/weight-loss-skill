@@ -2094,11 +2094,7 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
                            current_meal, all_meals, assumed, mode, schedule)
     # Attach BMR info for Case D if provided
     daily_total_actual = sum(m.get("calories", 0) for m in all_meals)
-    assumed_total = sum(m.get("calories", 0) for m in assumed) if assumed else 0
-    daily_total_with_assumed = daily_total_actual + assumed_total
-
     eval_result["daily_total"] = daily_total_actual
-    eval_result["daily_total_with_assumed"] = daily_total_with_assumed if assumed else None
     if bmr is not None:
         eval_result["bmr"] = bmr
         eval_result["below_bmr"] = daily_total_actual < bmr
