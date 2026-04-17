@@ -578,14 +578,21 @@ This ensures the `← 上一周` navigation links always resolve. Only upload fi
 
 ### Week Navigation (Previous / Next)
 
-The HTML template includes `← 上一周` / `下一周 →` navigation buttons. When generating the HTML, replace these placeholders:
+The HTML template includes `← 上一周` / `下一周 →` navigation buttons **inside the header** for stable top-of-page visibility.
+
+When generating the HTML, replace these placeholders:
 
 | Placeholder | Value |
 |---|---|
-| `{{PREV_WEEK_URL}}` | Relative link to previous week: `weekly-report-{prev_start_date}.html` (e.g. `weekly-report-2026-04-07.html`) |
-| `{{NEXT_WEEK_URL}}` | Relative link to next week: `weekly-report-{next_start_date}.html` (e.g. `weekly-report-2026-04-21.html`) |
+| `{{PREV_WEEK_URL}}` | **Full URL** to previous week: `https://nanorhino.ai/user/{username}/weekly-report-{prev_start_date}.html` |
+| `{{NEXT_WEEK_URL}}` | **Full URL** to next week: `https://nanorhino.ai/user/{username}/weekly-report-{next_start_date}.html` |
 | `{{PREV_DISABLED}}` | If no previous report exists in `data/reports/`, set to `disabled`. Otherwise empty string. |
 | `{{NEXT_DISABLED}}` | Always `disabled` for the current/latest report (no future data). Otherwise empty string. |
+| `{{WEEK_NUMBER}}` | Week number — see Week Number Calculation below. |
+
+⚠️ **Links must be full URLs** (not relative paths like `weekly-report-2026-04-06.html`). Relative paths break when the HTML is opened from different contexts (e.g., WeChat in-app browser, S3 direct link).
+
+**How to get {username}:** Read `plan-url.json` in the workspace. The URL pattern is `https://nanorhino.ai/user/{username}/...`. If `plan-url.json` doesn't exist yet, run `upload-to-s3.sh` first — it auto-creates it.
 
 **How to check if previous report exists:** Look for `data/reports/weekly-report-{prev_start_date}.html` in the workspace. If the file exists, the previous week has been generated → enable the link. Otherwise → add `disabled` class.
 
@@ -594,6 +601,28 @@ The HTML template includes `← 上一周` / `下一周 →` navigation buttons.
 - `{next_start_date}` = `{start_date}` plus 7 days
 
 This means users can browse historical reports by clicking through the navigation chain. Each report links to its neighbors.
+
+### Week Number Calculation
+
+`{N}` (used as `第{N}周` in chat message and `{{WEEK_NUMBER}}` in HTML) is calculated from the user's **first logging week**:
+
+```
+first_monday = the Monday of the week when the user first logged a meal
+               (= earliest date in data/meals/*.json, rounded back to its Monday)
+N = ((start_date - first_monday) / 7) + 1
+```
+
+**Example:** User first logged on Wed 2026-03-26 → first_monday = 2026-03-24 → that week is Week 1. Report for 2026-03-31~04-06 is Week 2.
+
+**If no meals exist at all:** Use `PLAN.md > 开始日期` as fallback, rounded back to its Monday.
+
+**Never use ISO week numbers or calendar year week numbers.** The week count is always relative to the user's personal start.
+
+### Report Period: Monday to Sunday
+
+Every weekly report covers exactly **Monday 00:00 to Sunday 23:59** (user's local time). The `{start_date}` is always a Monday. The script output `current_week` already provides the correct Monday–Sunday range — **never adjust it**.
+
+When querying meal data, weight data, and exercise data, use exactly this Monday–Sunday range. Do not use the script's `previous_week` unless generating a report for the prior period.
 
 ⚠️ **Do NOT use the `jdcloud-oss-upload` skill** for weekly reports. Always use
 `plan-export`'s `upload-to-s3.sh` to ensure consistent storage backend selection.
