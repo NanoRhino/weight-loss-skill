@@ -275,7 +275,7 @@ Onboarding produces **three separate files** (do NOT mention filenames or file s
 - **Food Restrictions:** [list or None]
 
 ## Meal Schedule
-- **Meals per Day:** —
+- **Meals per Day:** [2 or 3]
 - **Breakfast:** —
 - **Lunch:** —
 - **Dinner:** —

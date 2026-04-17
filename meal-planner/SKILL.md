@@ -214,6 +214,8 @@ English equivalent:
 **After collecting all three rounds:** Update the appropriate files silently:
 - **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
 - **Meal Schedule** → `health-profile.md > Meal Schedule`
+  - `Meals per Day` **must be the integer `2` or `3`** — never a range. If the user gives a range (e.g. "2-3 顿", "两到三顿"), write `3` (assume they log every meal they eat; reminders for days they skip will be suppressed by `pre-send-check` once that meal is absent from the log).
+  - Use standard names (Breakfast/Lunch/Dinner) — never "Meal 1"/"Meal 2".
 - **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
 - **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
 
