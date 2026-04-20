@@ -519,8 +519,20 @@ def analyze(args):
         })
 
     # --- Energy balance check ---
+    # Use net_change from recent trough (lowest point before current streak)
+    # instead of full-window first-to-last, so energy balance reflects
+    # the actual weight gain segment, not a potentially flat overall trend.
+    trough_val = last_val
+    for r in reversed(readings):
+        rv = float(r.get("value", r.get("display_value", 0)))
+        if rv <= trough_val:
+            trough_val = rv
+        else:
+            break
+    net_change_for_ebc = round(last_val - trough_val, 2)
+
     energy_balance_check = compute_energy_balance_check(
-        args, local_now, net_change, calorie_target, daily_cals, window
+        args, local_now, net_change_for_ebc, calorie_target, daily_cals, window
     )
 
     # --- Final output ---
