@@ -51,11 +51,13 @@
 
 - `calorie_stats.avg_daily_intake` = 只算有记录的餐，缺餐当作 0 → **不能直接当作"实际摄入"**
 - `energy_balance_check.adjusted_avg_daily_intake` = 记录的 + 缺餐按历史均值估算 → **更接近真实摄入**
+- `energy_balance_check.adjusted_avg_daily_protein` = 同理，蛋白质的 adjusted 估算值
 - `logging_stats.single_meal_days` > 0 时，说明有些天只记了一餐，raw 均值会严重偏低
 
 **引用方式：**
 - 有缺餐时：用 adjusted 均值，标注"含估算"。例如："每天大约摄入 1064 大卡（有几天只记了一餐，按正常量估算了午餐）"
-- 不要说"每天只吃了 935 大卡"——用户可能吃了只是没记
+- 蛋白质同理：用 `adjusted_avg_daily_protein`，不要用 `protein_stats.avg_daily_g`
+- 不要说"每天只吃了 935 大卡"或"蛋白质只有 41g"——用户可能吃了只是没记
 
 **要求：**
 - **贴合用户行为**：分析必须指向用户实际做了什么，不是笼统结论
