@@ -20,26 +20,19 @@ Daily cron job. Start date: `Onboarding Completed` + 3 days (from `health-profil
 
 1. **Check precondition** — read `health-profile.md > Automation > Pattern Detection Completed`. If already has a date → skip (should not happen, but defensive).
 
-2. **Count logged days** — load past 7 days of meal data:
+2. **Run detection** (handles data sufficiency check internally):
    ```bash
-   python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py load \
-     --data-dir {workspaceDir}/data/meals --date <YYYY-MM-DD>
-   ```
-   Count days with ≥1 meal. If < 3 → reply with no output (insufficient data, cron preserved, retry tomorrow).
-
-3. **Run detection**:
-   ```bash
-   python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py detect-diet-pattern \
+   python3 {baseDir}/scripts/detect-pattern.py \
      --data-dir {workspaceDir}/data/meals \
      --current-mode <from health-profile.md > Diet Config > Diet Mode>
    ```
+   If result has `reason: "insufficient_data"` (< 3 days) → no output, cron preserved, retry tomorrow.
 
-4. **Handle result**:
+3. **Handle result**:
    - `has_pattern: true` → read `references/diet-pattern-response.md`, compose and send message to user. If user agrees to switch → update `health-profile.md > Diet Config > Diet Mode` and recalculate targets.
    - `has_pattern: false` → no message (pattern matches current mode, all good).
-   - `reason: "insufficient_data"` → no action, cron preserved, retry tomorrow.
 
-5. **Self-destruct** (when result is `has_pattern` true or false, NOT insufficient_data):
+4. **Self-destruct** (when result is `has_pattern` true or false, NOT insufficient_data):
    1. List current agent's cron jobs (`cron list`)
    2. Find job with name containing "diet-pattern" or "Diet pattern"
    3. Delete it (`cron remove`)

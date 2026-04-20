@@ -152,16 +152,16 @@ and `.calorie-bar` in the HTML template.
 
 ### Section 2b: Weekly Low-Calorie Safety Check
 
-Run **after** Section 2 calorie analysis. Checks if the user's weekly average intake fell below their calorie floor (BMR).
+Run **after** Section 2 calorie analysis. Uses the per-day calorie data already
+collected in Section 2 — no external script call needed.
 
-```bash
-python3 {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py weekly-low-cal-check \
-  --data-dir {workspaceDir}/data/meals --bmr <kcal> [--date <end-of-week>]
-```
-
-Returns: `below_floor`, `weekly_avg_cal`, `calorie_floor`, `days_below_floor`, `days_below_count`.
-
-BMR source: `PLAN.md` or calculate via Mifflin-St Jeor (see `weight-loss-planner/references/formulas.md`).
+**Data logic (inline calculation):**
+1. Get BMR from `PLAN.md` (or calculate via Mifflin-St Jeor: see `weight-loss-planner/references/formulas.md`)
+2. From Section 2's per-day calorie totals (only days with logged data):
+   - `weekly_avg_cal` = average of daily totals across logged days
+   - `days_below_floor` = list of dates where daily total < BMR
+   - `days_below_count` = length of that list
+   - `below_floor` = true if `weekly_avg_cal` < BMR
 
 **When `below_floor` is true:**
 Append a gentle safety note in the Calorie Analysis section:
