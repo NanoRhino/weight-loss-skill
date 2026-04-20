@@ -141,6 +141,10 @@ and `.calorie-bar` in the HTML template.
   - Above range max → `📈 Over` (bar class: `over`)
 - Days with no data → `—` (skip from calculations)
 - Bar width = `(day_calories / max_calories_in_week) * 100%`
+- **Target range shading:** Each bar must include a `.calorie-bar-target` div showing the grey target zone:
+  - `left: (CAL_MIN / max_calories_in_week) * 100%`
+  - `width: ((CAL_MAX - CAL_MIN) / max_calories_in_week) * 100%`
+  - This renders a subtle grey band on every bar so users can visually see the target range
 
 **Commentary rules:**
 - Average within range → `"Right on track this week."` / `"这周热量控制得很好。"`

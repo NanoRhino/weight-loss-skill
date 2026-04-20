@@ -172,12 +172,26 @@
     border-radius: 7px;
     background: #e8e5dd;
     overflow: hidden;
+    position: relative;
   }
 
   .calorie-bar-fill {
     height: 100%;
     border-radius: 7px;
     transition: width 0.3s;
+    position: relative;
+    z-index: 2;
+  }
+
+  .calorie-bar-target {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.08);
+    border-left: 1.5px solid rgba(0, 0, 0, 0.15);
+    border-right: 1.5px solid rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    z-index: 1;
   }
 
   .calorie-bar-fill.on-target { background: #4ade80; }
@@ -472,6 +486,13 @@
     For each day, calculate bar width as: (day_calories / max_calories_in_week) * 100%
     Apply class "on-target", "below", or "over" to .calorie-bar-fill based on comparison
     with Daily Calorie Range from PLAN.md. Skip entire card if no calorie data exists.
+
+    CALORIE TARGET RANGE SHADING:
+    Each .calorie-bar must contain a .calorie-bar-target div that shows the target range.
+    Calculate its left and width as percentages of the bar's max scale (max_calories_in_week):
+      - left:  (CAL_MIN / max_calories_in_week) * 100%
+      - width: ((CAL_MAX - CAL_MIN) / max_calories_in_week) * 100%
+    This creates a grey shaded zone showing where the target range falls on each bar.
   -->
   <div class="report-card">
     <div class="card-header">🔥 Calorie Analysis</div>
@@ -492,7 +513,7 @@
             <td>Mon</td>
             <td>1,620 kcal</td>
             <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 75%"></div></div>
+              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill on-target" style="width: 75%"></div></div>
             </td>
             <td><span class="status-icon">✅</span></td>
           </tr>
@@ -500,7 +521,7 @@
             <td>Tue</td>
             <td>1,480 kcal</td>
             <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-fill below" style="width: 69%"></div></div>
+              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill below" style="width: 69%"></div></div>
             </td>
             <td><span class="status-icon">📉</span></td>
           </tr>
@@ -508,7 +529,7 @@
             <td>Wed</td>
             <td>1,750 kcal</td>
             <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 81%"></div></div>
+              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill on-target" style="width: 81%"></div></div>
             </td>
             <td><span class="status-icon">✅</span></td>
           </tr>
@@ -522,7 +543,7 @@
             <td>Fri</td>
             <td>1,830 kcal</td>
             <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-fill on-target" style="width: 85%"></div></div>
+              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill on-target" style="width: 85%"></div></div>
             </td>
             <td><span class="status-icon">✅</span></td>
           </tr>
@@ -530,7 +551,7 @@
             <td>Sat</td>
             <td>2,150 kcal</td>
             <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-fill over" style="width: 100%"></div></div>
+              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill over" style="width: 100%"></div></div>
             </td>
             <td><span class="status-icon">📈</span></td>
           </tr>
