@@ -21,6 +21,7 @@ import argparse
 import fcntl
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timezone, timedelta
 
@@ -34,6 +35,36 @@ def _normalize_path(p):
 def log(msg):
     """Log to stderr (not visible to user, only for debugging)."""
     print(f"[pre-send-check] {msg}", file=sys.stderr)
+
+
+def _run_check_stage(workspace_dir, tz_offset):
+    """Auto-run check-stage.py to ensure engagement.json is current.
+    
+    This makes pre-send-check self-contained — it no longer depends on
+    the agent calling check-stage.py first. check-stage is idempotent:
+    running it multiple times in the same minute produces the same result.
+    """
+    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
+    script = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "..", "notification-manager", "scripts", "check-stage.py"
+    )
+    if not os.path.exists(script):
+        log(f"check-stage.py not found at {script}, skipping")
+        return
+    try:
+        result = subprocess.run(
+            [sys.executable, script,
+             "--workspace-dir", workspace_dir,
+             "--tz-offset", str(tz_offset)],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.stdout.strip():
+            log(f"check-stage output: {result.stdout.strip()}")
+        if result.returncode != 0:
+            log(f"check-stage exited {result.returncode}: {result.stderr.strip()}")
+    except Exception as e:
+        log(f"check-stage failed: {e}")
 
 
 def get_local_date(tz_offset):
@@ -335,6 +366,11 @@ def main():
                         help="Timezone offset in seconds from UTC")
     args = parser.parse_args()
     args.workspace_dir = _normalize_path(args.workspace_dir)
+
+    # Auto-run check-stage.py BEFORE any checks to ensure engagement.json
+    # is up-to-date. This removes the dependency on the agent calling
+    # check-stage.py first — pre-send-check is now self-contained.
+    _run_check_stage(args.workspace_dir, args.tz_offset)
 
     checks = [
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
