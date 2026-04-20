@@ -742,11 +742,20 @@ def compute_energy_balance_check(args, local_now, net_change_kg, calorie_target,
 
     # --- Balance calculations ---
     total_reported_cal = sum(d["cal"] for d in daily_cals)
+    total_reported_protein = sum(d.get("protein", 0) for d in daily_cals)
     implied_surplus = round(net_change_kg * 7700)
     raw_balance = round(total_reported_cal - tdee * window)
     adjusted_total = total_reported_cal + total_estimated_kcal
     adjusted_avg = round(adjusted_total / window)
     adjusted_balance = round(adjusted_total - tdee * window)
+
+    # Adjusted protein: scale by same ratio as calories
+    if total_reported_cal > 0 and total_estimated_kcal > 0:
+        cal_scale = (total_reported_cal + total_estimated_kcal) / total_reported_cal
+        adjusted_protein_total = round(total_reported_protein * cal_scale)
+    else:
+        adjusted_protein_total = round(total_reported_protein)
+    adjusted_avg_protein = round(adjusted_protein_total / window)
 
     # --- Verdict ---
     if abs(implied_surplus) < 300:
@@ -770,6 +779,7 @@ def compute_energy_balance_check(args, local_now, net_change_kg, calorie_target,
         "implied_surplus_kcal": implied_surplus,
         "raw_balance_kcal": raw_balance,
         "adjusted_avg_daily_intake": adjusted_avg,
+        "adjusted_avg_daily_protein": adjusted_avg_protein,
         "adjusted_balance_kcal": adjusted_balance,
         "adjustment": {
             "confidence": adjustment_confidence,
