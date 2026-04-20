@@ -211,7 +211,10 @@ def main():
     changed = False
 
     # --- User returned: logged a meal today/yesterday but stage > 1 ---
-    if stage > 1 and days_silent <= 1:
+    # Only trigger reset if there are actual meal records (last_logged != None).
+    # Without real meals, days_silent is derived from stage_changed_at fallback
+    # and could be 0 right after a fast-forward, which would incorrectly reset.
+    if stage > 1 and days_silent <= 1 and last_logged is not None:
         stage = 1
         data["notification_stage"] = 1
         data["stage_changed_at"] = now.isoformat()
