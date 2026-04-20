@@ -15,7 +15,6 @@ Commands:
   check-missing — Check which main meals are missing before the current meal.
   meal-history  — Analyze meal history for a meal type over N days.
   save-recommendation — Save meal recommendations for today.
-  weekly-low-cal-check — Check if weekly average calorie intake is below BMR.
   produce-check — Evaluate cumulative vegetable and fruit intake (China region).
   calibration-lookup — Look up user's portion calibrations for food items.
   oil-calibration-lookup — Look up user's oil calibrations for food items.
@@ -36,7 +35,6 @@ Usage:
   python3 nutrition-calc.py meal-history --data-dir /path/to/data --days 30 --meal-type lunch
   python3 nutrition-calc.py save-recommendation --data-dir /path/to/data \
       --meal-type lunch --items '["鸡胸肉+糙米+西兰花", "牛肉面+茶叶蛋", "沙拉+全麦面包+酸奶"]'
-  python3 nutrition-calc.py weekly-low-cal-check --data-dir /path/to/data --bmr 1400
   python3 nutrition-calc.py produce-check --meals 3 --current-meal lunch --log '[...]'
 """
 
@@ -628,42 +626,6 @@ def produce_check(meals: int, current_meal: str, log: list,
     }
 
 
-def weekly_low_cal_check(data_dir: str, bmr: float,
-                         ref_date: str = None, tz_offset: int = None) -> dict:
-    end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
-    calorie_floor = max(bmr, 1000)
-
-    daily_totals: list[dict] = []
-    days_below: list[str] = []
-
-    for offset in range(7):
-        day = (end - timedelta(days=offset)).isoformat()
-        path = get_log_path(data_dir, day)
-        if not os.path.exists(path):
-            continue
-        with open(path, "r", encoding="utf-8") as f:
-            meals = _migrate_meals(json.load(f))
-        day_cal = round(sum(m.get("calories", 0) for m in meals), 1)
-        daily_totals.append({"date": day, "calories": day_cal})
-        if day_cal < calorie_floor:
-            days_below.append(day)
-
-    logged_days = len(daily_totals)
-    avg_cal = round(sum(d["calories"] for d in daily_totals) / logged_days, 1) if logged_days else 0
-
-    below_floor = avg_cal < calorie_floor if logged_days > 0 else False
-
-    return {
-        "period_end": end.isoformat(),
-        "logged_days": logged_days,
-        "daily_totals": sorted(daily_totals, key=lambda d: d["date"]),
-        "weekly_avg_calories": avg_cal,
-        "bmr": bmr,
-        "calorie_floor": calorie_floor,
-        "days_below_floor": days_below,
-        "days_below_count": len(days_below),
-        "below_floor": below_floor,
-    }
 
 
 def recent_overshoot_check(data_dir: str, daily_cal: int,
@@ -1063,12 +1025,6 @@ def main():
     mh.add_argument("--limit", type=int, default=5)
     mh.add_argument("--schedule", default=None)
 
-    # weekly-low-cal-check
-    wlc = sub.add_parser("weekly-low-cal-check", help="Check weekly avg vs BMR")
-    wlc.add_argument("--data-dir", required=True)
-    wlc.add_argument("--bmr", type=float, required=True)
-    wlc.add_argument("--date", default=None)
-    wlc.add_argument("--tz-offset", type=int, default=None)
 
     args = parser.parse_args()
     if hasattr(args, 'data_dir') and args.data_dir:
@@ -1123,9 +1079,7 @@ def main():
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
-    elif args.cmd == "weekly-low-cal-check":
         data_dir = _normalize_path(args.data_dir)
-        result = weekly_low_cal_check(data_dir, args.bmr, args.date, args.tz_offset)
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
