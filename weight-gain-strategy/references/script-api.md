@@ -78,8 +78,39 @@ python3 {baseDir}/scripts/analyze-weight-trend.py analyze \
       "duration_days": 7,
       "expected_impact": "~200 kcal additional burn per session"
     }
-  ]
+  ],
+  "energy_balance_check": {
+    "available": true,
+    "tdee_from_plan": 2093,
+    "plan_duration_days": 33,
+    "implied_surplus_kcal": 6930,
+    "raw_balance_kcal": -14972,
+    "adjusted_avg_daily_intake": 1556,
+    "adjusted_balance_kcal": -7532,
+    "adjustment": {
+      "confidence": "high",
+      "missing_by_meal": {"breakfast": 3, "lunch": 1},
+      "estimated_by_meal": {"breakfast": 3, "lunch": 1},
+      "unestimatable_by_meal": {},
+      "total_added_kcal": 1660
+    },
+    "verdict": "contradicts_after_adjustment"
+  }
 }
+```
+
+**`energy_balance_check.verdict` values:**
+- `within_noise` — implied surplus < 300 kcal; no meaningful contradiction
+- `consistent` — data trustworthy; raw balance matches weight change
+- `consistent_after_adjustment` — raw contradicted, but estimated missing meals resolve it
+- `contradicts_after_adjustment` — even after estimating missing meals, still contradicts
+- `insufficient_data` — missing PLAN.md deficit/target, or all missing meals unestimatable
+
+**`adjustment.confidence` values:**
+- `none_needed` — no missing meal slots detected
+- `high` — all missing meals estimated
+- `partial` — some estimated, some unestimatable
+- `none` — no meals could be estimated (verdict forced to `insufficient_data`)
 ```
 
 ## Command: `deviation-check`

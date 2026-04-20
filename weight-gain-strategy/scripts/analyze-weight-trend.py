@@ -91,6 +91,22 @@ def parse_plan_target(plan_path):
     return None
 
 
+def parse_plan_deficit(plan_path):
+    """Extract daily calorie deficit from PLAN.md (每日热量缺口)."""
+    if not plan_path or not os.path.exists(plan_path):
+        return None
+    import re
+    with open(plan_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    match = re.search(r"每日热量缺口[：:]\s*约?\s*([\d,]+)\s*(?:kcal|Cal)", content)
+    if match:
+        return int(match.group(1).replace(",", ""))
+    match = re.search(r"[Dd]aily\s+calorie\s+deficit[:\s]*~?\s*([\d,]+)\s*(?:kcal|Cal)", content)
+    if match:
+        return int(match.group(1).replace(",", ""))
+    return None
+
+
 def parse_display_unit(health_profile_path):
     """Extract unit preference from health-profile.md."""
     if not health_profile_path or not os.path.exists(health_profile_path):
@@ -100,6 +116,92 @@ def parse_display_unit(health_profile_path):
     if "lb" in content.lower() and "unit preference" in content.lower():
         return "lb"
     return "kg"
+
+
+def parse_health_profile_meals(health_profile_path):
+    """Return expected meal type list from health-profile.md, e.g. ['breakfast','lunch','dinner']."""
+    default = ["breakfast", "lunch", "dinner"]
+    if not health_profile_path or not os.path.exists(health_profile_path):
+        return default
+    import re
+    with open(health_profile_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    meals = []
+    if re.search(r"-\s*[Bb]reakfast\s*:", content):
+        meals.append("breakfast")
+    if re.search(r"-\s*[Ll]unch\s*:", content):
+        meals.append("lunch")
+    if re.search(r"-\s*[Dd]inner\s*:", content):
+        meals.append("dinner")
+    if not meals:
+        m = re.search(r"[Mm]eals\s+per\s+[Dd]ay[:\s]*(\d)", content)
+        n = int(m.group(1)) if m else 3
+        return default[:n]
+    return meals
+
+
+def _extract_meal_types_from_day(day_data):
+    """Return {meal_type: calories} from a day's meal file. Skips entries < 50 kcal."""
+    KNOWN = {"breakfast", "lunch", "dinner", "snack", "brunch"}
+    result = {}
+    if isinstance(day_data, dict):
+        if any(k.lower() in KNOWN for k in day_data):
+            for key, val in day_data.items():
+                if key.lower() not in KNOWN:
+                    continue
+                cal = get_meal_calories(val) if isinstance(val, dict) else (float(val) if isinstance(val, (int, float)) else 0)
+                if cal >= 50:
+                    result[key.lower()] = cal
+            return result
+        meals = day_data.get("meals", [])
+    elif isinstance(day_data, list):
+        meals = day_data
+    else:
+        return result
+    for meal in meals:
+        if not isinstance(meal, dict):
+            continue
+        mt = (meal.get("meal_type") or meal.get("type") or "").lower()
+        if mt not in KNOWN:
+            continue
+        cal = get_meal_calories(meal)
+        if cal >= 50:
+            result[mt] = result.get(mt, 0) + cal
+    return result
+
+
+def _meal_avg_quality_gated(samples):
+    """CV < 0.20 AND std_dev < 200 gate; tries removing one outlier if n>=4.
+    Returns {ok, avg, cv, std_dev, n, trimmed} or {ok: False, reason}.
+    """
+    import statistics as _st
+
+    def _eval(vals):
+        n = len(vals)
+        if n < 3:
+            return None
+        mean = _st.mean(vals)
+        if mean <= 0:
+            return None
+        std = _st.stdev(vals) if n > 1 else 0
+        cv = std / mean
+        return {"ok": cv < 0.20 and std < 200, "avg": round(mean), "cv": round(cv, 3),
+                "std_dev": round(std), "n": n}
+
+    r = _eval(samples)
+    if r is None:
+        return {"ok": False, "reason": "insufficient_samples"}
+    if r["ok"]:
+        return {**r, "trimmed": False}
+    if len(samples) >= 4:
+        median = _st.median(samples)
+        outlier = max(samples, key=lambda x: abs(x - median))
+        trimmed = list(samples)
+        trimmed.remove(outlier)
+        r2 = _eval(trimmed)
+        if r2 and r2["ok"]:
+            return {**r2, "trimmed": True}
+    return {"ok": False, "reason": "high_variance", "cv": r["cv"], "std_dev": r["std_dev"], "n": r["n"]}
 
 
 def analyze(args):
@@ -412,6 +514,11 @@ def analyze(args):
             "description": f"Active strategy until {active_strategy['ends']} — no new cause-check needed",
         })
 
+    # --- Energy balance check ---
+    energy_balance_check = compute_energy_balance_check(
+        args, local_now, net_change, calorie_target, daily_cals, window
+    )
+
     # --- Final output ---
     result = {
         "trend": trend,
@@ -424,6 +531,7 @@ def analyze(args):
         "food_list": food_list,
         "active_strategy": active_strategy,
         "suggested_actions": suggested_actions,
+        "energy_balance_check": energy_balance_check,
     }
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
@@ -526,6 +634,136 @@ def _normalize_path(p):
             return "female"
         return "male"
     return None
+
+
+def compute_energy_balance_check(args, local_now, net_change_kg, calorie_target, daily_cals, window):
+    """Energy balance sanity check with per-meal gap estimation.
+
+    Derives TDEE from PLAN.md (calorie_target + daily_deficit).
+    Estimates missing meals using quality-gated per-meal averages (28-day lookback).
+    Returns energy_balance_check dict with verdict field.
+    """
+    # --- TDEE from plan ---
+    daily_deficit = parse_plan_deficit(args.plan_file) if args.plan_file else None
+    if not daily_deficit:
+        plan_rate = parse_plan_rate(args.plan_file) if args.plan_file else None
+        if plan_rate:
+            daily_deficit = round(plan_rate * 7700 / 7)
+    if not calorie_target or not daily_deficit:
+        reason = "missing_calorie_target" if not calorie_target else "missing_plan_deficit"
+        return {"available": False, "verdict": "insufficient_data", "reason": reason}
+    tdee = calorie_target + daily_deficit
+
+    # --- Plan duration ---
+    plan_start = parse_plan_start_date(args.plan_file) if args.plan_file else None
+    plan_duration_days = None
+    if plan_start:
+        try:
+            plan_duration_days = (local_now.date() - datetime.strptime(plan_start, "%Y-%m-%d").date()).days
+        except ValueError:
+            pass
+
+    # --- Expected meals from health profile ---
+    expected_meals = parse_health_profile_meals(getattr(args, "health_profile", None))
+
+    # --- Per-meal calorie history (28-day lookback) ---
+    meal_history = {mt: [] for mt in expected_meals}
+    for offset in range(28):
+        d = (local_now - timedelta(days=offset)).strftime("%Y-%m-%d")
+        mp = os.path.join(args.data_dir, "meals", f"{d}.json")
+        if not os.path.exists(mp):
+            continue
+        typed = _extract_meal_types_from_day(load_json(mp))
+        for mt in expected_meals:
+            if mt in typed:
+                meal_history[mt].append(typed[mt])
+
+    meal_avgs = {mt: _meal_avg_quality_gated(meal_history[mt]) for mt in expected_meals}
+
+    # --- Gap detection in analysis window ---
+    logged_meal_slots = set()
+    all_window_dates = [
+        (local_now - timedelta(days=window - 1 - i)).strftime("%Y-%m-%d")
+        for i in range(window)
+    ]
+    for d in all_window_dates:
+        mp = os.path.join(args.data_dir, "meals", f"{d}.json")
+        if not os.path.exists(mp):
+            continue
+        typed = _extract_meal_types_from_day(load_json(mp))
+        for mt in expected_meals:
+            if mt in typed:
+                logged_meal_slots.add((d, mt))
+
+    missing_by_meal = {mt: 0 for mt in expected_meals}
+    estimated_by_meal = {mt: 0 for mt in expected_meals}
+    unestimatable_by_meal = {mt: 0 for mt in expected_meals}
+    total_estimated_kcal = 0.0
+
+    for d in all_window_dates:
+        for mt in expected_meals:
+            if (d, mt) not in logged_meal_slots:
+                missing_by_meal[mt] += 1
+                avg_info = meal_avgs[mt]
+                if avg_info.get("ok"):
+                    estimated_by_meal[mt] += 1
+                    total_estimated_kcal += avg_info["avg"]
+                else:
+                    unestimatable_by_meal[mt] += 1
+
+    total_missing = sum(missing_by_meal.values())
+    total_unestimatable = sum(unestimatable_by_meal.values())
+    total_estimated = sum(estimated_by_meal.values())
+
+    if total_missing == 0:
+        adjustment_confidence = "none_needed"
+    elif total_unestimatable == 0:
+        adjustment_confidence = "high"
+    elif total_estimated > 0:
+        adjustment_confidence = "partial"
+    else:
+        adjustment_confidence = "none"
+
+    # --- Balance calculations ---
+    total_reported_cal = sum(d["cal"] for d in daily_cals)
+    implied_surplus = round(net_change_kg * 7700)
+    raw_balance = round(total_reported_cal - tdee * window)
+    adjusted_total = total_reported_cal + total_estimated_kcal
+    adjusted_avg = round(adjusted_total / window)
+    adjusted_balance = round(adjusted_total - tdee * window)
+
+    # --- Verdict ---
+    if abs(implied_surplus) < 300:
+        verdict = "within_noise"
+    elif adjustment_confidence == "none" and total_missing > 0:
+        verdict = "insufficient_data"
+    else:
+        max_val = max(abs(implied_surplus), abs(adjusted_balance))
+        discrepancy = abs(implied_surplus - adjusted_balance) / max_val if max_val > 0 else 0
+        adj_dir_match = (implied_surplus >= 0) == (adjusted_balance >= 0)
+        raw_dir_match = (implied_surplus >= 0) == (raw_balance >= 0)
+        if adj_dir_match and discrepancy < 0.30:
+            verdict = "consistent" if raw_dir_match else "consistent_after_adjustment"
+        else:
+            verdict = "contradicts_after_adjustment"
+
+    return {
+        "available": True,
+        "tdee_from_plan": tdee,
+        "plan_duration_days": plan_duration_days,
+        "implied_surplus_kcal": implied_surplus,
+        "raw_balance_kcal": raw_balance,
+        "adjusted_avg_daily_intake": adjusted_avg,
+        "adjusted_balance_kcal": adjusted_balance,
+        "adjustment": {
+            "confidence": adjustment_confidence,
+            "missing_by_meal": {k: v for k, v in missing_by_meal.items() if v},
+            "estimated_by_meal": {k: v for k, v in estimated_by_meal.items() if v},
+            "unestimatable_by_meal": {k: v for k, v in unestimatable_by_meal.items() if v},
+            "total_added_kcal": round(total_estimated_kcal),
+        },
+        "verdict": verdict,
+    }
 
 
 def detect_temporary_causes(args, local_now, readings, calorie_target):
