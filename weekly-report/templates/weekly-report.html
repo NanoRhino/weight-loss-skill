@@ -124,97 +124,34 @@
     padding-top: 0.6rem;
   }
 
-  /* ===== Section 3: Calorie Analysis ===== */
-  .calorie-target {
-    font-size: 0.85rem;
-    color: #888;
-    margin-bottom: 0.8rem;
-  }
+  /* ===== Section 3: Calorie Analysis (vertical bar chart) ===== */
+  .cal-legend { display: flex; gap: 1.2rem; justify-content: center; margin-bottom: 1rem; font-size: 0.78rem; color: #888; }
+  .cal-legend-item { display: flex; align-items: center; gap: 0.3rem; }
+  .cal-legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+  .cal-legend-swatch.on-target { background: #6bcb8b; }
+  .cal-legend-swatch.below { background: #c8e6c9; }
+  .cal-legend-swatch.over { background: #fdd0b1; }
 
-  .calorie-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 0.6rem;
-  }
+  .cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0.3rem; margin-bottom: 0.4rem; }
+  .cal-target-band { position: absolute; left: 0; right: 0; background: rgba(0,0,0,0.05); border-top: 1.5px dashed rgba(0,0,0,0.12); border-bottom: 1.5px dashed rgba(0,0,0,0.12); z-index: 0; }
+  .cal-target-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #aaa; }
+  .cal-grid-line { position: absolute; left: 0; right: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
+  .cal-grid-label { position: absolute; left: -2px; transform: translateY(50%); font-size: 0.65rem; color: #bbb; }
 
-  .calorie-table th {
-    text-align: left;
-    font-size: 0.78rem;
-    color: #888;
-    font-weight: 500;
-    padding: 0.4rem 0.6rem;
-    border-bottom: 2px solid #e0ddd5;
-  }
+  .cal-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; z-index: 1; position: relative; }
+  .cal-bar-wrapper { width: 60%; max-width: 36px; }
+  .cal-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; }
+  .cal-bar.on-target { background: #6bcb8b; }
+  .cal-bar.below { background: #c8e6c9; }
+  .cal-bar.over { background: #fdd0b1; }
+  .cal-bar.empty { background: transparent; }
+  .cal-bar-value { font-size: 0.65rem; color: #888; text-align: center; margin-bottom: 2px; white-space: nowrap; }
 
-  .calorie-table td {
-    font-size: 0.88rem;
-    color: #444;
-    padding: 0.5rem 0.6rem;
-    border-bottom: 1px solid #f0ede5;
-  }
+  .cal-x-labels { display: flex; justify-content: space-between; padding: 0.3rem 0.3rem 0; }
+  .cal-x-label { flex: 1; text-align: center; font-size: 0.75rem; color: #888; font-weight: 500; }
 
-  .calorie-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .calorie-table td:first-child {
-    font-weight: 600;
-    color: #2d5016;
-    width: 3.5rem;
-  }
-
-  .calorie-bar-cell {
-    width: 40%;
-  }
-
-  .calorie-bar {
-    height: 14px;
-    border-radius: 7px;
-    background: #e8e5dd;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .calorie-bar-fill {
-    height: 100%;
-    border-radius: 7px;
-    transition: width 0.3s;
-    position: relative;
-    z-index: 2;
-  }
-
-  .calorie-bar-target {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.08);
-    border-left: 1.5px solid rgba(0, 0, 0, 0.15);
-    border-right: 1.5px solid rgba(0, 0, 0, 0.15);
-    border-radius: 3px;
-    z-index: 1;
-  }
-
-  .calorie-bar-fill.on-target { background: #4ade80; }
-  .calorie-bar-fill.below     { background: #fbbf24; }
-  .calorie-bar-fill.over      { background: #f87171; }
-
-  .calorie-average {
-    text-align: center;
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: #333;
-    padding-top: 0.4rem;
-  }
-
-  .calorie-average .sub {
-    font-weight: 400;
-    font-size: 0.82rem;
-    color: #888;
-  }
-
-  .status-icon {
-    font-size: 0.85rem;
-  }
+  .cal-average { text-align: center; font-size: 0.92rem; font-weight: 600; color: #333; padding-top: 0.8rem; }
+  .cal-average .sub { font-weight: 400; font-size: 0.82rem; color: #888; }
 
   .no-data {
     color: #ccc;
@@ -483,89 +420,90 @@
 
   <!-- ==================== SECTION 3: CALORIE ANALYSIS ==================== -->
   <!--
-    For each day, calculate bar width as: (day_calories / max_calories_in_week) * 100%
-    Apply class "on-target", "below", or "over" to .calorie-bar-fill based on comparison
-    with Daily Calorie Range from PLAN.md. Skip entire card if no calorie data exists.
-
-    CALORIE TARGET RANGE SHADING:
-    Each .calorie-bar must contain a .calorie-bar-target div that shows the target range.
-    Calculate its left and width as percentages of the bar's max scale (max_calories_in_week):
-      - left:  (CAL_MIN / max_calories_in_week) * 100%
-      - width: ((CAL_MAX - CAL_MIN) / max_calories_in_week) * 100%
-    This creates a grey shaded zone showing where the target range falls on each bar.
+    VERTICAL BAR CHART with grey target range band.
+    
+    Chart height: 220px. Chart max = max(max_calories_in_week, CAL_MAX * 1.2).
+    
+    For each day:
+      - Bar height (px) = (day_calories / chart_max) * 220
+      - Class: "on-target" if within CAL_MIN–CAL_MAX, "below" if under, "over" if above
+      - No data → class "empty", height 0, no value label
+    
+    Target band:
+      - bottom = (CAL_MIN / chart_max) * 100%
+      - height = ((CAL_MAX - CAL_MIN) / chart_max) * 100%
+    
+    Grid lines: place at round intervals (e.g. every 500 kcal).
+      - bottom = (value / chart_max) * 100%
   -->
   <div class="report-card">
-    <div class="card-header">🔥 Calorie Analysis</div>
+    <div class="card-header">🔥 热量分析</div>
     <div class="card-body">
-      <div class="calorie-target">Daily target: {{CAL_MIN}} – {{CAL_MAX}} kcal</div>
-      <table class="calorie-table">
-        <thead>
-          <tr>
-            <th>Day</th>
-            <th>Intake</th>
-            <th class="calorie-bar-cell"></th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Repeat for each day Mon–Sun. Example rows: -->
-          <tr>
-            <td>Mon</td>
-            <td>1,620 kcal</td>
-            <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill on-target" style="width: 75%"></div></div>
-            </td>
-            <td><span class="status-icon">✅</span></td>
-          </tr>
-          <tr>
-            <td>Tue</td>
-            <td>1,480 kcal</td>
-            <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill below" style="width: 69%"></div></div>
-            </td>
-            <td><span class="status-icon">📉</span></td>
-          </tr>
-          <tr>
-            <td>Wed</td>
-            <td>1,750 kcal</td>
-            <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill on-target" style="width: 81%"></div></div>
-            </td>
-            <td><span class="status-icon">✅</span></td>
-          </tr>
-          <tr>
-            <td>Thu</td>
-            <td class="no-data">—</td>
-            <td class="calorie-bar-cell"></td>
-            <td class="no-data">—</td>
-          </tr>
-          <tr>
-            <td>Fri</td>
-            <td>1,830 kcal</td>
-            <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill on-target" style="width: 85%"></div></div>
-            </td>
-            <td><span class="status-icon">✅</span></td>
-          </tr>
-          <tr>
-            <td>Sat</td>
-            <td>2,150 kcal</td>
-            <td class="calorie-bar-cell">
-              <div class="calorie-bar"><div class="calorie-bar-target" style="left: 60%; width: 20%"></div><div class="calorie-bar-fill over" style="width: 100%"></div></div>
-            </td>
-            <td><span class="status-icon">📈</span></td>
-          </tr>
-          <tr>
-            <td>Sun</td>
-            <td class="no-data">—</td>
-            <td class="calorie-bar-cell"></td>
-            <td class="no-data">—</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="calorie-average">
-        Average: {{CAL_AVG}} kcal/day
-        <span class="sub">(target midpoint: {{CAL_MIDPOINT}} kcal)</span>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-swatch on-target"></div>达标</div>
+        <div class="cal-legend-item"><div class="cal-legend-swatch below"></div>偏低</div>
+        <div class="cal-legend-item"><div class="cal-legend-swatch over"></div>超标</div>
+      </div>
+
+      <div class="cal-chart">
+        <!-- Grid lines — place at round intervals, e.g. 0, 500, 1000, 1500, 2000 -->
+        <!-- bottom = (value / chart_max) * 100% -->
+        <div class="cal-grid-line" style="bottom: 0%"><span class="cal-grid-label">0</span></div>
+        <div class="cal-grid-line" style="bottom: 22.7%"><span class="cal-grid-label">500</span></div>
+        <div class="cal-grid-line" style="bottom: 45.5%"><span class="cal-grid-label">1000</span></div>
+        <div class="cal-grid-line" style="bottom: 68.2%"><span class="cal-grid-label">1500</span></div>
+        <div class="cal-grid-line" style="bottom: 90.9%"><span class="cal-grid-label">2000</span></div>
+
+        <!-- Target range band: bottom=(CAL_MIN/chart_max)*100%, height=((CAL_MAX-CAL_MIN)/chart_max)*100% -->
+        <div class="cal-target-band" style="bottom: {{TARGET_BAND_BOTTOM}}; height: {{TARGET_BAND_HEIGHT}}">
+          <span class="cal-target-label">目标范围</span>
+        </div>
+
+        <!-- Repeat for each day Mon–Sun. Example with chart_max=2200: -->
+        <!-- Bar height = (day_cal / chart_max) * 220. Class = on-target|below|over|empty -->
+        <div class="cal-bar-col">
+          <div class="cal-bar-value">1780</div>
+          <div class="cal-bar-wrapper"><div class="cal-bar on-target" style="height: 178px"></div></div>
+        </div>
+        <div class="cal-bar-col">
+          <div class="cal-bar-value"></div>
+          <div class="cal-bar-wrapper"><div class="cal-bar empty" style="height: 0px"></div></div>
+        </div>
+        <div class="cal-bar-col">
+          <div class="cal-bar-value">900</div>
+          <div class="cal-bar-wrapper"><div class="cal-bar below" style="height: 90px"></div></div>
+        </div>
+        <div class="cal-bar-col">
+          <div class="cal-bar-value">2080</div>
+          <div class="cal-bar-wrapper"><div class="cal-bar over" style="height: 208px"></div></div>
+        </div>
+        <div class="cal-bar-col">
+          <div class="cal-bar-value"></div>
+          <div class="cal-bar-wrapper"><div class="cal-bar empty" style="height: 0px"></div></div>
+        </div>
+        <div class="cal-bar-col">
+          <div class="cal-bar-value">1600</div>
+          <div class="cal-bar-wrapper"><div class="cal-bar on-target" style="height: 160px"></div></div>
+        </div>
+        <div class="cal-bar-col">
+          <div class="cal-bar-value">1900</div>
+          <div class="cal-bar-wrapper"><div class="cal-bar on-target" style="height: 190px"></div></div>
+        </div>
+      </div>
+
+      <div class="cal-x-labels">
+        <div class="cal-x-label">周一</div>
+        <div class="cal-x-label">周二</div>
+        <div class="cal-x-label">周三</div>
+        <div class="cal-x-label">周四</div>
+        <div class="cal-x-label">周五</div>
+        <div class="cal-x-label">周六</div>
+        <div class="cal-x-label">周日</div>
+      </div>
+
+      <div class="cal-average">
+        日均 {{CAL_AVG}} kcal
+        <span class="sub">· {{CAL_AVG_STATUS}}</span>
       </div>
     </div>
     <div class="card-commentary">{{CALORIE_COMMENTARY}}</div>
