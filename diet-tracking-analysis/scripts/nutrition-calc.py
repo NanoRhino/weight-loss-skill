@@ -2501,7 +2501,8 @@ def main():
     qd.add_argument("--schedule", type=str, default=None, help="Meal schedule JSON")
 
     args = parser.parse_args()
-    args.data_dir = _normalize_path(args.data_dir)
+    if hasattr(args, 'data_dir') and args.data_dir:
+        args.data_dir = _normalize_path(args.data_dir)
 
     if args.cmd == "detect-meal":
         sched = None
