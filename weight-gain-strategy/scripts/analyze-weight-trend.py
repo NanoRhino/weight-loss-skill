@@ -84,8 +84,8 @@ def parse_plan_target(plan_path):
     )
     if match:
         return int(match.group(1).replace(",", ""))
-    # Fallback: look for any calorie number near "target" / "目标"
-    match = re.search(r"(?:target|目标)[^0-9]*([\d,]+)\s*(?:kcal|Cal)", content)
+    # Fallback: "- Target: 1200 kcal/day" or "- Target: 1,200 kcal"
+    match = re.search(r"[Tt]arget[:\s]*~?\s*([\d,]+)\s*(?:kcal|Cal)", content)
     if match:
         return int(match.group(1).replace(",", ""))
     return None
@@ -102,6 +102,10 @@ def parse_plan_deficit(plan_path):
     if match:
         return int(match.group(1).replace(",", ""))
     match = re.search(r"[Dd]aily\s+calorie\s+deficit[:\s]*~?\s*([\d,]+)\s*(?:kcal|Cal)", content)
+    if match:
+        return int(match.group(1).replace(",", ""))
+    # Fallback: "- Deficit: ~407 kcal/day" or "- Deficit: 407 kcal"
+    match = re.search(r"[Dd]eficit[:\s]*~?约?\s*([\d,]+)\s*(?:kcal|Cal)", content)
     if match:
         return int(match.group(1).replace(",", ""))
     return None
