@@ -415,7 +415,7 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 **Phase: 初始（report_count < 4）**
 
 ```
-📊 第{N}周小结
+📊 第{N}周周报
 
 📅 记录 {X}/7 天   🔥 {cal_avg} kcal{calorie_context}   ⚖️ {weight_change}{weight_context}
 
@@ -442,7 +442,7 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 **Phase: 中段（report_count ≥ 4，progress_pct < 80%）**
 
 ```
-📊 第{N}周 · {weekly_headline}
+📊 第{N}周周报
 
 {progress_bar}  已走 {progress_pct}%
 {start_weight} → {current_weight} kg → 目标 {target_weight} kg
@@ -461,9 +461,6 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 完整数据 👇
 ```
 
-- `weekly_headline`: freely written one phrase summarizing the week's character
-  (e.g. "低谷期也没停下来" / "节奏回来了" / "这周数字说明不了你").
-  Not picked from a fixed list — generate based on actual data and tone.
 - `one_sentence_summary`: pattern-level observation, not a data restatement.
   Focus on what this week reveals about the user's trajectory.
 - Max 2 achievement bullets; if `next_week_focus` was acted on, it counts as one
@@ -473,7 +470,7 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 **Phase: 快完成（report_count ≥ 4，progress_pct ≥ 80%）**
 
 ```
-📊 第{N}周 · {weekly_headline} 🏁
+📊 第{N}周周报
 
 {progress_bar}  已走 {progress_pct}%
 {start_weight} → {current_weight} kg → 目标 {target_weight} kg  只差 {remaining} kg
@@ -492,7 +489,6 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 完整数据 👇
 ```
 
-- `weekly_headline`: freely written, can reference the finish line or the journey
 - `remaining` = `current_weight − target_weight` (display in user's unit)
 - `one_sentence_summary`: connect this week to the full journey arc —
   acknowledge how far they've come, not just this week's numbers
