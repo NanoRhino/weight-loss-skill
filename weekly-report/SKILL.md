@@ -87,18 +87,43 @@ User can request a report at any time:
 | `Weight Loss Rate` | Expected weekly loss for progress assessment |
 | `Diet Mode` | Context for suggestions |
 
-### Reads from data (workspace)
+### Reads from data (workspace) — ONE-SHOT COLLECTION
 
-| Path | How | Purpose |
-|------|-----|---------|
-| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` for each day in range | Logging status, food descriptions, estimated calories per meal |
-| `data/weight.json` | `weight-tracker.py load --from YYYY-MM-DD --to YYYY-MM-DD --display-unit <unit>` | Weight readings for the week |
-| `data/exercise.json` | `exercise-calc.py load --data-dir {workspaceDir}/data --from YYYY-MM-DD --to YYYY-MM-DD` | Exercise sessions, duration, calories burned for the week |
-| `habits.active` | direct read | Current active habits for habit progress section |
-| `habits.daily_log.{date}` | direct read | Daily habit completion/miss/no_response records |
-| `habits.graduated` | direct read | Recently graduated habits for achievements section |
+**⚠️ Use `collect-weekly-data.py` instead of calling individual scripts.**
+This single script replaces 7+ `nutrition-calc.py load` calls + `weight-tracker.py` + `exercise-calc.py`
+and outputs all data needed for the report as JSON:
 
-**Note:** Weight data is read via the `weight-tracking` skill's `weight-tracker.py` script at `{weight-tracking:baseDir}/scripts/weight-tracker.py`. Read `health-profile.md > Body > Unit Preference` for the display unit. Meal data is read via `nutrition-calc.py load` from the `diet-tracking-analysis` skill. Exercise data is read via `exercise-calc.py load` from the `exercise-tracking-planning` skill at `{exercise-tracking-planning:baseDir}/scripts/exercise-calc.py`.
+```bash
+python3 {baseDir}/scripts/collect-weekly-data.py \
+  --workspace-dir {workspaceDir} \
+  --start-date {monday} \
+  --end-date {sunday} \
+  --tz-offset {tz_offset} \
+  --display-unit <kg|lb>
+```
+
+Output JSON structure:
+```json
+{
+  "meta": { "week_number", "report_count", "prev_exists", "prev_start", "next_start", "first_monday" },
+  "plan": { "cal_min": [min, max], "tdee", "bmr", "protein_range", "fat_range", "carb_range", ... },
+  "summary": { "logged_days", "cal_avg", "cal_max", "chart_max", "protein_avg", "fat_avg", "carb_avg", "weight_change", "cal_min", "cal_max_target" },
+  "days": [{ "date", "weekday", "logged", "cal_status", "meals": [{meal_type, cal, protein, fat, carb, foods}], "totals": {cal, protein, fat, carb} }],
+  "weight": { "readings": [{date, value, unit}], "change" },
+  "exercise": { "sessions": [...], "total_calories", "total_minutes" },
+  "habits": { "active": [...], "daily_log": {...}, "graduated": [...] }
+}
+```
+
+Use this JSON to populate all report sections. **Do NOT call `nutrition-calc.py load` per-day or other individual scripts.**
+
+**Legacy note:** The following individual script calls are kept for reference but should NOT be used when generating weekly reports:
+| Path | Script | Purpose |
+|------|--------|---------|
+| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load` | Per-day meal data |
+| `data/weight.json` | `weight-tracker.py load` | Weight readings |
+| `data/exercise.json` | `exercise-calc.py load` | Exercise sessions |
+| `habits.active` | direct read | Habit data |
 
 ---
 
