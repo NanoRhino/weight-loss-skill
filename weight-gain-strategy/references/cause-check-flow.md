@@ -47,17 +47,21 @@
 
 **⚠️ 数据引用规则（HARD RULE）：**
 
-引用热量数据时，**必须区分"记录的"和"估算的"**：
+引用任何营养数据时，**必须区分"记录的"和"估算的"**：
 
-- `calorie_stats.avg_daily_intake` = 只算有记录的餐，缺餐当作 0 → **不能直接当作"实际摄入"**
-- `energy_balance_check.adjusted_avg_daily_intake` = 记录的 + 缺餐按历史均值估算 → **更接近真实摄入**
-- `energy_balance_check.adjusted_avg_daily_protein` = 同理，蛋白质的 adjusted 估算值
-- `logging_stats.single_meal_days` > 0 时，说明有些天只记了一餐，raw 均值会严重偏低
+| 数据 | raw（不要用） | adjusted（用这个） |
+|------|-------------|------------------|
+| 热量 | `calorie_stats.avg_daily_intake` | `energy_balance_check.adjusted_avg_daily_intake` |
+| 蛋白质 | `protein_stats.avg_daily_g` | `energy_balance_check.adjusted_avg_daily_protein` |
+
+- raw 值只算有记录的餐，缺餐当作 0 → **严重偏低，禁止直接引用**
+- adjusted 值 = 记录的 + 缺餐按历史均值估算 → **更接近真实摄入**
+- `logging_stats.single_meal_days` > 0 时，说明有些天只记了一餐，raw 偏低得更厉害
 
 **引用方式：**
-- 有缺餐时：用 adjusted 均值，标注"含估算"。例如："每天大约摄入 1064 大卡（有几天只记了一餐，按正常量估算了午餐）"
-- 蛋白质同理：用 `adjusted_avg_daily_protein`，不要用 `protein_stats.avg_daily_g`
-- 不要说"每天只吃了 935 大卡"或"蛋白质只有 41g"——用户可能吃了只是没记
+- 有缺餐时：用 adjusted 值，标注"含估算"。例如："每天大约摄入 1064 大卡、蛋白质约 47g（有几天只记了一餐，按正常量估算了）"
+- **禁止**说"每天只吃了 935 大卡"或"蛋白质只有 41g"——用户可能吃了只是没记
+- `food_list` 是实际记录的食物，可以直接引用（不需要 adjusted）
 
 **要求：**
 - **贴合用户行为**：分析必须指向用户实际做了什么，不是笼统结论
