@@ -130,21 +130,20 @@ HTML template.
 
 ### Section 2: Calorie Analysis
 
-Show daily calorie intake vs target range with bar chart. See `.calorie-table`
-and `.calorie-bar` in the HTML template.
+Show daily calorie intake vs target range with a **vertical bar chart** and grey target
+range band. See `.cal-chart`, `.cal-bar`, `.cal-target-band` in the HTML template.
 
 **Data logic:**
 - For each day, call `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` and sum `cal` across all meals
 - Compare against `Daily Calorie Range` from `PLAN.md`:
-  - Below range min → `📉 Below` (bar class: `below`)
-  - Within range → `✅ On Target` (bar class: `on-target`)
-  - Above range max → `📈 Over` (bar class: `over`)
-- Days with no data → `—` (skip from calculations)
-- Bar width = `(day_calories / max_calories_in_week) * 100%`
-- **Target range shading:** Each bar must include a `.calorie-bar-target` div showing the grey target zone:
-  - `left: (CAL_MIN / max_calories_in_week) * 100%`
-  - `width: ((CAL_MAX - CAL_MIN) / max_calories_in_week) * 100%`
-  - This renders a subtle grey band on every bar so users can visually see the target range
+  - Below range min → class `below`
+  - Within range → class `on-target`
+  - Above range max → class `over`
+- Days with no data → class `empty`, height 0, no value label
+- Chart max = `max(max_calories_in_week, CAL_MAX * 1.2)` (ensure target band is visible)
+- Bar height (px) = `(day_calories / chart_max) * 220`
+- **Target range band:** `bottom = (CAL_MIN / chart_max) * 100%`, `height = ((CAL_MAX - CAL_MIN) / chart_max) * 100%`
+- **Grid lines:** place at round 500 kcal intervals, `bottom = (value / chart_max) * 100%`
 
 **Commentary rules:**
 - Average within range → `"Right on track this week."` / `"这周热量控制得很好。"`
