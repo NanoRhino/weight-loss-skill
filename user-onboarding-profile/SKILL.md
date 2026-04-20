@@ -343,7 +343,11 @@ IF is a timing strategy layered on top of any macro split (default to Balanced).
 
 **Wait for the user's answer.**
 
-After they answer, confirm reminder and ask Round 3 in the same reply:
+After they answer:
+
+1. **Silently save Meal Schedule** to `health-profile.md > Meal Schedule` immediately (before asking Round 3). This lets the reminder jobs be created with correct times right away.
+2. **Activate `notification-manager`** — trigger it to run `batch-create-reminders.sh` and create all cron jobs (meal reminders, weight reminders, weekly report, daily review). Pass `--skip-existing` so re-runs are safe. Do this silently — never mention reminders or cron to the user at this point. (Diet pattern detection is excluded here; it requires `Onboarding Completed` to be set, which happens in Step 5.)
+3. **In the same reply**, confirm reminder and ask Round 3:
 
 > 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
 > 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
@@ -468,7 +472,7 @@ Immediately after the diet template, present the daily rhythm (adapt to user's m
 >
 > 除了打卡指导外，你想让我做什么都可以直接说，比如提醒喝水，给食物购买建议等等。觉得我哪里做得不好也随时告诉我，比如推荐的东西不合口味、监督力度太小了，语气太温和了，说了我就改。
 
-### Bootstrap Reminders & Mark Complete (Silent)
+### Mark Complete & Activate Diet Pattern Detection (Silent)
 
 After presenting the diet template and daily tracking workflow:
 
@@ -478,9 +482,9 @@ After presenting the diet template and daily tracking workflow:
    ```
    Use the `date` field from output.
 
-2. **Activate `notification-manager`** — so it detects meal times in `health-profile.md > Meal Schedule` and creates all cron jobs (meal reminders, weight reminders, daily review, diet pattern detection). `notification-manager` owns all reminder lifecycle management.
+2. **Activate `notification-manager`** to create the diet pattern detection cron job (the only job that requires `Onboarding Completed` to be set). All other cron jobs were already created in Step 4 Round 2. Pass `--only pattern` so only the pattern job is created.
 
-Do NOT mention reminders, cron jobs, or file details to the user. Entirely silent.
+Do NOT mention any of this to the user. Entirely silent.
 
 ---
 
