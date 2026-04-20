@@ -144,31 +144,25 @@ with open(path, "w") as f: json.dump(d, f, indent=2, ensure_ascii=False)
 
 ### Step 1: Recognize & Log
 
-#### 1.1 Collect input
+In your FIRST round, call ALL of these in parallel:
+- `meal_checkin({ action: "create", images: [...], workspace_dir: "{workspaceDir}" })`
+- `read` SKILL.md, PLAN.md, health-profile.md, health-preferences.md
 
-- Merge consecutive messages into one call
-- Pass photos as `images` array, user text as `text`
-- The plugin handles everything: vision analysis, portion estimation, nutrition estimation, oil estimation, calibration lookup, meal detection, save, and evaluation
+They are independent — do them ALL simultaneously in one tool batch.
 
-#### 1.2 Call the tool
+### Step 2: Respond + Save (same round)
 
+After receiving results, compose your reply following Response Schemas below, then output BOTH in one response:
+1. Your reply text (sent to user immediately)
+2. `save-evaluation` tool call (runs in background after reply is sent)
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py save-evaluation \
+  --data-dir {workspaceDir}/data/meals \
+  --meal-name <meal_name> \
+  --suggestion-text '<your suggestion from ③>' \
+  --tz-offset <seconds>
 ```
-meal_checkin({
-  action: "create",
-  images: [<photo URLs/paths if any>],
-  text: "<user's text description>",
-  workspace_dir: "{workspaceDir}",
-  timezone: "<from USER.md>"
-})
-```
-
-#### 1.3 Post-save
-
-After receiving the plugin result, call `save-evaluation` to persist your suggestion text (composed in Step 2).
-
-### Step 2: Respond
-
-Use the plugin's returned data to compose your response following the Response Schemas below.
 
 **Weight check-in reminder (embedded):**
 If ALL of the following are true, append a gentle weight reminder at the end of your response:
