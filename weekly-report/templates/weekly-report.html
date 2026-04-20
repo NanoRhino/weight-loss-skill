@@ -363,8 +363,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 1rem;
-    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #faf9f5;
+    padding: 0.6rem 1rem;
+    margin: 0 -1.5rem;
+    border-bottom: 1px solid #e0ddd5;
   }
 
   .week-nav-btn {
@@ -426,15 +431,15 @@
 <div class="page">
 
   <!-- ==================== HEADER ==================== -->
+    <nav class="week-nav">
+    <a class="week-nav-btn week-nav-prev {{PREV_DISABLED}}" href="{{PREV_WEEK_URL}}">← 上一周</a>
+    <span class="week-nav-current">第{{WEEK_NUMBER}}周</span>
+    <a class="week-nav-btn week-nav-next {{NEXT_DISABLED}}" href="{{NEXT_WEEK_URL}}">下一周 →</a>
+  </nav>
+
   <header class="report-header">
     <h1>📊 第{{WEEK_NUMBER}}周周报</h1>
     <p class="subtitle">{{DATE_RANGE}}</p>
-    <!-- Navigation is INSIDE header so it's always visible at the top -->
-    <nav class="week-nav">
-      <a class="week-nav-btn week-nav-prev {{PREV_DISABLED}}" href="{{PREV_WEEK_URL}}">← 上一周</a>
-      <span class="week-nav-current">第{{WEEK_NUMBER}}周</span>
-      <a class="week-nav-btn week-nav-next {{NEXT_DISABLED}}" href="{{NEXT_WEEK_URL}}">下一周 →</a>
-    </nav>
   </header>
 
   <!-- ==================== SECTION 2: LOGGING OVERVIEW ==================== -->
