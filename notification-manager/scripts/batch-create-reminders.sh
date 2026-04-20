@@ -233,9 +233,8 @@ fi
 
 # 5. Diet pattern detection
 if should_create_type "pattern" && [[ -n "$DINNER_TIME" ]]; then
-  onboarding_completed=$(get_automation_field "Onboarding Completed")
   pattern_completed=$(get_automation_field "Pattern Detection Completed")
-  if [[ "$onboarding_completed" != "—" && "$pattern_completed" == "—" ]]; then
+  if [[ "$pattern_completed" == "—" ]]; then
     ct=$(calc_cron_time "$DINNER_TIME" 180)
     cm=$(echo "$ct" | awk '{print $1}'); ch=$(echo "$ct" | awk '{print $2}')
     queue_job "Diet pattern detection" "Run diet-pattern-detection skill." "$cm $ch * * *" other
