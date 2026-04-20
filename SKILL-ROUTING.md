@@ -55,8 +55,8 @@ when conflicts arise.
 | **P0 — Safety** | `emotional-support` (Category 5: escalation signals) | Crisis intervention. Overrides everything. |
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
-| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder`, `weight-gain-strategy` | Designing programs and plans. |
-| **P4 — Reporting** | `weekly-report`, `daily-calorie-summary`, `notification-manager`, `notification-composer`, `reminder-manager` | Summaries, proactive outreach, and user-created reminders. |
+| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder` | Designing programs and plans. |
+| **P4 — Reporting** | `weekly-report`, `daily-review`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
 **Rule:** When two skills from different tiers conflict, the higher-priority
@@ -114,8 +114,6 @@ I just said?"
 | "I ran 5K! I'm so proud!" | exercise-log + positive-emotion | exercise-tracking + emotional-support |
 | "ate too much again, I'm so fat" | after-meal-log + emotional-distress | diet-tracking + emotional-support |
 | "weekly summary" (on Sunday) | weekly-report-request + exercise-weekly-summary | weekly-report + exercise-tracking |
-| "今天的缺口" / "today's deficit" | daily-deficit-request | daily-calorie-summary |
-| "今日总结" / "daily summary" | daily-summary-request | daily-calorie-summary |
 | "make me a workout plan and a meal plan" | exercise-planning + meal-planning | exercise-tracking + meal-planner |
 | "I'm having oatmeal, feeling great today!" | food-log + positive-emotion | diet-tracking + emotional-support |
 | "skipped lunch, don't care anymore" | food-skip + emotional-distress | diet-tracking + emotional-support |
@@ -123,17 +121,9 @@ I just said?"
 | "I'm at Chipotle, what should I order?" | restaurant-recommendation | restaurant-meal-finder |
 | "附近有什么能吃的，帮我推荐一下" | restaurant-recommendation | restaurant-meal-finder |
 | "想点外卖，有什么推荐的？" | restaurant-recommendation | restaurant-meal-finder |
-| "一分钟后提醒我喝水" | create-reminder | reminder-manager |
-| "提醒我下午三点称体重" | create-reminder | reminder-manager |
-| "remind me to drink water in 10 minutes" | create-reminder | reminder-manager |
-| "我有哪些提醒" | list-reminders | reminder-manager |
-| "取消午餐提醒" | delete-reminder | reminder-manager |
-| "帮我每小时提醒一次喝水" | create-reminder | reminder-manager |
-| "每隔五分钟问我一个问题" | create-reminder | reminder-manager |
-| "why am I gaining weight?" | weight-gain-inquiry | weight-gain-strategy |
-| "体重怎么涨了" | weight-gain-inquiry | weight-gain-strategy |
-| "体重反弹了，好沮丧" | weight-gain-inquiry + emotional-distress | weight-gain-strategy + emotional-support |
-| "weight keeps going up, should I change my plan?" | weight-gain-inquiry + plan-adjustment | weight-gain-strategy (or weight-loss-planner if full replan) |
+| "我喝水很少" / "I don't eat breakfast" | behavior-self-report | habit-builder |
+| "我吃饭太快了" / "I snack too much at night" | behavior-self-report | habit-builder |
+| "我想养成早睡的习惯" | habit-request | habit-builder |
 
 ---
 
@@ -312,7 +302,23 @@ to `diet-tracking-analysis` for logging. No conflict — sequential handoff.
 
 ---
 
-### Pattern 9: Multiple Planning Requests (Same Tier — P3)
+### Pattern 9: Daily Review + Weekly Report (Same Tier — P4)
+
+**Trigger:** User asks for a daily review on the same day a weekly report is
+generated (e.g., Sunday evening or Monday).
+
+**Resolution: Weekly report takes precedence.**
+
+1. If `weekly-report` is generating for a period that includes today, skip
+   the daily review auto-trigger — the weekly report already covers this data
+2. If the user explicitly asks for a daily review, generate it even if a
+   weekly report was sent earlier (different granularity — per-meal vs per-week)
+3. `daily-review` auto-trigger after dinner appends to the
+   `diet-tracking-analysis` dinner response as a combined message
+
+---
+
+### Pattern 10: Multiple Planning Requests (Same Tier — P3)
 
 **Trigger:** User asks for a weight-loss plan while also wanting to
 build a habit or get exercise programming.
@@ -324,66 +330,6 @@ build a habit or get exercise programming.
 2. Handle the foundational one first
 3. Transition naturally to the next
 4. Each planning skill's output can inform the next
-
----
-
-### Pattern 10: Advice-to-Action Handoff (Any Skill → habit-builder)
-
-**Trigger:** Any skill gives advice that implies a sustained behavior change,
-and the user shows interest or asks "how do I actually do this?"
-
-**Resolution: Advising skill leads, habit-builder queues actions in background.**
-
-1. The advising skill (e.g., `weekly-report`, `weight-loss-planner`,
-   `meal-planner`) delivers its advice normally in the conversation.
-2. If the advice contains actionable behavior changes (not one-time info),
-   `habit-builder` silently decomposes the advice into an action queue
-   (see habit-builder § "Advice-to-Action Pipeline").
-3. `habit-builder` does NOT interrupt the advising skill's conversation.
-   It writes the action queue to `habits.action_queue` in the background.
-4. The first action is presented to the user only after the advising skill's
-   conversation naturally concludes — or when the user explicitly asks
-   "how do I start?" / "具体怎么做?"
-5. If the user is already tracking an active habit, new actions are appended
-   to the queue (not started immediately). The active habit retains priority.
-6. **Single-ask rule applies:** If the user ignores the first action
-   suggestion, don't repeat it. It stays in the queue for the next
-   natural opportunity (e.g., Weekly Review).
-
-### Pattern 11: Weight Gain Strategy + Emotional Distress (P3 vs P1)
-
-**Trigger:** User expresses concern about weight gain with emotional distress
-signals (e.g., "I'm gaining weight and I hate myself", "越来越胖了好焦虑").
-
-**Resolution: Emotional support leads. Strategy deferred.**
-
-1. `emotional-support` handles the emotional signal first (P1)
-2. `weight-gain-strategy` does NOT run automatically
-3. Only if the user later asks for analysis or adjustments, activate
-   `weight-gain-strategy`
-4. When transitioning, use soft entry: "Want to look at the data together
-   and figure out a plan?" — not "Here's what went wrong."
-
-### Pattern 12: Weight Gain Strategy + Diet Logging (P3 vs P2)
-
-**Trigger:** User logs food AND asks about weight gain in the same message.
-
-**Resolution: Log first, analyze second.**
-
-1. `diet-tracking-analysis` logs the meal (P2)
-2. `weight-gain-strategy` provides analysis after logging is confirmed
-3. Single response — diet log confirmation first, then trend analysis
-
-### Pattern 13: Weight Gain Strategy + Weight-Loss Planner (Same Tier — P3)
-
-**Trigger:** User asks to redo their weight-loss plan because of weight gain.
-
-**Resolution: Route to weight-loss-planner.**
-
-1. If the user wants a full plan recalculation, `weight-loss-planner` leads
-2. `weight-gain-strategy` handles short-term tactical adjustments only
-3. If unclear, ask: "Want a quick adjustment for the next week or two, or
-   should we redo the full plan?"
 
 ---
 
@@ -450,41 +396,6 @@ This rule does NOT apply to:
 **Rationale:** Repeated questions feel like nagging and erode trust. If a user
 skips a question, they either don't know, don't care, or aren't ready. In all
 three cases, asking again makes things worse. Move forward with what you have.
-
----
-
-### Pattern 14: Behavior Self-Report vs Food Logging (P3 vs P2)
-
-**Trigger:** User describes a long-term behavioral pattern — a habit they
-want to change or a problem they recognize — without logging specific food
-for a specific meal.
-
-**Examples:**
-- "我喝水很少" / "I don't drink enough water"
-- "我吃饭太快了" / "I snack too much at night"
-- "我不吃早餐" / "I skip breakfast a lot"
-- "我想养成XX的习惯" / "I want to build a habit of..."
-- "I eat too fast" / "I always eat out"
-
-**Resolution: Intent determines routing.**
-
-1. **Behavior self-report only** (describes a long-term pattern/problem,
-   no concrete food to record for a specific meal) → `habit-builder`
-   handles it. `diet-tracking-analysis` does NOT trigger.
-
-2. **Behavior self-report + food log in same message** ("我喝水很少，午饭
-   吃了炒饭") → `diet-tracking-analysis` logs the food (P2),
-   `habit-builder` handles the behavioral part (P3). Merge into one
-   response: food log first, then habit suggestion.
-
-3. **判断标准:** Does the message contain **concrete, specific food to
-   record for a current/recent meal**? If no → `habit-builder`. If yes →
-   `diet-tracking-analysis` leads + habit handoff for the behavioral part.
-
-**Key distinction from Pattern 7 (Habit Check-in + Diet Logging):**
-Pattern 7 handles user *responding* to a habit mention during meal logging.
-Pattern 11 handles user *proactively* describing a behavioral problem —
-these are different entry points into `habit-builder`.
 
 ---
 

@@ -24,21 +24,26 @@ Registered dietitian. Concise, friendly, judgment-free.
 
 ### Primary Tool: `meal_checkin`
 
-All meal logging, corrections, and deletions go through the `meal_checkin` plugin tool. The plugin handles:
-- **Vision** (GPT-4o) — food recognition from photos
-- **LLM** (Opus) — nutrition estimation, action detection (log/correct/delete), text parsing
-- **Nutrition calc** — evaluation, accumulation, suggestions, calibration lookup
+All meal operations go through `meal_checkin`. Agent determines action; plugin routes accordingly.
 
 **Parameters:**
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `images` | string[] | Photo URLs or file paths (optional) |
-| `text` | string | User's text description or instruction (optional) |
-| `workspace_dir` | string | `{workspaceDir}` — user's workspace path |
-| `timezone` | string | User's timezone, e.g. `"Asia/Shanghai"` (default: `"Asia/Shanghai"`) |
+| `action` | string | **Required.** `create` \| `append` \| `rename` \| `delete` \| `correct` \| `query` \| `query_day` |
+| `images` | string[] | Photo URLs or file paths (create/append/query with image) |
+| `text` | string | User's text description (create/append/query with text) |
+| `workspace_dir` | string | **Required.** `{workspaceDir}` |
+| `timezone` | string | User's timezone (default: `"Asia/Shanghai"`) |
+| `params` | object | Action-specific parameters (see below) |
 
-At least one of `images` or `text` is required.
+**params by action:**
+- `rename`: `{ "from": "breakfast", "to": "lunch" }`
+- `delete`: `{ "meal_name": "lunch" }`
+- `correct`: `{ "meal_name": "breakfast", "corrections": [{"food_name": "油条", "action": "update_portion", "new_amount_g": 40}] }` — action can be `"update_portion"` or `"remove"`
+
+`create`/`append`/`query` use `images` and/or `text`, no params needed.
+`query_day` needs no extra input.
 
 **What the plugin returns:**
 
@@ -152,14 +157,13 @@ with open(path, "w") as f: json.dump(d, f, indent=2, ensure_ascii=False)
 
 ```
 meal_checkin({
+  action: "create",
   images: [<photo URLs/paths if any>],
   text: "<user's text description>",
   workspace_dir: "{workspaceDir}",
   timezone: "<from USER.md>"
 })
 ```
-
-That's it. No manual portion estimation, no nutrition calculation, no calibration lookup — the plugin does all of this internally.
 
 #### 1.3 Post-save
 
@@ -187,19 +191,23 @@ Do NOT remind if it's breakfast/lunch on a weigh-in day — wait for the last me
 
 ## Workflow — Query Progress
 
-`query-day` → format per Response Schemas below.
+```
+meal_checkin({ action: "query_day", workspace_dir: "{workspaceDir}" })
+```
+
+Format result per Response Schemas below.
 
 ---
 
-## Workflow — Correct / Delete / Append
+## Workflow — Correct / Delete / Rename
 
-All corrections, deletions, and appends go through `meal_checkin`:
+All go through `meal_checkin` with the appropriate action:
 
-- **Correct:** Pass text like "把米饭改成150g" or "那个鸡蛋去掉" — the plugin's LLM detects it's a correction and handles it
-- **Delete:** Pass text like "删掉午餐" — the plugin detects deletion intent
-- **Append:** Pass text like "午餐还吃了个苹果" — the plugin detects append intent
-
-No need to specify action — the LLM determines it from context.
+- **Correct portion:** `meal_checkin({ action: "correct", params: { meal_name: "早餐", corrections: [{"food_name": "米饭", "action": "update_portion", "new_amount_g": 150}] }, workspace_dir: "..." })`
+- **Remove food:** `meal_checkin({ action: "correct", params: { meal_name: "早餐", corrections: [{"food_name": "鸡蛋", "action": "remove"}] }, workspace_dir: "..." })`
+- **Delete meal:** `meal_checkin({ action: "delete", params: { meal_name: "午餐" }, workspace_dir: "..." })`
+- **Rename meal:** `meal_checkin({ action: "rename", params: { from: "早餐", to: "午餐" }, workspace_dir: "..." })`
+- **Append:** `meal_checkin({ action: "append", text: "午餐还吃了个苹果", workspace_dir: "..." })`
 
 ---
 
