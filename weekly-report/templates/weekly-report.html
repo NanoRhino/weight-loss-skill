@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weekly Report · {{DATE_RANGE}}</title>
+<title>第{{WEEK_NUMBER}}周周报 · {{DATE_RANGE}}</title>
 <!--
   WEEKLY REPORT HTML TEMPLATE — Reference for Claude Code Skill
   ==============================================================
@@ -427,8 +427,8 @@
 
   <!-- ==================== HEADER ==================== -->
   <header class="report-header">
-    <h1>📊 Weekly Report</h1>
-    <p class="subtitle">{{DATE_RANGE}} · {{GREETING}}</p>
+    <h1>📊 第{{WEEK_NUMBER}}周周报</h1>
+    <p class="subtitle">{{DATE_RANGE}}</p>
     <!-- Navigation is INSIDE header so it's always visible at the top -->
     <nav class="week-nav">
       <a class="week-nav-btn week-nav-prev {{PREV_DISABLED}}" href="{{PREV_WEEK_URL}}">← 上一周</a>
