@@ -105,7 +105,7 @@ def parse_iso(s: str) -> datetime:
         # Python < 3.7 fallback
         import re
         s = s.strip()
-        m = re.match(r'(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})([+-]\d{2}:\d{2})?', s)
+        m = re.match(r'(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.\d+)?([+-]\d{2}:\d{2})?', s)
         if not m:
             raise ValueError(f"Cannot parse datetime: {s}")
         from datetime import timezone, timedelta as _td

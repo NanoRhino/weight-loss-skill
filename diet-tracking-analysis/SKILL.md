@@ -24,26 +24,23 @@ Registered dietitian. Concise, friendly, judgment-free.
 
 ### Primary Tool: `meal_checkin`
 
-All meal operations go through `meal_checkin`. Agent determines action; plugin routes accordingly.
+All meal operations go through `meal_checkin`. Plugin auto-detects action from input — agent just forwards images/text.
 
 **Parameters:**
 
 | Param | Type | Description |
 |-------|------|-------------|
 | `action` | string | **Required.** `create` \| `append` \| `rename` \| `delete` \| `correct` \| `query` \| `query_day` |
-| `images` | string[] | Photo URLs or file paths (create/append/query with image) |
-| `text` | string | User's text description (create/append/query with text) |
+| `images` | string[] | Photo URLs or file paths |
+| `text` | string | User's text (food description, correction request, rename request, etc.) |
 | `workspace_dir` | string | **Required.** `{workspaceDir}` |
 | `timezone` | string | User's timezone (default: `"Asia/Shanghai"`) |
-| `params` | object | Action-specific parameters (see below) |
 
-**params by action:**
-- `rename`: `{ "from": "breakfast", "to": "lunch" }`
-- `delete`: `{ "meal_name": "lunch" }`
-- `correct`: `{ "meal_name": "breakfast", "corrections": [{"food_name": "油条", "action": "update_portion", "new_amount_g": 40}] }` — action can be `"update_portion"` or `"remove"`
-
-`create`/`append`/`query` use `images` and/or `text`, no params needed.
-`query_day` needs no extra input.
+**How to call:**
+- User sends food photo → `meal_checkin(action="create", images=[...], workspace_dir=...)`
+- User describes food → `meal_checkin(action="create", text="...", workspace_dir=...)`
+- User asks to rename/delete/correct → `meal_checkin(action="create", text="用户原话", workspace_dir=...)` — plugin internally detects the real action
+- Daily summary → `meal_checkin(action="query_day", workspace_dir=...)`
 
 **What the plugin returns:**
 
