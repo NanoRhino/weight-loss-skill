@@ -58,12 +58,14 @@ python3 {baseDir}/scripts/onboarding-check.py --workspace {workspaceDir}
 The script returns JSON with `fields` (filled/missing for each), `skip_rounds` (list of rounds to skip), and `next_round` (where to start).
 
 **Rules based on output:**
-- If `onboarding_completed` is `true`: skip onboarding entirely, proceed with normal chat (returning user)
-- If `next_round` is `complete`: all fields filled, skip onboarding, transition to `weight-loss-planner`
-- If `next_round` is `name`: ask for name, then skip all rounds listed in `skip_rounds` and go directly to diet/meal questions
+- If `onboarding_completed` is `true`: skip everything, proceed with normal chat (returning user)
+- If `next_round` is `complete`: all steps done — proceed with normal chat
+- If `next_round` is `name`: ask for name, skip rounds in `skip_rounds`, continue with remaining steps
 - If `next_round` is `motivation`: start from Round 1.5
+- If `next_round` is `plan`: profile already saved — jump directly to Step 3 (generate plan)
+- If `next_round` is `diet_preferences`: profile + PLAN.md already saved — jump to Step 4 (diet mode, meal schedule, food prefs)
+- If `next_round` is `diet_template`: all data collected — jump to Step 5 (present diet template and complete onboarding)
 - For any other value: start from that round, skip everything in `skip_rounds`
-- After completing remaining rounds, transition to `weight-loss-planner` as normal
 
 **Important:** This check is silent — never tell the user you checked their data or skipped steps. Just naturally start from the right point.
 
@@ -208,11 +210,279 @@ After receiving the user's answer in Round 4, do the following:
    > Example (user shares context): "明白了，外卖容易踩坑 + 压力上来就想吃甜的，这两个我帮你盯着。好，信息都记下了，给你出计划——"
    > Example (user says "没什么" or skips): "好的，那后面有什么想到的随时告诉我。信息都记下了，给你出计划——"
 
-5. **Generate the Profile** — Silently save all profile files (see Output Instructions below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
+5. **Generate the Profile** — Silently save all profile files (see "Save Profile Files" below). Write the mapped `activity_level` value to `health-profile.md > Activity & Lifestyle > Activity Level`.
 
 6. **Timezone** — Do NOT handle timezone here. It is stored in USER.md > Locale & Timezone. If missing, run update-timezone.sh.
 
-7. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "很好，你的信息已经记录好了！接下来我来给你制定一个减脂计划。" The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
+7. **Continue to Step 3** — Once the profile is saved, proceed directly to Step 3 (Weight Loss Plan) in this same skill. Do NOT transition to another skill — the full onboarding flow (profile → plan → diet template) runs inside this skill. Use a natural bridge line, e.g., "很好，你的信息已经记录好了！接下来我来给你制定一个减脂计划。"
+
+---
+
+## Step 3: Generate & Confirm Weight Loss Plan
+
+At this point the user's profile is already saved. You have all required data: height, current weight, age, sex, target weight, activity level, and tz offset from USER.md.
+
+### Calculate TDEE & Plan
+
+Use `forward-calc` to produce all plan values at once. Do not ask the user for timeline — derive it from the recommended rate. Do not ask about diet mode here — that comes in Step 4.
+
+```bash
+python3 {weight-loss-planner:baseDir}/scripts/planner-calc.py forward-calc \
+  --weight <current_kg> --height <cm> --age <years> --sex <male|female> \
+  --activity <activity_level> \
+  --target-weight <target_kg> --mode balanced \
+  [--bmi-standard who|asian] \
+  --tz-offset <TZ Offset from USER.md>
+```
+
+**BMI standard:** Use `--standard asian` if the user's locale or language is Chinese, Japanese, or Korean; otherwise `--standard who`.
+
+**If the user provided a deadline**, use `reverse-calc` instead:
+```bash
+python3 {weight-loss-planner:baseDir}/scripts/planner-calc.py reverse-calc \
+  --weight <current_kg> --height <cm> --age <years> --sex <male|female> \
+  --activity <activity_level> --target-weight <target_kg> \
+  --deadline YYYY-MM-DD --mode balanced \
+  --tz-offset <TZ Offset from USER.md>
+```
+
+### Present the Plan
+
+BMI was already shown during onboarding (Round 3) — **skip the body metrics block**. Present directly:
+
+**[Opening]** — One short energetic sentence, greet user by name and jump in.
+
+**[User info block]** — Compact confirmation of collected data (so user can spot errors):
+- 身高 / 体重 / 年龄 / 性别
+- 目标体重
+- 活动等级（口语描述，不用 sedentary 等英文字段名）
+
+**[Plan details block]** — "你的计划：" followed by bullet list:
+- 每日热量目标：[X,XXX] 大卡
+- 每日热量缺口：约 [XXX] 大卡
+- 每周减脂速度：约 [X.X] kg / [X.X] 斤
+- 预计完成：[具体月份 + 年份]（只给单一日期；若用户给的是体重区间，用较容易的那个作完成日期）
+
+**Do NOT include per-meal split or macro targets here** — those come after diet mode is chosen in Step 4.
+
+**[Rate explanation]** — 1–2 sentences explaining why this rate was chosen. Frame from user's perspective. Do NOT mention TDEE or BMR by name. If activity is sedentary, mention that adding exercise would speed things up.
+
+**[Follow-up question]** — "这个节奏合适吗，还是想调整一下？"
+
+**Formatting:** bullet points (•), no tables, round numbers (e.g., "~1,700 大卡"), max one emoji at end.
+
+### Rate Guidelines
+
+| Total to Lose | Recommended Rate | Default |
+|---|---|---|
+| < 10 kg | 0.2–0.5 kg/week | 0.35 kg |
+| 10–25 kg | 0.5–0.7 kg/week | 0.6 kg |
+| > 25 kg | 0.5–1.0 kg/week | 0.7 kg |
+
+Default to midpoint. For users over 50 or with joint concerns, lean toward lower end.
+
+### Safety Guardrails
+
+- Calorie floor: **max(BMR, 1,000 kcal/day)** — never below this
+- Weekly rate cap: 1 kg/week for extended periods (>2 weeks)
+- If target BMI < 18.5: express concern and recommend consulting a doctor
+- If user pushes for unsafe rate after being informed: respect autonomy, generate the plan, add a prominent health warning, and note they can request adjustment at any time
+
+### Adjustments (if user wants to change pace or goal weight)
+
+Recalculate and re-present using the full Plan Presentation format above. Repeat until satisfied.
+
+### Save PLAN.md
+
+Once the user confirms the plan, silently save the most recently presented Plan Presentation content as `PLAN.md` in the workspace. Do NOT mention the filename or `.md` to the user. Do NOT include macro breakdowns in PLAN.md.
+
+After saving, proceed directly to Step 4 — no reminder setup here. Use a natural bridge: "现在来帮你规划一下每天怎么吃——"
+
+---
+
+## Step 4: Collect Diet Preferences (3 Rounds)
+
+After the plan is confirmed and PLAN.md saved, collect dietary preferences through 3 focused rounds. **Skip any round whose answer is already in `health-preferences.md` or `health-profile.md`.**
+
+**Single-ask rule:** Each question is asked at most once. If the user ignores it, use a sensible default and move on.
+
+### Round 1: Diet Mode
+
+Select the **2 most suitable options** from the list below based on the user's profile (activity level, health flags, cultural context, health-preferences.md). Use professional judgment. Present concisely:
+
+> 先来定一下你的饮食方式。根据你的情况，我觉得这两种最适合你：
+>
+> 1. [模式A] — [一句话理由]
+> 2. [模式B] — [一句话理由]
+>
+> 我推荐从 [模式A] 开始。你倾向哪个？
+
+Available modes:
+
+| Mode | Fat Range | Best For |
+|---|---|---|
+| Balanced / Flexible | 25–35% | Most people; easiest to sustain |
+| Healthy U.S.-Style (USDA) | 20–35% | General health; follows Dietary Guidelines |
+| High-Protein | 25–35% | Gym-goers preserving muscle during deficit |
+| Low-Carb | 40–50% | People who feel better with fewer carbs (<100g carbs/day) |
+| Keto | 65–75% | Aggressive carb restriction (<20–30g carbs/day) |
+| Mediterranean | 25–35% | Heart health focus; whole foods, olive oil, fish |
+| IF (16:8) | Any | Prefer fewer, larger meals within 8-hour window |
+| IF (5:2) | Any | Prefer 2 very-low days (500–600 kcal); normal other days |
+| Plant-Based | 20–30% | Vegetarian or vegan users |
+
+IF is a timing strategy layered on top of any macro split (default to Balanced). Protein is always weight_kg × 1.2–1.6g regardless of mode.
+
+**Wait for the user to choose before Round 2.**
+
+### Round 2: Meal Schedule
+
+```
+你一天通常吃几餐，大概什么时间？
+```
+
+**Wait for the user's answer.**
+
+After they answer, confirm reminder and ask Round 3 in the same reply:
+
+> 好的，我会在每餐前 15 分钟提醒你，帮你提前规划。
+> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
+
+### Round 3: Taste Preferences & Food Restrictions
+
+(Already asked above after Round 2.) Wait for the user to answer or skip.
+
+### Save Updated Fields (Silent)
+
+After all three rounds:
+
+- **Diet Mode** → `health-profile.md > Diet Config > Diet Mode`
+- **Meal Schedule** → `health-profile.md > Meal Schedule`
+  - `Meals per Day` must be integer `2` or `3`. If user gives range (e.g., "两到三顿"), write `3`.
+  - Use standard names (Breakfast/Lunch/Dinner) — never "Meal 1"/"Meal 2".
+- **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
+- **Taste preferences / other preferences** → append to `health-preferences.md` under appropriate subcategory
+
+Proceed to Step 5.
+
+---
+
+## Step 5: Present Diet Template & Complete Onboarding
+
+### Calculate Macros
+
+```bash
+python3 {weight-loss-planner:baseDir}/scripts/planner-calc.py macro-targets \
+  --weight <current_kg> --cal <daily_cal> --mode <diet_mode> [--meals <2|3>]
+```
+
+Supported `--mode` values: `usda`, `balanced`, `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `if_16_8`, `if_5_2`.
+
+Present the macro table clearly:
+
+> 根据 [X] 大卡/天、[weight] kg、[mode] 模式：
+>
+> | 营养素 | 目标 | 克数 | 每餐（约3餐） | 可调范围 |
+> |---|---|---|---|---|
+> | 蛋白质 | weight×1.4 g/kg | Xg | ~Xg | X–Xg |
+> | 脂肪 | X% 热量 | Xg | ~Xg | X–Xg |
+> | 碳水 | 剩余 | Xg | ~Xg | X–Xg |
+
+Then ask the user to confirm or adjust.
+
+### Present the Diet Template
+
+Always present a Diet Template first — before any 7-day plan. The template gives the user an immediately actionable eating framework: a portion guide per meal slot plus one concrete day example.
+
+**Locale & meal prep:** Match template to user's locale (food culture, portion conventions) and cooking situation (home cook vs. takeout). For takeout meals, show ordering guidance instead of cooking-based portions.
+
+**Single-Meal Item Cap (mandatory — ceiling, not target):**
+
+| Meal | Upper Limit |
+|---|---|
+| Breakfast | ≤ 3 items |
+| Lunch / Dinner | ≤ 1 主食 + 2 菜 |
+
+- At most 1 staple/carb per meal (never rice + bread in same meal)
+- At most 2 dishes; a dish containing protein + vegetables counts as 1 item
+- Each `●` line = 1 item; drinks and fruit count as items
+- If calorie target needs more food than the cap allows: increase portions within existing items, then move overflow to a snack slot with a note: "如果一餐吃不下，[items] 可以放到加餐"
+
+**Single-Meal Volume Check:** Mentally picture the plate — could a normal person comfortably finish all items in one sitting? Especially watch breakfast (smaller morning appetite) and high-volume low-calorie foods. Move overflow to snack.
+
+**Precision rule:** Minimum granularity is 0.5 (never 0.3 or 0.7). Prefer whole numbers for naturally countable items (eggs, slices, apples).
+
+**Example must strictly match the template structure.** Each food category maps to exactly one item; if template uses "or", example picks ONE of them.
+
+#### English (US/Western) Template
+
+```
+🇺🇸[Meal Template — Hand Portion Guide]
+Breakfast: 0.5–1 fist grains + 1 palm protein + 1 cup dairy/protein drink
+Lunch: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
+Dinner: 0.5–1 fist grains + 2 fists vegetables + 1 palm protein
+Snack: 1–2 fists fruit + 1–2 cups dairy/protein
+
+🥣[Example]
+Breakfast:
+● Oatmeal (cooked) 0.5 cup
+● 1 large egg
+● Milk 1 cup (8 fl oz)
+Lunch:
+● Brown rice (cooked) 1 cup
+● Grilled chicken breast 4 oz
+● Steamed broccoli & carrots 2 cups
+Dinner:
+● Whole-wheat pasta (cooked) 0.5 cup
+● Baked salmon 4 oz
+● Roasted bell peppers & asparagus 2 cups
+Snack:
+● 1 medium apple
+● Plain yogurt 1 cup (8 fl oz)
+```
+
+For non-US locales, keep the same "template + example" format but use local staple foods, portion conventions, and meal structures (e.g., Chinese: soy milk + eggs + 包子 for breakfast; Japanese: soba/natto/miso; Korean: mixed-grain rice/kimchi).
+
+#### Snacks Are Always Included by Default
+
+Every diet template must include a Snack slot. If user explicitly says no snacks ("不要加餐"), omit it and redistribute snack calories into main meals — don't push back. Record in `health-preferences.md`.
+
+After presenting the template, always add:
+
+Chinese: `💡 加餐已经默认包含在模板里了。时间和内容可以灵活安排——上午、下午、晚上都行，选自己方便的时候吃就好。`
+
+English: `💡 Snacks are included by default. Feel free to eat them morning, afternoon, or evening — whenever works best for you.`
+
+### Introduce Daily Tracking Workflow
+
+Immediately after the diet template, present the daily rhythm (adapt to user's meal schedule and language):
+
+> 食谱已就绪！接下来每天的节奏是这样的：
+>
+> 1. 餐前提醒 — 每餐前 15 分钟我会发消息提醒你
+> 2. 吃之前先告诉我 — 拍张照片发给我就行，我来识别。文字描述也可以，比如"一碗米饭、一盘鸡肉"
+> 3. 我来分析 — 帮你估算热量和营养素，看看和目标比怎么样
+> 4. 按需调整 — 如果偏高或偏低，我会马上告诉你当餐怎么调，比如"加个蛋"或"米饭少盛点"
+>
+> 不用追求完美，照着食谱吃、吃之前告诉我一声就行。我来帮你微调 👍
+>
+> 除了打卡指导外，你想让我做什么都可以直接说，比如提醒喝水，给食物购买建议等等。觉得我哪里做得不好也随时告诉我，比如推荐的东西不合口味、监督力度太小了，语气太温和了，说了我就改。
+
+### Bootstrap Reminders & Mark Complete (Silent)
+
+After presenting the diet template and daily tracking workflow:
+
+1. **Write `Onboarding Completed`** — update `health-profile.md > Automation > Onboarding Completed` with today's date:
+   ```bash
+   python3 {baseDir}/scripts/now.py --tz-name <timezone from system prompt>
+   ```
+   Use the `date` field from output.
+
+2. **Activate `notification-manager`** — so it detects meal times in `health-profile.md > Meal Schedule` and creates all cron jobs (meal reminders, weight reminders, daily review, diet pattern detection). `notification-manager` owns all reminder lifecycle management.
+
+Do NOT mention reminders, cron jobs, or file details to the user. Entirely silent.
+
+---
 
 ## Health Safety Note
 
@@ -375,22 +645,21 @@ During onboarding, the user often reveals preferences beyond the standard profil
 
 ---
 
-## Output Instructions
+## Save Profile Files
 
-After the user confirms their summary:
+This step happens at the end of Step 2, before Step 3. After the open-ended check-in is complete:
 
-1. Generate the profile using the formats shown above
-2. **Internal actions (do NOT mention to user):** Silently save all files in the current workspace:
+1. **Save all profile files (silent — do NOT mention to user):**
    - `USER.md` — identity and communication preferences
    - `health-profile.md` — health facts and settings (Body section contains `Unit Preference` only — no weight value)
    - `health-preferences.md` — any accumulated preferences from the conversation
-   - **Initial weight record** — save the user's current weight as the first entry via the `weight-tracking` skill's script:
+   - **Initial weight record** — save the user's current weight as the first entry:
      ```bash
      python3 {weight-tracking:baseDir}/scripts/weight-tracker.py save \
        --data-dir {workspaceDir}/data \
        --value <weight_number> --unit <kg|lb> \
        --tz-offset <from USER.md>
      ```
-   - **Unit preference** — infer from the user's weight input (e.g., "80kg" → `kg`, "165 lbs" → `lb`, "130斤" → `kg`) and write to `health-profile.md > Body > Unit Preference`
-   Do not tell the user the filenames, file format, or mention `.md` — just confirm that their profile has been saved.
-3. **Transition to Weight Loss Planner** — Once the profile is saved, seamlessly transition to the `weight-loss-planner` skill to create a personalized weight loss plan. Don't ask the user whether they want a plan — just proceed naturally, e.g., "Great, your profile is all set! Now let me put together a weight loss plan based on your info." The weight-loss-planner will read the `USER.md` and `health-profile.md` you just saved and skip redundant data collection.
+   - **Unit preference** — infer from weight input (e.g., "80kg" → `kg`, "165 lbs" → `lb`, "130斤" → `kg`) and write to `health-profile.md > Body > Unit Preference`
+
+2. **Continue to Step 3** — proceed inline to the weight loss plan. No skill transition. No mention of filenames or `.md` to the user.
