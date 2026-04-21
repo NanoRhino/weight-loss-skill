@@ -193,7 +193,7 @@ def analyze_short_term(memory_dir: str) -> dict:
         all_entries = []
         for day in days:
             date_str = day.get("date", "")
-            entries = day.get("entries", [])
+            entries = day.get("conversations", day.get("entries", []))
             if entries:
                 all_entries.append(date_str)
                 result["entry_count"] += len(entries)

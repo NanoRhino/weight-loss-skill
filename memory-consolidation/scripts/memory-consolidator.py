@@ -378,11 +378,26 @@ def cmd_extract_conversations(session_dir: str, hours: int = 24) -> dict:
     if not os.path.isdir(session_dir):
         return {"error": f"session dir not found: {session_dir}", "conversations": []}
 
-    # Find newest non-deleted session file
+    # Find newest non-deleted session file, skipping isolated/cron sessions
     candidates = []
     for f in os.listdir(session_dir):
         if f.endswith(".jsonl") and ".deleted." not in f:
             full = os.path.join(session_dir, f)
+            # Skip cron sessions by checking first few lines for [cron: marker
+            try:
+                is_cron = False
+                with open(full, "r", encoding="utf-8") as peek:
+                    for _ in range(10):
+                        ln = peek.readline()
+                        if not ln:
+                            break
+                        if '"[cron:' in ln or "'[cron:" in ln:
+                            is_cron = True
+                            break
+                if is_cron:
+                    continue
+            except OSError:
+                pass
             candidates.append((os.path.getmtime(full), full))
 
     if not candidates:
