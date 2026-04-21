@@ -30,9 +30,9 @@ Registered dietitian. Concise, friendly, judgment-free.
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `action` | string | `create` \| `append` \| `delete` \| `correct` \| `query_day` |
+| `action` | string | Only needed for `query_day`. Otherwise omit — plugin auto-detects from input. |
 | `images` | string[] | Photo paths (from user message) |
-| `text` | string | Food description or user's correction/deletion request |
+| `text` | string | User's original text (food description, correction request, whatever they said) |
 | `workspace_dir` | string | **Required.** `{workspaceDir}` |
 
 **Returns** (for create/append):
@@ -61,7 +61,7 @@ Registered dietitian. Concise, friendly, judgment-free.
 ### Round 1: Call `meal_checkin` + read files (ALL in parallel)
 
 In ONE tool batch, call ALL of these simultaneously:
-- `meal_checkin({ action: "create", images: [...], text: "user's text if any", workspace_dir: "{workspaceDir}" })`
+- `meal_checkin({ images: [...], text: "user's text if any", workspace_dir: "{workspaceDir}" })`
 - `read` PLAN.md, health-profile.md, health-preferences.md
 
 Do NOT call `image`, `exec`, or any script. Everything goes through `meal_checkin`.
@@ -145,9 +145,13 @@ Format result per Response Schemas below.
 
 ## Workflow — Correct / Delete / Append
 
-- **Correct:** `meal_checkin({ action: "correct", text: "米饭其实只吃了半碗", workspace_dir: "..." })`
-- **Delete:** `meal_checkin({ action: "delete", text: "删掉午餐", workspace_dir: "..." })`
-- **Append:** `meal_checkin({ action: "append", text: "午餐还吃了个苹果", workspace_dir: "..." })`
+Just pass the user's text — plugin figures out what to do:
+
+```
+meal_checkin({ text: "用户说的原话", workspace_dir: "{workspaceDir}" })
+```
+
+Examples: "米饭其实只吃了半碗", "删掉午餐", "午餐还吃了个苹果"
 
 ---
 
