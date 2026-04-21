@@ -134,10 +134,10 @@ def scan_workspaces(openclaw_dir, min_logged_days, tz_offset):
             skipped.append({"agent_id": agent_id, "reason": "no health-profile"})
             continue
 
-        # Check engagement stage
+        # Check engagement stage (skip if in recall or silent)
         stage = get_engagement_stage(workspace_dir)
-        if stage >= 5:
-            skipped.append({"agent_id": agent_id, "reason": f"stage {stage} (silent)"})
+        if stage >= 2:
+            skipped.append({"agent_id": agent_id, "reason": f"stage {stage} (recall/silent — suppressed)"})
             continue
 
         # Count logged days this week

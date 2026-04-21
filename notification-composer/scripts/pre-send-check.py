@@ -141,6 +141,12 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             if is_weight:
                 return False, f"notification_stage={stage} — weight reminders suppressed during recall"
 
+        # Stage 2-4: suppress custom reminders, weekly reports, daily summaries
+        if stage in (2, 3, 4):
+            is_non_recall = meal_type in ("custom", "weekly_report", "daily_summary")
+            if is_non_recall:
+                return False, f"notification_stage={stage} — {meal_type} suppressed during recall"
+
         local_date = get_local_date(tz_offset)
 
         if stage == 2:
@@ -360,7 +366,8 @@ def main():
     parser.add_argument("--workspace-dir", required=True, help="Agent workspace root")
     parser.add_argument("--meal-type", required=True,
                         choices=["breakfast", "lunch", "dinner", "meal_1", "meal_2",
-                                 "weight", "weight_evening", "weight_morning_followup"],
+                                 "weight", "weight_evening", "weight_morning_followup",
+                                 "custom", "weekly_report", "daily_summary"],
                         help="Meal type to check")
     parser.add_argument("--tz-offset", required=True, type=int,
                         help="Timezone offset in seconds from UTC")
@@ -391,6 +398,8 @@ def main():
     elif args.meal_type == "weight_morning_followup":
         checks.append(("weight_logged_yesterday_or_today", lambda: check_weight_logged_yesterday_or_today(
             args.workspace_dir, args.tz_offset)))
+    elif args.meal_type in ("custom", "weekly_report", "daily_summary"):
+        pass  # Only stage check needed, no meal-logged check
     else:
         checks.append(("meal_logged", lambda: check_meal_logged(
             args.workspace_dir, args.meal_type, args.tz_offset)))
