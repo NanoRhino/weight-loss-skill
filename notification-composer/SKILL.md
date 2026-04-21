@@ -56,10 +56,24 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 - **`NO_REPLY`** → 回复恰好 `NO_REPLY`，结束。不要继续。
 - **`SEND`** → Stage 1 正常提醒，继续第四步。
+- **`SEND welcome_back=true from_stage=N`** → 用户沉默后回来了！**先热情欢迎，再处理内容。** 语气：开心、温暖、简短（1-2句欢迎 + 正常提醒）。不要提"你消失了X天"这种让人有压力的话，轻松点，比如"欢迎回来！继续记录吧～"。然后清除 flag（见下方）。
 - **`SEND recall stage=N days_silent=X`** → 用户处于召回阶段（Stage N）。**必须发召回消息，不是正常提醒。** 忽略 cron 原始的 meal-type，按召回阶段的语气和内容模板写。参考第四步的 Stage 2/3/4 分支。
 
 > ⚠️ 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。
 > ⚠️ **当输出包含 `recall` 时，绝对不能写正常的餐食提醒。** 即使 cron prompt 说 "Run notification-composer for breakfast"，你也必须发召回消息。
+> ⚠️ **当输出包含 `welcome_back` 时：** 发送欢迎+正常提醒后，执行：
+> ```bash
+> python3 -c "
+> import json
+> path = '{workspaceDir}/data/engagement.json'
+> with open(path) as f: d = json.load(f)
+> d.pop('welcome_back', None)
+> d.pop('welcome_back_from_stage', None)
+> d.pop('welcome_back_days_away', None)
+> with open(path, 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False)
+> "
+> ```
+> 这确保欢迎只触发一次。
 
 ### 第四步：按阶段分支
 

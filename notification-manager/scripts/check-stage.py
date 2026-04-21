@@ -215,6 +215,7 @@ def main():
     # Without real meals, days_silent is derived from stage_changed_at fallback
     # and could be 0 right after a fast-forward, which would incorrectly reset.
     if stage > 1 and days_silent <= 1 and last_logged is not None:
+        prev_stage = stage
         stage = 1
         data["notification_stage"] = 1
         data["stage_changed_at"] = now.isoformat()
@@ -222,8 +223,11 @@ def main():
         data["recall_2_sent"] = False
         data["recall_count"] = 0
         data["last_nudge_date"] = None
+        data["welcome_back"] = True
+        data["welcome_back_from_stage"] = prev_stage
+        data["welcome_back_days_away"] = days_silent_raw if 'days_silent_raw' in dir() else days_silent
         changed = True
-        log(f"RESET to stage 1 (user returned, last meal {last_logged})")
+        log(f"RESET to stage 1 (user returned, last meal {last_logged}) — welcome_back flag set")
 
     # --- Forward transitions (fast-forward to correct stage) ---
     else:
