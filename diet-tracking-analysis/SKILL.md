@@ -1,6 +1,6 @@
 ---
 name: diet-tracking-analysis
-version: 3.0.0
+version: 3.1.0
 description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user logs food, describes a meal, mentions what they're about to eat or drink, sets a calorie target, asks about their intake or daily progress. ALSO trigger when user sends a photo or image of food, drinks, meals, snacks, nutrition labels, or restaurant menus — this is the highest-priority trigger for this skill. Trigger phrases include 'I'm having...', 'I'm about to eat...', 'for breakfast/lunch/dinner...', 'log this', 'track this', 'how many calories in...', 'set my target to...'. Also trigger for past-tense reports like 'I had...', 'I ate...'. Also trigger for equivalents in any language. Even casual mentions of food ('grabbing a coffee', 'about to have some toast', 'just had some toast') should trigger this skill. NOT a food log: If the user describes a general behavioral pattern without logging specific food for a specific meal (e.g. '我喝水很少', '我吃太快', 'I skip breakfast', 'I snack too much at night'), this is NOT a diet-tracking trigger — defer to habit-builder. Only trigger when there is concrete food/drink to record for a meal. See SKILL-ROUTING.md Pattern 11."
 metadata:
   openclaw:
@@ -93,17 +93,14 @@ python3 {baseDir}/scripts/nutrition-calc.py load \
   --data-dir {workspaceDir}/data/meals [--date YYYY-MM-DD]
 ```
 
-#### `save-evaluation`
-
-Called after composing your response to persist the suggestion text:
-
-```bash
-python3 {baseDir}/scripts/nutrition-calc.py save-evaluation \
-  --data-dir {workspaceDir}/data/meals \
-  --meal-name <meal_name> \
-  --suggestion-text '<suggestion text>' \
-  --tz-offset <seconds>
+**Post-response suggestion tag (REQUIRED for create/append):**
+Append this tag at the very end of your reply (after all visible text, on a new line).
+The plugin auto-strips it before delivery — user never sees it.
 ```
+<!--diet_suggestion:{workspaceDir}|<meal_name>|<suggestion text>-->
+```
+- `meal_name`: the English meal name from log-meal output (e.g. `lunch`, `breakfast`)
+- `suggestion text`: your ③ suggestion in one line, no pipes (`|`), no angle brackets (`<>`)
 
 ---
 
