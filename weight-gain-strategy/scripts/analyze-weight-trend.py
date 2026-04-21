@@ -519,6 +519,55 @@ def analyze(args):
         args, local_now, net_change_for_ebc, calorie_target, daily_cals, window
     )
 
+    # --- Long-term trend (all available data) ---
+    all_readings = []
+    raw_all = load_json(os.path.join(args.data_dir, "weight.json"))
+    if isinstance(raw_all, dict) and "entries" in raw_all:
+        for entry in raw_all["entries"]:
+            d = entry.get("date", "")[:10]
+            all_readings.append({"date": d, "value": float(entry.get("value", 0))})
+    elif isinstance(raw_all, dict):
+        for k, v in sorted(raw_all.items()):
+            d = k[:10]
+            val = v.get("value", v) if isinstance(v, dict) else v
+            all_readings.append({"date": d, "value": float(val)})
+    elif isinstance(raw_all, list):
+        for entry in raw_all:
+            d = entry.get("date", "")[:10]
+            all_readings.append({"date": d, "value": float(entry.get("value", 0))})
+
+    # Deduplicate by date (keep latest per day)
+    by_date = {}
+    for r in all_readings:
+        by_date[r["date"]] = r["value"]
+    sorted_all = sorted(by_date.items())
+
+    long_term_trend = {"available": False}
+    if len(sorted_all) >= 2:
+        first_date, first_val = sorted_all[0]
+        last_date, last_val = sorted_all[-1]
+        total_days = (datetime.strptime(last_date, "%Y-%m-%d") - datetime.strptime(first_date, "%Y-%m-%d")).days
+        long_term_trend = {
+            "available": True,
+            "total_readings": len(sorted_all),
+            "first_record": {"date": first_date, "value": first_val},
+            "latest_record": {"date": last_date, "value": last_val},
+            "total_change_kg": round(last_val - first_val, 1),
+            "total_days": total_days,
+        }
+        # Compute 30/60/90 day sub-trends
+        for period in [30, 60, 90]:
+            cutoff = (local_now - timedelta(days=period)).strftime("%Y-%m-%d")
+            period_readings = [(d, v) for d, v in sorted_all if d >= cutoff]
+            if len(period_readings) >= 2:
+                p_first = period_readings[0]
+                p_last = period_readings[-1]
+                long_term_trend[f"last_{period}d"] = {
+                    "from": {"date": p_first[0], "value": p_first[1]},
+                    "to": {"date": p_last[0], "value": p_last[1]},
+                    "change_kg": round(p_last[1] - p_first[1], 1),
+                }
+
     # --- Final output ---
     result = {
         "trend": trend,
@@ -532,6 +581,7 @@ def analyze(args):
         "active_strategy": active_strategy,
         "suggested_actions": suggested_actions,
         "energy_balance_check": energy_balance_check,
+        "long_term_trend": long_term_trend,
     }
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
