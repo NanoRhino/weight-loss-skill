@@ -115,7 +115,7 @@ def _meal_has_food(meal):
     return bool(items)
 
 
-def get_last_logged_date(workspace_dir):
+def get_last_logged_date(workspace_dir, tz_offset=0):
     """
     Scan data/meals/*.json to find the most recent date with at least one
     meal entry that contains actual food data. Returns a date string (YYYY-MM-DD)
@@ -128,7 +128,8 @@ def get_last_logged_date(workspace_dir):
     date_pattern = re.compile(r"(\d{4}-\d{2}-\d{2})\.json$")
     logged_dates = []
 
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    tz = timezone(timedelta(seconds=tz_offset))
+    today_str = datetime.now(tz).strftime("%Y-%m-%d")
     for filepath in glob.glob(os.path.join(meals_dir, "*.json")):
         match = date_pattern.match(os.path.basename(filepath))
         if not match:
@@ -164,6 +165,9 @@ def main():
     parser.add_argument("--workspace-dir", required=True, help="Agent workspace root")
     parser.add_argument("--tz-offset", required=True, type=int,
                         help="Timezone offset in seconds from UTC")
+    parser.add_argument("--user-active", action="store_true",
+                        help="Force-signal that user just sent a message (chat or food). "
+                             "Triggers reset even without a meal logged today.")
     args = parser.parse_args()
     args.workspace_dir = _normalize_path(args.workspace_dir)
 
@@ -176,7 +180,7 @@ def main():
     stage_changed_at = parse_iso(data.get("stage_changed_at"))
 
     # --- Derive last interaction from meal records ---
-    last_logged = get_last_logged_date(args.workspace_dir)
+    last_logged = get_last_logged_date(args.workspace_dir, args.tz_offset)
 
     if last_logged is None:
         # No meal records at all — user hasn't started logging yet.
@@ -211,10 +215,16 @@ def main():
     changed = False
 
     # --- User returned: logged a meal today/yesterday but stage > 1 ---
-    # Only trigger reset if there are actual meal records (last_logged != None).
+    # Also triggers if --user-active flag is passed (user sent any message).
+    # Only trigger reset if there are actual meal records (last_logged != None)
+    # OR if --user-active explicitly signals user interaction.
     # Without real meals, days_silent is derived from stage_changed_at fallback
     # and could be 0 right after a fast-forward, which would incorrectly reset.
-    if stage > 1 and days_silent <= 1 and last_logged is not None:
+    user_returned = (
+        (stage > 1 and days_silent <= 1 and last_logged is not None) or
+        (stage > 1 and args.user_active)
+    )
+    if user_returned:
         prev_stage = stage
         stage = 1
         data["notification_stage"] = 1
@@ -225,24 +235,26 @@ def main():
         data["last_nudge_date"] = None
         data["welcome_back"] = True
         data["welcome_back_from_stage"] = prev_stage
-        data["welcome_back_days_away"] = days_silent_raw if 'days_silent_raw' in dir() else days_silent
+        data["welcome_back_days_away"] = days_silent
         changed = True
         log(f"RESET to stage 1 (user returned, last meal {last_logged}) — welcome_back flag set")
 
     # --- Forward transitions (fast-forward to correct stage) ---
-    else:
+    # Skip forward transitions if --user-active: user just sent a message,
+    # so they are active right now regardless of meal history.
+    elif not args.user_active:
         # Calculate target stage directly from days_silent.
         # This avoids the one-step-per-cron problem where a user stuck at S1
         # due to a reset takes multiple cron cycles to reach the correct stage.
         def calc_target_stage(ds):
             if ds >= STAGE_4_TO_5_DAYS:
                 return 5   # 90+ days → permanent silence
-            if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS * 1 + STAGE_3_TO_4_WEEKS * 7:
-                return 4   # 3 + 3 + 21 = 27+ days → monthly recall
+            if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS + STAGE_3_TO_4_WEEKS * 7:
+                return 4   # 3 + 3 + 21 = 27+ days → monthly recall (Week 5+)
             if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS:
-                return 3   # 3 + 3 = 6+ days → weekly recall
+                return 3   # 3 + 3 = 6+ days → weekly recall (Week 2-4)
             if ds >= STAGE_1_TO_2_DAYS:
-                return 2   # 3+ days → daily recall
+                return 2   # 3+ days → daily recall (Day 4-6)
             return 1
 
         target = calc_target_stage(days_silent)
