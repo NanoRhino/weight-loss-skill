@@ -1037,10 +1037,26 @@ def deviation_check(args):
     # During cause-check 7-day window: additional increases get "light" only
     last_severity = wgs_state.get("last_severity", "")
     last_trigger_date = wgs_state.get("last_trigger_date", "")
+    last_trigger_weight = wgs_state.get("last_trigger_weight")
+    latest_value = deduped[-1]["value"] if deduped else None
+
+    # Reset escalation if the user already dropped below the last trigger weight.
+    # Falling below previous trigger means the prior gain was resolved, so a new
+    # increase is a fresh cycle, not a continuation to escalate.
+    reset_from_drop = (
+        last_severity in ("light", "cause-check")
+        and last_trigger_date
+        and last_trigger_weight is not None
+        and latest_value is not None
+        and latest_value < last_trigger_weight
+    )
 
     if consecutive_increases == 0:
         severity = "none"
         triggered = False
+    elif reset_from_drop:
+        severity = "light"
+        triggered = True
     elif last_severity == "cause-check" and last_trigger_date:
         # We already did a full cause-check — check if within 7-day window
         try:
@@ -1134,6 +1150,8 @@ def deviation_check(args):
         wgs_state["last_trigger_date"] = local_now.strftime("%Y-%m-%d")
         wgs_state["last_severity"] = severity
         wgs_state["consecutive_increases"] = consecutive_increases
+        if latest_value is not None:
+            wgs_state["last_trigger_weight"] = latest_value
         try:
             with open(wgs_state_path, "w") as f:
                 json.dump(wgs_state, f, indent=2, ensure_ascii=False)
