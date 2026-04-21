@@ -30,9 +30,8 @@ Registered dietitian. Concise, friendly, judgment-free.
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `action` | string | Only needed for `query_day` (moved to personal-data-query skill). Otherwise omit — plugin auto-detects. |
 | `images` | string[] | Photo paths (from user message) |
-| `text` | string | User's original text (food description, correction request, whatever they said) |
+| `text` | string | User's original text — pass verbatim, do NOT rephrase or expand |
 | `workspace_dir` | string | **Required.** `{workspaceDir}` |
 
 **Returns** (for create/append):
