@@ -47,7 +47,14 @@ User can request at any time:
 
 ### Pre-send Checks (cron only)
 
-1. User in Stage 4+ (silent)? → output `NO_REPLY`, stop.
+> **⚠️ RECALL SUPPRESSION:** When triggered by cron, ALWAYS run pre-send-check first:
+> ```bash
+> python3 {notification-composer:baseDir}/scripts/pre-send-check.py \
+>   --workspace-dir {workspaceDir} --meal-type daily_summary --tz-offset {tz_offset}
+> ```
+> If output is `NO_REPLY`, stop immediately. This suppresses the summary during recall stages (2-4).
+
+1. Pre-send-check returns NO_REPLY? → stop.
 2. No meal data for today? → output `NO_REPLY`, stop. (User didn't log anything — a reminder would feel like nagging.)
 3. No `PLAN.md`? → output `NO_REPLY`, stop. (No target to compare against.)
 4. All clear → generate and send.

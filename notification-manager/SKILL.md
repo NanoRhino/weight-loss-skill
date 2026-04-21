@@ -351,13 +351,25 @@ prevents accidental deletion of system jobs when users say "取消提醒".
 
 ### Creating
 
-Use the same `create-cron.py` script with appropriate parameters:
+Use the same `create-cron.py` script with appropriate parameters.
+
+> **⚠️ RECALL SUPPRESSION:** All custom reminders are automatically suppressed when
+> the user is in recall stage (engagement_stage ≥ 2). The agent payload MUST include
+> a pre-send-check call with `--meal-type custom` at the start. This is handled
+> automatically by the payload template below.
+
+Payload template for custom reminders:
+```
+First run: python3 {notification-composer:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}
+If output is NO_REPLY, stop and output NO_REPLY.
+Otherwise: <the actual reminder message/task>
+```
 
 ```bash
 python3 {baseDir}/scripts/create-cron.py \
   --workspace-dir {workspaceDir} \
   --name "[custom] 每日笑话" \
-  --message "给用户讲一个好笑的笑话，风格轻松幽默，每次不同。" \
+  --message "First run: python3 {notification-composer:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}\nIf output is NO_REPLY, stop and output NO_REPLY.\nOtherwise: 给用户讲一个好笑的笑话，风格轻松幽默，每次不同。" \
   --cron "0 9 * * *" \
   --type meal
 ```
