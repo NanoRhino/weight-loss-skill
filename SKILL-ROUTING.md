@@ -18,6 +18,33 @@ make the user repeat themselves.
 
 ---
 
+## Welcome Back Check (Global — ALL Skills)
+
+**Before routing to any skill**, check `{workspaceDir}/data/engagement.json`:
+
+1. If `notification_stage` >= 2 **and** this is a user-initiated message (not cron):
+   ```bash
+   python3 {notification-manager:baseDir}/scripts/check-stage.py \
+     --workspace-dir {workspaceDir} --tz-offset {tz_offset} --user-active
+   ```
+2. Re-read `engagement.json`. If `welcome_back` is `true`:
+   - Add a warm, brief welcome (1 sentence) before your normal response
+   - Clear the flag:
+     ```bash
+     python3 -c "
+     import json
+     path = '{workspaceDir}/data/engagement.json'
+     with open(path) as f: d = json.load(f)
+     for k in ['welcome_back','welcome_back_from_stage','welcome_back_days_away']: d.pop(k, None)
+     with open(path, 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False)
+     "
+     ```
+3. If `notification_stage` == 1 and no `welcome_back` → proceed normally.
+
+**Welcome style:** Warm but brief. "好久不见！" / "欢迎回来～" — never mention how long they were gone.
+
+---
+
 ## Priority Tiers
 
 Skills are organized into priority tiers. Higher-tier skills take precedence

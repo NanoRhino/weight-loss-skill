@@ -119,32 +119,6 @@ Returns `matches` (`oil_per_100g`, `correction_count`) and `no_match`. Stored in
 
 ---
 
-## Welcome Back Detection
-
-Before processing any user message, check `{workspaceDir}/data/engagement.json`:
-- If `welcome_back` is `true` → user just returned from silence. **Add a warm, brief welcome (1 sentence max) before your normal response.** Then clear the flag:
-  ```bash
-  python3 -c "
-  import json
-  path = '{workspaceDir}/data/engagement.json'
-  with open(path) as f: d = json.load(f)
-  d.pop('welcome_back', None)
-  d.pop('welcome_back_from_stage', None)
-  d.pop('welcome_back_days_away', None)
-  with open(path, 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False)
-  "
-  ```
-- If `notification_stage` >= 2 and user is sending you a message (not a cron trigger) → user is returning right now. Run check-stage with `--user-active` to reset:
-  ```bash
-  python3 {notification-manager:baseDir}/scripts/check-stage.py --workspace-dir {workspaceDir} --tz-offset {tz_offset} --user-active
-  ```
-  After this, `welcome_back` will be `true` in engagement.json. Read it and follow the above.
-- Otherwise → proceed normally, no welcome needed.
-
-**Welcome style:** Warm but brief. "好久不见！继续记录吧～" / "欢迎回来！" — 不要提用户消失了多久，不施加压力。
-
----
-
 ## Workflow — Log Food
 
 ### Step 1: Recognize & Log

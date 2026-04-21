@@ -228,6 +228,16 @@ def main():
     old_stage = stage
     changed = False
 
+    # --- Always update last_active_date when --user-active is passed ---
+    # This keeps the recall timer fresh even if user chats without logging food.
+    # Must happen BEFORE days_silent is used for stage decisions.
+    if args.user_active:
+        if data.get("last_active_date") != today_str:
+            data["last_active_date"] = today_str
+            # Recalculate days_silent with fresh active date
+            days_silent = 0
+            changed = True
+
     # --- User returned: logged a meal today/yesterday but stage > 1 ---
     # Also triggers if --user-active flag is passed (user sent any message).
     # Only trigger reset if there are actual meal records (last_logged != None)
@@ -293,6 +303,11 @@ def main():
             log(f"FAST-FORWARD {old_stage} → {stage} (silent {days_silent} days)")
 
     # Stage 5 is permanent silence — no further transitions
+
+    # Always persist days_silent for downstream consumers
+    if data.get("days_silent") != days_silent:
+        data["days_silent"] = days_silent
+        changed = True
 
     if changed or not existed:
         save_engagement(args.workspace_dir, data)
