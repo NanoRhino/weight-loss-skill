@@ -279,35 +279,13 @@ def _range_status(value: float, lo: float, hi: float) -> str:
     return "on_track"
 
 
-def _render_progress_bar(actual: float, target: int) -> dict:
-    """Render a 10-char cumulative calorie progress bar for direct LLM output.
-
-    Each cell = 10% of daily target. Over-target collapses to a full bar
-    plus a ⚠️ marker; callers still get the raw percent and surplus so
-    they can compose the `🔥 actual/target` line themselves.
-
-    Returns:
-      bar      — 10 chars (█ filled / ░ remaining)
-      percent  — rounded int percent
-      surplus  — int kcal over target, or None when at/under target
-      line     — pre-rendered `<bar> <percent>%` (plus ⚠️ when over)
-    """
-    if target <= 0:
-        empty = "░" * 10
-        return {"bar": empty, "percent": 0, "surplus": None, "line": f"{empty} 0%"}
-
-    percent = round(actual / target * 100)
+def _render_progress_bar(actual: float, target: int) -> str:
+    """Pre-render the `<10-char bar> <pct>%` line so LLM can paste verbatim."""
+    pct = round(actual / target * 100)
     if actual > target:
-        bar = "█" * 10
-        surplus = int(round(actual - target))
-        line = f"{bar} {percent}% ⚠️"
-    else:
-        filled = max(0, min(10, round(actual / target * 10)))
-        bar = "█" * filled + "░" * (10 - filled)
-        surplus = None
-        line = f"{bar} {percent}%"
-
-    return {"bar": bar, "percent": percent, "surplus": surplus, "line": line}
+        return f"{'█' * 10} {pct}% ⚠️"
+    n = min(10, round(actual / target * 10))
+    return f"{'█' * n}{'░' * (10 - n)} {pct}%"
 
 
 def _sum_macros(meal_list: list) -> dict:

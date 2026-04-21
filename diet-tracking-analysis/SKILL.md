@@ -283,15 +283,11 @@ P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKIL
 
 ### ② Nutrition Summary (from `evaluate`)
 📊 So far today:
-🔥 <daily_total>/<target> kcal[ (+<surplus>)]
-<evaluation.progress_bar.line>
+🔥 <daily_total>/<target> kcal[ (+<over>)]
+<evaluation.progress_bar>
 Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
 
-**Calorie progress bar — copy-paste from script, never regenerate:**
-- Line 2 is `evaluation.progress_bar.line` from the script output (e.g. `███████░░░ 70%` or `██████████ 117% ⚠️`). Paste it verbatim — do NOT re-render, shorten, or drop it.
-- Line 1 uses `evaluation.daily_total` and the target. When `evaluation.progress_bar.surplus` is non-null, append ` (+<surplus>)` to line 1.
-  Example: `🔥 2,100/1,800 kcal (+300)` paired with `██████████ 117% ⚠️`.
-- Both lines are **mandatory** whenever `evaluation.progress_bar` exists. Omitting them is a format bug, not a style choice.
+**Progress bar line = `evaluation.progress_bar` (pre-rendered, paste verbatim).** Never omit, shorten, or regenerate. If `daily_total > target`, append ` (+<daily_total − target>)` to the 🔥 line — e.g. `🔥 2,100/1,800 kcal (+300)` + `██████████ 117% ⚠️`.
 
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar which shows both).
 

@@ -7,14 +7,11 @@
 ## ② Nutrition Summary (from `evaluate`)
 
 📊 So far today:
-🔥 <daily_total>/<target> kcal[ (+<surplus>)]
-<evaluation.progress_bar.line>
+🔥 <daily_total>/<target> kcal[ (+<over>)]
+<evaluation.progress_bar>
 Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
 
-**Progress bar — copy-paste from script, never regenerate:**
-- Line 2 = `evaluation.progress_bar.line` (e.g. `███████░░░ 70%`, or `██████████ 117% ⚠️` when over). Paste verbatim.
-- Line 1 uses `evaluation.daily_total` + target. Append ` (+<surplus>)` only when `evaluation.progress_bar.surplus` is non-null.
-- Both lines are mandatory whenever `evaluation.progress_bar` is present.
+**Progress bar = `evaluation.progress_bar` (pre-rendered, paste verbatim).** Over target → append ` (+<daily_total − target>)` to 🔥 line.
 
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no targets (except calorie bar).
 
