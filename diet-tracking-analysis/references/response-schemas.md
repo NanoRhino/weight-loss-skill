@@ -6,18 +6,9 @@
 
 ## ② Nutrition Summary (from `evaluate`)
 
-**Paste `evaluation.progress_bar` verbatim.** Script pre-renders the full block — 📊 header, 🔥 kcal line (with `(+N)` when over), progress bar, macro status, and CN 🥦🍎 line — as one multi-line string.
+**Paste `evaluation.progress_bar` verbatim** — script pre-renders 📊 header + 🔥 kcal (`(+N)` when over) + bar + macro status + CN 🥦🍎 line as one multi-line string.
 
-CN example:
-```
-📊 So far today:
-🔥 144/1,800 kcal
-█░░░░░░░░░ 8%
-蛋白质 12.6g ⬇️ | 碳水 1g ⬇️ | 脂肪 9.5g ✅
-🥦 蔬菜：0g ⬇️  🍎 水果：0g ⬇️
-```
-
-Produce suggestion (§③, not the block): veg low → next meal; fruit low → only at final meal.
+Produce suggestions (§③, not the block): veg low → next meal; fruit low → only at final meal.
 
 1-sentence bridge to ③. Optional `✨ Nice work` if noteworthy.
 

@@ -283,9 +283,8 @@ P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKIL
 
 ### ② Nutrition Summary (from `evaluate`)
 
-**Paste `evaluation.progress_bar` verbatim.** The script pre-renders the full block (header + 🔥 line + bar + macro status + CN 🥦🍎 produce line) as a single multi-line string. Do not regenerate, reorder, or drop any line.
+**Paste `evaluation.progress_bar` verbatim.** Script pre-renders 📊 header + 🔥 kcal line (`(+N)` when over) + progress bar + macro status + CN 🥦🍎 line as a single multi-line string.
 
-Example (CN region, logged breakfast only):
 ```
 📊 So far today:
 🔥 144/1,800 kcal
@@ -294,20 +293,7 @@ Example (CN region, logged breakfast only):
 🥦 蔬菜：0g ⬇️  🍎 水果：0g ⬇️
 ```
 
-Example (over target):
-```
-📊 So far today:
-🔥 2,100/1,800 kcal (+300)
-██████████ 117% ⚠️
-蛋白质 90g ⬆️ | 碳水 210g ⬆️ | 脂肪 88g ⬆️
-🥦 蔬菜：250g ✅  🍎 水果：100g ⬇️
-```
-
-Status icons (for reference — already baked into `progress_bar`): ✅ on_track | ⬆️ high | ⬇️ low.
-
-**Produce suggestion rules (affects §③, not the rendered block):**
-- Vegetable low → suggest at next meal.
-- Fruit low → suggest only at final meal of the day. Otherwise show status only, no suggestion.
+Produce suggestions (§③ only, not the rendered block): veg low → suggest at next meal; fruit low → suggest only at final meal.
 
 1-sentence comment bridging to ③. Optional `✨ Nice work` line if food choices noteworthy.
 

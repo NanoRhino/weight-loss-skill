@@ -2156,11 +2156,14 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
     eval_result = evaluate(weight, daily_cal, meals,
                            current_meal, all_meals, assumed, mode, schedule)
     # Attach BMR info for Case D if provided
-    daily_total = sum(m.get("calories", 0) for m in all_meals)
-    eval_result["daily_total"] = daily_total
     if bmr is not None:
+        daily_total = sum(m.get("calories", 0) for m in all_meals)
         eval_result["bmr"] = bmr
+        eval_result["daily_total"] = daily_total
         eval_result["below_bmr"] = daily_total < bmr
+    else:
+        daily_total = sum(m.get("calories", 0) for m in all_meals)
+        eval_result["daily_total"] = daily_total
 
     # Overshoot severity: how far over the upper calorie limit
     cal_hi = daily_cal + 100  # same as calc_targets range
@@ -2293,15 +2296,12 @@ def delete_meal(data_dir: str, tz_offset: int, meal_name: str,
         last_meal = remaining[-1].get("name", "breakfast")
         eval_result = evaluate(weight, daily_cal, meals,
                                last_meal, remaining, None, mode)
-        eval_result["daily_total"] = sum(m.get("calories", 0) for m in remaining)
+        result["evaluation"] = eval_result
+        _save_evaluation_to_meal(data_dir, resolved_day, last_meal, eval_result)
         if region and region.upper() == "CN":
             result["produce"] = produce_check(meals, last_meal, remaining)
         else:
             result["produce"] = None
-        eval_result["progress_bar"] = _render_summary_block(
-            eval_result, result["produce"], daily_cal, region)
-        result["evaluation"] = eval_result
-        _save_evaluation_to_meal(data_dir, resolved_day, last_meal, eval_result)
     else:
         result["evaluation"] = None
         result["produce"] = None
