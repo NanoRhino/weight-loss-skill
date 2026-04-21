@@ -175,37 +175,21 @@ def _extract_meal_types_from_day(day_data):
 
 
 def _meal_avg_quality_gated(samples):
-    """CV < 0.20 AND std_dev < 200 gate; tries removing one outlier if n>=4.
-    Returns {ok, avg, cv, std_dev, n, trimmed} or {ok: False, reason}.
+    """Simple average with minimum sample count. No CV/std gate.
+    Returns {ok, avg, n} or {ok: False, reason}.
     """
     import statistics as _st
 
-    def _eval(vals):
-        n = len(vals)
-        if n < 3:
-            return None
-        mean = _st.mean(vals)
-        if mean <= 0:
-            return None
-        std = _st.stdev(vals) if n > 1 else 0
-        cv = std / mean
-        return {"ok": cv < 0.20 and std < 200, "avg": round(mean), "cv": round(cv, 3),
-                "std_dev": round(std), "n": n}
-
-    r = _eval(samples)
-    if r is None:
+    n = len(samples)
+    if n < 3:
         return {"ok": False, "reason": "insufficient_samples"}
-    if r["ok"]:
-        return {**r, "trimmed": False}
-    if len(samples) >= 4:
-        median = _st.median(samples)
-        outlier = max(samples, key=lambda x: abs(x - median))
-        trimmed = list(samples)
-        trimmed.remove(outlier)
-        r2 = _eval(trimmed)
-        if r2 and r2["ok"]:
-            return {**r2, "trimmed": True}
-    return {"ok": False, "reason": "high_variance", "cv": r["cv"], "std_dev": r["std_dev"], "n": r["n"]}
+    mean = _st.mean(samples)
+    if mean <= 0:
+        return {"ok": False, "reason": "insufficient_samples"}
+    std = _st.stdev(samples) if n > 1 else 0
+    cv = std / mean
+    return {"ok": True, "avg": round(mean), "cv": round(cv, 3),
+            "std_dev": round(std), "n": n, "trimmed": False}
 
 
 def analyze(args):
