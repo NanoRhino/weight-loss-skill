@@ -28,7 +28,7 @@
 | `within_noise` | 体重波动在正常范围，简短安抚，**不进入 Step C** |
 | `consistent` | 进入 Step C |
 | `consistent_after_adjustment` | 进入 Step C；漏记填补后热量能解释体重变化 |
-| `contradicts_after_adjustment` | 进入 Step C；热量解释不了体重变化 |
+| `estimate_below_expected` | 进入 Step C；热量估算低于体重变化所暗示的摄入 |
 | `insufficient_data` | 进入 Step C；标注"数据不足，仅供参考" |
 
 ## Step C: 分析原因
@@ -47,6 +47,8 @@
 - 有缺餐时用 adjusted 值并标注"含估算"
 
 **一条原则：基于数据和科学常识说话，不确定的不说。**
+
+**认知前提：** 体重秤的读数是事实，热量估算（包括 adjusted）是粗估。当两者矛盾时，需要综合判断——体重涨了说明实际摄入有可能超过了消耗，可能存在估算不够准，不是体重不准。
 
 其他交给你自己判断——你有科学素养，不需要模板。
 

@@ -754,7 +754,7 @@ def compute_energy_balance_check(args, local_now, net_change_kg, calorie_target,
         if adj_dir_match and discrepancy < 0.30:
             verdict = "consistent" if raw_dir_match else "consistent_after_adjustment"
         else:
-            verdict = "contradicts_after_adjustment"
+            verdict = "estimate_below_expected"
 
     return {
         "available": True,
