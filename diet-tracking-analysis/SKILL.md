@@ -282,20 +282,32 @@ P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKIL
 📝 [餐次] logged! → 🍽 This meal: XXX kcal | Protein Xg | Carbs Xg | Fat Xg → · Food — portion — XXX kcal
 
 ### ② Nutrition Summary (from `evaluate`)
+
+**Paste `evaluation.progress_bar` verbatim.** The script pre-renders the full block (header + 🔥 line + bar + macro status + CN 🥦🍎 produce line) as a single multi-line string. Do not regenerate, reorder, or drop any line.
+
+Example (CN region, logged breakfast only):
+```
 📊 So far today:
-🔥 <daily_total>/<target> kcal[ (+<over>)]
-<evaluation.progress_bar>
-Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+🔥 144/1,800 kcal
+█░░░░░░░░░ 8%
+蛋白质 12.6g ⬇️ | 碳水 1g ⬇️ | 脂肪 9.5g ✅
+🥦 蔬菜：0g ⬇️  🍎 水果：0g ⬇️
+```
 
-**Progress bar line = `evaluation.progress_bar` (pre-rendered, paste verbatim).** Never omit, shorten, or regenerate. If `daily_total > target`, append ` (+<daily_total − target>)` to the 🔥 line — e.g. `🔥 2,100/1,800 kcal (+300)` + `██████████ 117% ⚠️`.
+Example (over target):
+```
+📊 So far today:
+🔥 2,100/1,800 kcal (+300)
+██████████ 117% ⚠️
+蛋白质 90g ⬆️ | 碳水 210g ⬆️ | 脂肪 88g ⬆️
+🥦 蔬菜：250g ✅  🍎 水果：100g ⬇️
+```
 
-Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar which shows both).
+Status icons (for reference — already baked into `progress_bar`): ✅ on_track | ⬆️ high | ⬇️ low.
 
-**CN produce (REQUIRED — never omit either item):**
-🥦 蔬菜：~XXXg ✅/⬇️  🍎 水果：~XXXg ✅/⬇️
-- This line is **mandatory** for CN region. Always include BOTH 🥦 and 🍎 on the same line, even if fruit is 0g — show `🍎 水果：0g ⬇️`.
+**Produce suggestion rules (affects §③, not the rendered block):**
 - Vegetable low → suggest at next meal.
-- Fruit low → suggest only at final meal of the day. Otherwise just show status, no suggestion.
+- Fruit low → suggest only at final meal of the day. Otherwise show status only, no suggestion.
 
 1-sentence comment bridging to ③. Optional `✨ Nice work` line if food choices noteworthy.
 
