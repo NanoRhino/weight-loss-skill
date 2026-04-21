@@ -206,6 +206,20 @@ def main():
         log(f"No meal records, using stage_changed_at as fallback: {fallback_date.isoformat()}")
     else:
         last_logged_date = datetime.strptime(last_logged, "%Y-%m-%d").date()
+
+    # Also consider last_active_date (set by --user-active resets)
+    # The true "days silent" is the minimum of days since last meal AND
+    # days since last user interaction (chat without food logging).
+    last_active_str = data.get("last_active_date")
+    if last_active_str:
+        try:
+            last_active_date = datetime.strptime(last_active_str, "%Y-%m-%d").date()
+            # Use the MORE RECENT of meal vs active date
+            if last_active_date > last_logged_date:
+                last_logged_date = last_active_date
+        except ValueError:
+            pass
+
     today_date = now.date()
     days_silent = (today_date - last_logged_date).days
 
@@ -229,6 +243,7 @@ def main():
         stage = 1
         data["notification_stage"] = 1
         data["stage_changed_at"] = now.isoformat()
+        data["last_active_date"] = today_str
         data["last_recall_date"] = None
         data["recall_2_sent"] = False
         data["recall_count"] = 0
