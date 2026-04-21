@@ -163,6 +163,60 @@ HTML template.
 
 ---
 
+### 📐 Chart Design Rules (Global)
+
+All charts in the HTML report follow these universal rules:
+
+**Layout & alignment:**
+- All charts use the same left padding (`2.5rem`) for Y-axis labels → charts align vertically
+- Bar chart Y-axis labels: `position: absolute; left: -2.5rem; transform: translateY(-50%)`
+- X-axis labels (周一-周日) go **outside** the chart div in a separate `.cal-x-labels` container
+- Weight chart Y-axis is a separate fixed div (`.weight-y-axis`, width `2.5rem`) that doesn't scroll with the SVG
+
+**Bar chart rules (calorie + macros):**
+- Bar colors: `#6bcb8b` (on-target/达标), `#c8e6c9` (below/偏低), `#fdd0b1` (over/超标)
+- All bars have `opacity: 0.75`
+- Bar width: `60%` of column, `max-width: 36px`, `border-radius: 4px 4px 0 0`
+- Each bar has a value label above it (`.cal-bar-value`)
+- Days with no data: `class="empty"`, height 0, no value label
+- Target range band: grey shadow only (`background: rgba(0,0,0,0.05)`), **no border/dashed lines** on the band itself
+- Grid lines: `1px dashed #e8e5dd` at round-number intervals
+- **0-coordinate grid line: solid** (`border-bottom-style: solid`), not dashed
+- Y-axis ticks: 3-5 round numbers max (avoid clutter). Examples:
+  - Calories (max ~2400): 0, 500, 1000, 1500, 2000
+  - Carbs (max ~300): 0, 100, 200, 300
+  - Protein (max ~120): 0, 40, 80, 120
+  - Fat (max ~90): 0, 40, 80
+
+**Average line (macros only):**
+- `1px dashed #333` (black), z-index 2 (above bars)
+- Label: `"平均摄入 {value}"`, color `#333`, font-weight 500, positioned at right edge
+
+**Legend (macros section):**
+- Displayed once above all three macro charts
+- Items: 达标 (深绿) / 偏低 (浅绿) / 超标 (浅橙)
+
+**Weight chart (SVG):**
+- Smooth curves using **Catmull-Rom** spline (not polyline, not manually-tweaked bezier)
+- Green gradient fill under actual data curve (`#6bcb8b`, opacity 0.3→0.02)
+- Plan/target path: grey solid thin line (`stroke: #ccc`, `stroke-width: 1`) with light fill (`rgba(0,0,0,0.04)`)
+  - Calculated from first weight reading, decreasing at planned rate (default -0.5kg/week)
+  - Label: `"计划 −Xkg/周"` at bottom-right of plan area
+- Historical data points: small circles (`r=4.5`, white fill, `#a8deb8` stroke)
+- Current week data points: larger circles (`r=6`, `#6bcb8b` fill, white stroke), bold labels
+- Y-axis: auto-range to fit both actual data AND plan path, with ~10% padding
+- Y-axis labels: fixed position (don't scroll with SVG)
+- SVG is horizontally scrollable on mobile (`overflow-x: auto`, `-webkit-overflow-scrolling: touch`)
+- Default scroll position: rightmost (show latest data)
+- Scroll hint: `"← 左右滑动查看更多 →"` below chart
+
+**Sticky navigation:**
+- `.week-nav`: `position: sticky; top: 0; z-index: 100`
+- Parent `.page` must have `padding-top: 0` (not 2rem) to avoid sticky offset
+- `.report-header` gets `margin-top: 1.5rem` to compensate
+
+---
+
 ### Section 2: Calorie Analysis
 
 Show daily calorie intake vs target range with a **vertical bar chart** and grey target
@@ -238,20 +292,34 @@ suggest the user weigh more often than 2x/week.
 
 ### Section 4: Macronutrient Analysis
 
-Compare average daily macro intake against target ranges. See `.macro-table`
-in the HTML template.
+Show daily macro intake as **three separate vertical bar charts** (碳水/蛋白质/脂肪),
+each with per-day bars, a grey target range band, and an average line.
+Uses the same `.cal-chart`, `.cal-bar-col`, `.cal-bar-wrapper` CSS as the calorie chart.
 
 **Data logic:**
-- Calculate average daily protein, fat, carb from logged meals across the week
-  (use `meal_totals` from food logs or `daily_summary` data)
-- Compare each macro's average against the range from `PLAN.md`
-- Classify: `Below Range` / `In Range` / `Above Range`
+- Use `collect-weekly-data.py` output which includes per-day macro values with
+  meal-fill estimation (missing meal types filled with weekly average for that type)
+- For each macro, compare each day's value against target range:
+  - Below range min → `background: #c8e6c9` (浅绿)
+  - Within range → `background: #6bcb8b` (深绿)
+  - Above range max → `background: #fdd0b1` (浅橙)
+- Days with no logged data → empty bar (height 0)
+- Average line (`平均摄入 {value}`): `1px dashed #333`, label in black
+- Target range: grey band only (no border lines), with label `目标 {low}–{high}`
+- Chart max per macro: enough to show all bars + target high with padding
+  - Carb: ~300-350g, Protein: ~120-150g, Fat: ~90-100g
+- Y-axis ticks: 3-5 round numbers (e.g., carb: 0/100/200/300)
+- If `macro_estimated: true`, show footnote: `"* 部分天数记录不全，缺失餐次按本周同类餐平均值估算"`
+
+**Target range source:**
+1. Primary: `PLAN.md` macro ranges
+2. Fallback: auto-derive from health-profile (protein=weight×1.2g/kg, fat=25-35% cal, carb=remainder)
 
 **Commentary rules:**
-- All in range → `"Balanced macros this week — keep it up!"` / `"三大营养素都在范围内，继续保持！"`
-- Protein below → always flag: `"Protein is a bit low — try adding an egg, yogurt, or chicken breast to one meal."` / `"蛋白质偏低，试试每天多加一个鸡蛋或一份鸡胸肉。"`
-- Fat over → `"Fat ran a little high — check cooking oils and snacks."` / `"脂肪偏高，留意下烹饪用油和零食。"`
-- Insufficient data (< 3 days of macro data) → show what's available with caveat: `"Based on limited data — log more meals for a clearer picture."`
+- All in range → `"三大营养素都在范围内，继续保持！"`
+- Protein below → always flag with actionable fix
+- Fat over → mention cooking oils and snacks
+- Insufficient data (< 3 days) → show with caveat
 
 ---
 
