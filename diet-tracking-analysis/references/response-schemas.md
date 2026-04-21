@@ -6,19 +6,9 @@
 
 ## ② Nutrition Summary (from `evaluate`)
 
-📊 So far today:
-🔥 XXX/TARGET kcal
-███████░░░ XX%
-Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+**Paste `evaluation.progress_bar` verbatim** — script pre-renders 📊 header + 🔥 kcal (`(+N)` when over) + bar + macro status + CN 🥦🍎 line as one multi-line string.
 
-**Progress bar:**
-- Fixed 10 chars: `█` filled, `░` remaining (each = 10%)
-- >100%: all filled + `(+XXX)` + `⚠️`
-
-Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no targets (except calorie bar).
-
-CN produce (after macro line): 🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruit: ~XXXg ✅/⬇️
-- low → suggest at next meal; fruit only at final meal
+Produce suggestions (§③, not the block): veg low → next meal; fruit low → only at final meal.
 
 1-sentence bridge to ③. Optional `✨ Nice work` if noteworthy.
 

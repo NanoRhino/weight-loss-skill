@@ -282,25 +282,18 @@ P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKIL
 📝 [餐次] logged! → 🍽 This meal: XXX kcal | Protein Xg | Carbs Xg | Fat Xg → · Food — portion — XXX kcal
 
 ### ② Nutrition Summary (from `evaluate`)
+
+**Paste `evaluation.progress_bar` verbatim.** Script pre-renders 📊 header + 🔥 kcal line (`(+N)` when over) + progress bar + macro status + CN 🥦🍎 line as a single multi-line string.
+
+```
 📊 So far today:
-🔥 XXX/TARGET kcal
-███████░░░ XX%
-Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+🔥 144/1,800 kcal
+█░░░░░░░░░ 8%
+蛋白质 12.6g ⬇️ | 碳水 1g ⬇️ | 脂肪 9.5g ✅
+🥦 蔬菜：0g ⬇️  🍎 水果：0g ⬇️
+```
 
-**Calorie progress bar rules:**
-- Fixed 10 chars: `█` = filled, `░` = remaining
-- Each char = 10% of daily target (round to nearest)
-- ≤100%: normal display
-- >100%: all 10 filled + show surplus `(+XXX)` + `⚠️`
-  Example: `🔥 2,100/1,800 kcal (+300)` → `██████████ 117% ⚠️`
-
-Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar which shows both).
-
-**CN produce (REQUIRED — never omit either item):**
-🥦 蔬菜：~XXXg ✅/⬇️  🍎 水果：~XXXg ✅/⬇️
-- This line is **mandatory** for CN region. Always include BOTH 🥦 and 🍎 on the same line, even if fruit is 0g — show `🍎 水果：0g ⬇️`.
-- Vegetable low → suggest at next meal.
-- Fruit low → suggest only at final meal of the day. Otherwise just show status, no suggestion.
+Produce suggestions (§③ only, not the rendered block): veg low → suggest at next meal; fruit low → suggest only at final meal.
 
 1-sentence comment bridging to ③. Optional `✨ Nice work` line if food choices noteworthy.
 

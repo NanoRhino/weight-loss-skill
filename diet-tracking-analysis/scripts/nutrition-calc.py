@@ -102,6 +102,14 @@ def _migrate_meal(meal: dict) -> dict:
         for key in ("calories", "protein", "carbs", "fat"):
             out[key] = round(sum(f.get(key, 0) for f in out["foods"]), 1)
 
+    # Always aggregate produce from foods (produce_check reads meal-level).
+    if "foods" in out:
+        for key in ("vegetables_g", "fruits_g"):
+            if key not in out:
+                total = sum((f.get(key) or 0) for f in out["foods"])
+                if total:
+                    out[key] = round(total, 1)
+
     return out
 
 
@@ -277,6 +285,67 @@ def _range_status(value: float, lo: float, hi: float) -> str:
     elif value > hi:
         return "high"
     return "on_track"
+
+
+def _render_progress_bar(actual: float, target: int) -> str:
+    """Pre-render the `<10-char bar> <pct>%` line so LLM can paste verbatim."""
+    pct = round(actual / target * 100)
+    if actual > target:
+        return f"{'█' * 10} {pct}% ⚠️"
+    n = min(10, round(actual / target * 10))
+    return f"{'█' * n}{'░' * (10 - n)} {pct}%"
+
+
+_STATUS_ICON = {"on_track": "✅", "high": "⬆️", "low": "⬇️"}
+
+
+def _fmt_g(v: float) -> str:
+    """Format a macro/produce value as `Xg`, trimming trailing `.0`."""
+    v = round(v or 0, 1)
+    return f"{int(v)}g" if v == int(v) else f"{v}g"
+
+
+def _render_summary_block(eval_result: dict, produce: dict | None,
+                          daily_cal: int, region: str | None) -> str:
+    """Pre-render the §② Nutrition Summary block so LLM pastes verbatim.
+
+    Lines: 📊 header → 🔥 kcal (+surplus when over) → progress bar →
+    macro status line → CN produce line (only when region=CN).
+    """
+    daily_total = eval_result.get("daily_total", 0)
+    actual = eval_result.get("actual", {})
+    status = eval_result.get("status", {})
+    cn = bool(region) and region.upper() == "CN"
+
+    lines = ["📊 So far today:"]
+
+    cal_line = f"🔥 {daily_total:,}/{daily_cal:,} kcal"
+    if daily_total > daily_cal:
+        cal_line += f" (+{round(daily_total - daily_cal)})"
+    lines.append(cal_line)
+
+    lines.append(_render_progress_bar(daily_total, daily_cal))
+
+    labels = ["蛋白质", "碳水", "脂肪"] if cn else ["Protein", "Carbs", "Fat"]
+    macros = [
+        f"{label} {_fmt_g(actual.get(key, 0))} {_STATUS_ICON.get(status.get(key), '✅')}"
+        for label, key in zip(labels, ["protein", "carbs", "fat"])
+    ]
+    lines.append(" | ".join(macros))
+
+    if cn and produce:
+        veg_g = produce.get("vegetables_actual_g", 0) or 0
+        fruit_g = produce.get("fruits_actual_g", 0) or 0
+        veg_stat = produce.get("vegetable_status") or (
+            "on_track" if veg_g >= 150 else "low")
+        fruit_stat = produce.get("fruit_status") or (
+            "on_track" if fruit_g >= PRODUCE_FRUIT_DAILY_MIN else "low")
+        lines.append(
+            f"🥦 蔬菜：{_fmt_g(veg_g)} {_STATUS_ICON[veg_stat]}  "
+            f"🍎 水果：{_fmt_g(fruit_g)} {_STATUS_ICON[fruit_stat]}"
+        )
+
+    return "\n".join(lines)
 
 
 def _sum_macros(meal_list: list) -> dict:
@@ -2122,16 +2191,20 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         eval_result, eaten, is_final, bmr)
     eval_result["is_final_meal"] = is_final
 
-    result["evaluation"] = eval_result
-
-    # 5b. Persist evaluation into saved meal record for notification-composer
-    _save_evaluation_to_meal(data_dir, local_date, current_meal, eval_result)
-
-    # 6. Produce check (China region only)
+    # 6. Produce check (China region only) — must run before summary render
     if region and region.upper() == "CN":
         result["produce"] = produce_check(meals, current_meal, all_meals, schedule)
     else:
         result["produce"] = None
+
+    # Pre-render §② Nutrition Summary block for LLM copy-paste
+    eval_result["progress_bar"] = _render_summary_block(
+        eval_result, result["produce"], daily_cal, region)
+
+    result["evaluation"] = eval_result
+
+    # 5b. Persist evaluation into saved meal record for notification-composer
+    _save_evaluation_to_meal(data_dir, local_date, current_meal, eval_result)
 
     # 7. Ambiguous food clarification
     save_clarifications = save_result.get("needs_clarification", [])
@@ -2284,7 +2357,12 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
     result["evaluation"] = evaluate(weight, daily_cal, meals,
                                     latest_meal, all_meals, None, mode, schedule)
 
-    # Add overshoot history (same as log-meal does)
+    if region and region.upper() == "CN":
+        result["produce"] = produce_check(meals, latest_meal, all_meals, schedule)
+    else:
+        result["produce"] = None
+
+    # Add overshoot history + pre-render summary block
     if result["evaluation"]:
         overshoot_history = recent_overshoot_check(
             data_dir, daily_cal, lookback_days=7,
@@ -2292,10 +2370,9 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
         result["evaluation"]["recent_overshoot_count"] = overshoot_history["overshoot_count"]
         result["evaluation"]["recent_overshoot_days"] = overshoot_history["overshoot_days"]
 
-    if region and region.upper() == "CN":
-        result["produce"] = produce_check(meals, latest_meal, all_meals, schedule)
-    else:
-        result["produce"] = None
+        result["evaluation"]["daily_total"] = sum(m.get("calories", 0) for m in all_meals)
+        result["evaluation"]["progress_bar"] = _render_summary_block(
+            result["evaluation"], result["produce"], daily_cal, region)
 
     return result
 
