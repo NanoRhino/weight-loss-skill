@@ -105,12 +105,13 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
    - `context.plan`: 计划目标（TDEE、目标体重等）
    - `context.active_strategy`: 是否有进行中的干预策略
    - `context.last_intervention_date`: 上次干预日期
-4. **自主判断是否需要关注体重趋势**——结合最近体重走势、用户对话上下文、有无活跃策略，决定：
-   - **不干预**：体重稳定或下降，或只是正常波动 → 只确认记录
-   - **轻微安抚**：小幅上涨但不持续 → 简短安慰，不追问
+4. **自主判断是否需要关注体重趋势**——结合体重走势、用户对话上下文、有无活跃策略，决定回应方式：
+   - **只确认**：体重稳定或下降 → "已记录 ✅ 今日体重：XX kg"
+   - **确认 + 安抚**：涨了但不严重（小幅波动、平台期、数据太少）→ 确认记录 + 一句安慰用户的感受
    - **进入诊断**：明显持续上涨趋势 → 读 `weight-gain-strategy/references/cause-check-flow.md`，按流程走
-   - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预
+   - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预，但可以提醒策略还在跑
    - 如果 `last_intervention_date` 在 3 天内，不重复干预
+   - **用户视角优先**：不只看科学趋势，也想想用户看到这个数字会怎么想。涨了半斤用户会慌、平台期一周不动用户会焦虑、好不容易降下来又反弹用户会沮丧——回应他们的感受，不是冷冰冰确认一个数字
 
 ### User Asks for Trend / History
 
