@@ -279,6 +279,37 @@ def _range_status(value: float, lo: float, hi: float) -> str:
     return "on_track"
 
 
+def _render_progress_bar(actual: float, target: int) -> dict:
+    """Render a 10-char cumulative calorie progress bar for direct LLM output.
+
+    Each cell = 10% of daily target. Over-target collapses to a full bar
+    plus a ⚠️ marker; callers still get the raw percent and surplus so
+    they can compose the `🔥 actual/target` line themselves.
+
+    Returns:
+      bar      — 10 chars (█ filled / ░ remaining)
+      percent  — rounded int percent
+      surplus  — int kcal over target, or None when at/under target
+      line     — pre-rendered `<bar> <percent>%` (plus ⚠️ when over)
+    """
+    if target <= 0:
+        empty = "░" * 10
+        return {"bar": empty, "percent": 0, "surplus": None, "line": f"{empty} 0%"}
+
+    percent = round(actual / target * 100)
+    if actual > target:
+        bar = "█" * 10
+        surplus = int(round(actual - target))
+        line = f"{bar} {percent}% ⚠️"
+    else:
+        filled = max(0, min(10, round(actual / target * 10)))
+        bar = "█" * filled + "░" * (10 - filled)
+        surplus = None
+        line = f"{bar} {percent}%"
+
+    return {"bar": bar, "percent": percent, "surplus": surplus, "line": line}
+
+
 def _sum_macros(meal_list: list) -> dict:
     s = {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
     for m in meal_list:
@@ -2096,6 +2127,8 @@ def log_meal(data_dir: str, tz_offset: int, meals: int,
         daily_total = sum(m.get("calories", 0) for m in all_meals)
         eval_result["daily_total"] = daily_total
 
+    eval_result["progress_bar"] = _render_progress_bar(daily_total, daily_cal)
+
     # Overshoot severity: how far over the upper calorie limit
     cal_hi = daily_cal + 100  # same as calc_targets range
     if daily_total > cal_hi:
@@ -2223,6 +2256,9 @@ def delete_meal(data_dir: str, tz_offset: int, meal_name: str,
         last_meal = remaining[-1].get("name", "breakfast")
         eval_result = evaluate(weight, daily_cal, meals,
                                last_meal, remaining, None, mode)
+        daily_total = sum(m.get("calories", 0) for m in remaining)
+        eval_result["daily_total"] = daily_total
+        eval_result["progress_bar"] = _render_progress_bar(daily_total, daily_cal)
         result["evaluation"] = eval_result
         _save_evaluation_to_meal(data_dir, resolved_day, last_meal, eval_result)
         if region and region.upper() == "CN":
@@ -2291,6 +2327,10 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
             ref_date=resolved_day, tz_offset=tz_offset)
         result["evaluation"]["recent_overshoot_count"] = overshoot_history["overshoot_count"]
         result["evaluation"]["recent_overshoot_days"] = overshoot_history["overshoot_days"]
+
+        daily_total = sum(m.get("calories", 0) for m in all_meals)
+        result["evaluation"]["daily_total"] = daily_total
+        result["evaluation"]["progress_bar"] = _render_progress_bar(daily_total, daily_cal)
 
     if region and region.upper() == "CN":
         result["produce"] = produce_check(meals, latest_meal, all_meals, schedule)
