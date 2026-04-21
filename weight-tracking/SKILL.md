@@ -90,20 +90,27 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
 ### User Reports Weight
 
 1. Read `timezone.json` → `tz_offset`; read `health-profile.md` → Unit Preference (parallel, first session only)
-2. Call `save-and-check.py` — **one call does both save and deviation-check:**
+2. Call `save-and-check.py`:
    ```bash
    python3 {baseDir}/scripts/save-and-check.py \
      --data-dir {workspaceDir}/data \
      --value <N> --unit <u> --tz-offset <tz> \
      --plan-file {workspaceDir}/PLAN.md \
      --health-profile {workspaceDir}/health-profile.md \
-     --user-file {workspaceDir}/USER.md \
-     --wgs-script {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py
+     --user-file {workspaceDir}/USER.md
    ```
-3. Read response — both results arrive together:
+3. Read response:
    - `save.action`: `"created"` → "Logged ✓"; `"updated"` → "Updated ✓". Show value in preferred unit.
-   - `deviation` is `null` or `triggered: false` → just the log confirmation.
-   - `deviation.triggered: true` → respond per `severity`. See `references/deviation-workflow.md`.
+   - `context.recent_weights`: 最近体重记录
+   - `context.plan`: 计划目标（TDEE、目标体重等）
+   - `context.active_strategy`: 是否有进行中的干预策略
+   - `context.last_intervention_date`: 上次干预日期
+4. **自主判断是否需要关注体重趋势**——结合最近体重走势、用户对话上下文、有无活跃策略，决定：
+   - **不干预**：体重稳定或下降，或只是正常波动 → 只确认记录
+   - **轻微安抚**：小幅上涨但不持续 → 简短安慰，不追问
+   - **进入诊断**：明显持续上涨趋势 → 读 `weight-gain-strategy/references/cause-check-flow.md`，按流程走
+   - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预
+   - 如果 `last_intervention_date` 在 3 天内，不重复干预
 
 ### User Asks for Trend / History
 
