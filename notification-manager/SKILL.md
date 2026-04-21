@@ -145,9 +145,20 @@ Use the cron tool directly for listing and removing:
 6. **Diet pattern detection** — special handling:
    - Read `health-profile.md > Automation > Pattern Detection Completed`
    - If has a date → job already completed. If job still exists, remove it (stale).
-   - If `—` (not completed) → check if job exists. If missing AND `Onboarding Completed` has a date → create it.
-   - If `Onboarding Completed` is `—` → skip (onboarding not done yet).
+   - If `—` (not completed) → check if job exists. If missing → create it.
 7. Do all of this **silently** — do not mention it to the user.
+
+**When creating multiple jobs at once** (initial bootstrap or large sync), use `batch-create-reminders.sh` instead of calling `create-reminder.sh` one by one. It handles slot allocation in a single pass and creates all jobs in parallel:
+
+```bash
+bash {baseDir}/scripts/batch-create-reminders.sh \
+  --agent <your-agent-id> \
+  --channel <channel> \
+  --workspace {workspaceDir} \
+  --skip-existing
+```
+
+Use `--only meal,weight,report,review,pattern` to restrict which job types are created. The `--skip-existing` flag prevents duplicate creation during partial syncs.
 
 ---
 

@@ -28,19 +28,6 @@ from zoneinfo import ZoneInfo
 MAX_PER_MINUTE = 2
 
 
-def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--cron", required=True, help="5-field cron expression")
-    p.add_argument("--tz", required=True, help="Timezone for this cron")
-    p.add_argument(
-        "--type",
-        choices=["meal", "weight", "other"],
-        default="other",
-        help="Job type determines search window",
-    )
-    return p.parse_args()
-
-
 def cron_to_utc_minutes(expr: str, tz_name: str) -> list[int]:
     """
     Convert a cron expression's hour:minute + timezone to a list of UTC
@@ -196,37 +183,26 @@ def adjust_cron_expr(original_expr: str, new_hour: int, new_minute: int) -> str:
     return " ".join(fields)
 
 
-def main():
-    args = parse_args()
+def _window_for_type(job_type: str) -> tuple[int, int]:
+    if job_type in ("meal", "weight"):
+        return 10, 5
+    return 10, 0
 
-    # 1. Parse target cron -> UTC minute(s)
-    target_utc_mins = cron_to_utc_minutes(args.cron, args.tz)
-    if not target_utc_mins:
-        print(f"ERROR: could not parse cron expression: {args.cron}", file=sys.stderr)
-        sys.exit(1)
 
-    # For multi-time crons, use the first one (typical case is single hour:minute)
+def _allocate_one(cron: str, tz: str, job_type: str, counts: dict[int, int]) -> tuple[str, int]:
+    """
+    Find an available slot for one job, update counts in-place, and return
+    (adjusted_cron, chosen_utc_min).  Mutates counts so callers in a batch
+    see slots already reserved by earlier jobs.
+    """
+    target_utc_mins = cron_to_utc_minutes(cron, tz)
     target_utc_min = target_utc_mins[0]
+    window_before, window_after = _window_for_type(job_type)
 
-    # 2. Determine window based on type
-    if args.type in ("meal", "weight"):
-        window_before = 10
-        window_after = 5
-    else:  # other
-        window_before = 10
-        window_after = 0
-
-    # 3. Fetch existing jobs and count per-minute
-    jobs = get_existing_jobs()
-    counts = build_utc_minute_counts(jobs)
-
-    # 4. Check if target is already available
     if counts.get(target_utc_min, 0) < MAX_PER_MINUTE:
-        # No adjustment needed
-        print(args.cron)
-        sys.exit(0)
+        counts[target_utc_min] = counts.get(target_utc_min, 0) + 1
+        return cron, target_utc_min
 
-    # 5. Find available slot
     chosen_utc_min, is_fallback = find_available_slot(
         target_utc_min, window_before, window_after, counts
     )
@@ -239,20 +215,95 @@ def main():
             f"Using original time.",
             file=sys.stderr,
         )
-        print(args.cron)
-        sys.exit(2)
+        counts[target_utc_min] = counts.get(target_utc_min, 0) + 1
+        return cron, target_utc_min
 
-    # 6. Convert chosen UTC minute back to local and adjust cron
-    new_hour, new_minute = utc_minute_to_local(chosen_utc_min, args.tz)
-    adjusted = adjust_cron_expr(args.cron, new_hour, new_minute)
-
-    if adjusted != args.cron:
+    new_hour, new_minute = utc_minute_to_local(chosen_utc_min, tz)
+    adjusted = adjust_cron_expr(cron, new_hour, new_minute)
+    if adjusted != cron:
         print(
-            f"Adjusted cron: {args.cron} -> {adjusted} "
+            f"Adjusted cron: {cron} -> {adjusted} "
             f"(slot {counts.get(target_utc_min, 0)} jobs at target, "
             f"moved to UTC :{chosen_utc_min % 60:02d})",
             file=sys.stderr,
         )
+    counts[chosen_utc_min] = counts.get(chosen_utc_min, 0) + 1
+    return adjusted, chosen_utc_min
+
+
+def main_batch(batch_file: str) -> None:
+    """
+    Batch mode: read a JSON array of job definitions, fetch cron list once,
+    allocate slots for all jobs sequentially (updating in-memory counts after
+    each allocation so subsequent jobs see already-reserved slots), then write
+    a JSON array of {name, adjusted_cron} to stdout.
+
+    Input JSON format:
+        [{"name": "...", "cron": "...", "type": "meal|weight|other", "tz": "..."}, ...]
+
+    Output JSON format:
+        [{"name": "...", "adjusted_cron": "..."}, ...]
+    """
+    with open(batch_file) as f:
+        jobs = json.load(f)
+
+    existing = get_existing_jobs()
+    counts = build_utc_minute_counts(existing)
+
+    results = []
+    for job in jobs:
+        name = job["name"]
+        cron = job["cron"]
+        tz = job["tz"]
+        job_type = job.get("type", "other")
+
+        adjusted, _ = _allocate_one(cron, tz, job_type, counts)
+        results.append({"name": name, "adjusted_cron": adjusted})
+
+    print(json.dumps(results, indent=2))
+
+
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--cron", help="5-field cron expression (single-job mode)")
+    p.add_argument("--tz", help="Timezone for this cron (single-job mode)")
+    p.add_argument(
+        "--type",
+        choices=["meal", "weight", "other"],
+        default="other",
+        help="Job type determines search window",
+    )
+    p.add_argument(
+        "--batch-file",
+        help="JSON file with array of job definitions (batch mode). "
+             "When set, --cron/--tz/--type are ignored.",
+    )
+    return p.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    if args.batch_file:
+        main_batch(args.batch_file)
+        sys.exit(0)
+
+    if not args.cron or not args.tz:
+        print("ERROR: --cron and --tz are required in single-job mode", file=sys.stderr)
+        sys.exit(1)
+
+    # 1. Parse target cron -> UTC minute(s)
+    target_utc_mins = cron_to_utc_minutes(args.cron, args.tz)
+    if not target_utc_mins:
+        print(f"ERROR: could not parse cron expression: {args.cron}", file=sys.stderr)
+        sys.exit(1)
+
+    # 2. Fetch existing jobs and count per-minute
+    existing = get_existing_jobs()
+    counts = build_utc_minute_counts(existing)
+
+    # 3. Allocate slot
+    adjusted, _ = _allocate_one(args.cron, args.tz, args.type, counts)
 
     print(adjusted)
     sys.exit(0)
