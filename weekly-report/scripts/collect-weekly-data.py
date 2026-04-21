@@ -232,47 +232,133 @@ def collect_habits(workspace_dir, start_date, end_date):
 
 
 def read_plan(workspace_dir):
-    """Read PLAN.md and extract key fields."""
+    """Read PLAN.md and extract key fields. Falls back to health-profile.md for reasonable defaults."""
     plan_path = os.path.join(workspace_dir, "PLAN.md")
-    if not os.path.exists(plan_path):
-        return None
+    plan = None
+
+    if os.path.exists(plan_path):
+        try:
+            with open(plan_path) as f:
+                content = f.read()
+        except IOError:
+            content = ""
+
+        plan = {}
+        import re
+
+        patterns = {
+            "cal_min": r"Daily Calorie Range[:\s]*(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)",
+            "tdee": r"TDEE[:\s]*([\d,]+)",
+            "bmr": r"BMR[:\s]*([\d,]+)",
+            "deficit": r"Daily Calorie Deficit[:\s]*([\d,]+)",
+            "protein_range": r"Protein[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
+            "fat_range": r"Fat[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
+            "carb_range": r"Carb[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
+            "weight_loss_rate": r"Weight Loss Rate[:\s]*([\d.]+)",
+            "target_weight": r"Target Weight[:\s]*([\d.]+)",
+            "start_weight": r"(?:Start|Initial|Starting) Weight[:\s]*([\d.]+)",
+        }
+
+        for key, pattern in patterns.items():
+            m = re.search(pattern, content, re.IGNORECASE)
+            if m:
+                groups = m.groups()
+                if len(groups) == 2:
+                    plan[key] = [int(groups[0].replace(",", "")), int(groups[1].replace(",", ""))]
+                else:
+                    try:
+                        plan[key] = float(groups[0].replace(",", ""))
+                    except ValueError:
+                        plan[key] = groups[0].replace(",", "")
+
+        if not plan:
+            plan = None
+
+    # Fallback: derive reasonable targets from health-profile.md
+    if plan is None:
+        plan = {}
+
+    plan = _fill_macro_defaults(workspace_dir, plan)
+    return plan if plan else None
+
+
+def _fill_macro_defaults(workspace_dir, plan):
+    """Fill in missing macro targets from health-profile.md using standard formulas."""
+    hp_path = os.path.join(workspace_dir, "health-profile.md")
+    if not os.path.exists(hp_path):
+        return plan
 
     try:
-        with open(plan_path) as f:
+        with open(hp_path) as f:
             content = f.read()
     except IOError:
-        return None
+        return plan
 
-    plan = {}
     import re
 
-    # Extract numeric ranges/values
-    patterns = {
-        "cal_min": r"Daily Calorie Range[:\s]*(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)",
-        "tdee": r"TDEE[:\s]*([\d,]+)",
-        "bmr": r"BMR[:\s]*([\d,]+)",
-        "deficit": r"Daily Calorie Deficit[:\s]*([\d,]+)",
-        "protein_range": r"Protein[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-        "fat_range": r"Fat[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-        "carb_range": r"Carb[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-        "weight_loss_rate": r"Weight Loss Rate[:\s]*([\d.]+)",
-        "target_weight": r"Target Weight[:\s]*([\d.]+)",
-        "start_weight": r"(?:Start|Initial|Starting) Weight[:\s]*([\d.]+)",
-    }
+    # Extract weight (current or target for calculation)
+    weight = None
+    weight_match = re.search(r"Weight to Lose[:\s]*([\d.]+)", content)
+    target_match = re.search(r"Target Weight[:\s]*([\d.]+)", content)
 
-    for key, pattern in patterns.items():
-        m = re.search(pattern, content, re.IGNORECASE)
-        if m:
-            groups = m.groups()
-            if len(groups) == 2:
-                plan[key] = [int(groups[0].replace(",", "")), int(groups[1].replace(",", ""))]
-            else:
-                try:
-                    plan[key] = float(groups[0].replace(",", ""))
-                except ValueError:
-                    plan[key] = groups[0].replace(",", "")
+    # Try to get current weight from weight.json
+    weight_file = os.path.join(workspace_dir, "data", "weight.json")
+    if os.path.exists(weight_file):
+        try:
+            with open(weight_file) as f:
+                wd = json.load(f)
+            if isinstance(wd, dict):
+                # Get latest reading
+                readings = [(k, v) for k, v in wd.items() if isinstance(v, dict) and "value" in v]
+                if readings:
+                    readings.sort(key=lambda x: x[0])
+                    weight = readings[-1][1]["value"]
+        except (json.JSONDecodeError, IOError):
+            pass
 
-    return plan if plan else None
+    if weight is None and target_match:
+        weight = float(target_match.group(1))
+    if weight is None:
+        weight = 65  # safe default
+
+    # Detect diet mode
+    diet_mode = "balanced"
+    if "high_protein" in content.lower() or "高蛋白" in content:
+        diet_mode = "high_protein"
+    elif "low_carb" in content.lower() or "低碳" in content:
+        diet_mode = "low_carb"
+
+    # Default calorie range if missing
+    if "cal_min" not in plan:
+        # Standard deficit: BMR~1400-1650 for most users, target 1600-2000
+        plan["cal_min"] = [1600, 2000]
+
+    cal_mid = (plan["cal_min"][0] + plan["cal_min"][1]) / 2
+
+    # Protein target (g)
+    if "protein_range" not in plan:
+        if diet_mode == "high_protein":
+            protein_per_kg = 1.2
+        else:
+            protein_per_kg = 0.8
+        protein_target = round(weight * protein_per_kg)
+        plan["protein_range"] = [protein_target - 10, protein_target + 10]
+
+    # Fat target (g) — 25-35% of calories
+    if "fat_range" not in plan:
+        fat_low = round(cal_mid * 0.25 / 9)
+        fat_high = round(cal_mid * 0.35 / 9)
+        plan["fat_range"] = [fat_low, fat_high]
+
+    # Carb target (g) — remainder
+    if "carb_range" not in plan:
+        protein_mid = (plan["protein_range"][0] + plan["protein_range"][1]) / 2
+        fat_mid = (plan["fat_range"][0] + plan["fat_range"][1]) / 2
+        remaining_cal = cal_mid - (protein_mid * 4) - (fat_mid * 9)
+        carb_mid = max(remaining_cal / 4, 80)  # at least 80g
+        plan["carb_range"] = [round(carb_mid * 0.8), round(carb_mid * 1.2)]
+
+    return plan
 
 
 def compute_summary(days, plan, weight_data):
