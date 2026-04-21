@@ -350,7 +350,21 @@ Using the extracted conversations from Step 1:
 1. For each meaningful exchange, create a short-term entry via `short-term-update`
 2. Group related messages into single entries (a quick "ok" doesn't need its own)
 3. Write summaries in the user's language
-4. Set day summary for each day with `short-term-set-day-summary`
+4. **Read `{workspaceDir}/data/meals/{date}.json`** and `{workspaceDir}/PLAN.md` for the
+   day's meal data and calorie target
+5. **Always set `day_summary`** via `short-term-set-day-summary` — even if there were no
+   meaningful conversations, generate a brief daily recap from meal data.
+   
+   The day summary should read like a nutritionist reviewing the day in 2-3 sentences:
+   - How many meals were logged vs expected
+   - Total calories vs target (approximate is fine)
+   - Whether recommendations from the plan were followed
+   - Any notable patterns (e.g., skipped dinner, high-carb lunch, good protein balance)
+   
+   Examples:
+   - "记了三餐，总摄入约1180kcal，目标1400以内，控制得不错。午餐蛋炒饭碳水偏高但晚餐拉回来了，蛋白质整体偏低。"
+   - "只记了早午餐（约900kcal），晚餐没记。午餐炸鸡排没按清淡路线走。"
+   - "今天没有记餐数据，但聊了工作压力和情绪问题。"
 
 #### `medium-term-consolidate`
 1. Run `short-term-rotate` to get removed days
