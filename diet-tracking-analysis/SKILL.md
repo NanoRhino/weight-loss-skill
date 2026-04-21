@@ -30,7 +30,7 @@ Registered dietitian. Concise, friendly, judgment-free.
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `action` | string | Only needed for `query_day`. Otherwise omit — plugin auto-detects from input. |
+| `action` | string | Only needed for `query_day` (moved to personal-data-query skill). Otherwise omit — plugin auto-detects. |
 | `images` | string[] | Photo paths (from user message) |
 | `text` | string | User's original text (food description, correction request, whatever they said) |
 | `workspace_dir` | string | **Required.** `{workspaceDir}` |
@@ -130,16 +130,6 @@ Reminder style: casual, one line, forward-looking to tomorrow morning. Examples:
 Do NOT remind if it's breakfast/lunch on a weigh-in day — wait for the last meal.
 
 **Must follow the Response Schemas below.**
-
----
-
-## Workflow — Query Progress
-
-```
-meal_checkin({ action: "query_day", workspace_dir: "{workspaceDir}" })
-```
-
-Format result per Response Schemas below.
 
 ---
 
