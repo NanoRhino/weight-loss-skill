@@ -56,21 +56,21 @@ def nice_ticks(max_val, preferred_count=4):
 
 CSS = """
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #faf9f5; color: #333; line-height: 1.6; -webkit-text-size-adjust: 100%; }
+body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #faf9f5; color: #333; line-height: 1.5; font-size: 14px; -webkit-text-size-adjust: 100%; }
 .page { max-width: 800px; margin: 0 auto; padding: 0 1.5rem 2rem; }
 .report-header { text-align: center; margin-top: 1.5rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e0ddd5; }
-.report-header h1 { font-size: 1.8rem; font-weight: 700; color: #2d5016; margin-bottom: 0.4rem; }
-.report-header .subtitle { font-size: 0.95rem; color: #666; }
+.report-header h1 { font-size: 1.4rem; font-weight: 700; color: #2d5016; margin-bottom: 0.3rem; }
+.report-header .subtitle { font-size: 0.85rem; color: #666; }
 .report-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
-.card-header { padding: 0.8rem 1.2rem; font-size: 1.1rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
-.card-body { padding: 1rem 1.2rem; }
-.card-commentary { font-size: 0.88rem; color: #555; padding: 0.6rem 1.2rem 1rem; border-top: 1px solid #f0ede5; }
+.card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
+.card-body { padding: 0.8rem 1rem; }
+.card-commentary { font-size: 0.82rem; color: #555; padding: 0.5rem 1rem 0.8rem; border-top: 1px solid #f0ede5; }
 
 /* Logging grid */
 .logging-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 0.2rem; }
 .logging-grid .day-label { font-size: 0.78rem; color: #888; font-weight: 500; padding: 0.3rem 0; }
-.logging-grid .day-status { font-size: 1.4rem; padding: 0.2rem 0 0.4rem; }
-.logging-summary { text-align: center; font-size: 0.92rem; font-weight: 600; color: #333; padding-top: 0.6rem; }
+.logging-grid .day-status { font-size: 1.2rem; padding: 0.2rem 0 0.3rem; }
+.logging-summary { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.5rem; }
 
 /* Calorie + macro charts (shared) */
 .cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0.3rem 0 2.5rem; margin-bottom: 0.4rem; }
@@ -84,8 +84,8 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .cal-bar-value { font-size: 0.7rem; color: #888; margin-bottom: 2px; font-weight: 500; }
 .cal-x-labels { display: flex; justify-content: space-between; padding: 0.3rem 0.3rem 0 2.5rem; }
 .cal-x-label { flex: 1; text-align: center; font-size: 0.75rem; color: #888; font-weight: 500; }
-.cal-average { text-align: center; font-size: 0.92rem; font-weight: 600; color: #333; padding-top: 0.8rem; }
-.cal-average .sub { font-weight: 400; font-size: 0.82rem; color: #888; }
+.cal-average { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.6rem; }
+.cal-average .sub { font-weight: 400; font-size: 0.78rem; color: #888; }
 
 /* Macro-specific */
 .macro-legend { display: flex; justify-content: center; gap: 1.2rem; margin-bottom: 1rem; }
@@ -93,7 +93,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .macro-legend-dot { width: 14px; height: 14px; border-radius: 3px; }
 .macro-chart-section { margin-bottom: 1.8rem; }
 .macro-chart-section:last-of-type { margin-bottom: 0.5rem; }
-.macro-chart-title { text-align: center; font-size: 1.1rem; font-weight: 700; color: #333; margin-bottom: 0.6rem; }
+.macro-chart-title { text-align: center; font-size: 0.95rem; font-weight: 700; color: #333; margin-bottom: 0.5rem; }
 .macro-avg-line { position: absolute; left: 2.5rem; right: 0; height: 0; border-top: 1px dashed #333; z-index: 2; }
 .macro-avg-label { position: absolute; right: 4px; transform: translateY(-100%); font-size: 0.65rem; color: #333; font-weight: 500; }
 
@@ -105,26 +105,26 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .weight-chart-container::-webkit-scrollbar { height: 4px; }
 .weight-chart-container::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
 .weight-chart-scroll-hint { text-align: center; font-size: 0.72rem; color: #bbb; margin-top: 0.3rem; }
-.weight-change { text-align: center; font-size: 0.92rem; font-weight: 600; color: #333; padding-top: 0.4rem; }
+.weight-change { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.3rem; }
 .weight-change.same { color: #888; }
 .weight-change.up { color: #e57373; }
 .weight-change.down { color: #6bcb8b; }
-.weight-progress { text-align: center; font-size: 0.85rem; color: #888; padding-top: 0.2rem; }
+.weight-progress { text-align: center; font-size: 0.78rem; color: #888; padding-top: 0.2rem; }
 
 /* Suggestions */
-.section-subtitle { font-size: 0.92rem; font-weight: 600; color: #2d5016; margin-bottom: 0.4rem; padding-top: 0.4rem; }
+.section-subtitle { font-size: 0.85rem; font-weight: 600; color: #2d5016; margin-bottom: 0.3rem; padding-top: 0.3rem; }
 .section-subtitle:first-child { padding-top: 0; }
-.suggestions-divider { border: none; border-top: 1px solid #f0ede5; margin: 0.8rem 0; }
-.achievement-list, .suggestion-list { padding-left: 1.2rem; font-size: 0.9rem; color: #444; }
-.achievement-list li, .suggestion-list li { margin-bottom: 0.4rem; }
+.suggestions-divider { border: none; border-top: 1px solid #f0ede5; margin: 0.6rem 0; }
+.achievement-list, .suggestion-list { padding-left: 1.2rem; font-size: 0.82rem; color: #444; }
+.achievement-list li, .suggestion-list li { margin-bottom: 0.3rem; }
 .safety-note { background: #fff8e1; border-left: 3px solid #ffc107; padding: 0.6rem 1rem; margin-top: 0.6rem; font-size: 0.85rem; color: #665500; border-radius: 0 6px 6px 0; }
 
 /* Week nav */
 .week-nav { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; background: #faf9f5; padding: 0.6rem 1rem; margin: 0 -1.5rem; border-bottom: 1px solid #e0ddd5; }
-.week-nav-btn { display: inline-block; padding: 0.5rem 1rem; background: #2d5016; color: #fff; text-decoration: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; transition: background 0.2s; }
+.week-nav-btn { display: inline-block; padding: 0.35rem 0.7rem; background: #2d5016; color: #fff; text-decoration: none; border-radius: 6px; font-size: 0.78rem; font-weight: 600; transition: background 0.2s; }
 .week-nav-btn:hover { background: #3d6b1f; }
 .week-nav-btn.disabled { background: #ccc; color: #999; pointer-events: none; cursor: default; }
-.week-nav-current { font-size: 0.85rem; color: #666; font-weight: 500; }
+.week-nav-current { font-size: 0.78rem; color: #666; font-weight: 500; }
 .report-footer { text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0ddd5; font-size: 0.8rem; color: #aaa; }
 """
 
