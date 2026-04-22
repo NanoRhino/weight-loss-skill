@@ -621,6 +621,7 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 **Use `generate-report-html.py` to produce the HTML deterministically.**
 Do NOT write HTML manually — the script handles all chart rendering (SVG curves, bar charts, CSS).
+⚠️ **MANDATORY**: You MUST call `generate-report-html.py`. Writing HTML by hand is FORBIDDEN — it produces inconsistent charts and breaks on regeneration.
 
 ```bash
 python3 {baseDir}/scripts/collect-weekly-data.py \
