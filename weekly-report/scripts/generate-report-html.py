@@ -92,7 +92,8 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .macro-legend { display: flex; justify-content: center; gap: 1.2rem; margin-bottom: 1rem; }
 .macro-legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: #888; }
 .macro-legend-dot { width: 14px; height: 14px; border-radius: 3px; }
-.macro-chart-section { margin-bottom: 7rem; }
+.macro-chart-section { margin-bottom: 4.5rem; }
+.macro-chart-section:first-of-type { margin-top: 1.5rem; }
 .macro-chart-section:last-of-type { margin-bottom: 0.5rem; }
 .macro-chart-title { text-align: center; font-size: 0.95rem; font-weight: 700; color: #333; margin-bottom: 0.5rem; }
 .macro-avg-line { position: absolute; left: 2rem; right: 0; height: 0; border-top: 1px dashed #333; z-index: 2; }
