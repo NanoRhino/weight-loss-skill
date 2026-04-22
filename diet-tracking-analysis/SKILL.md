@@ -35,7 +35,7 @@ Registered dietitian. Concise, friendly, judgment-free.
 ```json
 {
   "action": "create",
-  "meal_detection": { "meal_name": "lunch", "meal_number": 2 },
+  "meal_detection": { "meal_name": "lunch", "meal_number": 2, "eaten": false },
   "save": { "status": "ok" },
   "dishes": [
     {
@@ -235,7 +235,7 @@ Use `evaluation.suggestion_budget.remaining` (not `daily_total.remaining`) for f
 
 | Type | Icon | Guidance |
 |------|------|----------|
-| `right_now` | ⚡ | Before eating — reduce/swap current meal items. |
+| `right_now` | ⚡ | Pre-meal (eaten=false) and over budget — suggest reducing/swapping items in THIS meal before eating. |
 | `next_meal` | 💡 | Forward-looking. Over at last meal → "aim for usual pattern tomorrow." |
 | `next_time` | 💡 | On track — habit tip or next-meal pairing. `cal_in_range_macro_off == true` → suggest swapping ingredients **tomorrow**. |
 | `case_d_snack` | 🍽 | Final meal, below BMR×0.9 — gently suggest eating a bit more today. |
