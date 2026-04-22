@@ -281,9 +281,9 @@ If ALL of the following are true, append a gentle weight reminder at the end of 
 2. This appears to be the user's **last meal of the day** (dinner, or it's after 17:00)
 3. User has NOT logged weight today (check `data/weight/` for today's entry)
 
-Reminder style: casual, one line, woven into the meal response. Examples:
-- "对了，今天是称重日，晚点记得上秤哦 ⚖️"
-- "吃完消化消化，别忘了今天该称体重啦～"
+Reminder style: casual, one line, forward-looking to tomorrow morning. Examples:
+- "对了，今天没称重，明天早上空腹称一个哦 ⚖️"
+- "记得明天早上起来空腹上个秤～"
 
 Do NOT remind if it's breakfast/lunch on a weigh-in day — wait for the last meal.
 
