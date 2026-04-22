@@ -95,7 +95,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .macro-chart-section { margin-bottom: 4.5rem; }
 .macro-chart-section:first-of-type { margin-top: 1.5rem; }
 .macro-chart-section:last-of-type { margin-bottom: 0.5rem; }
-.macro-chart-title { text-align: center; font-size: 0.95rem; font-weight: 700; color: #333; margin-bottom: 0.5rem; }
+.macro-chart-title { text-align: center; font-size: 0.82rem; font-weight: 600; color: #333; margin-bottom: 1rem; }
 .macro-avg-line { position: absolute; left: 2rem; right: 0; height: 0; border-top: 1px dashed #333; z-index: 2; }
 .macro-avg-label { position: absolute; right: 4px; transform: translateY(-100%); font-size: 0.65rem; color: #333; font-weight: 500; }
 
