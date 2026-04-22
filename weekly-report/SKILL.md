@@ -120,6 +120,7 @@ Output JSON structure:
   "summary": { "logged_days", "cal_avg", "cal_max", "chart_max", "protein_avg", "fat_avg", "carb_avg", "weight_change", "cal_min", "cal_max_target" },
   "days": [{ "date", "weekday", "logged", "cal_status", "meals": [{meal_type, cal, protein, fat, carb, foods}], "totals": {cal, protein, fat, carb} }],
   "weight": { "readings": [{date, value, unit}], "change" },
+  "weight_all": [{date, value, unit}],  // ALL historical weight readings for chart rendering
   "exercise": { "sessions": [...], "total_calories", "total_minutes" },
   "habits": { "active": [...], "daily_log": {...}, "graduated": [...] }
 }
@@ -618,17 +619,37 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 #### Part 2: HTML Report (cloud-hosted link)
 
-Generate a self-contained HTML file using the template at
-`templates/weekly-report.html`. Write the file to
-`data/reports/weekly-report-{start_date}.html`.
+**Use `generate-report-html.py` to produce the HTML deterministically.**
+Do NOT write HTML manually — the script handles all chart rendering (SVG curves, bar charts, CSS).
 
-**HTML generation rules:**
-- Replace all `{{PLACEHOLDER}}` values with actual data
-- The file must be fully self-contained (all CSS inline, no external dependencies)
-- Follow the template structure — do not add or remove sections
-- Adapt language to user's locale (from USER.md (already in context))
-- Skip sections with no data (remove the entire card, do not show empty cards)
-- For the calorie bar chart: calculate bar widths as percentage of the max value in the week
+```bash
+python3 {baseDir}/scripts/collect-weekly-data.py \
+  --workspace-dir {workspaceDir} \
+  --start-date {monday} --end-date {sunday} --tz-offset {tz_offset} \
+  2>&1 | tail -n +2 | \
+python3 {baseDir}/scripts/generate-report-html.py \
+  --output {workspaceDir}/data/reports/weekly-report-{start_date}.html \
+  --username {username} \
+  --plan-rate {weight_loss_rate_per_week} \
+  --commentary '{JSON object with section commentaries}' \
+  --highlights '{JSON array of highlight strings}' \
+  --suggestions '{JSON array of suggestion strings}'
+```
+
+**Agent responsibilities** (what YOU provide as parameters):
+- `--commentary`: JSON object with keys `logging`, `calories`, `weight`, `macros` — your personalized analysis for each section
+- `--highlights`: JSON array of 2-3 this-week highlights (achievements, good habits)
+- `--suggestions`: JSON array of 1-2 actionable next-week suggestions
+- `--plan-rate`: weight loss rate in kg/week (read from health-profile, default 0.5)
+- `--username`: read from `plan-url.json` in workspace (auto-set by upload script)
+
+**Script responsibilities** (what the script handles automatically):
+- All chart rendering: calorie bars, weight SVG curve (Catmull-Rom), macro nutrient bars
+- CSS styling, layout, sticky navigation, responsive design
+- Math: Y-coordinates, bezier control points, color coding, target ranges
+- Week navigation links (prev/next URLs)
+
+The file is written to `data/reports/weekly-report-{start_date}.html`.
 
 **Upload to cloud storage** using `plan-export`'s upload script (respects
 `PLAN_STORAGE_BACKEND` env var for AWS S3 / JD Cloud OSS auto-detection).
@@ -680,29 +701,11 @@ This ensures the `← 上一周` navigation links always resolve. Only upload fi
 
 ### Week Navigation (Previous / Next)
 
-The HTML template includes `← 上一周` / `下一周 →` navigation buttons **inside the header** for stable top-of-page visibility.
+Handled automatically by `generate-report-html.py`. The script reads `meta.prev_start`, `meta.prev_exists`, and `meta.next_start` from `collect-weekly-data.py` output to generate sticky navigation with full URLs.
 
-When generating the HTML, replace these placeholders:
-
-| Placeholder | Value |
-|---|---|
-| `{{PREV_WEEK_URL}}` | **Full URL** to previous week: `https://nanorhino.ai/user/{username}/weekly-report-{prev_start_date}.html` |
-| `{{NEXT_WEEK_URL}}` | **Full URL** to next week: `https://nanorhino.ai/user/{username}/weekly-report-{next_start_date}.html` |
-| `{{PREV_DISABLED}}` | If no previous report exists in `data/reports/`, set to `disabled`. Otherwise empty string. |
-| `{{NEXT_DISABLED}}` | Always `disabled` for the current/latest report (no future data). Otherwise empty string. |
-| `{{WEEK_NUMBER}}` | Week number — see Week Number Calculation below. |
-
-⚠️ **Links must be full URLs** (not relative paths like `weekly-report-2026-04-06.html`). Relative paths break when the HTML is opened from different contexts (e.g., WeChat in-app browser, S3 direct link).
+⚠️ Navigation uses full URLs like `https://nanorhino.ai/user/{username}/weekly-report-{date}.html`. The `--username` parameter must be passed to the script.
 
 **How to get {username}:** Read `plan-url.json` in the workspace. The URL pattern is `https://nanorhino.ai/user/{username}/...`. If `plan-url.json` doesn't exist yet, run `upload-to-s3.sh` first — it auto-creates it.
-
-**How to check if previous report exists:** Look for `data/reports/weekly-report-{prev_start_date}.html` in the workspace. If the file exists, the previous week has been generated → enable the link. Otherwise → add `disabled` class.
-
-**Date calculation:**
-- `{prev_start_date}` = `{start_date}` minus 7 days
-- `{next_start_date}` = `{start_date}` plus 7 days
-
-This means users can browse historical reports by clicking through the navigation chain. Each report links to its neighbors.
 
 ### Week Number Calculation
 

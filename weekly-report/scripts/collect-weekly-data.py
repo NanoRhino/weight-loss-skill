@@ -501,6 +501,8 @@ def main():
     # Collect all data
     meals = collect_meals(None, meals_dir, args.start_date, args.end_date, args.tz_offset)
     weight = collect_weight(weight_tracker, data_dir, args.start_date, args.end_date, args.display_unit)
+    # Also collect ALL historical weight for chart rendering
+    all_weight = collect_weight(weight_tracker, data_dir, "2000-01-01", args.end_date, args.display_unit)
     exercise = collect_exercise(exercise_calc, data_dir, args.start_date, args.end_date)
     habits = collect_habits(workspace_dir, args.start_date, args.end_date)
     plan = read_plan(workspace_dir)
@@ -552,6 +554,7 @@ def main():
         "summary": summary,
         "days": meals,
         "weight": weight,
+        "weight_all": all_weight.get("readings", []),
         "exercise": exercise,
         "habits": habits,
     }

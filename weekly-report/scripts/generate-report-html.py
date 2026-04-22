@@ -540,8 +540,10 @@ def generate_html(data, args):
 
     # ── Section 3: Weight Chart ──
     if weight_readings:
-        # Load all historical weight data for the chart
-        all_weight = weight_readings  # collect-weekly-data should include historical
+        # Use all historical weight data for the chart (includes pre-week readings)
+        all_weight = data.get('weight_all', weight_readings)
+        if not all_weight:
+            all_weight = weight_readings
         html += '  <div class="report-card">\n'
         html += '    <div class="card-header">⚖️ 体重记录</div>\n'
         html += '    <div class="card-body">\n'
