@@ -1,7 +1,7 @@
 ---
 name: notification-manager
 version: 1.0.0
-description: "Cron infrastructure and reminder lifecycle management for the AI weight loss companion. Creates, syncs, and removes meal/weight reminder cron jobs. Manages the engagement lifecycle (Active → Pause → Recall → Silent). Handles adaptive timing and user reminder setting changes. Use this skill when: meal-planner completes onboarding (to bootstrap reminders), user requests reminder setting changes, or another skill needs to verify/fix cron state. Do NOT use for composing reminder content or handling replies — that is notification-composer's job."
+description: "Cron infrastructure and reminder lifecycle management for the AI weight loss companion. Creates, syncs, and removes meal/weight reminder cron jobs. Manages the engagement lifecycle (Active → Pause → Recall → Silent). Handles adaptive timing, user reminder setting changes, and leave/vacation management. Use this skill when: meal-planner completes onboarding (to bootstrap reminders), user requests reminder setting changes, user wants to pause/resume reminders for a vacation or holiday ('五一不打卡了', '放假暂停提醒', '2号到4号出去玩', 'pause reminders', 'I'm going on vacation'), or another skill needs to verify/fix cron state. Do NOT use for composing reminder content or handling replies — that is notification-composer's job."
 metadata:
   openclaw:
     emoji: "bell"
@@ -443,6 +443,36 @@ If the user says "取消提醒" without specifying which one:
 | `data/engagement.json` | `notification_stage` — direct write | Stage transitions |
 | `data/engagement.json` | `reminder_config` — direct write | Adaptive timing changes, user setting changes |
 | `health-profile.md > Meal Schedule` | direct write | Adaptive timing updates, user-requested time changes |
+
+---
+
+## Leave / Vacation Management
+
+用户要求暂停打卡（假期、出游、不方便记录等）时，调用 leave-manager 设置请假。
+
+### Set leave
+```bash
+python3 {notification-composer:baseDir}/scripts/leave-manager.py set \
+  --data-dir {workspaceDir}/data --tz-offset {tz_offset} \
+  --start YYYY-MM-DD --end YYYY-MM-DD --reason "五一出游"
+```
+
+### Clear leave（用户提前回来）
+```bash
+python3 {notification-composer:baseDir}/scripts/leave-manager.py clear \
+  --data-dir {workspaceDir}/data --tz-offset {tz_offset}
+```
+
+### Check leave status
+```bash
+python3 {notification-composer:baseDir}/scripts/leave-manager.py info \
+  --data-dir {workspaceDir}/data --tz-offset {tz_offset}
+```
+
+**规则：**
+- 请假期间所有 cron 提醒自动静默（pre-send-check 处理，无需改 cron）
+- 用户主动发消息不受影响，正常记录
+- 过期自动清理
 
 ---
 
