@@ -78,7 +78,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .cal-target-band { position: absolute; left: 2rem; right: 0; background: rgba(0,0,0,0.05); z-index: 0; }
 .cal-target-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #aaa; }
 .cal-grid-line { position: absolute; left: 2rem; right: 0; height: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
-.cal-grid-label { position: absolute; right: 100%; margin-right: 5px; white-space: nowrap; transform: translateY(-50%); font-size: 10px; color: #bbb; font-weight: 500; }
+.cal-grid-label { position: absolute; left: -2rem; width: 2rem; padding-right: 5px; text-align: right; white-space: nowrap; transform: translateY(-50%); font-size: 10px; color: #bbb; font-weight: 500; }
 .cal-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; z-index: 1; position: relative; }
 .cal-bar-wrapper { width: 60%; max-width: 36px; }
 .cal-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; opacity: 0.75; }
