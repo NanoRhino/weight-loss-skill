@@ -227,6 +227,7 @@ def main():
 
     old_stage = stage
     changed = False
+    original_days_silent = days_silent  # preserve for welcome_back check
 
     # --- Always update last_active_date when --user-active is passed ---
     # This keeps the recall timer fresh even if user chats without logging food.
@@ -245,12 +246,14 @@ def main():
     # Welcome back: triggered when user returns after any absence (days_silent >= 1)
     # For S1 with days_silent >= 1: just set welcome_back flag, don't change stage
     # For S2+: full reset to S1
+    # NOTE: use original_days_silent for threshold checks since --user-active
+    # already reset days_silent to 0 above.
     user_returned_from_recall = (
         (stage > 1 and days_silent <= 1 and last_logged is not None) or
         (stage > 1 and args.user_active)
     )
     user_returned_brief = (
-        stage <= 1 and days_silent >= 2 and args.user_active
+        stage <= 1 and original_days_silent >= 2 and args.user_active
     )
     
     if user_returned_from_recall:
@@ -265,16 +268,16 @@ def main():
         data["last_nudge_date"] = None
         data["welcome_back"] = True
         data["welcome_back_from_stage"] = prev_stage
-        data["welcome_back_days_away"] = days_silent
+        data["welcome_back_days_away"] = original_days_silent
         changed = True
         log(f"RESET to stage 1 (user returned, last meal {last_logged}) — welcome_back flag set")
     elif user_returned_brief:
         data["last_active_date"] = today_str
         data["welcome_back"] = True
         data["welcome_back_from_stage"] = 1
-        data["welcome_back_days_away"] = days_silent
+        data["welcome_back_days_away"] = original_days_silent
         changed = True
-        log(f"User returned after {days_silent} day(s) — welcome_back flag set (still S1)")
+        log(f"User returned after {original_days_silent} day(s) — welcome_back flag set (still S1)")
 
     # --- Forward transitions (fast-forward to correct stage) ---
     # Skip forward transitions if --user-active: user just sent a message,

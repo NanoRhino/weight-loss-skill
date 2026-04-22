@@ -144,6 +144,17 @@ Then add a warm, brief welcome-back line before your meal response:
 
 ⚠️ **NEVER mention the absence, judge, or imply they were wrong to not log.** No "昨天休息了", no "好几天没见", no "这次要坚持哦". Just be genuinely happy to see them, like greeting a friend. Keep it to ONE short line, then go straight to processing the meal.
 
+After sending the welcome-back line, **clear the flag** so cron doesn't repeat it:
+```python
+import json
+path = "{workspaceDir}/data/engagement.json"
+with open(path) as f: d = json.load(f)
+d.pop("welcome_back", None)
+d.pop("welcome_back_from_stage", None)
+d.pop("welcome_back_days_away", None)
+with open(path, "w") as f: json.dump(d, f, indent=2, ensure_ascii=False)
+```
+
 ### Step 1: Recognize & Log
 
 #### 1.1 Collect input

@@ -29,7 +29,13 @@ if [[ ! -f "$WORKSPACE/health-profile.md" ]]; then
   exit 0
 fi
 
-# 2. engagement stage must be < 2 (active)
+# 2. Run check-stage to ensure engagement.json is current, then check stage
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CHECK_STAGE="$SCRIPT_DIR/../../notification-manager/scripts/check-stage.py"
+if [[ -f "$CHECK_STAGE" ]]; then
+  python3.11 "$CHECK_STAGE" --workspace-dir "$WORKSPACE" --tz-offset 28800 2>/dev/null || true
+fi
+
 ENG="$WORKSPACE/data/engagement.json"
 if [[ -f "$ENG" ]]; then
   STAGE=$(python3.11 -c "import json; print(json.load(open('$ENG')).get('notification_stage', 1))" 2>/dev/null || echo "1")
@@ -66,8 +72,13 @@ for f in "$MEALS_DIR"/*.json; do
     HAS_DATA=$(python3.11 -c "
 import json
 d = json.load(open('$f'))
-items = d.get('items', d.get('foods', []))
-print('yes' if items else 'no')
+if isinstance(d, list):
+    has = any(m.get('items') or m.get('foods') for m in d if isinstance(m, dict))
+elif isinstance(d, dict):
+    has = bool(d.get('items') or d.get('foods'))
+else:
+    has = False
+print('yes' if has else 'no')
 " 2>/dev/null || echo "no")
     if [[ "$HAS_DATA" == "yes" ]]; then
       DAYS_WITH_DATA=$((DAYS_WITH_DATA + 1))
