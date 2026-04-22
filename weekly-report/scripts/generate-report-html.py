@@ -64,8 +64,8 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .report-header .date-range { font-size: 0.75rem; color: #aaa; margin-top: 0.2rem; }
 .report-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
 .card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
-.card-body { padding: 0.8rem 1rem; }
-.card-commentary { font-size: 0.88rem; color: #444; padding: 0.6rem 1rem 0.8rem; border-top: 1px solid #f0ede5; line-height: 1.6; }
+.card-body { padding: 0.8rem 21px; }
+.card-commentary { font-size: 0.88rem; color: #444; padding: 0.6rem 21px 0.8rem; border-top: 1px solid #f0ede5; line-height: 1.6; }
 
 /* Logging grid */
 .logging-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 0.2rem; }
@@ -74,7 +74,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .logging-summary { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.5rem; }
 
 /* Calorie + macro charts (shared) */
-.cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0.3rem 0 2rem; margin-bottom: 0.4rem; }
+.cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0 0 2rem; margin-bottom: 0.4rem; }
 .cal-target-band { position: absolute; left: 2rem; right: 0; background: rgba(0,0,0,0.05); z-index: 0; }
 .cal-target-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #aaa; }
 .cal-grid-line { position: absolute; left: 2rem; right: 0; height: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
@@ -83,7 +83,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .cal-bar-wrapper { width: 60%; max-width: 36px; }
 .cal-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; opacity: 0.75; }
 .cal-bar-value { font-size: 10px; color: #bbb; margin-bottom: 2px; font-weight: 500; }
-.cal-x-labels { display: flex; justify-content: space-between; padding: 0.3rem 0.3rem 0 2rem; }
+.cal-x-labels { display: flex; justify-content: space-between; padding: 0.3rem 0 0 2rem; }
 .cal-x-label { flex: 1; text-align: center; font-size: 0.75rem; color: #888; font-weight: 500; }
 .cal-average { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.6rem; }
 .cal-average .sub { font-weight: 400; font-size: 0.78rem; color: #888; }
