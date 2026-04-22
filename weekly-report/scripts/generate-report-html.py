@@ -65,7 +65,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .report-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
 .card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
 .card-body { padding: 0.8rem 1rem; }
-.card-commentary { font-size: 0.82rem; color: #555; padding: 0.5rem 1rem 0.8rem; border-top: 1px solid #f0ede5; }
+.card-commentary { font-size: 0.88rem; color: #444; padding: 0.6rem 1rem 0.8rem; border-top: 1px solid #f0ede5; line-height: 1.6; }
 
 /* Logging grid */
 .logging-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 0.2rem; }
