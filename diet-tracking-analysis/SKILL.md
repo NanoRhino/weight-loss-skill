@@ -127,10 +127,9 @@ Returns `matches` (`oil_per_100g`, `correction_count`) and `no_match`. Stored in
 
 On first interaction in a new session, check if the user missed any days:
 
-1. Read `engagement.json` → get `last_meal_date` and `last_active_date`
-2. Calculate `days_silent = today - max(last_meal_date, last_active_date)`
-3. If `days_silent <= 1`: skip to Step 1 (user active yesterday or today)
-4. If `days_silent >= 2`: user missed at least one full day. Run:
+1. Read `engagement.json` → get `days_silent` field (already computed by check-stage)
+2. If `days_silent` is missing or `<= 1`: skip to Step 1 (user active recently)
+3. If `days_silent >= 2`: user missed at least one full day. Run:
 
 ```bash
 python3 {notification-manager:baseDir}/scripts/check-stage.py \
