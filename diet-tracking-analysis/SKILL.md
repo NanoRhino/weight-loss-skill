@@ -121,13 +121,15 @@ Returns `matches` (`oil_per_100g`, `correction_count`) and `no_match`. Stored in
 
 ## Workflow — Log Food
 
-### Step 0: Engagement Check (before anything else)
+### Step 0: Engagement Check (returning users only)
 
-Before processing the meal, quick-check if the user is in recall (S2+):
+**Skip this step entirely if you already know the user is active** (e.g., you've been chatting in this session, or you recently processed a meal for them).
+
+Only check when this is the **first interaction in a new/fresh session**:
 
 1. Read `engagement.json` in workspace → check `stage` field
-2. If `stage <= 1` (or file doesn't exist): **skip to Step 1 immediately** — no overhead
-3. If `stage >= 2`: run the full reset:
+2. If `stage <= 1` (or file doesn't exist): **skip to Step 1**
+3. If `stage >= 2`: run the reset:
 
 ```bash
 python3 {notification-manager:baseDir}/scripts/check-stage.py \
@@ -136,10 +138,8 @@ python3 {notification-manager:baseDir}/scripts/check-stage.py \
 
 If output contains `welcome_back=true`:
 - **Send a warm welcome-back message first** — acknowledge they're back, be encouraging, don't guilt-trip
-- Then proceed to Step 1 to process their meal normally
+- Then proceed to Step 1
 - Welcome message and meal confirmation can be in the same response
-
-⚠️ This check is a fast JSON read for active users (no script call). The script only runs for returning users (S2+).
 
 ### Step 1: Recognize & Log
 
