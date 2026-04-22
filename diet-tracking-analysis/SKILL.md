@@ -169,20 +169,20 @@ P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKIL
 
 ### ② Nutrition Summary (from `evaluation`)
 📊 So far today:
-🔥 XXX/TARGET kcal
-███████░░░ XX%
-Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
+🔥 {daily_total.calories}/{daily_total.target} kcal
+███████░░░ {daily_total.progress_pct}%
+Protein {protein_g}g [status] | Carbs {carbs_g}g [status] | Fat {fat_g}g [status]
 
 **Calorie progress bar rules:**
 - Fixed 10 chars: `█` = filled, `░` = remaining
 - Each char = 10% of daily target (round to nearest)
 - ≤100%: normal display
-- >100%: all 10 filled + show surplus `(+XXX)` + `⚠️`
+- >100%: all 10 filled + show surplus `(+{overflow})` + `⚠️`
 
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar).
 
 **CN produce (REQUIRED — never omit either item):**
-🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruits: ~XXXg ✅/⬇️
+🥦 Vegetables: ~{produce.vegetables_g}g {produce.vegetables_status}  🍎 Fruits: ~{produce.fruits_g}g {produce.fruits_status}
 - Mandatory for CN region. Always include BOTH on the same line.
 - Vegetable low → suggest at next meal.
 - Fruit low → suggest only at final meal of the day.
