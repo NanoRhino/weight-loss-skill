@@ -82,7 +82,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .cal-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; z-index: 1; position: relative; }
 .cal-bar-wrapper { width: 60%; max-width: 36px; }
 .cal-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; opacity: 0.75; }
-.cal-bar-value { font-size: 0.7rem; color: #888; margin-bottom: 2px; font-weight: 500; }
+.cal-bar-value { font-size: 10px; color: #bbb; margin-bottom: 2px; font-weight: 500; }
 .cal-x-labels { display: flex; justify-content: space-between; padding: 0.3rem 0.3rem 0 2rem; }
 .cal-x-label { flex: 1; text-align: center; font-size: 0.75rem; color: #888; font-weight: 500; }
 .cal-average { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.6rem; }
