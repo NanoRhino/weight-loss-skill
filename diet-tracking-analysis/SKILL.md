@@ -275,6 +275,18 @@ Oil — [dish name]:
 - `has_missing = true` → append PS about assumed meals, invite corrections
 - `needs_clarification` → append hint(s) directly; multiple → merge into ONE sentence (see § Ambiguous Food below)
 
+**Weight check-in reminder (embedded):**
+If ALL of the following are true, append a gentle weight reminder at the end of your response:
+1. Today is a weight check-in day (check `health-profile.md` for weigh-in schedule, e.g., Wed/Sat)
+2. This appears to be the user's **last meal of the day** (dinner, or it's after 17:00)
+3. User has NOT logged weight today (check `data/weight/` for today's entry)
+
+Reminder style: casual, one line, woven into the meal response. Examples:
+- "对了，今天是称重日，晚点记得上秤哦 ⚖️"
+- "吃完消化消化，别忘了今天该称体重啦～"
+
+Do NOT remind if it's breakfast/lunch on a weigh-in day — wait for the last meal.
+
 **Must follow the Response Schemas below.**
 
 ---
