@@ -235,7 +235,7 @@ Use `evaluation.suggestion_budget.remaining` (not `daily_total.remaining`) for f
 
 | Type | Icon | Guidance |
 |------|------|----------|
-| `right_now` | ⚡ | Pre-meal (eaten=false) and over budget — suggest reducing/swapping items in THIS meal before eating. |
+| `right_now` | ⚡ | Pre-meal (eaten=false) — all advice targets THIS meal. If over budget, suggest reducing/swapping. If under, suggest what to add. |
 | `next_meal` | 💡 | Forward-looking. Over at last meal → "aim for usual pattern tomorrow." |
 | `next_time` | 💡 | On track — habit tip or next-meal pairing. `cal_in_range_macro_off == true` → suggest swapping ingredients **tomorrow**. |
 | `case_d_snack` | 🍽 | Final meal, below BMR×0.9 — gently suggest eating a bit more today. |
