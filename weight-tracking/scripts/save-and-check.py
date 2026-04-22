@@ -115,17 +115,30 @@ def save_intervention_date(data_dir, tz_offset):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Save weight + context")
+    parser = argparse.ArgumentParser(description="Save weight + context / mark intervention")
     parser.add_argument("--data-dir", required=True)
-    parser.add_argument("--value", required=True, type=float)
-    parser.add_argument("--unit", required=True)
+    parser.add_argument("--value", type=float, default=None)
+    parser.add_argument("--unit", default=None)
     parser.add_argument("--tz-offset", type=int, default=0)
     parser.add_argument("--correct", action="store_true")
     parser.add_argument("--plan-file", default=None)
     parser.add_argument("--health-profile", default=None)
     parser.add_argument("--user-file", default=None)
+    parser.add_argument("--mark-intervention", action="store_true",
+                        help="Record today as last intervention date and exit")
     args = parser.parse_args()
     args.data_dir = _normalize_path(args.data_dir)
+
+    # --- Mark intervention mode ---
+    if args.mark_intervention:
+        save_intervention_date(args.data_dir, args.tz_offset)
+        print(json.dumps({"marked": True, "date": datetime.now(
+            timezone(timedelta(seconds=args.tz_offset))).strftime("%Y-%m-%d")}))
+        return
+
+    if args.value is None or args.unit is None:
+        parser.error("--value and --unit are required (unless --mark-intervention)")
+
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     tracker = os.path.join(script_dir, "weight-tracker.py")
