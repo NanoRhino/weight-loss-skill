@@ -32,10 +32,18 @@ Time options (pick one):
 
 Add `--keep` to preserve one-shot jobs after firing.
 
-The `--message` is what you (the agent) will receive when the job fires. Write it as an instruction to yourself, e.g.:
-- "提醒用户该喝水了，简短自然"
-- "Ask the user if they've had lunch yet"
-- "提醒用户去称体重，鼓励一下"
+The `--message` is what you (the agent) will receive when the job fires. Write it as an instruction to yourself.
+
+**IMPORTANT: Always prepend an engagement check to the message.** This ensures the agent checks if the user is still active before sending reminders to recalled users:
+
+```
+先检查 engagement.json 的 stage 字段。如果 stage >= 2，不要发送此提醒，直接跳过（回复 NO_REPLY）。如果 stage <= 1，继续执行：[actual reminder instruction]
+```
+
+Examples:
+- `--message "先检查 engagement.json 的 stage 字段。如果 stage >= 2，不要发送此提醒，直接跳过。如果 stage <= 1，继续执行：提醒用户该喝水了，简短自然"`
+- `--message "先检查 engagement.json 的 stage 字段。如果 stage >= 2，不要发送此提醒，直接跳过。如果 stage <= 1，继续执行：Ask the user if they've had lunch yet"`
+- `--message "先检查 engagement.json 的 stage 字段。如果 stage >= 2，不要发送此提醒，直接跳过。如果 stage <= 1，继续执行：提醒用户去称体重，鼓励一下"`
 
 ### List
 
