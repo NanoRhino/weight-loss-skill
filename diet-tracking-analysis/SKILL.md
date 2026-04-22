@@ -123,7 +123,11 @@ Returns `matches` (`oil_per_100g`, `correction_count`) and `no_match`. Stored in
 
 ### Step 0: Engagement Check (before anything else)
 
-Before processing the meal, check if the user is returning from recall (S2+):
+Before processing the meal, quick-check if the user is in recall (S2+):
+
+1. Read `engagement.json` in workspace → check `stage` field
+2. If `stage <= 1` (or file doesn't exist): **skip to Step 1 immediately** — no overhead
+3. If `stage >= 2`: run the full reset:
 
 ```bash
 python3 {notification-manager:baseDir}/scripts/check-stage.py \
@@ -131,13 +135,11 @@ python3 {notification-manager:baseDir}/scripts/check-stage.py \
 ```
 
 If output contains `welcome_back=true`:
-1. **Send a warm welcome-back message first** — acknowledge they're back, be encouraging, don't guilt-trip about the absence
-2. Then proceed to Step 1 to process their meal normally
-3. The welcome message and meal confirmation can be in the same response
+- **Send a warm welcome-back message first** — acknowledge they're back, be encouraging, don't guilt-trip
+- Then proceed to Step 1 to process their meal normally
+- Welcome message and meal confirmation can be in the same response
 
-If output does NOT contain `welcome_back`, skip directly to Step 1.
-
-⚠️ This must happen BEFORE meal logging — the welcome message should come first so the user feels acknowledged.
+⚠️ This check is a fast JSON read for active users (no script call). The script only runs for returning users (S2+).
 
 ### Step 1: Recognize & Log
 
