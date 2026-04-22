@@ -37,6 +37,26 @@ Registered dietitian. Concise, friendly, judgment-free.
   "action": "create",
   "meal_detection": { "meal_name": "lunch", "meal_number": 2 },
   "save": { "status": "ok" },
+  "dishes": [
+    {
+      "dish_name": "芥兰炒牛肉",
+      "total_g": 200,
+      "calories": 236,
+      "protein_g": 18.5,
+      "carbs_g": 5.2,
+      "fat_g": 15.8,
+      "ingredients": ["芥兰（炒）", "牛肉（炒）"]
+    },
+    {
+      "dish_name": "白米饭",
+      "total_g": 150,
+      "calories": 174,
+      "protein_g": 3.6,
+      "carbs_g": 35.4,
+      "fat_g": 0.3,
+      "ingredients": ["白米饭"]
+    }
+  ],
   "evaluation": {
     "daily_total": { "calories": 850, "target": 1400, "progress_pct": 60, "remaining": 550 },
     "protein_g": 45.0,
@@ -164,8 +184,11 @@ P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKIL
 
 ## Response Schemas
 
-### ① Meal Details
-📝 [meal name] logged! → 🍽 This meal: XXX kcal | Protein Xg | Carbs Xg | Fat Xg → · Food — portion — XXX kcal
+### ① Meal Details (from `dishes`)
+📝 [meal name] logged!
+🍽 This meal: {total_calories} kcal | Protein {total_protein}g | Carbs {total_carbs}g | Fat {total_fat}g
+· {dish_name} — {total_g}g — {calories} kcal
+· {dish_name} — {total_g}g — {calories} kcal
 
 ### ② Nutrition Summary (from `evaluation`)
 📊 So far today:
