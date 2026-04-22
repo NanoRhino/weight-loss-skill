@@ -631,6 +631,8 @@ python3 {baseDir}/scripts/collect-weekly-data.py \
 python3 {baseDir}/scripts/generate-report-html.py \
   --output {workspaceDir}/data/reports/weekly-report-{start_date}.html \
   --username {username} \
+  --nickname {user_nickname} \
+  --tagline '{short fun summary of the week}' \
   --plan-rate {weight_loss_rate_per_week} \
   --commentary '{JSON object with section commentaries}' \
   --highlights '{JSON array of highlight strings}' \
@@ -638,6 +640,8 @@ python3 {baseDir}/scripts/generate-report-html.py \
 ```
 
 **Agent responsibilities** (what YOU provide as parameters):
+- `--nickname`: user's display name (from USER.md)
+- `--tagline`: short, fun one-liner summarizing the week (be creative!)
 - `--commentary`: JSON object with keys `logging`, `calories`, `weight`, `macros` — your personalized analysis for each section
 - `--highlights`: JSON array of 2-3 this-week highlights (achievements, good habits)
 - `--suggestions`: JSON array of 1-2 actionable next-week suggestions
