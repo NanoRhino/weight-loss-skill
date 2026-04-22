@@ -642,7 +642,7 @@ python3 {baseDir}/scripts/generate-report-html.py \
 **Agent responsibilities** (what YOU provide as parameters):
 - `--nickname`: user's display name (from USER.md)
 - `--tagline`: short, fun one-liner summarizing the week (be creative, match the user's personality!)
-- `--commentary`: JSON object with keys `logging`, `calories`, `weight`, `macros` — your personalized analysis for each section. **Write like a sassy best friend who happens to know nutrition**: use casual spoken Chinese (口语化), be funny/witty, tease when appropriate, but always back it up with real numbers. Example: "日均1068大卡？亲你这是在减脂还是在辟谷啊 😅 基础代谢都要1650，你连呼吸的油费都没加够。" Each commentary should be 2-4 sentences.
+- `--commentary`: JSON object with keys `logging`, `calories`, `weight`, `macros` — your personalized analysis for each section. **Write like a sassy best friend who happens to know nutrition**: use casual spoken Chinese (口语化), be funny/witty, tease when appropriate, but always back it up with real numbers. Use `cal_avg_estimated` (meal-filled estimate) for dietary assessment, NOT `cal_avg` (which is deflated by missed-meal days). If `days_with_missing_meals > 0`, mention that some days had incomplete records. Example: "补全漏餐估算日均1573大卡，离目标1600就差一口气了！不过有4天漏记了，记全了数据才更准。" Each commentary should be 2-4 sentences.
 - `--tagline`: short, fun one-liner summarizing the week (witty, teasing, spoken Chinese — like a friend roasting you with love)
 - `--highlights`: JSON array of 2-3 this-week highlights — be specific and celebratory (e.g. "蛋白质从上周36g冲到56g，进步肉眼可见！")
 - `--suggestions`: JSON array of 1-2 actionable next-week suggestions — concrete and encouraging (e.g. "早餐加杯牛奶+俩鸡蛋，蛋白质直接拉满到80g")

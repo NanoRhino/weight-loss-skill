@@ -372,16 +372,17 @@ def compute_summary(days, plan, weight_data):
 
     # --- Macronutrient estimation: per-meal-type average, then fill missing meals ---
     # Step 1: collect per-meal-type averages from all logged meals this week
-    meal_type_stats = {}  # {meal_type: {"protein": [...], "fat": [...], "carb": [...]}}
+    meal_type_stats = {}  # {meal_type: {"protein": [...], "fat": [...], "carb": [...], "cal": [...]}}
     for d in logged_days:
         for meal in d.get("meals", []):
             mt = meal.get("meal_type", "unknown")
             if meal.get("cal", 0) > 0:  # only count meals with data
                 if mt not in meal_type_stats:
-                    meal_type_stats[mt] = {"protein": [], "fat": [], "carb": []}
+                    meal_type_stats[mt] = {"protein": [], "fat": [], "carb": [], "cal": []}
                 meal_type_stats[mt]["protein"].append(meal.get("protein", 0) or 0)
                 meal_type_stats[mt]["fat"].append(meal.get("fat", 0) or 0)
                 meal_type_stats[mt]["carb"].append(meal.get("carb", 0) or 0)
+                meal_type_stats[mt]["cal"].append(meal.get("cal", 0) or 0)
 
     # Compute averages per meal type
     meal_type_avgs = {}
@@ -390,29 +391,33 @@ def compute_summary(days, plan, weight_data):
             "protein": round(sum(stats["protein"]) / len(stats["protein"])) if stats["protein"] else 0,
             "fat": round(sum(stats["fat"]) / len(stats["fat"])) if stats["fat"] else 0,
             "carb": round(sum(stats["carb"]) / len(stats["carb"])) if stats["carb"] else 0,
+            "cal": round(sum(stats["cal"]) / len(stats["cal"])) if stats["cal"] else 0,
         }
 
     # Global meal average (fallback when a meal type has no data)
     all_proteins = [v for s in meal_type_stats.values() for v in s["protein"]]
     all_fats = [v for s in meal_type_stats.values() for v in s["fat"]]
     all_carbs = [v for s in meal_type_stats.values() for v in s["carb"]]
+    all_cals = [v for s in meal_type_stats.values() for v in s["cal"]]
     global_avg = {
         "protein": round(sum(all_proteins) / len(all_proteins)) if all_proteins else 0,
         "fat": round(sum(all_fats) / len(all_fats)) if all_fats else 0,
         "carb": round(sum(all_carbs) / len(all_carbs)) if all_carbs else 0,
+        "cal": round(sum(all_cals) / len(all_cals)) if all_cals else 0,
     }
 
-    # Step 2: for each logged day, estimate full-day macros by filling missing meals
+    # Step 2: for each logged day, estimate full-day intake by filling missing meals
     # "Missing meal" = a standard meal type (breakfast/lunch/dinner) not present in the day's records
     # or present but with 0 calories (meaning skipped/not logged)
     standard_meals = {"breakfast", "lunch", "dinner"}
-    estimated_daily_macros = []  # list of {protein, fat, carb} per day
+    estimated_daily = []  # list of {protein, fat, carb, cal} per day
 
     for d in logged_days:
         logged_types = set()
         day_protein = 0
         day_fat = 0
         day_carb = 0
+        day_cal = d["totals"]["cal"]  # start with actual recorded calories
 
         for meal in d.get("meals", []):
             mt = meal.get("meal_type", "unknown")
@@ -423,27 +428,35 @@ def compute_summary(days, plan, weight_data):
                 day_carb += meal.get("carb", 0) or 0
 
         # Fill missing standard meals with their type average
-        for mt in standard_meals - logged_types:
+        missing_meals = standard_meals - logged_types
+        for mt in missing_meals:
             avg = meal_type_avgs.get(mt, global_avg)
             day_protein += avg["protein"]
             day_fat += avg["fat"]
             day_carb += avg["carb"]
+            day_cal += avg["cal"]
 
-        estimated_daily_macros.append({
+        estimated_daily.append({
             "protein": day_protein,
             "fat": day_fat,
             "carb": day_carb,
+            "cal": day_cal,
+            "missing_meals": len(missing_meals),
         })
 
-    # Step 3: compute averages from estimated full-day macros
-    protein_values = [d["protein"] for d in estimated_daily_macros if d["protein"] > 0]
-    fat_values = [d["fat"] for d in estimated_daily_macros if d["fat"] > 0]
-    carb_values = [d["carb"] for d in estimated_daily_macros if d["carb"] > 0]
+    # Step 3: compute averages from estimated full-day values
+    protein_values = [d["protein"] for d in estimated_daily if d["protein"] > 0]
+    fat_values = [d["fat"] for d in estimated_daily if d["fat"] > 0]
+    carb_values = [d["carb"] for d in estimated_daily if d["carb"] > 0]
+    cal_est_values = [d["cal"] for d in estimated_daily if d["cal"] > 0]
+    cal_avg_estimated = round(sum(cal_est_values) / len(cal_est_values)) if cal_est_values else cal_avg
 
     summary = {
         "logged_days": logged_count,
         "total_days": len(days),
         "cal_avg": cal_avg,
+        "cal_avg_estimated": cal_avg_estimated,
+        "days_with_missing_meals": sum(1 for d in estimated_daily if d["missing_meals"] > 0),
         "cal_max": cal_max,
         "cal_values": cal_values,
         "protein_avg": round(sum(protein_values) / len(protein_values)) if protein_values else 0,

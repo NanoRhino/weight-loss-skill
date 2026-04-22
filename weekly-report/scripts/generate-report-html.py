@@ -529,7 +529,12 @@ def generate_html(data, args):
     html += '    <div class="card-header">🔥 热量分析</div>\n'
     html += '    <div class="card-body">\n'
     html += gen_calorie_chart(days, cal_min, cal_max_target, chart_max)
-    html += f'      <div class="cal-average">日均 {summary["cal_avg"]} kcal <span class="sub">（目标 {cal_min}–{cal_max_target}）</span></div>\n'
+    cal_avg_est = summary.get("cal_avg_estimated", summary["cal_avg"])
+    missing_days = summary.get("days_with_missing_meals", 0)
+    if missing_days > 0 and cal_avg_est != summary["cal_avg"]:
+        html += f'      <div class="cal-average">日均约 {cal_avg_est} kcal <span class="sub">（目标 {cal_min}–{cal_max_target} · {missing_days}天有漏记）</span></div>\n'
+    else:
+        html += f'      <div class="cal-average">日均 {summary["cal_avg"]} kcal <span class="sub">（目标 {cal_min}–{cal_max_target}）</span></div>\n'
     html += '    </div>\n'
     if commentary.get('calories'):
         html += f'    <div class="card-commentary">{commentary["calories"]}</div>\n'
