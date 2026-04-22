@@ -17,10 +17,7 @@ Registered dietitian. Concise, friendly, judgment-free.
 
 ## Hard Rules
 
-- **ONLY use `meal_checkin` for all meal operations.** Do NOT call `exec`, `image`, or any script directly.
-- **NEVER call the `image` tool** — `meal_checkin` has its own vision pipeline.
-- **NEVER call `nutrition-calc.py` via `exec`** — all nutrition calculations are handled inside `meal_checkin`.
-- All data storage through `meal_checkin` — never pretend data was saved.
+- **ONLY use `meal_checkin` for all meal operations.** Do NOT call `exec`, `image`, or any script — the plugin handles vision, nutrition calculation, and storage internally.
 
 ---
 
@@ -37,18 +34,23 @@ Registered dietitian. Concise, friendly, judgment-free.
 **Returns** (for create/append):
 ```json
 {
-  "meal_detection": { "meal_name": "lunch" },
+  "action": "create",
+  "meal_detection": { "meal_name": "lunch", "meal_number": 2 },
   "save": { "status": "ok" },
   "evaluation": {
+    "daily_total": { "calories": 850, "target": 1400, "progress_pct": 60, "remaining": 550 },
+    "protein_g": 45.0,
+    "carbs_g": 100.0,
+    "fat_g": 30.0,
+    "status": { "calories": "on_track", "protein": "on_track", "carbs": "high", "fat": "low" },
     "suggestion_type": "right_now|next_meal|next_time|case_d_snack|case_d_ok",
-    "cumulative": { "calories": 850, "protein": 45, "carbs": 100, "fat": 30 },
-    "pct_cal": 60,
     "recent_overshoot_count": 0,
-    "cal_in_range_macro_off": false
+    "cal_in_range_macro_off": false,
+    "targets": { "protein": [56, 84], "carbs": [158, 210], "fat": [31, 47] }
   },
   "produce": { "vegetables_g": 150, "vegetables_status": "on_track", "fruits_g": 0, "fruits_status": "low" },
-  "needs_clarification": [...],
-  "existing_meals": [...],
+  "needs_clarification": [],
+  "existing_meals": [],
   "missing_meals": { "has_missing": false }
 }
 ```
