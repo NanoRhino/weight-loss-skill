@@ -111,7 +111,7 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
    - **只确认**：体重稳定或下降 → "已记录 ✅ 今日体重：XX kg"
    - **确认 + 安抚**：涨了但不严重（小幅波动、平台期、数据太少）→ 确认记录 + 一句安慰用户的感受
    - **进入诊断**：发现体重在涨时，确认记录后问用户"要不要一起看看原因"。不要自己分析或猜测原因——是否需要深入分析由用户决定。用户说好 → 读 `weight-gain-strategy/references/cause-check-flow.md`，按流程走
-   - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预，但可以提醒策略还在跑
+   - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预，但可以结合 `consensus` 提醒策略还在跑。可以主动查看最近几天的餐食记录（`{workspaceDir}/data/meals/YYYY-MM-DD.json`），结合共识给具体反馈
    - 如果 `last_intervention_date` 在 3 天内，不重复干预
    - **诊断后记录**：只有进入 cause-check 诊断流程后，调一次：
      ```bash
