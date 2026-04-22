@@ -138,11 +138,11 @@ python3 {notification-manager:baseDir}/scripts/check-stage.py \
 ```
 
 Then add a warm, brief welcome-back line before your meal response:
-- **1 day away**: light touch — "回来啦！昨天想你了 😊" (one line, then straight to meal)
-- **2-3 days away**: warmer — acknowledge the gap, encourage, don't guilt-trip
-- **4+ days away**: full welcome back, celebrate their return
+- **1-2 days away**: cheerful, no mention of absence — "早上好呀！今天开始记录啦 ✨" / "嘿！看到你就开心 😊"
+- **3-5 days away**: warm and excited to see them — "好久不见！想你啦 🎉"
+- **6+ days away**: celebrate their return — "你回来啦！超开心！💪"
 
-⚠️ The welcome-back should feel natural, not robotic. Weave it into your meal response — don't make it a separate formal message.
+⚠️ **NEVER mention the absence, judge, or imply they were wrong to not log.** No "昨天休息了", no "好几天没见", no "这次要坚持哦". Just be genuinely happy to see them, like greeting a friend. Keep it to ONE short line, then go straight to processing the meal.
 
 ### Step 1: Recognize & Log
 
