@@ -76,8 +76,8 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0.3rem 0 2.5rem; margin-bottom: 0.4rem; }
 .cal-target-band { position: absolute; left: 2.5rem; right: 0; background: rgba(0,0,0,0.05); z-index: 0; }
 .cal-target-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #aaa; }
-.cal-grid-line { position: absolute; left: 2.5rem; right: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
-.cal-grid-label { position: absolute; left: -2.5rem; transform: translateY(-50%); font-size: 0.65rem; color: #999; font-weight: 500; }
+.cal-grid-line { position: absolute; left: 2.5rem; right: 0; height: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
+.cal-grid-label { position: absolute; right: 100%; margin-right: 4px; white-space: nowrap; transform: translateY(-50%); font-size: 0.65rem; color: #999; font-weight: 500; }
 .cal-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; z-index: 1; position: relative; }
 .cal-bar-wrapper { width: 60%; max-width: 36px; }
 .cal-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; opacity: 0.75; }
@@ -94,8 +94,8 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .macro-chart-section { margin-bottom: 1.8rem; }
 .macro-chart-section:last-of-type { margin-bottom: 0.5rem; }
 .macro-chart-title { text-align: center; font-size: 1.1rem; font-weight: 700; color: #333; margin-bottom: 0.6rem; }
-.macro-avg-line { position: absolute; left: 2.5rem; right: 0; border-top: 1px dashed #333; z-index: 2; }
-.macro-avg-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #333; font-weight: 500; }
+.macro-avg-line { position: absolute; left: 2.5rem; right: 0; height: 0; border-top: 1px dashed #333; z-index: 2; }
+.macro-avg-label { position: absolute; right: 4px; transform: translateY(-100%); font-size: 0.65rem; color: #333; font-weight: 500; }
 
 /* Weight chart */
 .weight-chart-wrapper { position: relative; display: flex; margin-bottom: 0.6rem; }
