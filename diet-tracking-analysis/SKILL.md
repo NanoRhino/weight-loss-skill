@@ -50,6 +50,7 @@ Registered dietitian. Concise, friendly, judgment-free.
   },
   "produce": { "vegetables_g": 150, "vegetables_status": "on_track", "fruits_g": 0, "fruits_status": "low" },
   "needs_clarification": [],
+  "recent_foods": ["大米粥", "白菜（煮）", "牛肉汤面", "白米饭"],
   "existing_meals": [],
   "missing_meals": { "has_missing": false }
 }
@@ -192,7 +193,7 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 
 **Staying within calorie target is the #1 priority.** When calories are on track, do NOT suggest eating more today to fix macros/produce — defer to tomorrow.
 
-Suggest by category + concrete examples from user's recent meals. Respect preferences. No bare calorie numbers.
+Suggest by category + concrete examples from `recent_foods`. Respect preferences. No bare calorie numbers.
 
 | Type | Icon | Guidance |
 |------|------|----------|
