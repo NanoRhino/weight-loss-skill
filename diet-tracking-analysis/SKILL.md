@@ -121,25 +121,28 @@ Returns `matches` (`oil_per_100g`, `correction_count`) and `no_match`. Stored in
 
 ## Workflow — Log Food
 
-### Step 0: Engagement Check (returning users only)
+### Step 0: Welcome Back Check (returning users only)
 
-**Skip this step entirely if you already know the user is active** (e.g., you've been chatting in this session, or you recently processed a meal for them).
+**Skip if you've already chatted with this user in the current session.**
 
-Only check when this is the **first interaction in a new/fresh session**:
+On first interaction in a new session, check if the user missed any days:
 
-1. Read `engagement.json` in workspace → check `stage` field
-2. If `stage <= 1` (or file doesn't exist): **skip to Step 1**
-3. If `stage >= 2`: run the reset:
+1. Read `engagement.json` → get `last_meal_date` and `last_active_date`
+2. Calculate `days_silent = today - max(last_meal_date, last_active_date)`
+3. If `days_silent == 0`: skip to Step 1 (user was active today/yesterday)
+4. If `days_silent >= 1`: user has been away. Run:
 
 ```bash
 python3 {notification-manager:baseDir}/scripts/check-stage.py \
   --workspace-dir {workspaceDir} --user-active
 ```
 
-If output contains `welcome_back=true`:
-- **Send a warm welcome-back message first** — acknowledge they're back, be encouraging, don't guilt-trip
-- Then proceed to Step 1
-- Welcome message and meal confirmation can be in the same response
+Then add a warm, brief welcome-back line before your meal response:
+- **1 day away**: light touch — "回来啦！昨天想你了 😊" (one line, then straight to meal)
+- **2-3 days away**: warmer — acknowledge the gap, encourage, don't guilt-trip
+- **4+ days away**: full welcome back, celebrate their return
+
+⚠️ The welcome-back should feel natural, not robotic. Weave it into your meal response — don't make it a separate formal message.
 
 ### Step 1: Recognize & Log
 

@@ -242,13 +242,18 @@ def main():
     # Also triggers if --user-active flag is passed (user sent any message).
     # Only trigger reset if there are actual meal records (last_logged != None)
     # OR if --user-active explicitly signals user interaction.
-    # Without real meals, days_silent is derived from stage_changed_at fallback
-    # and could be 0 right after a fast-forward, which would incorrectly reset.
-    user_returned = (
+    # Welcome back: triggered when user returns after any absence (days_silent >= 1)
+    # For S1 with days_silent >= 1: just set welcome_back flag, don't change stage
+    # For S2+: full reset to S1
+    user_returned_from_recall = (
         (stage > 1 and days_silent <= 1 and last_logged is not None) or
         (stage > 1 and args.user_active)
     )
-    if user_returned:
+    user_returned_brief = (
+        stage <= 1 and days_silent >= 1 and args.user_active
+    )
+    
+    if user_returned_from_recall:
         prev_stage = stage
         stage = 1
         data["notification_stage"] = 1
@@ -263,6 +268,13 @@ def main():
         data["welcome_back_days_away"] = days_silent
         changed = True
         log(f"RESET to stage 1 (user returned, last meal {last_logged}) — welcome_back flag set")
+    elif user_returned_brief:
+        data["last_active_date"] = today_str
+        data["welcome_back"] = True
+        data["welcome_back_from_stage"] = 1
+        data["welcome_back_days_away"] = days_silent
+        changed = True
+        log(f"User returned after {days_silent} day(s) — welcome_back flag set (still S1)")
 
     # --- Forward transitions (fast-forward to correct stage) ---
     # Skip forward transitions if --user-active: user just sent a message,
