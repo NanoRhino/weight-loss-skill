@@ -61,6 +61,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .report-header { text-align: center; margin-top: 1.5rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e0ddd5; }
 .report-header h1 { font-size: 1.4rem; font-weight: 700; color: #2d5016; margin-bottom: 0.3rem; }
 .report-header .subtitle { font-size: 0.85rem; color: #666; }
+.report-header .date-range { font-size: 0.75rem; color: #aaa; margin-top: 0.2rem; }
 .report-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
 .card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
 .card-body { padding: 0.8rem 1rem; }
@@ -494,7 +495,8 @@ def generate_html(data, args):
 
   <header class="report-header">
     <h1>📊 第{week_num}周周报</h1>
-    <div class="subtitle">{start_date} ~ {end_date}</div>
+    <div class="subtitle">{args.nickname or ''}{' · ' if args.nickname and args.tagline else ''}{args.tagline or ''}</div>
+    <div class="date-range">{start_date} ~ {end_date}</div>
   </header>
 
 '''
@@ -614,6 +616,8 @@ def main():
     parser.add_argument('--suggestions', help='JSON array of suggestion strings')
     parser.add_argument('--plan-rate', type=float, default=0.5, help='Planned weight loss rate kg/week')
     parser.add_argument('--username', help='Username for navigation URLs')
+    parser.add_argument('--nickname', help='User nickname to display in header')
+    parser.add_argument('--tagline', help='Short fun summary line for header')
     args = parser.parse_args()
 
     if args.data_file:
