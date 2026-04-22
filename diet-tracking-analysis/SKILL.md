@@ -121,6 +121,24 @@ Returns `matches` (`oil_per_100g`, `correction_count`) and `no_match`. Stored in
 
 ## Workflow — Log Food
 
+### Step 0: Engagement Check (before anything else)
+
+Before processing the meal, check if the user is returning from recall (S2+):
+
+```bash
+python3 {notification-manager:baseDir}/scripts/check-stage.py \
+  --workspace-dir {workspaceDir} --user-active
+```
+
+If output contains `welcome_back=true`:
+1. **Send a warm welcome-back message first** — acknowledge they're back, be encouraging, don't guilt-trip about the absence
+2. Then proceed to Step 1 to process their meal normally
+3. The welcome message and meal confirmation can be in the same response
+
+If output does NOT contain `welcome_back`, skip directly to Step 1.
+
+⚠️ This must happen BEFORE meal logging — the welcome message should come first so the user feels acknowledged.
+
 ### Step 1: Recognize & Log
 
 #### 1.1 Collect input
