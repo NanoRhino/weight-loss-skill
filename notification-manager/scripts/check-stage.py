@@ -250,7 +250,7 @@ def main():
         (stage > 1 and args.user_active)
     )
     user_returned_brief = (
-        stage <= 1 and days_silent >= 1 and args.user_active
+        stage <= 1 and days_silent >= 2 and args.user_active
     )
     
     if user_returned_from_recall:
