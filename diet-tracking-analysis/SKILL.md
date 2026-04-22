@@ -74,7 +74,7 @@ Do NOT call `image`, `exec`, or any script. Everything goes through `meal_checki
 Use `meal_checkin` results to compose your reply. No more tool calls needed — `meal_checkin` already saved the meal and returned evaluation.
 
 1. **Format reply** per Response Schemas below (①②③).
-2. **Ambiguous foods:** If `needs_clarification` exists in result, append a hint. Single item → use hint directly. Multiple → merge into ONE sentence: "🤔 粽子先按肉粽、包子先按鲜肉包记录了，不对的话告诉我，我来改～"
+2. **Ambiguous foods:** If `needs_clarification` exists in result, append a hint. Single item → use hint directly. Multiple → merge into ONE sentence, e.g. "🤔 Logged zhongzi as pork filling, baozi as fresh meat — let me know if that's wrong and I'll fix it~"
 3. **Suggestion tag (REQUIRED for create/append):** Append on a new line at the very end. System auto-strips it before delivery — user never sees it.
    ```
    <!--diet_suggestion:{workspaceDir}|<meal_name>|<suggestion text>-->
@@ -164,7 +164,7 @@ P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKIL
 ## Response Schemas
 
 ### ① Meal Details
-📝 [餐次] logged! → 🍽 This meal: XXX kcal | Protein Xg | Carbs Xg | Fat Xg → · Food — portion — XXX kcal
+📝 [meal name] logged! → 🍽 This meal: XXX kcal | Protein Xg | Carbs Xg | Fat Xg → · Food — portion — XXX kcal
 
 ### ② Nutrition Summary (from `evaluation`)
 📊 So far today:
@@ -181,7 +181,7 @@ Protein Xg [status] | Carbs Xg [status] | Fat Xg [status]
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar).
 
 **CN produce (REQUIRED — never omit either item):**
-🥦 蔬菜：~XXXg ✅/⬇️  🍎 水果：~XXXg ✅/⬇️
+🥦 Vegetables: ~XXXg ✅/⬇️  🍎 Fruits: ~XXXg ✅/⬇️
 - Mandatory for CN region. Always include BOTH on the same line.
 - Vegetable low → suggest at next meal.
 - Fruit low → suggest only at final meal of the day.
@@ -190,24 +190,23 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 
 ### ③ Suggestion (by `suggestion_type`)
 
-**热量在目标范围内是第一优先级。** 热量 OK 时不要为了补营养素/果蔬建议当天多吃，改到明天建议。
+**Staying within calorie target is the #1 priority.** When calories are on track, do NOT suggest eating more today to fix macros/produce — defer to tomorrow.
+
+Suggest by category + concrete examples from user's recent meals. Respect preferences. No bare calorie numbers.
 
 | Type | Icon | Guidance |
 |------|------|----------|
-| `right_now` | ⚡ | Before eating, reduce/swap current meal items. |
+| `right_now` | ⚡ | Before eating — reduce/swap current meal items. |
 | `next_meal` | 💡 | Forward-looking. Over at last meal → "aim for usual pattern tomorrow." |
-| `next_time` | 💡 | On track — habit tip or next-meal pairing. `cal_in_range_macro_off == true` → 建议**明天**换食材。 |
-| `case_d_snack` | 🍽 | Final meal, below BMR×0.9 — 温和建议当天再吃一些 |
-| `case_d_ok` | 💡 | Final meal, ≥BMR×0.9 but below target range — 饿就再吃点，不饿不吃也行 |
+| `next_time` | 💡 | On track — habit tip or next-meal pairing. `cal_in_range_macro_off == true` → suggest swapping ingredients **tomorrow**. |
+| `case_d_snack` | 🍽 | Final meal, below BMR×0.9 — gently suggest eating a bit more today. |
+| `case_d_ok` | 💡 | Final meal, ≥BMR×0.9 but below target — "eat more if hungry, fine if not." |
 
 ### Overshoot tone
 
-**纯天数驱动** — 看 `evaluation.recent_overshoot_count`（过去 7 天超标天数）：
+Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 
-- **0 天** → 正常语气，"明天拉回来就好"
-- **1 天** → 稍微提醒，"最近超标有点多，注意一下"
-- **2 天+** → 严肃告知后果 + 分析原因 + 可执行方案。禁止安慰句。
-- 用户有负面情绪 → 安慰优先，走 emotional-support (P1)
-
-### Food Suggestions
-Suggest by category + concrete examples from user's recent meals. Respect preferences. No bare calorie numbers.
+- **0 days** → Normal tone, "get back on track tomorrow."
+- **1 day** → Gentle nudge, "been over a couple times recently, watch out."
+- **2+ days** → Serious: state consequences + analyze cause + actionable plan. No consolation.
+- User shows negative emotion → empathy first, defer to emotional-support (P1).
