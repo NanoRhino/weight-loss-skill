@@ -18,8 +18,8 @@ persistent the trend is.
 ## Routing Gate
 
 **Entry paths:**
-- **Auto (post-weigh-in):** `weight-tracking` calls `deviation-check` after every weight log → severity returned → respond per severity table below.
-- **Manual:** User asks about weight gain ("why am I gaining weight", "体重怎么涨了") → skip streak logic → **check Skip conditions first** (no PLAN.md, health flags, emotional distress — if any skip condition is met, do NOT enter this skill even on manual trigger) → run `analyze` directly → Interactive Flow Step 1.
+- **Auto (post-weigh-in):** `weight-tracking` 记完体重后自主判断是否需要干预 → 需要时读 `references/cause-check-flow.md` 进入诊断流程。
+- **Manual:** User asks about weight gain ("why am I gaining weight", "体重怎么涨了") → **check Skip conditions first** → run `analyze` directly → Interactive Flow Step 1.
 
 **Skip — do NOT enter this skill if:**
 - No `PLAN.md` exists (no plan to deviate from)
@@ -33,16 +33,6 @@ persistent the trend is.
 3. **Escalate gradually.** Response depth follows the streak. Never skip levels or jump to strategy on a first increase.
 4. **Collaborate, don't force.** The user can opt in or out at every step. Playful challenges are fine; pushing past a "no" is not.
 5. **Keep it light.** Witty friend, not stern doctor. Data rigorous, delivery fun.
-
----
-
-## Severity → Response
-
-| Severity | When | Behavior |
-|----------|------|----------|
-| `none` | No increase | Weight stable or down — just confirm the log. |
-| `light` | First increase, or within 7 days of cause-check | Brief comfort + encouragement. No deep analysis, no follow-up questions, no sarcasm. |
-| `cause-check` | ≥3 days after light, or ≥7 days after previous cause-check | Run `analyze` → 告诉用户增重原因 → 给 3 个可选改变 → 用户选 → 建习惯。See `references/cause-check-flow.md`. |
 
 ---
 
@@ -90,10 +80,8 @@ The `analyze` command outputs **raw statistics only** — no `detected: true/fal
 
 Script path: `python3 {baseDir}/scripts/analyze-weight-trend.py`
 
-Commands: `analyze`, `deviation-check`, `save-strategy`, `check-strategy`.
+Commands: `analyze`, `save-strategy`, `check-strategy`.
 See `references/script-api.md` for full usage, parameters, and return schemas.
-
-> ⚠️ **`deviation-check` anti-repeat:** If `weight-gain-strategy.json` contains an `active_strategy` (status=active, end_date ≥ today), cause-check is downgraded to light (simple comfort). Light responses have a 1-day cooldown. cause-check becomes available again ≥3 days after light or ≥7 days after a previous cause-check.
 
 ---
 

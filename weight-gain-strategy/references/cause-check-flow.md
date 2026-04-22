@@ -88,6 +88,7 @@ python3 {baseDir}/scripts/analyze-weight-trend.py save-strategy \
   --data-dir {workspaceDir}/data \
   --strategy-type <类型> \
   --params '{"duration_days": 7, ...}' \
+  --consensus '<诊断主因 + 用户选的行动，一句话概括>' \
   --tz-offset {tz_offset}
 ```
 

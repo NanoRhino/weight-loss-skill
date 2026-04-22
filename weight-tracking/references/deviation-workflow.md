@@ -1,38 +1,19 @@
-# Deviation Check — Severity Response Guide
+# 体重趋势判断 — 模型自主决策
 
-Deviation-check is bundled into `save-and-check.py` — no separate call needed. The `deviation` field in the combined response contains the result. The script handles all skip logic internally (missing PLAN.md, health flags, insufficient data).
+`save-and-check.py` 返回体重历史和上下文，模型自主判断是否需要干预。
 
-## Result Fields
+## 返回字段
 
-- `triggered: false` → no action, just confirm the log
-- `triggered: false` + `reason: "no_plan"` → no PLAN.md, skip silently
-- `triggered: false` + `reason: "health_flag"` → skip silently
-- `triggered: false` + `reason: "insufficient_data"` → skip silently
-- `triggered: false` + `reason: "cooldown"` → recently triggered, skip silently
-- `triggered: true` → respond per severity below
-- `temporary_causes` → if present, mention lightly
-- `adaptation_period: true` → first 2 weeks of plan, be extra gentle
+- `save`: 保存结果
+- `context.recent_weights`: 最近 10 条体重记录
+- `context.plan`: 计划信息（TDEE、目标体重、热量目标）
+- `context.active_strategy`: 是否有进行中的干预策略
+- `context.last_intervention_date`: 上次干预日期
 
----
+## 判断指南
 
-## Severity Routing
-
-| Severity | When | Action |
-|----------|------|--------|
-| `none` | No increase | Weight stable or down — just confirm the log. |
-| `light` | First increase, or within 7 days of a cause-check | Append a brief comfort line after log confirmation. If `temporary_causes` is non-empty, mention the cause lightly. **No follow-up questions. No sarcasm or irony — warm and supportive only.** |
-| `cause-check` | ≥3 days after light, or ≥7 days after previous cause-check | **Read `weight-gain-strategy/references/cause-check-flow.md` and follow the flow.** Run `analyze` silently at the start. |
-
----
-
-## Standalone Command
-
-For manual re-check (not normally needed):
-```bash
-python3 {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py deviation-check \
-  --data-dir {workspaceDir}/data \
-  --plan-file {workspaceDir}/PLAN.md \
-  --health-profile {workspaceDir}/health-profile.md \
-  --user-file {workspaceDir}/USER.md \
-  --tz-offset {tz_offset}
-```
+- **不干预**：体重稳定/下降/小幅波动
+- **轻微安抚**：小幅上涨但不持续（1-2 次），简短安慰不追问
+- **进入诊断**：明显持续上涨趋势 → 读 `weight-gain-strategy/references/cause-check-flow.md`
+- `active_strategy.active: true` → 不重复干预
+- `last_intervention_date` 在 3 天内 → 不重复干预

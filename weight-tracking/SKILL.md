@@ -28,9 +28,9 @@ Do NOT read this SKILL.md again if it's already in context from a prior turn.
 
 Script path: `python3 {baseDir}/scripts/weight-tracker.py`
 
-### Save + Deviation Check — `save-and-check.py` (preferred)
+### Save + Context — `save-and-check.py` (preferred)
 
-**Use this for all weight saves.** Combines save + deviation-check in ONE call — no second tool call needed.
+**Use this for all weight saves.** Saves weight + returns recent history and plan context.
 
 ```bash
 python3 {baseDir}/scripts/save-and-check.py \
@@ -40,7 +40,6 @@ python3 {baseDir}/scripts/save-and-check.py \
   --plan-file {workspaceDir}/PLAN.md \
   --health-profile {workspaceDir}/health-profile.md \
   --user-file {workspaceDir}/USER.md \
-  --wgs-script {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py \
   [--correct]
 ```
 
@@ -48,11 +47,14 @@ Returns:
 ```json
 {
   "save": { "action": "created"|"updated", "key": "<datetime>", "value": 79.5, "unit": "kg" },
-  "deviation": { "triggered": true|false, "severity": "none"|"light"|"cause-check", ... }
+  "context": {
+    "recent_weights": [...],
+    "plan": { "target_weight": 55.0, "tdee": 1916, "calorie_target": 1800 },
+    "active_strategy": { "active": false },
+    "last_intervention_date": null
+  }
 }
 ```
-
-- `deviation` is `null` if PLAN.md missing, health flags active, or insufficient data — no extra handling needed.
 
 ### Save only — `weight-tracker.py save`
 
@@ -90,20 +92,32 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
 ### User Reports Weight
 
 1. Read `timezone.json` → `tz_offset`; read `health-profile.md` → Unit Preference (parallel, first session only)
-2. Call `save-and-check.py` — **one call does both save and deviation-check:**
+2. Call `save-and-check.py`:
    ```bash
    python3 {baseDir}/scripts/save-and-check.py \
      --data-dir {workspaceDir}/data \
      --value <N> --unit <u> --tz-offset <tz> \
      --plan-file {workspaceDir}/PLAN.md \
      --health-profile {workspaceDir}/health-profile.md \
-     --user-file {workspaceDir}/USER.md \
-     --wgs-script {weight-gain-strategy:baseDir}/scripts/analyze-weight-trend.py
+     --user-file {workspaceDir}/USER.md
    ```
-3. Read response — both results arrive together:
+3. Read response:
    - `save.action`: `"created"` → "Logged ✓"; `"updated"` → "Updated ✓". Show value in preferred unit.
-   - `deviation` is `null` or `triggered: false` → just the log confirmation.
-   - `deviation.triggered: true` → respond per `severity`. See `references/deviation-workflow.md`.
+   - `context.recent_weights`: 最近体重记录
+   - `context.plan`: 计划目标（TDEE、目标体重等）
+   - `context.active_strategy`: 是否有进行中的干预策略
+   - `context.last_intervention_date`: 上次干预日期
+4. **自主判断是否需要关注体重趋势**——结合体重走势、用户对话上下文、有无活跃策略，决定回应方式：
+   - **只确认**：体重稳定或下降 → "已记录 ✅ 今日体重：XX kg"
+   - **确认 + 安抚**：涨了但不严重（小幅波动、平台期、数据太少）→ 确认记录 + 一句安慰用户的感受
+   - **进入诊断**：发现体重在涨时，确认记录后问用户"要不要一起看看原因"。不要自己分析或猜测原因——是否需要深入分析由用户决定。用户说好 → 读 `weight-gain-strategy/references/cause-check-flow.md`，按流程走
+   - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预，但可以结合 `consensus` 提醒策略还在跑。可以主动查看最近几天的餐食记录（`{workspaceDir}/data/meals/YYYY-MM-DD.json`），结合共识给具体反馈
+   - 如果 `last_intervention_date` 在 3 天内，不重复干预
+   - **诊断后记录**：只有进入 cause-check 诊断流程后，调一次：
+     ```bash
+     python3 {baseDir}/scripts/save-and-check.py --data-dir {workspaceDir}/data --tz-offset <tz> --mark-intervention
+     ```
+   - **用户视角优先**：不只看科学趋势，也想想用户看到这个数字会怎么想。涨了半斤用户会慌、平台期一周不动用户会焦虑、好不容易降下来又反弹用户会沮丧——回应他们的感受，不是冷冰冰确认一个数字
 
 ### User Asks for Trend / History
 
