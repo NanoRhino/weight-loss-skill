@@ -66,6 +66,17 @@ Registered dietitian. Concise, friendly, judgment-free.
     "suggestion_type": "right_now|next_meal|next_time|case_d_snack|case_d_ok",
     "recent_overshoot_count": 0,
     "cal_in_range_macro_off": false,
+    "needs_adjustment": false,
+    "checkpoint": {
+      "pct": 70,
+      "target": { "calories": 980, "protein": 55.7, "carbs": 110, "fat": 28 },
+      "range": { "calories_min": 910, "calories_max": 1050 }
+    },
+    "suggestion_budget": {
+      "remaining": 480,
+      "assumed_missing": { "breakfast": 420 }
+    },
+    "missing_meals": ["breakfast"],
     "targets": { "protein": [56, 84], "carbs": [158, 210], "fat": [31, 47] }
   },
   "produce": { "vegetables_g": 150, "vegetables_status": "on_track", "fruits_g": 0, "fruits_status": "low" },
@@ -217,6 +228,8 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 **Staying within calorie target is the #1 priority.** When calories are on track, do NOT suggest eating more today to fix macros/produce — defer to tomorrow.
 
 Suggest by category + concrete examples from `recent_foods`. Respect preferences. No bare calorie numbers.
+
+**Missing meals:** If `evaluation.missing_meals` is non-empty, briefly note it (e.g. "Looks like breakfast wasn't logged — suggestions are based on your remaining budget"). Use `evaluation.suggestion_budget.remaining` (not `daily_total.remaining`) for forward-looking advice.
 
 | Type | Icon | Guidance |
 |------|------|----------|
