@@ -466,7 +466,7 @@ def generate_html(data, args):
     prev_url = f'{base_url}/weekly-report-{prev_start}.html' if prev_start else '#'
     next_url = f'{base_url}/weekly-report-{next_start}.html' if next_start else '#'
     prev_disabled = '' if meta.get('prev_exists') else ' disabled'
-    next_disabled = ' disabled'  # Current week never has next
+    next_disabled = '' if meta.get('next_exists') else ' disabled'
 
     # Build page
     html = f'''<!DOCTYPE html>

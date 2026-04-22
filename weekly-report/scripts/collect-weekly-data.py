@@ -537,7 +537,7 @@ def main():
     prev_start = (start_dt - timedelta(days=7)).strftime("%Y-%m-%d")
     next_start = (start_dt + timedelta(days=7)).strftime("%Y-%m-%d")
     prev_exists = os.path.exists(os.path.join(reports_dir, f"weekly-report-{prev_start}.html")) if os.path.isdir(reports_dir) else False
-    # Next always disabled for current report
+    next_exists = os.path.exists(os.path.join(reports_dir, f"weekly-report-{next_start}.html")) if os.path.isdir(reports_dir) else False
 
     output = {
         "meta": {
@@ -548,6 +548,7 @@ def main():
             "report_count": report_count,
             "prev_start": prev_start,
             "prev_exists": prev_exists,
+            "next_exists": next_exists,
             "next_start": next_start,
         },
         "plan": plan,
