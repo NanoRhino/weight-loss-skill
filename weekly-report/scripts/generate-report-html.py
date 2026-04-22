@@ -161,7 +161,7 @@ def gen_calorie_chart(days, cal_min, cal_max_target, chart_max):
             html += '  <div class="cal-bar-col"><div class="cal-bar-value"></div>'
             html += '<div class="cal-bar-wrapper"><div class="cal-bar" style="height:0px;background:transparent;"></div></div></div>\n'
         else:
-            bar_h = round((cal / chart_max) * (chart_h - 30))
+            bar_h = round((cal / chart_max) * chart_h)
             color = {'below': '#c8e6c9', 'on-target': '#6bcb8b', 'over': '#fdd0b1'}.get(status, '#c8e6c9')
             html += f'  <div class="cal-bar-col"><div class="cal-bar-value">{cal}</div>'
             html += f'<div class="cal-bar-wrapper"><div class="cal-bar" style="height:{bar_h}px;background:{color};"></div></div></div>\n'
@@ -375,7 +375,7 @@ def gen_macro_chart(name, daily_values, target_low, target_high, chart_h=160):
             html += '    <div class="cal-bar-col"><div class="cal-bar-value"></div>'
             html += '<div class="cal-bar-wrapper"><div class="cal-bar" style="height:0px;background:transparent;"></div></div></div>\n'
         else:
-            bar_h = round((val / chart_max) * (chart_h - 30))
+            bar_h = round((val / chart_max) * chart_h)
             c = bar_color(val)
             html += f'    <div class="cal-bar-col"><div class="cal-bar-value">{val}</div>'
             html += f'<div class="cal-bar-wrapper"><div class="cal-bar" style="height:{bar_h}px;background:{c};"></div></div></div>\n'
