@@ -92,7 +92,10 @@ def get_strategy_status(data_dir, tz_offset):
     if active and active.get("status") == "active":
         end = active.get("end_date", "")
         if end >= today:
-            return {"active": True, "type": active.get("type"), "end_date": end}
+            result = {"active": True, "type": active.get("type"), "end_date": end}
+            if active.get("consensus"):
+                result["consensus"] = active["consensus"]
+            return result
     return {"active": False}
 
 

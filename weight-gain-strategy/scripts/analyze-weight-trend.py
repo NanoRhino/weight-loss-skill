@@ -616,6 +616,10 @@ def save_strategy(args):
         "created_at": local_now.isoformat(),
     }
 
+    # Store diagnosis consensus if provided
+    if hasattr(args, 'consensus') and args.consensus:
+        data["active_strategy"]["consensus"] = args.consensus
+
     if "history" not in data:
         data["history"] = []
 
@@ -1284,6 +1288,8 @@ def main():
     p_save.add_argument("--data-dir", required=True)
     p_save.add_argument("--strategy-type", required=True)
     p_save.add_argument("--params", default="{}")
+    p_save.add_argument("--consensus", default=None,
+                        help="Diagnosis consensus: main cause + chosen action")
     p_save.add_argument("--tz-offset", type=int, default=0)
 
     # deviation-check

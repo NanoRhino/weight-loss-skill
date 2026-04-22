@@ -113,7 +113,7 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
    - **进入诊断**：发现体重在涨时，确认记录后问用户"要不要一起看看原因"。不要自己分析或猜测原因——是否需要深入分析由用户决定。用户说好 → 读 `weight-gain-strategy/references/cause-check-flow.md`，按流程走
    - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预，但可以提醒策略还在跑
    - 如果 `last_intervention_date` 在 3 天内，不重复干预
-   - **干预后记录**：只要对体重趋势做了回应（安抚、问要不要看原因等），调一次：
+   - **诊断后记录**：只有进入 cause-check 诊断流程后，调一次：
      ```bash
      python3 {baseDir}/scripts/save-and-check.py --data-dir {workspaceDir}/data --tz-offset <tz> --mark-intervention
      ```
