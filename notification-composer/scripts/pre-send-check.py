@@ -393,6 +393,69 @@ def check_leave(workspace_dir, tz_offset):
     return True, None
 
 
+# --- Chinese public holidays (static, covers common ones) ---
+CHINESE_HOLIDAYS = [
+    {"name": "元旦", "start_month": 1, "start_day": 1, "days": 3},
+    {"name": "春节", "start_month": 1, "start_day": 28, "days": 7},  # approximate, varies yearly
+    {"name": "清明节", "start_month": 4, "start_day": 4, "days": 3},
+    {"name": "五一劳动节", "start_month": 5, "start_day": 1, "days": 5},
+    {"name": "端午节", "start_month": 6, "start_day": 1, "days": 3},  # approximate
+    {"name": "中秋节", "start_month": 9, "start_day": 15, "days": 3},  # approximate
+    {"name": "国庆节", "start_month": 10, "start_day": 1, "days": 7},
+]
+
+
+def _check_upcoming_holiday(workspace_dir, tz_offset):
+    """Check if a Chinese public holiday is within 5 days. Returns hint string or empty."""
+    # Skip if user already has active leave
+    leave_path = os.path.join(workspace_dir, "data", "leave.json")
+    if os.path.exists(leave_path):
+        try:
+            with open(leave_path) as f:
+                data = json.load(f)
+            if data.get("active"):
+                return ""
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    tz = timezone(timedelta(seconds=tz_offset))
+    today = datetime.now(tz).date()
+
+    for h in CHINESE_HOLIDAYS:
+        try:
+            holiday_start = today.replace(month=h["start_month"], day=h["start_day"])
+        except ValueError:
+            continue
+        delta = (holiday_start - today).days
+        if 0 <= delta <= 10:
+            return f"holiday_upcoming=true holiday_name={h['name']}"
+
+    return ""
+
+
+def _check_leave_ending(workspace_dir, tz_offset):
+    """Check if leave ends today (so agent can say 'welcome back tomorrow')."""
+    leave_path = os.path.join(workspace_dir, "data", "leave.json")
+    if not os.path.exists(leave_path):
+        return ""
+    try:
+        with open(leave_path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return ""
+
+    if not data.get("active"):
+        return ""
+
+    tz = timezone(timedelta(seconds=tz_offset))
+    today = datetime.now(tz).strftime("%Y-%m-%d")
+    end = data.get("end", "")
+
+    if end == today:
+        return f"leave_ending=true end={end}"
+    return ""
+
+
 def main():
     parser = argparse.ArgumentParser(description="Pre-send check for meal/weight reminders")
     parser.add_argument("--workspace-dir", required=True, help="Agent workspace root")
@@ -467,12 +530,25 @@ def main():
             pass
 
     log("All checks passed")
+
+    # Holiday upcoming check (only for first meal of the day: breakfast/meal_1)
+    holiday_hint = ""
+    if args.meal_type in ("breakfast", "meal_1") and stage_info.get("stage", 1) == 1:
+        holiday_hint = _check_upcoming_holiday(args.workspace_dir, args.tz_offset)
+
     if stage_info.get("welcome_back"):
         print(f"SEND welcome_back=true from_stage={stage_info.get('welcome_back_from_stage', 2)}")
     elif stage_info["stage"] >= 2:
         print(f"SEND recall stage={stage_info['stage']} days_silent={stage_info.get('days_silent', 0)}")
     else:
-        print("SEND")
+        out = "SEND"
+        if holiday_hint:
+            out += f" {holiday_hint}"
+        # Check if leave is ending tomorrow
+        leave_ending = _check_leave_ending(args.workspace_dir, args.tz_offset)
+        if leave_ending:
+            out += f" {leave_ending}"
+        print(out)
 
 
 if __name__ == "__main__":
