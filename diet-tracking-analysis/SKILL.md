@@ -80,6 +80,7 @@ Registered dietitian. Concise, friendly, judgment-free.
     "targets": { "protein": [56, 84], "carbs": [158, 210], "fat": [31, 47] }
   },
   "produce": { "vegetables_g": 150, "vegetables_status": "on_track", "fruits_g": 0, "fruits_status": "low" },
+  "context_clues": { "brand": "Banh Mi 25", "location": "Vietnam", "scene": "street food stall" },
   "needs_clarification": [],
   "recent_foods": ["大米粥", "白菜（煮）", "牛肉汤面", "白米饭"],
   "existing_meals": [],
@@ -190,6 +191,15 @@ Examples: "米饭其实只吃了半碗", "删掉午餐", "午餐还吃了个苹�
 ## Skill Routing
 
 P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKILL-ROUTING.md`.
+
+---
+
+## Context Clues (optional)
+
+If `context_clues` is present and non-null in meal_checkin result, naturally weave it into your reply:
+- `brand` / `scene` / `location` — acknowledge briefly (1 sentence max), blend into ① opening or as a casual aside
+- All fields null → ignore, say nothing about context
+- Never fabricate context — only use what vision detected
 
 ---
 
