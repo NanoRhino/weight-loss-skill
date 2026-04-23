@@ -509,7 +509,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     document.getElementById('error').style.display = 'none';
 
     var base = getBaseUrl();
-    var jsonUrl = week ? base + 'weekly-data-' + week + '.json' : base + 'weekly-data-latest.json';
+    var jsonUrl = week ? base + 'weekly-data-' + week + '.html' : base + 'weekly-data-latest.html';
 
     fetch(jsonUrl).then(function(res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);

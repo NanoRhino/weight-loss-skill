@@ -7,10 +7,10 @@ and produces a JSON data file. The HTML template (templates/weekly-report.html)
 renders the data client-side.
 
 Usage:
-    python3.11 collect-weekly-data.py ... | python3.11 generate-report-html.py --output weekly-data-2026-04-13.json
-    python3.11 generate-report-html.py --data-file data.json --output weekly-data-2026-04-13.json
+    python3.11 collect-weekly-data.py ... | python3.11 generate-report-html.py --output weekly-data-2026-04-13.html
+    python3.11 generate-report-html.py --data-file data.json --output weekly-data-2026-04-13.html
 
-Also writes weekly-data-latest.json alongside --output for default URL access.
+Also writes weekly-data-latest.html alongside --output for default URL access.
 Optionally copies the HTML template to --template-output.
 """
 
@@ -79,7 +79,7 @@ def main():
 
     # Write latest.json copy
     out_dir = os.path.dirname(os.path.abspath(args.output))
-    latest_path = os.path.join(out_dir, 'weekly-data-latest.json')
+    latest_path = os.path.join(out_dir, 'weekly-data-latest.html')
     shutil.copy2(args.output, latest_path)
     print(f"[generate-report-html] Copied to {latest_path}")
 

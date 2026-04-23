@@ -483,7 +483,7 @@ Determine if the user acted on it by inspecting relevant data for the current we
 
 The correct sequence is:
 1. Collect data (nutrition-calc, weight-tracker, etc.)
-2. Generate JSON data file → write to `data/reports/weekly-data-{start_date}.json`
+2. Generate JSON data file → write to `data/reports/weekly-data-{start_date}.html`
 3. Upload JSON + HTML template via `upload-to-s3.sh` → capture the URL from stdout
 4. **ONLY THEN** compose and send the final message (Part 1 + URL)
 
@@ -635,7 +635,7 @@ python3 {baseDir}/scripts/collect-weekly-data.py \
   --start-date {monday} --end-date {sunday} --tz-offset {tz_offset} \
   2>&1 | tail -n +2 | \
 python3 {baseDir}/scripts/generate-report-html.py \
-  --output {workspaceDir}/data/reports/weekly-data-{start_date}.json \
+  --output {workspaceDir}/data/reports/weekly-data-{start_date}.html \
   --template-output {workspaceDir}/data/reports/weekly-report.html \
   --username {username} \
   --nickname {user_nickname} \
@@ -658,10 +658,10 @@ python3 {baseDir}/scripts/generate-report-html.py \
 
 **Script responsibilities** (what the script handles automatically):
 - Merges all data + commentary into a single JSON file
-- Copies `weekly-data-latest.json` for default URL access
+- Copies `weekly-data-latest.html` for default URL access
 - Copies HTML template to deployment path (via `--template-output`)
 
-The JSON is written to `data/reports/weekly-data-{start_date}.json`.
+The JSON is written to `data/reports/weekly-data-{start_date}.html`.
 The template is written to `data/reports/weekly-report.html`.
 
 **Upload to cloud storage** — three uploads per report:
@@ -669,14 +669,14 @@ The template is written to `data/reports/weekly-report.html`.
 ```bash
 # 1. Upload dated JSON data (permanent archive)
 bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
-  --file {workspaceDir}/data/reports/weekly-data-{start_date}.json \
+  --file {workspaceDir}/data/reports/weekly-data-{start_date}.html \
   --bucket nanorhino-im-plans \
   --key weekly-data-{start_date} \
   --workspace {workspaceDir}
 
 # 2. Upload latest JSON (overwrites previous)
 bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
-  --file {workspaceDir}/data/reports/weekly-data-{start_date}.json \
+  --file {workspaceDir}/data/reports/weekly-data-{start_date}.html \
   --bucket nanorhino-im-plans \
   --key weekly-data-latest \
   --workspace {workspaceDir}
@@ -701,7 +701,7 @@ After uploading the current report, check `data/reports/` for any older `weekly-
 
 ```bash
 bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
-  --file {workspaceDir}/data/reports/weekly-data-{old_start_date}.json \
+  --file {workspaceDir}/data/reports/weekly-data-{old_start_date}.html \
   --bucket nanorhino-im-plans \
   --key weekly-data-{old_start_date} \
   --workspace {workspaceDir}
