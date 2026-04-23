@@ -107,7 +107,7 @@ Do NOT call `image`, `exec`, or any script. Everything goes through `meal_checki
 Use `meal_checkin` results to compose your reply. No more tool calls needed — `meal_checkin` already saved the meal and returned evaluation.
 
 1. **Format reply** per Response Schemas below (①②③).
-2. **Ambiguous foods:** If `needs_clarification` exists in result, append a hint. Single item → use hint directly. Multiple → merge into ONE sentence, e.g. "🤔 Logged zhongzi as pork filling, baozi as fresh meat — let me know if that's wrong and I'll fix it~"
+2. **Ambiguous foods:** If `needs_clarification` is non-empty, append a hint. Single item → use hint directly. Multiple → merge into ONE natural sentence, e.g. "🤔 包子按鲜肉包记录、饺子按猪肉白菜馅记录，不对的话告诉我，我来改~"
 3. **Suggestion tag (REQUIRED for create/append):** Append on a new line at the very end. System auto-strips it before delivery — user never sees it.
    ```
    <!--diet_suggestion:{workspaceDir}|<meal_name>|<suggestion text>-->
