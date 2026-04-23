@@ -98,10 +98,17 @@ def main():
         shutil.copy2(args.output, latest_path)
         print(f"[generate-report-html] Copied to {latest_path}")
 
-    # Copy template if requested
+    # Always copy template to workspace reports dir (ensures it exists for upload)
+    template_src = os.path.join(os.path.dirname(__file__), '..', 'templates', 'weekly-report.html')
+    template_src = os.path.abspath(template_src)
+    out_dir = os.path.dirname(os.path.abspath(args.output))
+    default_template_dest = os.path.join(out_dir, 'weekly-report.html')
+
+    if os.path.exists(template_src):
+        shutil.copy2(template_src, default_template_dest)
+
+    # Copy template if explicit path requested
     if args.template_output:
-        template_src = os.path.join(os.path.dirname(__file__), '..', 'templates', 'weekly-report.html')
-        template_src = os.path.abspath(template_src)
         if os.path.exists(template_src):
             os.makedirs(os.path.dirname(os.path.abspath(args.template_output)), exist_ok=True)
             shutil.copy2(template_src, args.template_output)

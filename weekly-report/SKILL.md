@@ -681,7 +681,7 @@ bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
   --key weekly-data-latest \
   --workspace {workspaceDir}
 
-# 3. Upload HTML template (only needs to be done once, or when template changes)
+# 3. Upload HTML template (ALWAYS — ensures template exists for new users and picks up updates)
 bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
   --file {workspaceDir}/data/reports/weekly-report.html \
   --bucket nanorhino-im-plans \

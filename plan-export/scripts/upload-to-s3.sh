@@ -122,8 +122,14 @@ detect_backend() {
 BACKEND=$(detect_backend)
 echo "Storage backend: $BACKEND" >&2
 
-# === Detect content type from extension ===
+# === Detect content type from extension and filename pattern ===
 detect_content_type() {
+  # weekly-data-*.html files are actually JSON data
+  local basename=$(basename "$FILE")
+  if echo "$basename" | grep -qE '^weekly-data-.*\.html$'; then
+    echo "application/json; charset=utf-8"
+    return
+  fi
   case "$FILE_EXT" in
     json) echo "application/json; charset=utf-8" ;;
     *)    echo "text/html; charset=utf-8" ;;
