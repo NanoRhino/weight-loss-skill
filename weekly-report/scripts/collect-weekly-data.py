@@ -572,11 +572,12 @@ def main():
     prev_start = (start_dt - timedelta(days=7)).strftime("%Y-%m-%d")
     next_start = (start_dt + timedelta(days=7)).strftime("%Y-%m-%d")
     # Check both old and new file naming for prev/next existence
+    # Only check for new-format data files (weekly-data-*.html contains JSON)
+    # Old weekly-report-*.html files are static HTML and can't be loaded by the new template
     def _report_exists(reports_dir, date_str):
         if not os.path.isdir(reports_dir):
             return False
-        return (os.path.exists(os.path.join(reports_dir, f"weekly-data-{date_str}.html"))
-                or os.path.exists(os.path.join(reports_dir, f"weekly-report-{date_str}.html")))
+        return os.path.exists(os.path.join(reports_dir, f"weekly-data-{date_str}.html"))
 
     prev_exists = _report_exists(reports_dir, prev_start)
     next_exists = _report_exists(reports_dir, next_start)
