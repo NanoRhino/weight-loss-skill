@@ -1,620 +1,540 @@
 <!DOCTYPE html>
-<html lang="{{LANG}}" dir="{{DIR}}">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>第{{WEEK_NUMBER}}周周报 · {{DATE_RANGE}}</title>
-<!--
-  WEEKLY REPORT HTML TEMPLATE — Reference for Claude Code Skill
-  ==============================================================
-  This is the canonical HTML template for generating weekly progress reports.
-  When generating a report, follow this structure and replace placeholder
-  content with actual user data. Keep ALL CSS inline (single-file, no external
-  dependencies).
-
-  KEY RULES:
-  - Replace {{LANG}} with "en" or "zh" (or other locale code)
-  - Replace {{DIR}} with "ltr" (default) or "rtl" if needed
-  - Replace all {{PLACEHOLDER}} values with actual data
-  - Skip entire .report-card sections if no data is available (remove the card)
-  - For calorie bars: set width as percentage of max value in the week
-  - Adapt language, units, and formatting to user's locale
-  - The HTML must be fully self-contained (no external CSS/JS/fonts)
--->
+<title>📊 周报</title>
 <style>
-  /* ===== Reset & Base ===== */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html {
-    font-size: 15px;
-    -webkit-text-size-adjust: 100%;
-  }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                 "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC",
-                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    line-height: 1.6;
-    color: #1a1a1a;
-    background: #f5f5f0;
-    padding: 0;
-    margin: 0;
-  }
-
-  /* ===== Page Container ===== */
-  .page {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem;
-  }
-
-  /* ===== Header ===== */
-  .report-header {
-    text-align: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 2px solid #e0ddd5;
-  }
-
-  .report-header h1 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #2d5016;
-    margin-bottom: 0.4rem;
-  }
-
-  .report-header .subtitle {
-    font-size: 0.95rem;
-    color: #666;
-  }
-
-  /* ===== Report Card (shared across sections) ===== */
-  .report-card {
-    background: #fff;
-    border: 1px solid #e0ddd5;
-    border-radius: 12px;
-    margin-bottom: 1.5rem;
-    overflow: hidden;
-  }
-
-  .card-header {
-    padding: 0.8rem 1.2rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #2d5016;
-    border-bottom: 1px solid #f0ede5;
-  }
-
-  .card-body {
-    padding: 1rem 1.2rem;
-  }
-
-  .card-commentary {
-    font-size: 0.88rem;
-    color: #555;
-    padding: 0.6rem 1.2rem 1rem;
-    border-top: 1px solid #f0ede5;
-  }
-
-  /* ===== Section 2: Logging Overview ===== */
-  .logging-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    gap: 0;
-  }
-
-  .logging-grid .day-label {
-    font-size: 0.78rem;
-    color: #888;
-    font-weight: 500;
-    padding: 0.3rem 0;
-  }
-
-  .logging-grid .day-status {
-    font-size: 1.4rem;
-    padding: 0.2rem 0 0.4rem;
-  }
-
-  .logging-summary {
-    text-align: center;
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: #333;
-    padding-top: 0.6rem;
-  }
-
-  /* ===== Section 3: Calorie Analysis (vertical bar chart) ===== */
-  .cal-legend { display: flex; gap: 1.2rem; justify-content: center; margin-bottom: 1rem; font-size: 0.78rem; color: #888; }
-  .cal-legend-item { display: flex; align-items: center; gap: 0.3rem; }
-  .cal-legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
-  .cal-legend-swatch.on-target { background: #6bcb8b; }
-  .cal-legend-swatch.below { background: #c8e6c9; }
-  .cal-legend-swatch.over { background: #fdd0b1; }
-
-  .cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0.3rem; margin-bottom: 0.4rem; }
-  .cal-target-band { position: absolute; left: 0; right: 0; background: rgba(0,0,0,0.05); border-top: 1.5px dashed rgba(0,0,0,0.12); border-bottom: 1.5px dashed rgba(0,0,0,0.12); z-index: 0; }
-  .cal-target-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #aaa; }
-  .cal-grid-line { position: absolute; left: 0; right: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
-  .cal-grid-label { position: absolute; left: -2px; transform: translateY(50%); font-size: 0.65rem; color: #bbb; }
-
-  .cal-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; z-index: 1; position: relative; }
-  .cal-bar-wrapper { width: 60%; max-width: 36px; }
-  .cal-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; }
-  .cal-bar.on-target { background: #6bcb8b; }
-  .cal-bar.below { background: #c8e6c9; }
-  .cal-bar.over { background: #fdd0b1; }
-  .cal-bar.empty { background: transparent; }
-  .cal-bar-value { font-size: 0.65rem; color: #888; text-align: center; margin-bottom: 2px; white-space: nowrap; }
-
-  .cal-x-labels { display: flex; justify-content: space-between; padding: 0.3rem 0.3rem 0; }
-  .cal-x-label { flex: 1; text-align: center; font-size: 0.75rem; color: #888; font-weight: 500; }
-
-  .cal-average { text-align: center; font-size: 0.92rem; font-weight: 600; color: #333; padding-top: 0.8rem; }
-  .cal-average .sub { font-weight: 400; font-size: 0.82rem; color: #888; }
-
-  .no-data {
-    color: #ccc;
-  }
-
-  /* ===== Section 4: Weight Progress ===== */
-  .weight-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 0.6rem;
-  }
-
-  .weight-table th {
-    text-align: left;
-    font-size: 0.78rem;
-    color: #888;
-    font-weight: 500;
-    padding: 0.4rem 0.6rem;
-    border-bottom: 2px solid #e0ddd5;
-  }
-
-  .weight-table td {
-    font-size: 0.88rem;
-    color: #444;
-    padding: 0.5rem 0.6rem;
-    border-bottom: 1px solid #f0ede5;
-  }
-
-  .weight-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .weight-change {
-    text-align: center;
-    font-size: 1rem;
-    font-weight: 700;
-    padding: 0.6rem 0 0.2rem;
-  }
-
-  .weight-change.loss { color: #16a34a; }
-  .weight-change.gain { color: #dc2626; }
-  .weight-change.same { color: #888; }
-
-  .weight-progress {
-    text-align: center;
-    font-size: 0.82rem;
-    color: #888;
-  }
-
-  /* ===== Section 5: Macronutrient Analysis ===== */
-  .macro-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .macro-table th {
-    text-align: left;
-    font-size: 0.78rem;
-    color: #888;
-    font-weight: 500;
-    padding: 0.4rem 0.6rem;
-    border-bottom: 2px solid #e0ddd5;
-  }
-
-  .macro-table td {
-    font-size: 0.88rem;
-    color: #444;
-    padding: 0.5rem 0.6rem;
-    border-bottom: 1px solid #f0ede5;
-  }
-
-  .macro-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  /* ===== Section 6: Habit Progress ===== */
-  .habit-item {
-    margin-bottom: 0.8rem;
-  }
-
-  .habit-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .habit-name {
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: #333;
-  }
-
-  .habit-name .habit-week {
-    font-weight: 400;
-    font-size: 0.82rem;
-    color: #888;
-  }
-
-  .habit-track {
-    font-size: 1.1rem;
-    letter-spacing: 0.15rem;
-    margin: 0.2rem 0;
-  }
-
-  .habit-rate {
-    font-size: 0.82rem;
-    color: #888;
-  }
-
-  /* ===== Section 7: Achievements & Suggestions ===== */
-  .achievement-list, .suggestion-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .achievement-list li, .suggestion-list li {
-    font-size: 0.88rem;
-    color: #444;
-    padding: 0.3rem 0 0.3rem 1.4rem;
-    position: relative;
-  }
-
-  .achievement-list li::before {
-    content: "🏆";
-    position: absolute;
-    left: 0;
-    font-size: 0.82rem;
-  }
-
-  .suggestion-list li::before {
-    content: "💡";
-    position: absolute;
-    left: 0;
-    font-size: 0.82rem;
-  }
-
-  .suggestion-list li strong {
-    color: #2d5016;
-  }
-
-  .section-subtitle {
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: #2d5016;
-    margin-bottom: 0.4rem;
-    padding-top: 0.4rem;
-  }
-
-  .section-subtitle:first-child {
-    padding-top: 0;
-  }
-
-  .suggestions-divider {
-    border: none;
-    border-top: 1px solid #f0ede5;
-    margin: 0.8rem 0;
-  }
-
-  /* ===== Week Navigation (inside header) ===== */
-  .week-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: #faf9f5;
-    padding: 0.6rem 1rem;
-    margin: 0 -1.5rem;
-    border-bottom: 1px solid #e0ddd5;
-  }
-
-  .week-nav-btn {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    background: #2d5016;
-    color: #fff;
-    text-decoration: none;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: background 0.2s;
-  }
-
-  .week-nav-btn:hover {
-    background: #3d6b1f;
-  }
-
-  .week-nav-btn.disabled {
-    background: #ccc;
-    color: #999;
-    pointer-events: none;
-    cursor: default;
-  }
-
-  .week-nav-current {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 500;
-  }
-
-  /* ===== Footer ===== */
-  .report-footer {
-    text-align: center;
-    margin-top: 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e0ddd5;
-    font-size: 0.8rem;
-    color: #aaa;
-  }
-
-  /* ===== Responsive ===== */
-  @media (max-width: 600px) {
-    html { font-size: 14px; }
-    .page { padding: 1rem; }
-    .calorie-bar-cell { width: 30%; }
-  }
-
-  /* ===== Print ===== */
-  @media print {
-    body { background: #fff; font-size: 11pt; }
-    .page { max-width: none; padding: 0; }
-    .report-card { break-inside: avoid; border: 1px solid #ccc; }
-    .report-footer { display: none; }
-  }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #faf9f5; color: #333; line-height: 1.5; font-size: 14px; -webkit-text-size-adjust: 100%; }
+.page { max-width: 800px; margin: 0 auto; padding: 0 1.5rem 2rem; }
+.report-header { text-align: center; margin-top: 1.5rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e0ddd5; }
+.report-header h1 { font-size: 1.4rem; font-weight: 700; color: #2d5016; margin-bottom: 0.3rem; }
+.report-header .subtitle { font-size: 0.85rem; color: #666; }
+.report-header .date-range { font-size: 0.75rem; color: #aaa; margin-top: 0.2rem; }
+.report-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
+.card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
+.card-body { padding: 0.8rem 21px; }
+.card-commentary { font-size: 0.88rem; color: #444; padding: 0.6rem 21px 0.8rem; border-top: 1px solid #f0ede5; line-height: 1.6; }
+.logging-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 0.2rem; }
+.logging-grid .day-label { font-size: 0.78rem; color: #888; font-weight: 500; padding: 0.3rem 0; }
+.logging-grid .day-status { font-size: 1.2rem; padding: 0.2rem 0 0.3rem; }
+.logging-summary { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.5rem; }
+.cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0 0 2rem; margin-bottom: 0.4rem; }
+.cal-target-band { position: absolute; left: 2rem; right: 0; background: rgba(0,0,0,0.05); z-index: 0; }
+.cal-target-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #aaa; }
+.cal-grid-line { position: absolute; left: 2rem; right: 0; height: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
+.cal-grid-label { position: absolute; left: -2rem; width: 2rem; padding-right: 5px; text-align: right; white-space: nowrap; transform: translateY(-50%); font-size: 10px; color: #bbb; font-weight: 500; }
+.cal-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; z-index: 1; position: relative; }
+.cal-bar-wrapper { width: 60%; max-width: 36px; }
+.cal-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; opacity: 0.75; }
+.cal-bar-value { font-size: 10px; color: #bbb; margin-bottom: 2px; font-weight: 500; }
+.cal-x-labels { display: flex; justify-content: space-between; padding: 0.3rem 0 0 2rem; }
+.cal-x-label { flex: 1; text-align: center; font-size: 0.75rem; color: #888; font-weight: 500; }
+.cal-average { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.6rem; }
+.cal-average .sub { font-weight: 400; font-size: 0.78rem; color: #888; }
+.macro-chart-section { margin-bottom: 4.5rem; }
+.macro-chart-section:first-of-type { margin-top: 1.5rem; }
+.macro-chart-section:last-of-type { margin-bottom: 0.5rem; }
+.macro-chart-title { text-align: center; font-size: 0.82rem; font-weight: 600; color: #333; margin-bottom: 1rem; }
+.macro-avg-line { position: absolute; left: 2rem; right: 0; height: 0; border-top: 1px dashed #333; z-index: 2; }
+.macro-avg-label { position: absolute; right: 4px; transform: translateY(-100%); font-size: 0.65rem; color: #333; font-weight: 500; }
+.weight-chart-wrapper { position: relative; display: flex; margin-bottom: 0.6rem; }
+.weight-y-axis { width: 2rem; flex-shrink: 0; position: relative; height: 175px; padding-right: 5px; }
+.weight-y-label { position: absolute; left: 0; font-size: 10px; color: #bbb; transform: translateY(-50%); }
+.weight-chart-container { position: relative; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; flex: 1; }
+.weight-chart-container::-webkit-scrollbar { height: 4px; }
+.weight-chart-container::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+.weight-chart-scroll-hint { text-align: center; font-size: 0.72rem; color: #bbb; margin-top: 0.3rem; }
+.weight-change { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.3rem; }
+.weight-change.same { color: #888; }
+.weight-change.up { color: #e57373; }
+.weight-change.down { color: #6bcb8b; }
+.weight-progress { text-align: center; font-size: 0.78rem; color: #888; padding-top: 0.2rem; }
+.section-subtitle { font-size: 0.85rem; font-weight: 600; color: #2d5016; margin-bottom: 0.3rem; padding-top: 0.3rem; }
+.section-subtitle:first-child { padding-top: 0; }
+.suggestions-divider { border: none; border-top: 1px solid #f0ede5; margin: 0.6rem 0; }
+.achievement-list, .suggestion-list { padding-left: 1.2rem; font-size: 0.82rem; color: #444; }
+.achievement-list li, .suggestion-list li { margin-bottom: 0.3rem; }
+.week-nav { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; background: #faf9f5; padding: 0.6rem 1rem; margin: 0 -1.5rem; border-bottom: 1px solid #e0ddd5; }
+.week-nav-btn { display: inline-block; padding: 0.35rem 0.7rem; background: #2d5016; color: #fff; text-decoration: none; border-radius: 6px; font-size: 0.78rem; font-weight: 600; transition: background 0.2s; cursor: pointer; }
+.week-nav-btn:hover { background: #3d6b1f; }
+.week-nav-btn.disabled { background: #ccc; color: #999; pointer-events: none; cursor: default; }
+.week-nav-current { font-size: 0.78rem; color: #666; font-weight: 500; }
+.report-footer { text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0ddd5; font-size: 0.8rem; color: #aaa; }
+.loading { text-align: center; padding: 4rem 1rem; color: #888; font-size: 1rem; }
+.error { text-align: center; padding: 4rem 1rem; color: #e57373; font-size: 1rem; }
 </style>
 </head>
 <body>
-<div class="page">
-
-  <!-- ==================== HEADER ==================== -->
-    <nav class="week-nav">
-    <a class="week-nav-btn week-nav-prev {{PREV_DISABLED}}" href="{{PREV_WEEK_URL}}">← 上一周</a>
-    <span class="week-nav-current">第{{WEEK_NUMBER}}周</span>
-    <a class="week-nav-btn week-nav-next {{NEXT_DISABLED}}" href="{{NEXT_WEEK_URL}}">下一周 →</a>
-  </nav>
-
-  <header class="report-header">
-    <h1>📊 第{{WEEK_NUMBER}}周周报</h1>
-    <p class="subtitle">{{DATE_RANGE}}</p>
-  </header>
-
-  <!-- ==================== SECTION 2: LOGGING OVERVIEW ==================== -->
-  <div class="report-card">
-    <div class="card-header">📅 Logging Overview</div>
-    <div class="card-body">
-      <div class="logging-grid">
-        <div class="day-label">Mon</div>
-        <div class="day-label">Tue</div>
-        <div class="day-label">Wed</div>
-        <div class="day-label">Thu</div>
-        <div class="day-label">Fri</div>
-        <div class="day-label">Sat</div>
-        <div class="day-label">Sun</div>
-        <div class="day-status">{{MON_STATUS}}</div>
-        <div class="day-status">{{TUE_STATUS}}</div>
-        <div class="day-status">{{WED_STATUS}}</div>
-        <div class="day-status">{{THU_STATUS}}</div>
-        <div class="day-status">{{FRI_STATUS}}</div>
-        <div class="day-status">{{SAT_STATUS}}</div>
-        <div class="day-status">{{SUN_STATUS}}</div>
-      </div>
-      <div class="logging-summary">{{LOGGED_DAYS}}/7 days logged</div>
-    </div>
-    <div class="card-commentary">{{LOGGING_COMMENTARY}}</div>
-  </div>
-
-  <!-- ==================== SECTION 3: CALORIE ANALYSIS ==================== -->
-  <!--
-    VERTICAL BAR CHART with grey target range band.
-    
-    Chart height: 220px. Chart max = max(max_calories_in_week, CAL_MAX * 1.2).
-    
-    For each day:
-      - Bar height (px) = (day_calories / chart_max) * 220
-      - Class: "on-target" if within CAL_MIN–CAL_MAX, "below" if under, "over" if above
-      - No data → class "empty", height 0, no value label
-    
-    Target band:
-      - bottom = (CAL_MIN / chart_max) * 100%
-      - height = ((CAL_MAX - CAL_MIN) / chart_max) * 100%
-    
-    Grid lines: place at round intervals (e.g. every 500 kcal).
-      - bottom = (value / chart_max) * 100%
-  -->
-  <div class="report-card">
-    <div class="card-header">🔥 热量分析</div>
-    <div class="card-body">
-      <div class="cal-legend">
-        <div class="cal-legend-item"><div class="cal-legend-swatch on-target"></div>达标</div>
-        <div class="cal-legend-item"><div class="cal-legend-swatch below"></div>偏低</div>
-        <div class="cal-legend-item"><div class="cal-legend-swatch over"></div>超标</div>
-      </div>
-
-      <div class="cal-chart">
-        <!-- Grid lines — place at round intervals, e.g. 0, 500, 1000, 1500, 2000 -->
-        <!-- bottom = (value / chart_max) * 100% -->
-        <div class="cal-grid-line" style="bottom: 0%"><span class="cal-grid-label">0</span></div>
-        <div class="cal-grid-line" style="bottom: 22.7%"><span class="cal-grid-label">500</span></div>
-        <div class="cal-grid-line" style="bottom: 45.5%"><span class="cal-grid-label">1000</span></div>
-        <div class="cal-grid-line" style="bottom: 68.2%"><span class="cal-grid-label">1500</span></div>
-        <div class="cal-grid-line" style="bottom: 90.9%"><span class="cal-grid-label">2000</span></div>
-
-        <!-- Target range band: bottom=(CAL_MIN/chart_max)*100%, height=((CAL_MAX-CAL_MIN)/chart_max)*100% -->
-        <div class="cal-target-band" style="bottom: {{TARGET_BAND_BOTTOM}}; height: {{TARGET_BAND_HEIGHT}}">
-          <span class="cal-target-label">目标范围</span>
-        </div>
-
-        <!-- Repeat for each day Mon–Sun. Example with chart_max=2200: -->
-        <!-- Bar height = (day_cal / chart_max) * 220. Class = on-target|below|over|empty -->
-        <div class="cal-bar-col">
-          <div class="cal-bar-value">1780</div>
-          <div class="cal-bar-wrapper"><div class="cal-bar on-target" style="height: 178px"></div></div>
-        </div>
-        <div class="cal-bar-col">
-          <div class="cal-bar-value"></div>
-          <div class="cal-bar-wrapper"><div class="cal-bar empty" style="height: 0px"></div></div>
-        </div>
-        <div class="cal-bar-col">
-          <div class="cal-bar-value">900</div>
-          <div class="cal-bar-wrapper"><div class="cal-bar below" style="height: 90px"></div></div>
-        </div>
-        <div class="cal-bar-col">
-          <div class="cal-bar-value">2080</div>
-          <div class="cal-bar-wrapper"><div class="cal-bar over" style="height: 208px"></div></div>
-        </div>
-        <div class="cal-bar-col">
-          <div class="cal-bar-value"></div>
-          <div class="cal-bar-wrapper"><div class="cal-bar empty" style="height: 0px"></div></div>
-        </div>
-        <div class="cal-bar-col">
-          <div class="cal-bar-value">1600</div>
-          <div class="cal-bar-wrapper"><div class="cal-bar on-target" style="height: 160px"></div></div>
-        </div>
-        <div class="cal-bar-col">
-          <div class="cal-bar-value">1900</div>
-          <div class="cal-bar-wrapper"><div class="cal-bar on-target" style="height: 190px"></div></div>
-        </div>
-      </div>
-
-      <div class="cal-x-labels">
-        <div class="cal-x-label">周一</div>
-        <div class="cal-x-label">周二</div>
-        <div class="cal-x-label">周三</div>
-        <div class="cal-x-label">周四</div>
-        <div class="cal-x-label">周五</div>
-        <div class="cal-x-label">周六</div>
-        <div class="cal-x-label">周日</div>
-      </div>
-
-      <div class="cal-average">
-        日均 {{CAL_AVG}} kcal
-        <span class="sub">· {{CAL_AVG_STATUS}}</span>
-      </div>
-    </div>
-    <div class="card-commentary">{{CALORIE_COMMENTARY}}</div>
-  </div>
-
-  <!-- ==================== SECTION 4: WEIGHT PROGRESS ==================== -->
-  <!-- Skip this entire card if no weight readings exist, or if health flags indicate avoid_weight_focus -->
-  <div class="report-card">
-    <div class="card-header">⚖️ Weight Progress</div>
-    <div class="card-body">
-      <table class="weight-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Weight</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Repeat for each weight reading in the week -->
-          <tr><td>Mon 2/10</td><td>75.2 kg</td></tr>
-          <tr><td>Thu 2/13</td><td>74.8 kg</td></tr>
-        </tbody>
-      </table>
-      <div class="weight-change loss">This week: −0.4 kg ↓</div>
-      <div class="weight-progress">Total progress: 80.0 kg → 74.8 kg (−5.2 kg toward goal of 65.0 kg)</div>
-    </div>
-    <div class="card-commentary">{{WEIGHT_COMMENTARY}}</div>
-  </div>
-
-  <!-- ==================== SECTION 5: MACRONUTRIENT ANALYSIS ==================== -->
-  <!-- Skip this entire card if no PLAN.md exists or insufficient macro data -->
-  <div class="report-card">
-    <div class="card-header">🥗 Macronutrient Analysis</div>
-    <div class="card-body">
-      <table class="macro-table">
-        <thead>
-          <tr>
-            <th>Macro</th>
-            <th>Avg Intake</th>
-            <th>Target Range</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Protein</td>
-            <td>{{PROTEIN_AVG}} g/day</td>
-            <td>{{PROTEIN_RANGE}} g/day</td>
-            <td><span class="status-icon">{{PROTEIN_STATUS}}</span></td>
-          </tr>
-          <tr>
-            <td>Fat</td>
-            <td>{{FAT_AVG}} g/day</td>
-            <td>{{FAT_RANGE}} g/day</td>
-            <td><span class="status-icon">{{FAT_STATUS}}</span></td>
-          </tr>
-          <tr>
-            <td>Carb</td>
-            <td>{{CARB_AVG}} g/day</td>
-            <td>{{CARB_RANGE}} g/day</td>
-            <td><span class="status-icon">{{CARB_STATUS}}</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="card-commentary">{{MACRO_COMMENTARY}}</div>
-  </div>
-
-  <!-- ==================== SECTION 6: HABIT PROGRESS ==================== -->
-  <!-- Skip this entire card if no active habits exist -->
-  <div class="report-card">
-    <div class="card-header">🌱 Habit Progress</div>
-    <div class="card-body">
-      <!-- Repeat .habit-item for each active habit -->
-      <div class="habit-item">
-        <div class="habit-name">{{HABIT_NAME}} <span class="habit-week">({{HABIT_WEEK}})</span></div>
-        <div class="habit-track">{{HABIT_TRACK}}</div>
-        <div class="habit-rate">{{HABIT_COMPLETION}} completed</div>
-      </div>
-    </div>
-    <div class="card-commentary">{{HABIT_COMMENTARY}}</div>
-  </div>
-
-  <!-- ==================== SECTION 7: ACHIEVEMENTS & SUGGESTIONS ==================== -->
-  <div class="report-card">
-    <div class="card-header">🏆 Key Achievements & Suggestions</div>
-    <div class="card-body">
-      <div class="section-subtitle">Achievements</div>
-      <ul class="achievement-list">
-        <!-- Max 3 achievements, each backed by actual data -->
-        <li>{{ACHIEVEMENT_1}}</li>
-        <li>{{ACHIEVEMENT_2}}</li>
-        <li>{{ACHIEVEMENT_3}}</li>
-      </ul>
-
-      <hr class="suggestions-divider">
-
-      <div class="section-subtitle">Suggestions for Next Week</div>
-      <ul class="suggestion-list">
-        <!-- Max 2 suggestions, each with concrete action -->
-        <li><strong>{{SUGGESTION_1_TITLE}}:</strong> {{SUGGESTION_1_DETAIL}}</li>
-        <li><strong>{{SUGGESTION_2_TITLE}}:</strong> {{SUGGESTION_2_DETAIL}}</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- ==================== FOOTER ==================== -->
-  <footer class="report-footer">
-    Generated by AI Health Coach · For reference only
-  </footer>
-
+<div class="page" id="app">
+  <div class="loading" id="loading">加载中...</div>
+  <div class="error" id="error" style="display:none;"></div>
+  <div id="content" style="display:none;"></div>
 </div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ─── Utility ────────────────────────────────────────────────────────
+  function niceTicks(maxVal, preferredCount) {
+    preferredCount = preferredCount || 4;
+    if (maxVal <= 0) return [0];
+    var rawStep = maxVal / preferredCount;
+    var magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    var step = magnitude;
+    var niceVals = [1, 2, 2.5, 5, 10];
+    for (var i = 0; i < niceVals.length; i++) {
+      step = niceVals[i] * magnitude;
+      if (maxVal / step <= preferredCount + 1) break;
+    }
+    var ticks = [];
+    for (var v = 0; v <= maxVal * 1.01; v += step) {
+      ticks.push(Math.round(v));
+    }
+    return ticks;
+  }
+
+  function catmullRomPath(points) {
+    var n = points.length;
+    if (n < 2) return '';
+    var path = 'M ' + points[0][0] + ',' + points[0][1];
+    for (var i = 0; i < n - 1; i++) {
+      var p0 = points[Math.max(0, i - 1)];
+      var p1 = points[i];
+      var p2 = points[Math.min(n - 1, i + 1)];
+      var p3 = points[Math.min(n - 1, i + 2)];
+      var cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+      var cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+      var cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+      var cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+      path += ' C ' + cp1x.toFixed(1) + ',' + cp1y.toFixed(1) + ' ' +
+              cp2x.toFixed(1) + ',' + cp2y.toFixed(1) + ' ' +
+              p2[0] + ',' + p2[1];
+    }
+    return path;
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function parseDate(s) {
+    var p = s.split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2]);
+  }
+
+  // ─── Chart: Calorie bars ────────────────────────────────────────────
+  function renderCalorieChart(days, calMin, calMaxTarget, chartMax) {
+    var chartH = 220;
+    var ticks = niceTicks(chartMax, 4);
+    var bandBottom = (calMin / chartMax) * 100;
+    var bandHeight = ((calMaxTarget - calMin) / chartMax) * 100;
+
+    var h = '<div class="cal-chart">\n';
+    for (var i = 0; i < ticks.length; i++) {
+      var t = ticks[i];
+      var pct = (t / chartMax) * 100;
+      var solid = t === 0 ? ' border-bottom-style: solid;' : '';
+      h += '<div class="cal-grid-line" style="bottom:' + pct.toFixed(1) + '%;' + solid + '"><span class="cal-grid-label">' + t + '</span></div>\n';
+    }
+    h += '<div class="cal-target-band" style="bottom:' + bandBottom.toFixed(1) + '%;height:' + bandHeight.toFixed(1) + '%"><span class="cal-target-label">目标 ' + calMin + '–' + calMaxTarget + '</span></div>\n';
+
+    for (var j = 0; j < days.length; j++) {
+      var d = days[j];
+      var cal = d.totals.cal;
+      var status = d.cal_status || 'below';
+      if (!d.logged || cal === 0) {
+        h += '<div class="cal-bar-col"><div class="cal-bar-value"></div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:0px;background:transparent;"></div></div></div>\n';
+      } else {
+        var barH = Math.round((cal / chartMax) * chartH);
+        var colors = {below: '#c8e6c9', 'on-target': '#6bcb8b', over: '#fdd0b1'};
+        var color = colors[status] || '#c8e6c9';
+        h += '<div class="cal-bar-col"><div class="cal-bar-value">' + cal + '</div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:' + barH + 'px;background:' + color + ';"></div></div></div>\n';
+      }
+    }
+    h += '</div>\n<div class="cal-x-labels">';
+    for (var k = 0; k < days.length; k++) {
+      h += '<div class="cal-x-label">' + days[k].weekday + '</div>';
+    }
+    h += '</div>\n';
+    return h;
+  }
+
+  // ─── Chart: Weight SVG ──────────────────────────────────────────────
+  function renderWeightChart(weightReadings, allWeightData, meta, planRate) {
+    if (!allWeightData || allWeightData.length < 1) {
+      return '<p style="text-align:center;color:#888;">暂无体重数据</p>';
+    }
+    var startDate = parseDate(meta.start_date);
+    var endDate = new Date(startDate); endDate.setDate(endDate.getDate() + 6);
+
+    var points = allWeightData.slice().sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+
+    var thisWeekDates = {};
+    for (var i = 0; i < points.length; i++) {
+      var pd = parseDate(points[i].date);
+      if (pd >= startDate && pd <= endDate) thisWeekDates[points[i].date] = true;
+    }
+
+    var xStart = 60, xSpacing = 120;
+    var xs = points.map(function(_, idx) { return xStart + idx * xSpacing; });
+    var svgWidth = Math.max(xs[xs.length - 1] + 60, 400);
+
+    var vals = points.map(function(p) { return p.value; });
+    var firstVal = points[0].value;
+    var firstDate = parseDate(points[0].date);
+    var planVals = points.map(function(p) {
+      var daysFromStart = (parseDate(p.date) - firstDate) / 86400000;
+      return firstVal - planRate * (daysFromStart / 7);
+    });
+
+    var allVals = vals.concat(planVals);
+    var yMinVal = Math.floor((Math.min.apply(null, allVals) - 0.5) * 2) / 2;
+    var yMaxVal = Math.ceil((Math.max.apply(null, allVals) + 0.5) * 2) / 2;
+    var yRange = yMaxVal - yMinVal;
+    if (yRange < 1) { yRange = 1; yMaxVal = yMinVal + 1; }
+
+    var chartTop = 20, chartBottom = 150, chartHeight = chartBottom - chartTop;
+    function valToY(v) { return Math.round(chartBottom - ((v - yMinVal) / yRange) * chartHeight); }
+
+    var actualPts = points.map(function(p, idx) { return [xs[idx], valToY(p.value)]; });
+    var planPts = planVals.map(function(pv, idx) { return [xs[idx], valToY(pv)]; });
+
+    var actualPath = catmullRomPath(actualPts);
+    var planPathD = catmullRomPath(planPts);
+
+    var yStep = yRange <= 3 ? 0.5 : 1.0;
+    var yTicks = [];
+    for (var yv = yMinVal; yv <= yMaxVal + 0.01; yv += yStep) yTicks.push(yv);
+
+    // Y-axis
+    var yAxisH = '<div class="weight-y-axis">\n';
+    for (var ti = 0; ti < yTicks.length; ti++) {
+      var topPxPct = (chartTop / 175) * 100 + (1 - (yTicks[ti] - yMinVal) / yRange) * (chartHeight / 175 * 100);
+      yAxisH += '<span class="weight-y-label" style="top:' + topPxPct.toFixed(1) + '%">' + yTicks[ti].toFixed(1) + '</span>\n';
+    }
+    yAxisH += '</div>\n';
+
+    // SVG
+    var svg = '<svg width="' + svgWidth + '" height="175" viewBox="0 0 ' + svgWidth + ' 175" style="display:block;min-width:' + svgWidth + 'px;">\n';
+    for (var gi = 0; gi < yTicks.length; gi++) {
+      var gy = valToY(yTicks[gi]);
+      svg += '<line x1="0" y1="' + gy + '" x2="' + svgWidth + '" y2="' + gy + '" stroke="#f0ede5" stroke-width="1" stroke-dasharray="4"/>\n';
+    }
+    svg += '<line x1="0" y1="' + chartBottom + '" x2="' + svgWidth + '" y2="' + chartBottom + '" stroke="#f0ede5" stroke-width="1"/>\n';
+    svg += '<defs><linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6bcb8b" stop-opacity="0.3"/><stop offset="100%" stop-color="#6bcb8b" stop-opacity="0.02"/></linearGradient></defs>\n';
+
+    // Plan path
+    if (planPts.length >= 2) {
+      svg += '<path d="' + planPathD + ' L ' + planPts[planPts.length-1][0] + ',' + chartBottom + ' L ' + planPts[0][0] + ',' + chartBottom + ' Z" fill="rgba(0,0,0,0.04)"/>\n';
+      svg += '<path d="' + planPathD + '" fill="none" stroke="#ccc" stroke-width="1" opacity="0.7"/>\n';
+      svg += '<text x="' + (planPts[planPts.length-1][0] - 5) + '" y="' + (chartBottom - 5) + '" text-anchor="end" font-size="8.5" fill="#bbb" font-style="italic">计划 −' + planRate + 'kg/周</text>\n';
+    }
+
+    // Actual curve
+    if (actualPts.length >= 2) {
+      svg += '<path d="' + actualPath + ' L ' + actualPts[actualPts.length-1][0] + ',' + chartBottom + ' L ' + actualPts[0][0] + ',' + chartBottom + ' Z" fill="url(#weightGrad)"/>\n';
+      svg += '<path d="' + actualPath + '" fill="none" stroke="#6bcb8b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>\n';
+    }
+
+    // Data points
+    for (var di = 0; di < points.length; di++) {
+      var x = actualPts[di][0], y = actualPts[di][1];
+      var dd = parseDate(points[di].date);
+      var label = dd.getMonth() + 1 + '/' + dd.getDate();
+      var isThisWeek = thisWeekDates[points[di].date];
+      if (isThisWeek) {
+        svg += '<circle cx="' + x + '" cy="' + y + '" r="6" fill="#6bcb8b" stroke="#fff" stroke-width="2.5"/>\n';
+        svg += '<text x="' + x + '" y="167" text-anchor="middle" font-size="10" fill="#2d5016" font-weight="600">' + label + '</text>\n';
+        svg += '<text x="' + x + '" y="' + (y - 8) + '" text-anchor="middle" font-size="11.5" fill="#2d5016" font-weight="700">' + points[di].value + '</text>\n';
+      } else {
+        svg += '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#fff" stroke="#a8deb8" stroke-width="2"/>\n';
+        svg += '<text x="' + x + '" y="167" text-anchor="middle" font-size="9.5" fill="#aaa">' + label + '</text>\n';
+        svg += '<text x="' + x + '" y="' + (y - 7) + '" text-anchor="middle" font-size="10" fill="#888" font-weight="500">' + points[di].value + '</text>\n';
+      }
+    }
+    svg += '</svg>\n';
+
+    var html = '<div class="weight-chart-wrapper">\n' + yAxisH;
+    html += '<div class="weight-chart-container" id="weightChartContainer">\n' + svg + '</div>\n</div>\n';
+    html += '<div class="weight-chart-scroll-hint">← 左右滑动查看更多 →</div>\n';
+
+    // Weight change summary
+    if (weightReadings.length >= 2) {
+      var change = weightReadings[weightReadings.length - 1].value - weightReadings[0].value;
+      var cls = change > 0 ? 'up' : (change < 0 ? 'down' : 'same');
+      var sign = change > 0 ? '+' : '';
+      html += '<div class="weight-change ' + cls + '">本周 ' + sign + change.toFixed(1) + ' kg（' + weightReadings[0].value + '→' + weightReadings[weightReadings.length-1].value + '）</div>\n';
+    } else if (weightReadings.length === 1) {
+      html += '<div class="weight-change same">本周称重 1 次 · ' + weightReadings[0].value + ' kg</div>\n';
+    }
+    return html;
+  }
+
+  // ─── Chart: Macro bars ──────────────────────────────────────────────
+  function renderMacroChart(name, dailyValues, targetLow, targetHigh, chartH) {
+    chartH = chartH || 160;
+    var weekdays = ['周一','周二','周三','周四','周五','周六','周日'];
+    var nonNull = dailyValues.filter(function(v) { return v !== null && v > 0; });
+    if (!nonNull.length) return '';
+
+    var avgVal = Math.round(nonNull.reduce(function(a, b) { return a + b; }, 0) / nonNull.length);
+    var maxData = Math.max.apply(null, nonNull);
+    var chartMax = Math.max(maxData, targetHigh) * 1.2;
+    chartMax = Math.max(chartMax, 10);
+    var ticks = niceTicks(chartMax, 3);
+    chartMax = ticks.length ? Math.max.apply(null, ticks) : chartMax;
+
+    var tLowPct = (targetLow / chartMax) * 100;
+    var tHighPct = (targetHigh / chartMax) * 100;
+    var avgPct = (avgVal / chartMax) * 100;
+
+    function barColor(val) {
+      if (val < targetLow) return '#c8e6c9';
+      if (val > targetHigh) return '#fdd0b1';
+      return '#6bcb8b';
+    }
+
+    var h = '<div class="macro-chart-section">\n';
+    h += '<div class="macro-chart-title">' + esc(name) + '</div>\n';
+    h += '<div class="cal-chart" style="height:' + chartH + 'px;">\n';
+
+    for (var i = 0; i < ticks.length; i++) {
+      var t = ticks[i];
+      var pct = (t / chartMax) * 100;
+      var solid = t === 0 ? ' border-bottom-style: solid;' : '';
+      h += '<div class="cal-grid-line" style="bottom:' + pct.toFixed(1) + '%;' + solid + '"><span class="cal-grid-label">' + t + '</span></div>\n';
+    }
+    h += '<div class="cal-target-band" style="bottom:' + tLowPct.toFixed(1) + '%;height:' + (tHighPct - tLowPct).toFixed(1) + '%"><span class="cal-target-label">目标 ' + targetLow + '–' + targetHigh + '</span></div>\n';
+    h += '<div class="macro-avg-line" style="bottom:' + avgPct.toFixed(1) + '%;"><span class="macro-avg-label">平均摄入 ' + avgVal + '</span></div>\n';
+
+    for (var j = 0; j < dailyValues.length; j++) {
+      var val = dailyValues[j];
+      if (val === null || val === 0) {
+        h += '<div class="cal-bar-col"><div class="cal-bar-value"></div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:0px;background:transparent;"></div></div></div>\n';
+      } else {
+        var bH = Math.round((val / chartMax) * chartH);
+        h += '<div class="cal-bar-col"><div class="cal-bar-value">' + val + '</div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:' + bH + 'px;background:' + barColor(val) + ';"></div></div></div>\n';
+      }
+    }
+    h += '</div>\n<div class="cal-x-labels">';
+    for (var k = 0; k < weekdays.length; k++) {
+      h += '<div class="cal-x-label">' + weekdays[k] + '</div>';
+    }
+    h += '</div>\n</div>\n';
+    return h;
+  }
+
+  // ─── Render full page ───────────────────────────────────────────────
+  function render(data) {
+    var meta = data.meta;
+    var plan = data.plan;
+    var summary = data.summary;
+    var days = data.days;
+    var weight = data.weight || {};
+    var weightReadings = weight.readings || [];
+    var allWeight = data.weight_all || weightReadings;
+    var commentary = data.commentary || {};
+    var highlights = data.highlights || [];
+    var suggestions = data.suggestions || [];
+    var nickname = data.nickname || '';
+    var tagline = data.tagline || '';
+    var planRate = data.plan_rate || 0.5;
+    var weekNum = meta.week_number || 1;
+    var username = data.username || 'unknown';
+
+    document.title = '📊 第' + weekNum + '周周报';
+
+    var prevStart = meta.prev_start || '';
+    var nextStart = meta.next_start || '';
+    var prevDisabled = meta.prev_exists ? '' : ' disabled';
+    var nextDisabled = meta.next_exists ? '' : ' disabled';
+
+    var h = '';
+
+    // Nav
+    h += '<nav class="week-nav">';
+    h += '<a class="week-nav-btn week-nav-prev' + prevDisabled + '" data-week="' + prevStart + '">← 上一周</a>';
+    h += '<span class="week-nav-current">第' + weekNum + '周</span>';
+    h += '<a class="week-nav-btn week-nav-next' + nextDisabled + '" data-week="' + nextStart + '">下一周 →</a>';
+    h += '</nav>';
+
+    // Header
+    h += '<header class="report-header">';
+    h += '<h1>📊 第' + weekNum + '周周报</h1>';
+    var sub = '';
+    if (nickname && tagline) sub = esc(nickname) + ' · ' + esc(tagline);
+    else if (nickname) sub = esc(nickname);
+    else if (tagline) sub = esc(tagline);
+    h += '<div class="subtitle">' + sub + '</div>';
+    h += '<div class="date-range">' + meta.start_date + ' ~ ' + meta.end_date + '</div>';
+    h += '</header>';
+
+    // Section 1: Logging Calendar
+    h += '<div class="report-card"><div class="card-header">📅 记录日历</div><div class="card-body">';
+    h += '<div class="logging-grid">';
+    for (var i = 0; i < days.length; i++) h += '<div class="day-label">' + days[i].weekday + '</div>';
+    h += '</div><div class="logging-grid">';
+    for (var j = 0; j < days.length; j++) {
+      var emoji = (days[j].logged && days[j].totals.cal > 0) ? '✅' : '—';
+      h += '<div class="day-status">' + emoji + '</div>';
+    }
+    h += '</div>';
+    h += '<div class="logging-summary">记录 ' + summary.logged_days + '/' + summary.total_days + ' 天</div>';
+    h += '</div>';
+    if (commentary.logging) h += '<div class="card-commentary">' + esc(commentary.logging) + '</div>';
+    h += '</div>';
+
+    // Section 2: Calorie Analysis
+    var calMin, calMaxTarget;
+    if (Array.isArray(plan.cal_min)) {
+      calMin = plan.cal_min[0];
+      calMaxTarget = plan.cal_min[1];
+    } else {
+      calMin = summary.cal_min || plan.cal_min || 1600;
+      calMaxTarget = summary.cal_max_target || 2000;
+    }
+    var loggedCals = days.filter(function(d) { return d.logged; }).map(function(d) { return d.totals.cal; });
+    var chartMax = summary.chart_max || Math.max(Math.max.apply(null, loggedCals.length ? loggedCals : [0]), calMaxTarget * 1.2);
+
+    h += '<div class="report-card"><div class="card-header">🔥 热量分析</div><div class="card-body">';
+    h += renderCalorieChart(days, calMin, calMaxTarget, chartMax);
+    var calAvgEst = summary.cal_avg_estimated || summary.cal_avg;
+    var missingDays = summary.days_with_missing_meals || 0;
+    if (missingDays > 0 && calAvgEst !== summary.cal_avg) {
+      h += '<div class="cal-average">日均约 ' + calAvgEst + ' kcal <span class="sub">（目标 ' + calMin + '–' + calMaxTarget + ' · ' + missingDays + '天有漏记）</span></div>';
+    } else {
+      h += '<div class="cal-average">日均 ' + summary.cal_avg + ' kcal <span class="sub">（目标 ' + calMin + '–' + calMaxTarget + '）</span></div>';
+    }
+    h += '</div>';
+    if (commentary.calories) h += '<div class="card-commentary">' + esc(commentary.calories) + '</div>';
+    h += '</div>';
+
+    // Section 3: Weight Chart
+    if (weightReadings.length > 0) {
+      h += '<div class="report-card"><div class="card-header">⚖️ 体重记录</div><div class="card-body">';
+      h += renderWeightChart(weightReadings, allWeight, meta, planRate);
+      h += '</div>';
+      if (commentary.weight) h += '<div class="card-commentary">' + esc(commentary.weight) + '</div>';
+      h += '</div>';
+    }
+
+    // Section 4: Macronutrient Analysis
+    var proteinRange = plan.protein_range || [0, 0];
+    var fatRange = plan.fat_range || [0, 0];
+    var carbRange = plan.carb_range || [0, 0];
+
+    var proteinVals = days.map(function(d) { return (d.logged && d.totals.protein > 0) ? d.totals.protein : null; });
+    var fatVals = days.map(function(d) { return (d.logged && d.totals.fat > 0) ? d.totals.fat : null; });
+    var carbVals = days.map(function(d) { return (d.logged && d.totals.carb > 0) ? d.totals.carb : null; });
+
+    var hasAnyMacro = proteinVals.concat(fatVals, carbVals).some(function(v) { return v; });
+    if (hasAnyMacro) {
+      var macroH = '';
+      if (carbVals.some(function(v) { return v; })) macroH += renderMacroChart('碳水', carbVals, carbRange[0], carbRange[1]);
+      if (proteinVals.some(function(v) { return v; })) macroH += renderMacroChart('蛋白质', proteinVals, proteinRange[0], proteinRange[1]);
+      if (fatVals.some(function(v) { return v; })) macroH += renderMacroChart('脂肪', fatVals, fatRange[0], fatRange[1]);
+
+      if (summary.macro_estimated) {
+        macroH += '<p style="font-size:0.82rem;color:#888;margin-top:0.5rem;">* 部分天数记录不全，缺失餐次按本周同类餐平均值估算</p>';
+      }
+
+      h += '<div class="report-card"><div class="card-header">🥗 营养素分析</div><div class="card-body">';
+      h += macroH;
+      h += '</div>';
+      if (commentary.macros) h += '<div class="card-commentary">' + esc(commentary.macros) + '</div>';
+      h += '</div>';
+    }
+
+    // Section 5: Highlights & Suggestions
+    if (highlights.length || suggestions.length) {
+      h += '<div class="report-card"><div class="card-header">✨ 本周亮点 & 建议</div><div class="card-body">';
+      if (highlights.length) {
+        h += '<div class="section-subtitle">亮点</div><ul class="achievement-list">';
+        for (var hi = 0; hi < highlights.length; hi++) h += '<li>' + esc(highlights[hi]) + '</li>';
+        h += '</ul>';
+      }
+      if (highlights.length && suggestions.length) h += '<hr class="suggestions-divider">';
+      if (suggestions.length) {
+        h += '<div class="section-subtitle">下周建议</div><ul class="suggestion-list">';
+        for (var si = 0; si < suggestions.length; si++) h += '<li>' + esc(suggestions[si]) + '</li>';
+        h += '</ul>';
+      }
+      h += '</div></div>';
+    }
+
+    // Footer
+    h += '<div class="report-footer">NanoRhino · 小犀牛营养师</div>';
+
+    document.getElementById('content').innerHTML = h;
+    document.getElementById('content').style.display = '';
+    document.getElementById('loading').style.display = 'none';
+
+    // Scroll weight chart to right
+    setTimeout(function() {
+      var c = document.getElementById('weightChartContainer');
+      if (c) c.scrollLeft = c.scrollWidth;
+    }, 100);
+
+    // Nav click handlers
+    var navBtns = document.querySelectorAll('.week-nav-btn:not(.disabled)');
+    for (var ni = 0; ni < navBtns.length; ni++) {
+      navBtns[ni].addEventListener('click', function(e) {
+        e.preventDefault();
+        var week = this.getAttribute('data-week');
+        if (week) {
+          var newUrl = location.pathname + '?week=' + week;
+          history.pushState(null, '', newUrl);
+          loadWeek(week);
+        }
+      });
+    }
+  }
+
+  // ─── Data loading ───────────────────────────────────────────────────
+  function getBaseUrl() {
+    var path = location.pathname;
+    var idx = path.lastIndexOf('/');
+    return idx >= 0 ? path.substring(0, idx + 1) : './';
+  }
+
+  function loadWeek(week) {
+    document.getElementById('loading').style.display = '';
+    document.getElementById('content').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+
+    var base = getBaseUrl();
+    var jsonUrl = week ? base + 'weekly-data-' + week + '.json' : base + 'weekly-data-latest.json';
+
+    fetch(jsonUrl).then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function(data) {
+      render(data);
+    }).catch(function(err) {
+      document.getElementById('loading').style.display = 'none';
+      var errEl = document.getElementById('error');
+      errEl.textContent = week ? '找不到第 ' + week + ' 周的数据' : '暂无周报数据';
+      errEl.style.display = '';
+    });
+  }
+
+  // ─── Init ───────────────────────────────────────────────────────────
+  var params = new URLSearchParams(location.search);
+  var week = params.get('week');
+  loadWeek(week);
+
+  // Handle browser back/forward
+  window.addEventListener('popstate', function() {
+    var p = new URLSearchParams(location.search);
+    loadWeek(p.get('week'));
+  });
+})();
+</script>
 </body>
 </html>
