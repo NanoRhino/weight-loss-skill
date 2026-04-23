@@ -396,88 +396,6 @@ def check_leave(workspace_dir, tz_offset, mock_date=None):
     return True, None
 
 
-# --- Holiday loading from external JSON files ---
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-HOLIDAYS_DIR = os.path.join(SCRIPT_DIR, "..", "references", "holidays")
-
-# Language → region mapping
-LANG_TO_REGION = {
-    "zh-cn": "cn", "zh-tw": "cn", "zh": "cn",
-    "en-us": "us", "en": "us",
-}
-
-
-def _load_holidays(workspace_dir, year):
-    """Load holidays for the user's region and year from JSON files."""
-    # Determine region from user's language in USER.md
-    region = "cn"  # default
-    user_md = os.path.join(workspace_dir, "USER.md")
-    if os.path.exists(user_md):
-        try:
-            with open(user_md, "r", encoding="utf-8") as f:
-                for line in f:
-                    if "language" in line.lower() and ":" in line:
-                        lang = line.split(":", 1)[1].strip().lower()
-                        if lang in LANG_TO_REGION:
-                            region = LANG_TO_REGION[lang]
-                        break
-        except IOError:
-            pass
-
-    # Try region-year, then fallback to empty
-    holidays_file = os.path.join(HOLIDAYS_DIR, f"{region}-{year}.json")
-    if not os.path.exists(holidays_file):
-        return []
-
-    try:
-        with open(holidays_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data.get("holidays", [])
-    except (json.JSONDecodeError, IOError):
-        return []
-
-
-def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
-    """Check if a public holiday is within 10 days. Returns hint string or empty."""
-    leave_path = os.path.join(workspace_dir, "data", "leave.json")
-    leave_data = {}
-    if os.path.exists(leave_path):
-        try:
-            with open(leave_path) as f:
-                leave_data = json.load(f)
-            if leave_data.get("active"):
-                return ""
-        except (json.JSONDecodeError, IOError):
-            pass
-
-    if mock_date:
-        today = datetime.strptime(mock_date, "%Y-%m-%d").date()
-    else:
-        tz = timezone(timedelta(seconds=tz_offset))
-        today = datetime.now(tz).date()
-
-    holidays = _load_holidays(workspace_dir, today.year)
-
-    for h in holidays:
-        try:
-            holiday_start = datetime.strptime(h["start"], "%Y-%m-%d").date()
-        except (ValueError, KeyError):
-            continue
-        delta = (holiday_start - today).days
-        if 0 <= delta <= 3:
-            if leave_data.get("holiday_asked") == h["name"]:
-                continue
-            try:
-                os.makedirs(os.path.dirname(leave_path), exist_ok=True)
-                leave_data["holiday_asked"] = h["name"]
-                with open(leave_path, "w") as f:
-                    json.dump(leave_data, f, indent=2, ensure_ascii=False)
-            except IOError:
-                pass
-            return f"holiday_upcoming=true holiday_name={h['name']}"
-
-    return ""
-
 
 
 def main():
@@ -557,20 +475,12 @@ def main():
 
     log("All checks passed")
 
-    # Holiday upcoming check (only for first meal of the day: breakfast/meal_1)
-    holiday_hint = ""
-    if args.meal_type in ("breakfast", "meal_1") and stage_info.get("stage", 1) == 1:
-        holiday_hint = _check_upcoming_holiday(args.workspace_dir, args.tz_offset, args.mock_date)
-
     if stage_info.get("welcome_back"):
         print(f"SEND welcome_back=true from_stage={stage_info.get('welcome_back_from_stage', 2)}")
     elif stage_info["stage"] >= 2:
         print(f"SEND recall stage={stage_info['stage']} days_silent={stage_info.get('days_silent', 0)}")
     else:
-        out = "SEND"
-        if holiday_hint:
-            out += f" {holiday_hint}"
-        print(out)
+        print("SEND")
 
 
 if __name__ == "__main__":

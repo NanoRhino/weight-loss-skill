@@ -58,11 +58,6 @@ python3 {baseDir}/scripts/pre-send-check.py \
 - **`SEND`** → Stage 1 正常提醒，继续第四步。
 - **`SEND welcome_back=true from_stage=N`** → 用户沉默后回来了！**先热情欢迎，再处理内容。** 语气：开心、温暖、简短（1-2句欢迎 + 正常提醒）。不要提"你消失了X天"这种让人有压力的话，轻松点，比如"欢迎回来！继续记录吧～"。然后清除 flag（见下方）。
 - **`SEND recall stage=N days_silent=X`** → 用户处于召回阶段（Stage N）。**必须发召回消息，不是正常提醒。** 忽略 cron 原始的 meal-type，按召回阶段的语气和内容模板写。参考第四步的 Stage 2/3/4 分支。
-- **`SEND holiday_upcoming=true holiday_name=五一劳动节`** → 近 3 天内有法定假期且用户没有请假记录。**在提醒里顺便问**用户假期有没有出去玩的计划、哪几天不方便打卡。用户回复了具体日期后，调用：
-  ```bash
-  python3 {baseDir}/scripts/leave-manager.py set --data-dir {workspaceDir}/data --tz-offset <tz> --start YYYY-MM-DD --end YYYY-MM-DD --reason "五一出游"
-  ```
-  用户说"不需要"或"在家"→ 不创建 leave。用户说"还没定"→ 明天再问。
 
 > ⚠️ pre-send-check 会在请假期间自动返回 `NO_REPLY`，无需 agent 额外判断。
 > ⚠️ 假期期间用户主动打卡 → 正常记录，不拦。leave 只影响 cron 提醒。
