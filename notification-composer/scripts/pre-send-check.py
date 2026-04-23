@@ -464,7 +464,7 @@ def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
         except (ValueError, KeyError):
             continue
         delta = (holiday_start - today).days
-        if 0 <= delta <= 10:
+        if 0 <= delta <= 3:
             if leave_data.get("holiday_asked") == h["name"]:
                 continue
             try:
