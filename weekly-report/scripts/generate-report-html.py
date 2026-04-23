@@ -77,11 +77,26 @@ def main():
     out_size = os.path.getsize(args.output)
     print(f"[generate-report-html] Written {out_size} bytes to {args.output}")
 
-    # Write latest.json copy
+    # Write latest copy only if this is the most recent week
+    # Compare against existing latest to avoid overwriting newer data with older
     out_dir = os.path.dirname(os.path.abspath(args.output))
     latest_path = os.path.join(out_dir, 'weekly-data-latest.html')
-    shutil.copy2(args.output, latest_path)
-    print(f"[generate-report-html] Copied to {latest_path}")
+    should_update_latest = True
+    if os.path.exists(latest_path):
+        try:
+            with open(latest_path) as f:
+                existing = json.load(f)
+            existing_start = existing.get('meta', {}).get('start_date', '')
+            current_start = data.get('meta', {}).get('start_date', '')
+            if existing_start and current_start and current_start < existing_start:
+                should_update_latest = False
+                print(f"[generate-report-html] Skipped latest update (existing {existing_start} > current {current_start})")
+        except (json.JSONDecodeError, IOError):
+            pass  # overwrite if existing is corrupt
+
+    if should_update_latest:
+        shutil.copy2(args.output, latest_path)
+        print(f"[generate-report-html] Copied to {latest_path}")
 
     # Copy template if requested
     if args.template_output:

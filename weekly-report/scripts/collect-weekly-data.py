@@ -559,13 +559,27 @@ def main():
     reports_dir = os.path.join(data_dir, "reports")
     report_count = 0
     if os.path.isdir(reports_dir):
-        report_count = len([f for f in os.listdir(reports_dir) if f.startswith("weekly-report-") and f.endswith(".html")])
+        # Count unique weeks with report data (deduplicate old + new format)
+        import re as _re
+        week_dates = set()
+        for f in os.listdir(reports_dir):
+            m = _re.match(r'(?:weekly-report|weekly-data)-(\d{4}-\d{2}-\d{2})\.(?:html|json)$', f)
+            if m:
+                week_dates.add(m.group(1))
+        report_count = len(week_dates)
 
     # Prev/next report existence
     prev_start = (start_dt - timedelta(days=7)).strftime("%Y-%m-%d")
     next_start = (start_dt + timedelta(days=7)).strftime("%Y-%m-%d")
-    prev_exists = os.path.exists(os.path.join(reports_dir, f"weekly-report-{prev_start}.html")) if os.path.isdir(reports_dir) else False
-    next_exists = os.path.exists(os.path.join(reports_dir, f"weekly-report-{next_start}.html")) if os.path.isdir(reports_dir) else False
+    # Check both old and new file naming for prev/next existence
+    def _report_exists(reports_dir, date_str):
+        if not os.path.isdir(reports_dir):
+            return False
+        return (os.path.exists(os.path.join(reports_dir, f"weekly-data-{date_str}.html"))
+                or os.path.exists(os.path.join(reports_dir, f"weekly-report-{date_str}.html")))
+
+    prev_exists = _report_exists(reports_dir, prev_start)
+    next_exists = _report_exists(reports_dir, next_start)
 
     output = {
         "meta": {
