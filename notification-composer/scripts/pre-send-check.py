@@ -396,31 +396,57 @@ def check_leave(workspace_dir, tz_offset, mock_date=None):
     return True, None
 
 
-# --- Chinese public holidays (static, covers common ones) ---
-CHINESE_HOLIDAYS = [
-    {"name": "元旦", "start_month": 1, "start_day": 1, "days": 3},
-    {"name": "春节", "start_month": 1, "start_day": 28, "days": 7},  # approximate, varies yearly
-    {"name": "清明节", "start_month": 4, "start_day": 4, "days": 3},
-    {"name": "五一劳动节", "start_month": 5, "start_day": 1, "days": 5},
-    {"name": "端午节", "start_month": 6, "start_day": 1, "days": 3},  # approximate
-    {"name": "中秋节", "start_month": 9, "start_day": 15, "days": 3},  # approximate
-    {"name": "国庆节", "start_month": 10, "start_day": 1, "days": 7},
-]
+# --- Holiday loading from external JSON files ---
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+HOLIDAYS_DIR = os.path.join(SCRIPT_DIR, "..", "references", "holidays")
+
+# Language → region mapping
+LANG_TO_REGION = {
+    "zh-cn": "cn", "zh-tw": "cn", "zh": "cn",
+    "en-us": "us", "en": "us",
+}
+
+
+def _load_holidays(workspace_dir, year):
+    """Load holidays for the user's region and year from JSON files."""
+    # Determine region from user's language in USER.md
+    region = "cn"  # default
+    user_md = os.path.join(workspace_dir, "USER.md")
+    if os.path.exists(user_md):
+        try:
+            with open(user_md, "r", encoding="utf-8") as f:
+                for line in f:
+                    if "language" in line.lower() and ":" in line:
+                        lang = line.split(":", 1)[1].strip().lower()
+                        if lang in LANG_TO_REGION:
+                            region = LANG_TO_REGION[lang]
+                        break
+        except IOError:
+            pass
+
+    # Try region-year, then fallback to empty
+    holidays_file = os.path.join(HOLIDAYS_DIR, f"{region}-{year}.json")
+    if not os.path.exists(holidays_file):
+        return []
+
+    try:
+        with open(holidays_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("holidays", [])
+    except (json.JSONDecodeError, IOError):
+        return []
 
 
 def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
-    """Check if a Chinese public holiday is within 10 days. Returns hint string or empty."""
+    """Check if a public holiday is within 10 days. Returns hint string or empty."""
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
     leave_data = {}
     if os.path.exists(leave_path):
         try:
             with open(leave_path) as f:
                 leave_data = json.load(f)
-            # Skip if user already has active leave
             if leave_data.get("active"):
                 return ""
-            # holiday_asked stores which holiday was asked — only skip if same holiday
-
         except (json.JSONDecodeError, IOError):
             pass
 
@@ -430,17 +456,17 @@ def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
         tz = timezone(timedelta(seconds=tz_offset))
         today = datetime.now(tz).date()
 
-    for h in CHINESE_HOLIDAYS:
+    holidays = _load_holidays(workspace_dir, today.year)
+
+    for h in holidays:
         try:
-            holiday_start = today.replace(month=h["start_month"], day=h["start_day"])
-        except ValueError:
+            holiday_start = datetime.strptime(h["start"], "%Y-%m-%d").date()
+        except (ValueError, KeyError):
             continue
         delta = (holiday_start - today).days
         if 0 <= delta <= 10:
-            # Skip if already asked about THIS specific holiday
             if leave_data.get("holiday_asked") == h["name"]:
                 continue
-            # Mark that we asked, so we don't ask again if user doesn't reply
             try:
                 os.makedirs(os.path.dirname(leave_path), exist_ok=True)
                 leave_data["holiday_asked"] = h["name"]
@@ -452,31 +478,6 @@ def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
 
     return ""
 
-
-def _check_leave_ending(workspace_dir, tz_offset, mock_date=None):
-    """Check if leave ends today (so agent can say 'welcome back tomorrow')."""
-    leave_path = os.path.join(workspace_dir, "data", "leave.json")
-    if not os.path.exists(leave_path):
-        return ""
-    try:
-        with open(leave_path) as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return ""
-
-    if not data.get("active"):
-        return ""
-
-    if mock_date:
-        today = mock_date
-    else:
-        tz = timezone(timedelta(seconds=tz_offset))
-        today = datetime.now(tz).strftime("%Y-%m-%d")
-    end = data.get("end", "")
-
-    if end == today:
-        return f"leave_ending=true end={end}"
-    return ""
 
 
 def main():
@@ -569,10 +570,6 @@ def main():
         out = "SEND"
         if holiday_hint:
             out += f" {holiday_hint}"
-        # Check if leave is ending tomorrow
-        leave_ending = _check_leave_ending(args.workspace_dir, args.tz_offset, args.mock_date)
-        if leave_ending:
-            out += f" {leave_ending}"
         print(out)
 
 

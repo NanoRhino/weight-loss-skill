@@ -1,0 +1,15 @@
+{
+  "region": "us",
+  "year": 2026,
+  "source": "US Federal Holidays",
+  "holidays": [
+    {"name": "New Year's Day", "start": "2026-01-01", "end": "2026-01-01"},
+    {"name": "Martin Luther King Jr. Day", "start": "2026-01-19", "end": "2026-01-19"},
+    {"name": "Presidents' Day", "start": "2026-02-16", "end": "2026-02-16"},
+    {"name": "Memorial Day", "start": "2026-05-25", "end": "2026-05-25"},
+    {"name": "Independence Day", "start": "2026-07-04", "end": "2026-07-04"},
+    {"name": "Labor Day", "start": "2026-09-07", "end": "2026-09-07"},
+    {"name": "Thanksgiving", "start": "2026-11-26", "end": "2026-11-27"},
+    {"name": "Christmas", "start": "2026-12-25", "end": "2026-12-25"}
+  ]
+}
