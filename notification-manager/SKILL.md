@@ -216,16 +216,6 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "30 6 * * 3,6"
 ```
 
-**Evening followup:** Cron time = dinner time plus **30 min**. Fires same days (Wed & Sat). Only sends if the user did NOT weigh in that day — reminds them to weigh tomorrow morning. Pre-send-check uses `weight_evening` type.
-
-```bash
-# Example assumes dinner at 18:30 → evening followup at 19:00
-bash {baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --channel <channel> --type weight --name "Weight evening followup" \
-  --message "Run notification-composer for weight_evening." \
-  --cron "0 19 * * 3,6"
-```
-
 **Next-morning followup:** Cron time = breakfast time (or earliest meal) minus **30 min**. Fires Thu & Sun (day after primary). Only sends if the user did NOT weigh in yesterday OR today. Pre-send-check uses `weight_morning_followup` type.
 
 ```bash

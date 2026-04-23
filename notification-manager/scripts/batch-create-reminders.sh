@@ -210,10 +210,6 @@ if should_create_type "weight" && [[ -n "$EARLIEST_TIME" && -n "$DINNER_TIME" ]]
   cm=$(echo "$ct" | awk '{print $1}'); ch=$(echo "$ct" | awk '{print $2}')
   queue_job "Weight check-in reminder"  "Run notification-composer for weight."                  "$cm $ch * * 3,6" weight
 
-  ct=$(calc_cron_time "$DINNER_TIME" 30)
-  cm=$(echo "$ct" | awk '{print $1}'); ch=$(echo "$ct" | awk '{print $2}')
-  queue_job "Weight evening followup"   "Run notification-composer for weight_evening."          "$cm $ch * * 3,6" weight
-
   ct=$(calc_cron_time "$EARLIEST_TIME" -30)
   cm=$(echo "$ct" | awk '{print $1}'); ch=$(echo "$ct" | awk '{print $2}')
   queue_job "Weight morning followup"   "Run notification-composer for weight_morning_followup." "$cm $ch * * 4,0" weight
