@@ -239,8 +239,8 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 
 Suggest by category + concrete examples from `recent_foods`. Respect preferences. No bare calorie numbers.
 
-**Missing meals (REQUIRED):** If `evaluation.missing_meals` is non-empty, you MUST insert a note between ② and ③:
-⏭ [list ALL missing meal names] not logged — suggestions assume those meals were eaten normally.
+**Missing meals (REQUIRED):** If `evaluation.missing_meals` is non-empty, append a note AFTER ③ suggestion (not between ② and ③):
+📝 [missing meal names]已按正常量估算，告诉我具体吃了什么，建议会更准确哦~
 List every meal in `missing_meals`, not just the first one. Use `evaluation.suggestion_budget.remaining` (not `daily_total.remaining`) for ③ suggestions — if remaining < 0, explicitly tell user the estimated budget is already exceeded.
 
 | Type | Icon | Guidance |
