@@ -103,6 +103,8 @@ def cmd_set(args):
         "reason": args.reason or "",
         "created_at": today,
     }
+    # Clear holiday_asked since user responded
+    data.pop("holiday_asked", None)
     _save(args.data_dir, data)
     print(json.dumps(data, ensure_ascii=False))
 

@@ -410,13 +410,17 @@ CHINESE_HOLIDAYS = [
 
 def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
     """Check if a Chinese public holiday is within 10 days. Returns hint string or empty."""
-    # Skip if user already has active leave
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
+    leave_data = {}
     if os.path.exists(leave_path):
         try:
             with open(leave_path) as f:
-                data = json.load(f)
-            if data.get("active"):
+                leave_data = json.load(f)
+            # Skip if user already has active leave
+            if leave_data.get("active"):
+                return ""
+            # Skip if already asked about this holiday
+            if leave_data.get("holiday_asked"):
                 return ""
         except (json.JSONDecodeError, IOError):
             pass
@@ -434,6 +438,14 @@ def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
             continue
         delta = (holiday_start - today).days
         if 0 <= delta <= 10:
+            # Mark that we asked, so we don't ask again if user doesn't reply
+            try:
+                os.makedirs(os.path.dirname(leave_path), exist_ok=True)
+                leave_data["holiday_asked"] = h["name"]
+                with open(leave_path, "w") as f:
+                    json.dump(leave_data, f, indent=2, ensure_ascii=False)
+            except IOError:
+                pass
             return f"holiday_upcoming=true holiday_name={h['name']}"
 
     return ""
