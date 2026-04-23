@@ -96,8 +96,14 @@ except Exception:
   echo "Auto-resolved username: $USERNAME (from $AGENT_ID)" >&2
 fi
 
-S3_KEY="user/${USERNAME}/${KEY}.html"
-PUBLIC_URL="${BASE_URL}/user/${USERNAME}/${KEY}.html"
+# Auto-detect extension from file, default to .html
+FILE_EXT="${FILE##*.}"
+if [[ "$FILE_EXT" == "$FILE" ]] || [[ -z "$FILE_EXT" ]]; then
+  FILE_EXT="html"
+fi
+
+S3_KEY="user/${USERNAME}/${KEY}.${FILE_EXT}"
+PUBLIC_URL="${BASE_URL}/user/${USERNAME}/${KEY}.${FILE_EXT}"
 
 # === Detect storage backend ===
 detect_backend() {
@@ -116,6 +122,15 @@ detect_backend() {
 BACKEND=$(detect_backend)
 echo "Storage backend: $BACKEND" >&2
 
+# === Detect content type from extension ===
+detect_content_type() {
+  case "$FILE_EXT" in
+    json) echo "application/json; charset=utf-8" ;;
+    *)    echo "text/html; charset=utf-8" ;;
+  esac
+}
+CONTENT_TYPE=$(detect_content_type)
+
 # === AWS S3 upload ===
 upload_aws() {
   BUCKET="${BUCKET:-nanorhino-im-plans}"
@@ -123,7 +138,7 @@ upload_aws() {
   echo "Uploading to s3://${BUCKET}/${S3_KEY} ..." >&2
 
   aws s3 cp "$FILE" "s3://${BUCKET}/${S3_KEY}" \
-    --content-type "text/html; charset=utf-8" \
+    --content-type "$CONTENT_TYPE" \
     --cache-control "public, max-age=300" \
     --quiet
 
@@ -194,7 +209,7 @@ def main():
     s3.upload_file(
         str(path), bucket, s3_key,
         ExtraArgs={
-            "ContentType": "text/html; charset=utf-8",
+            "ContentType": os.environ.get("UPLOAD_CONTENT_TYPE", "text/html; charset=utf-8"),
             "CacheControl": "public, max-age=300",
         },
     )
@@ -213,6 +228,7 @@ PYTHON_SCRIPT
 }
 
 # === Run upload ===
+export UPLOAD_CONTENT_TYPE="$CONTENT_TYPE"
 case "$BACKEND" in
   aws)    upload_aws ;;
   jdoss)  upload_jdoss ;;
