@@ -80,12 +80,23 @@ def cmd_check(args):
 
 def cmd_set(args):
     """Set a leave period."""
+    # Auto-fix year if it's in the past
+    today = _today(args.tz_offset)
+    current_year = today[:4]
+    start = args.start
+    end = args.end
+    if start < today and start[5:] >= today[5:]:
+        # Date is in past but month/day is upcoming — likely wrong year
+        start = current_year + start[4:]
+    if end < start:
+        end = current_year + end[4:]
+
     data = {
         "active": True,
-        "start": args.start,
-        "end": args.end,
+        "start": start,
+        "end": end,
         "reason": args.reason or "",
-        "created_at": _today(args.tz_offset),
+        "created_at": today,
     }
     _save(args.data_dir, data)
     print(json.dumps(data, ensure_ascii=False))
