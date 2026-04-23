@@ -330,8 +330,23 @@ def _fill_macro_defaults(workspace_dir, plan):
 
     # Default calorie range if missing
     if "cal_min" not in plan:
-        # Standard deficit: BMR~1400-1650 for most users, target 1600-2000
-        plan["cal_min"] = [1600, 2000]
+        # Try health-profile.json first
+        hp_json_path = os.path.join(workspace_dir, "data", "health-profile.json")
+        cal_from_json = None
+        if os.path.exists(hp_json_path):
+            try:
+                with open(hp_json_path) as f:
+                    hp_data = json.load(f)
+                cal_from_json = hp_data.get("calorie_target")
+            except (json.JSONDecodeError, IOError):
+                pass
+
+        if cal_from_json and cal_from_json > 0:
+            # Use calorie_target as center, ±200 range
+            plan["cal_min"] = [cal_from_json - 200, cal_from_json + 200]
+        else:
+            # Standard deficit: BMR~1400-1650 for most users, target 1600-2000
+            plan["cal_min"] = [1600, 2000]
 
     cal_mid = (plan["cal_min"][0] + plan["cal_min"][1]) / 2
 

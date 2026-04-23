@@ -416,7 +416,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     h += '</div>';
 
     // Section 3: Weight Chart
-    if (weightReadings.length > 0) {
+    if (allWeight.length > 0) {
       h += '<div class="report-card"><div class="card-header">⚖️ 体重记录</div><div class="card-body">';
       h += renderWeightChart(weightReadings, allWeight, meta, planRate);
       h += '</div>';

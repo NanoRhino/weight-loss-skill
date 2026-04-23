@@ -10,7 +10,7 @@ Usage:
 
   --workspace-dir   Agent workspace root (contains health-profile.md, data/, etc.)
   --meal-type       One of: breakfast, lunch, dinner, meal_1, meal_2, weight,
-                    weight_evening, weight_morning_followup
+                    weight_morning_followup
   --tz-offset       Timezone offset in seconds from UTC (e.g. 28800 for UTC+8)
 
 Exit code 0 always. Output is exactly "SEND" or "NO_REPLY" on stdout.
@@ -137,7 +137,7 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
 
         # Stage 2-4: suppress weight reminders entirely
         if stage in (2, 3, 4):
-            is_weight = meal_type in ("weight", "weight_evening", "weight_morning_followup")
+            is_weight = meal_type in ("weight", "weight_morning_followup")
             if is_weight:
                 return False, f"notification_stage={stage} — weight reminders suppressed during recall"
 
@@ -231,16 +231,6 @@ def check_weight_logged(workspace_dir, tz_offset):
     """Check for weight: already weighed today?"""
     local_date = get_local_date(tz_offset)
     return _weight_logged_on(workspace_dir, local_date)
-
-
-def check_weight_logged_today_for_followup(workspace_dir, tz_offset):
-    """Check for weight evening followup: suppress if user already weighed today."""
-    local_date = get_local_date(tz_offset)
-    logged, _ = _weight_logged_on(workspace_dir, local_date)
-    if not logged:
-        # Already weighed today → suppress the evening followup
-        return False, f"weight already logged today ({local_date}) — no evening followup needed"
-    return True, None
 
 
 def check_weight_logged_yesterday_or_today(workspace_dir, tz_offset):
@@ -366,7 +356,7 @@ def main():
     parser.add_argument("--workspace-dir", required=True, help="Agent workspace root")
     parser.add_argument("--meal-type", required=True,
                         choices=["breakfast", "lunch", "dinner", "meal_1", "meal_2",
-                                 "weight", "weight_evening", "weight_morning_followup",
+                                 "weight", "weight_morning_followup",
                                  "custom", "weekly_report", "daily_summary"],
                         help="Meal type to check")
     parser.add_argument("--tz-offset", required=True, type=int,
@@ -391,9 +381,6 @@ def main():
     # Add meal-specific or weight-specific check
     if args.meal_type == "weight":
         checks.append(("weight_logged", lambda: check_weight_logged(
-            args.workspace_dir, args.tz_offset)))
-    elif args.meal_type == "weight_evening":
-        checks.append(("weight_logged_today", lambda: check_weight_logged_today_for_followup(
             args.workspace_dir, args.tz_offset)))
     elif args.meal_type == "weight_morning_followup":
         checks.append(("weight_logged_yesterday_or_today", lambda: check_weight_logged_yesterday_or_today(

@@ -140,7 +140,7 @@ Use the cron tool directly for listing and removing:
    - **Stale jobs** (cron exists but its time doesn't match any current meal time) → remove then recreate.
    - **Legacy jobs** (cron exists and time matches, but `--message` references `daily-notification` or `daily-notification-skill` instead of `notification-composer`) → remove then recreate with the correct `notification-composer` message. This ensures old cron jobs from before the skill split are automatically migrated.
    - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
-4. Also verify weight reminder cron jobs exist — see § "Weight reminders" below. This includes the primary (Wed & Sat morning), evening followup (Wed & Sat after dinner), and next-morning followup (Thu & Sun morning). Create any that are missing.
+4. Also verify weight reminder cron jobs exist — see § "Weight reminders" below. This includes the primary (Wed & Sat morning) and next-morning followup (Thu & Sun morning). Create any that are missing.
 5. Also verify the weekly report cron job exists (Sunday 21:00 — see § "Weekly report" below). Create if missing.
 6. **Diet pattern detection** — special handling:
    - Read `health-profile.md > Automation > Pattern Detection Completed`
