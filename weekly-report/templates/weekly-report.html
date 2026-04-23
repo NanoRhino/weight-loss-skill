@@ -451,22 +451,24 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
       h += '</div>';
     }
 
-    // Section 5: Highlights & Suggestions
-    if (highlights.length || suggestions.length) {
-      h += '<div class="report-card"><div class="card-header">✨ 本周亮点 & 建议</div><div class="card-body">';
-      if (highlights.length) {
-        h += '<div class="section-subtitle">亮点</div><ul class="achievement-list">';
-        for (var hi = 0; hi < highlights.length; hi++) h += '<li>' + esc(highlights[hi]) + '</li>';
-        h += '</ul>';
-      }
-      if (highlights.length && suggestions.length) h += '<hr class="suggestions-divider">';
-      if (suggestions.length) {
-        h += '<div class="section-subtitle">下周建议</div><ul class="suggestion-list">';
-        for (var si = 0; si < suggestions.length; si++) h += '<li>' + esc(suggestions[si]) + '</li>';
-        h += '</ul>';
-      }
-      h += '</div></div>';
+    // Section 5: Highlights & Suggestions (always show — fallback if empty)
+    h += '<div class="report-card"><div class="card-header">✨ 本周亮点 & 建议</div><div class="card-body">';
+    if (highlights.length) {
+      h += '<div class="section-subtitle">亮点</div><ul class="achievement-list">';
+      for (var hi = 0; hi < highlights.length; hi++) h += '<li>' + esc(highlights[hi]) + '</li>';
+      h += '</ul>';
+    } else {
+      h += '<div class="section-subtitle">亮点</div><ul class="achievement-list"><li>坚持记录就是最大的亮点 💪</li></ul>';
     }
+    h += '<hr class="suggestions-divider">';
+    if (suggestions.length) {
+      h += '<div class="section-subtitle">下周建议</div><ul class="suggestion-list">';
+      for (var si = 0; si < suggestions.length; si++) h += '<li>' + esc(suggestions[si]) + '</li>';
+      h += '</ul>';
+    } else {
+      h += '<div class="section-subtitle">下周建议</div><ul class="suggestion-list"><li>继续保持，下周见 🐰</li></ul>';
+    }
+    h += '</div></div>';
 
     // Footer
     h += '<div class="report-footer">NanoRhino · 小犀牛营养师</div>';

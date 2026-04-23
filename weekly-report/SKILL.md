@@ -629,6 +629,8 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 
 ⚠️ **MANDATORY**: You MUST call `generate-report-html.py`. Writing HTML by hand is FORBIDDEN.
 
+> 🚨 **ALL parameters are REQUIRED — do NOT pass empty values for `--commentary`, `--highlights`, or `--suggestions`.** Every report MUST have personalized analysis. If you pass `'{}'` or `'[]'`, the report will show generic fallback text and the user experience is degraded. Read the data, think about it, then write real commentary.
+
 ```bash
 python3 {baseDir}/scripts/collect-weekly-data.py \
   --workspace-dir {workspaceDir} \

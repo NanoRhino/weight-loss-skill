@@ -61,6 +61,14 @@ def main():
             pass
 
     # Merge everything into one output object
+    # Validate: warn if commentary/highlights/suggestions are empty
+    if not commentary or not any(commentary.values()):
+        print("[generate-report-html] WARNING: commentary is empty — report will show without section analysis", file=sys.stderr)
+    if not highlights:
+        print("[generate-report-html] WARNING: highlights is empty — report will use fallback text", file=sys.stderr)
+    if not suggestions:
+        print("[generate-report-html] WARNING: suggestions is empty — report will use fallback text", file=sys.stderr)
+
     data['commentary'] = commentary
     data['highlights'] = highlights
     data['suggestions'] = suggestions
