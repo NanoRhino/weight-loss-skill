@@ -151,6 +151,8 @@ def main():
     sub = parser.add_subparsers(dest="command")
 
     p_check = sub.add_parser("check")
+    p_check.add_argument("--data-dir", required=True)
+    p_check.add_argument("--tz-offset", type=int, default=0)
     p_check.add_argument("--mock-date", default=None, help="Mock today's date YYYY-MM-DD")
 
     p_set = sub.add_parser("set")
