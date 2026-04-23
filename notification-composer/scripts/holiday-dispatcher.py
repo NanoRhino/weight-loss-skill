@@ -172,10 +172,11 @@ def mark_holiday_asked(workspace_dir, holiday_name):
 def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday_end, dry_run=False):
     """Create a one-shot cron job for the user."""
     message = (
-        f"假期提醒：{holiday_name}（{holiday_start} 至 {holiday_end}）即将到来。"
-        f"请询问用户假期期间是否需要暂停打卡提醒。"
-        f"如果用户说需要，调用 leave-manager.py set 设置请假。"
-        f"如果用户说不需要，就正常结束。"
+        f"{holiday_name}（{holiday_start} 至 {holiday_end}）快到了。"
+        f"给用户发一条消息，问问假期有没有出去玩的计划，哪几天不方便打卡记录。"
+        f"注意：你只需要问用户，不要自己替用户做决定。"
+        f"等用户回复了具体日期后，再调用 leave-manager.py set 设置请假。"
+        f"如果用户说不需要暂停，就说好的。"
     )
 
     at_time = trigger_time_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
