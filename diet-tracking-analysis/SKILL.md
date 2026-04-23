@@ -237,11 +237,13 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 
 **Staying within calorie target is the #1 priority.** When calories are on track, do NOT suggest eating more today to fix macros/produce — defer to tomorrow.
 
+**Calorie budget for suggestions (CRITICAL):** Always use `suggestion_budget.remaining` for ③ advice, NOT `daily_total.remaining`. When missing meals exist, `daily_total.remaining` is inflated (doesn't account for assumed missing meals). If `suggestion_budget.remaining` ≤ 50, tell user today's budget is nearly used up and suggest only very light options or nothing extra.
+
 Give ONE unified meal/food suggestion that addresses ALL gaps together — check every status field (protein, carbs, fat, vegetables, fruits) and synthesize a single concrete recommendation that covers all deficits at once. Do NOT list separate bullet points for each nutrient. Use `recent_foods` and user preferences for examples. No bare calorie numbers.
 
 **Missing meals (REQUIRED):** If `evaluation.missing_meals` is non-empty, append a note AFTER ③ suggestion (not between ② and ③):
 📝 [missing meal names]已按正常量估算，告诉我具体吃了什么，建议会更准确哦~
-List every meal in `missing_meals`, not just the first one. Use `evaluation.suggestion_budget.remaining` (not `daily_total.remaining`) for ③ suggestions — if remaining < 0, explicitly tell user the estimated budget is already exceeded.
+List every meal in `missing_meals`, not just the first one. If `suggestion_budget.remaining` < 0, explicitly tell user the estimated budget is already exceeded.
 
 | Type | Icon | Guidance |
 |------|------|----------|
