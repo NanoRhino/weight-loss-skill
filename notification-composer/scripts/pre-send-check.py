@@ -419,9 +419,8 @@ def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
             # Skip if user already has active leave
             if leave_data.get("active"):
                 return ""
-            # Skip if already asked about this holiday
-            if leave_data.get("holiday_asked"):
-                return ""
+            # holiday_asked stores which holiday was asked — only skip if same holiday
+
         except (json.JSONDecodeError, IOError):
             pass
 
@@ -438,6 +437,9 @@ def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
             continue
         delta = (holiday_start - today).days
         if 0 <= delta <= 10:
+            # Skip if already asked about THIS specific holiday
+            if leave_data.get("holiday_asked") == h["name"]:
+                continue
             # Mark that we asked, so we don't ask again if user doesn't reply
             try:
                 os.makedirs(os.path.dirname(leave_path), exist_ok=True)
