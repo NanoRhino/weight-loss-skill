@@ -361,7 +361,7 @@ def check_scheduling_constraints(workspace_dir, meal_type, tz_offset):
     return True, None
 
 
-def check_leave(workspace_dir, tz_offset):
+def check_leave(workspace_dir, tz_offset, mock_date=None):
     """Check if user is on leave. If so, suppress all reminders."""
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
     if not os.path.exists(leave_path):
@@ -376,8 +376,11 @@ def check_leave(workspace_dir, tz_offset):
     if not data.get("active"):
         return True, None
 
-    tz = timezone(timedelta(seconds=tz_offset))
-    today = datetime.now(tz).strftime("%Y-%m-%d")
+    if mock_date:
+        today = mock_date
+    else:
+        tz = timezone(timedelta(seconds=tz_offset))
+        today = datetime.now(tz).strftime("%Y-%m-%d")
     start = data.get("start", "")
     end = data.get("end", "")
 
@@ -405,8 +408,8 @@ CHINESE_HOLIDAYS = [
 ]
 
 
-def _check_upcoming_holiday(workspace_dir, tz_offset):
-    """Check if a Chinese public holiday is within 5 days. Returns hint string or empty."""
+def _check_upcoming_holiday(workspace_dir, tz_offset, mock_date=None):
+    """Check if a Chinese public holiday is within 10 days. Returns hint string or empty."""
     # Skip if user already has active leave
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
     if os.path.exists(leave_path):
@@ -418,8 +421,11 @@ def _check_upcoming_holiday(workspace_dir, tz_offset):
         except (json.JSONDecodeError, IOError):
             pass
 
-    tz = timezone(timedelta(seconds=tz_offset))
-    today = datetime.now(tz).date()
+    if mock_date:
+        today = datetime.strptime(mock_date, "%Y-%m-%d").date()
+    else:
+        tz = timezone(timedelta(seconds=tz_offset))
+        today = datetime.now(tz).date()
 
     for h in CHINESE_HOLIDAYS:
         try:
@@ -433,7 +439,7 @@ def _check_upcoming_holiday(workspace_dir, tz_offset):
     return ""
 
 
-def _check_leave_ending(workspace_dir, tz_offset):
+def _check_leave_ending(workspace_dir, tz_offset, mock_date=None):
     """Check if leave ends today (so agent can say 'welcome back tomorrow')."""
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
     if not os.path.exists(leave_path):
@@ -447,8 +453,11 @@ def _check_leave_ending(workspace_dir, tz_offset):
     if not data.get("active"):
         return ""
 
-    tz = timezone(timedelta(seconds=tz_offset))
-    today = datetime.now(tz).strftime("%Y-%m-%d")
+    if mock_date:
+        today = mock_date
+    else:
+        tz = timezone(timedelta(seconds=tz_offset))
+        today = datetime.now(tz).strftime("%Y-%m-%d")
     end = data.get("end", "")
 
     if end == today:
@@ -466,6 +475,8 @@ def main():
                         help="Meal type to check")
     parser.add_argument("--tz-offset", required=True, type=int,
                         help="Timezone offset in seconds from UTC")
+    parser.add_argument("--mock-date", default=None,
+                        help="Mock today's date YYYY-MM-DD (for testing)")
     args = parser.parse_args()
     args.workspace_dir = _normalize_path(args.workspace_dir)
 
@@ -475,7 +486,7 @@ def main():
     _run_check_stage(args.workspace_dir, args.tz_offset)
 
     checks = [
-        ("leave", lambda: check_leave(args.workspace_dir, args.tz_offset)),
+        ("leave", lambda: check_leave(args.workspace_dir, args.tz_offset, args.mock_date)),
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
         ("engagement_stage", lambda: check_engagement_stage(
             args.workspace_dir, args.meal_type, args.tz_offset)),
@@ -534,7 +545,7 @@ def main():
     # Holiday upcoming check (only for first meal of the day: breakfast/meal_1)
     holiday_hint = ""
     if args.meal_type in ("breakfast", "meal_1") and stage_info.get("stage", 1) == 1:
-        holiday_hint = _check_upcoming_holiday(args.workspace_dir, args.tz_offset)
+        holiday_hint = _check_upcoming_holiday(args.workspace_dir, args.tz_offset, args.mock_date)
 
     if stage_info.get("welcome_back"):
         print(f"SEND welcome_back=true from_stage={stage_info.get('welcome_back_from_stage', 2)}")
@@ -545,7 +556,7 @@ def main():
         if holiday_hint:
             out += f" {holiday_hint}"
         # Check if leave is ending tomorrow
-        leave_ending = _check_leave_ending(args.workspace_dir, args.tz_offset)
+        leave_ending = _check_leave_ending(args.workspace_dir, args.tz_offset, args.mock_date)
         if leave_ending:
             out += f" {leave_ending}"
         print(out)

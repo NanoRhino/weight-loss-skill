@@ -46,7 +46,9 @@ def _save(data_dir, data):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def _today(tz_offset):
+def _today(tz_offset, mock_date=None):
+    if mock_date:
+        return mock_date
     tz = timezone(timedelta(seconds=tz_offset))
     return datetime.now(tz).strftime("%Y-%m-%d")
 
@@ -54,7 +56,7 @@ def _today(tz_offset):
 def cmd_check(args):
     """Check if today is within a leave period. Returns JSON."""
     data = _load(args.data_dir)
-    today = _today(args.tz_offset)
+    today = _today(args.tz_offset, getattr(args, 'mock_date', None))
 
     if not data.get("active"):
         print(json.dumps({"on_leave": False}))
@@ -66,7 +68,10 @@ def cmd_check(args):
     on_leave = start <= today <= end
     # Check if leave ended yesterday (for welcome back)
     tz = timezone(timedelta(seconds=args.tz_offset))
-    yesterday = (datetime.now(tz) - timedelta(days=1)).strftime("%Y-%m-%d")
+    if getattr(args, 'mock_date', None):
+        yesterday = (datetime.strptime(args.mock_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    else:
+        yesterday = (datetime.now(tz) - timedelta(days=1)).strftime("%Y-%m-%d")
     just_returned = data.get("active") and end == yesterday
 
     print(json.dumps({
@@ -81,7 +86,7 @@ def cmd_check(args):
 def cmd_set(args):
     """Set a leave period."""
     # Auto-fix year if it's in the past
-    today = _today(args.tz_offset)
+    today = _today(args.tz_offset, getattr(args, 'mock_date', None))
     current_year = today[:4]
     start = args.start
     end = args.end
@@ -115,7 +120,7 @@ def cmd_clear(args):
 def cmd_info(args):
     """Show current leave status."""
     data = _load(args.data_dir)
-    today = _today(args.tz_offset)
+    today = _today(args.tz_offset, getattr(args, 'mock_date', None))
 
     if not data.get("active"):
         print(json.dumps({"active": False}))
@@ -144,8 +149,7 @@ def main():
     sub = parser.add_subparsers(dest="command")
 
     p_check = sub.add_parser("check")
-    p_check.add_argument("--data-dir", required=True)
-    p_check.add_argument("--tz-offset", type=int, default=0)
+    p_check.add_argument("--mock-date", default=None, help="Mock today's date YYYY-MM-DD")
 
     p_set = sub.add_parser("set")
     p_set.add_argument("--data-dir", required=True)
@@ -153,14 +157,17 @@ def main():
     p_set.add_argument("--start", required=True, help="Start date YYYY-MM-DD")
     p_set.add_argument("--end", required=True, help="End date YYYY-MM-DD")
     p_set.add_argument("--reason", default="", help="Reason for leave")
+    p_set.add_argument("--mock-date", default=None, help="Mock today's date YYYY-MM-DD")
 
     p_clear = sub.add_parser("clear")
     p_clear.add_argument("--data-dir", required=True)
     p_clear.add_argument("--tz-offset", type=int, default=0)
+    p_clear.add_argument("--mock-date", default=None, help="Mock today's date YYYY-MM-DD")
 
     p_info = sub.add_parser("info")
     p_info.add_argument("--data-dir", required=True)
     p_info.add_argument("--tz-offset", type=int, default=0)
+    p_info.add_argument("--mock-date", default=None, help="Mock today's date YYYY-MM-DD")
 
     args = parser.parse_args()
     if not args.command:
