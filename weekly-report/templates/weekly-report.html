@@ -20,7 +20,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .logging-grid .day-label { font-size: 0.78rem; color: #888; font-weight: 500; padding: 0.3rem 0; }
 .logging-grid .day-status { font-size: 1.2rem; padding: 0.2rem 0 0.3rem; }
 .logging-summary { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.5rem; }
-.cal-chart { position: relative; height: 238px; display: flex; align-items: flex-end; justify-content: space-between; padding: 18px 0 0 2rem; margin-bottom: 0.4rem; }
+.cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0 0 2rem; margin-bottom: 0.4rem; }
 .cal-target-band { position: absolute; left: 2rem; right: 0; background: rgba(0,0,0,0.05); z-index: 0; }
 .cal-target-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #aaa; }
 .cal-grid-line { position: absolute; left: 2rem; right: 0; height: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
@@ -151,7 +151,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
       if (!d.logged || cal === 0) {
         h += '<div class="cal-bar-col"><div class="cal-bar-value"></div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:0px;background:transparent;"></div></div></div>\n';
       } else {
-        var barH = Math.round((cal / chartMax) * chartH);
+        var barH = Math.min(Math.round((cal / chartMax) * chartH), Math.round(chartH * 0.85));
         var colors = {below: '#c8e6c9', 'on-target': '#6bcb8b', over: '#fdd0b1'};
         var color = colors[status] || '#c8e6c9';
         h += '<div class="cal-bar-col"><div class="cal-bar-value">' + cal + '</div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:' + barH + 'px;background:' + color + ';"></div></div></div>\n';
@@ -302,7 +302,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 
     var h = '<div class="macro-chart-section">\n';
     h += '<div class="macro-chart-title">' + esc(name) + '</div>\n';
-    h += '<div class="cal-chart" style="height:' + (chartH + 18) + 'px;padding-top:18px;">\n';
+    h += '<div class="cal-chart" style="height:' + chartH + 'px;">\n';
 
     for (var i = 0; i < ticks.length; i++) {
       var t = ticks[i];
@@ -319,7 +319,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
         h += '<div class="cal-bar-col"><div class="cal-bar-value"></div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:0px;background:transparent;"></div></div></div>\n';
       } else {
         var rounded = Math.round(val);
-        var bH = Math.round((val / chartMax) * chartH);
+        var bH = Math.min(Math.round((val / chartMax) * chartH), Math.round(chartH * 0.85));
         h += '<div class="cal-bar-col"><div class="cal-bar-value">' + rounded + '</div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:' + bH + 'px;background:' + barColor(val) + ';"></div></div></div>\n';
       }
     }
