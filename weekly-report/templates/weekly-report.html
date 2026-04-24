@@ -311,7 +311,9 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
       h += '<div class="cal-grid-line" style="bottom:' + pct.toFixed(1) + '%;' + solid + '"><span class="cal-grid-label">' + t + '</span></div>\n';
     }
     h += '<div class="cal-target-band" style="bottom:' + tLowPct.toFixed(1) + '%;height:' + (tHighPct - tLowPct).toFixed(1) + '%"><span class="cal-target-label">目标 ' + targetLow + '–' + targetHigh + '</span></div>\n';
-    h += '<div class="macro-avg-line" style="bottom:' + avgPct.toFixed(1) + '%;"><span class="macro-avg-label">平均摄入 ' + avgVal + '</span></div>\n';
+    // If avg line overlaps target band, put label below the line instead of above
+    var avgLabelPos = (avgVal >= targetLow && avgVal <= targetHigh) ? 'transform:translateY(2px)' : 'transform:translateY(-100%)';
+    h += '<div class="macro-avg-line" style="bottom:' + avgPct.toFixed(1) + '%;"><span class="macro-avg-label" style="' + avgLabelPos + '">平均摄入 ' + avgVal + '</span></div>\n';
 
     for (var j = 0; j < dailyValues.length; j++) {
       var val = dailyValues[j];
