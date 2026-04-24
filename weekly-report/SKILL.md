@@ -52,15 +52,9 @@ User can request a report at any time:
 
 ### Pre-send Checks
 
-> **⚠️ DISPATCHER MODE (auto-send):**
-> Weekly reports are NOT auto-sent via per-user cron. Instead, a **dispatcher cron** on the main agent
-> runs `weekly-report-dispatcher.py` every Sunday at 20:30 to scan all workspaces and only trigger
-> reports for users with ≥2 days of food data. Per-user weekly report crons should be **disabled**.
->
-> The dispatcher calls `openclaw cron run <job_id>` for each eligible user using the registry at
-> `~/.openclaw/weekly-report-crons.json` (maps agentId → cronJobId).
->
-> When onboarding a new user, register their weekly report cron ID in the registry file.
+> **Auto-send:** Weekly reports are sent via **per-user cron** (Sunday 21:00 user local time).
+> The cron job runs `should-send-report.sh` as a gate check before generating.
+> When onboarding a new user, create a weekly report cron job for them (see notification-manager SKILL.md).
 
 1. User in Stage 5 (silent)? → skip auto-send, but still generate if manually requested
 2. Less than 2 days of data in the period? → send a short message instead: `"Not enough data for a full report this week — let's make next week count! 💪"`
