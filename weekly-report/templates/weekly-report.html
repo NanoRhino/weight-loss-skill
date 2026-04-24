@@ -132,6 +132,11 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
   function renderCalorieChart(days, calMin, calMaxTarget, chartMax) {
     var chartH = 220;
     var ticks = niceTicks(chartMax, 4);
+    if (ticks.length) {
+      var tickMax = Math.max.apply(null, ticks);
+      if (tickMax < chartMax) ticks.push(Math.round(tickMax + (ticks[1] - ticks[0])));
+      chartMax = Math.max.apply(null, ticks);
+    }
     var bandBottom = (calMin / chartMax) * 100;
     var bandHeight = ((calMaxTarget - calMin) / chartMax) * 100;
 
@@ -288,7 +293,11 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     var chartMax = Math.max(maxData, targetHigh) * 1.2;
     chartMax = Math.max(chartMax, 10);
     var ticks = niceTicks(chartMax, 3);
-    chartMax = ticks.length ? Math.max.apply(null, ticks) : chartMax;
+    if (ticks.length) {
+      var tickMax = Math.max.apply(null, ticks);
+      if (tickMax < chartMax) ticks.push(Math.round(tickMax + (ticks[1] - ticks[0])));
+      chartMax = Math.max.apply(null, ticks);
+    }
 
     var tLowPct = (targetLow / chartMax) * 100;
     var tHighPct = (targetHigh / chartMax) * 100;
