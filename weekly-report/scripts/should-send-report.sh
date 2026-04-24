@@ -39,7 +39,7 @@ fi
 ENG="$WORKSPACE/data/engagement.json"
 if [[ -f "$ENG" ]]; then
   STAGE=$(python3.11 -c "import json; print(json.load(open('$ENG')).get('notification_stage', 1))" 2>/dev/null || echo "1")
-  if [[ "$STAGE" -ge 2 ]]; then
+  if [[ "$STAGE" -ge 3 ]]; then
     echo "no: stage=$STAGE (recall/inactive)"
     exit 0
   fi

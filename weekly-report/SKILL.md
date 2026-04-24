@@ -56,7 +56,7 @@ User can request a report at any time:
 > The cron job runs `should-send-report.sh` as a gate check before generating.
 > When onboarding a new user, create a weekly report cron job for them (see notification-manager SKILL.md).
 
-1. User in Stage 5 (silent)? → skip auto-send, but still generate if manually requested
+1. User in Stage ≥ 3 (recall/silent)? → skip auto-send, but still generate if manually requested
 2. Less than 2 days of data in the period? → send a short message instead: `"Not enough data for a full report this week — let's make next week count! 💪"`
 3. All clear → generate and send
 
