@@ -318,8 +318,9 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
       if (val === null || val === 0) {
         h += '<div class="cal-bar-col"><div class="cal-bar-value"></div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:0px;background:transparent;"></div></div></div>\n';
       } else {
+        var rounded = Math.round(val);
         var bH = Math.round((val / chartMax) * chartH);
-        h += '<div class="cal-bar-col"><div class="cal-bar-value">' + val + '</div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:' + bH + 'px;background:' + barColor(val) + ';"></div></div></div>\n';
+        h += '<div class="cal-bar-col"><div class="cal-bar-value">' + rounded + '</div><div class="cal-bar-wrapper"><div class="cal-bar" style="height:' + bH + 'px;background:' + barColor(val) + ';"></div></div></div>\n';
       }
     }
     h += '</div>\n<div class="cal-x-labels">';
