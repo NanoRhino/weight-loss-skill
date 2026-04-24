@@ -23,7 +23,7 @@ set -euo pipefail
 #   --dry-run                Print commands without executing (skips slot allocation)
 #   --skip-existing          Skip reminders that already exist (checked before queuing)
 #   --only <type>            Only create specific type: meal, weight, review, report,
-#                            pattern, all (default: all). Comma-separated for multiple.
+#                            pattern, tips, all (default: all). Comma-separated for multiple.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_DIR="${OPENCLAW_STATE_DIR:-$HOME/.openclaw-gateway}"
@@ -235,6 +235,11 @@ if should_create_type "pattern" && [[ -n "$DINNER_TIME" ]]; then
     cm=$(echo "$ct" | awk '{print $1}'); ch=$(echo "$ct" | awk '{print $2}')
     queue_job "Diet pattern detection" "Run diet-pattern-detection skill." "$cm $ch * * *" other
   fi
+fi
+
+# 6. Product tips (daily, 21:00 or 21:30 if 21:00 conflicts with other reminders)
+if should_create_type "tips"; then
+  queue_job "Product tips" "Run notification-composer for tips." "0 21 * * *" other
 fi
 
 TOTAL=${#QUEUED_NAMES[@]}
