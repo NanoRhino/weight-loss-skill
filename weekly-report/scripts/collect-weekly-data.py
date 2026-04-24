@@ -248,15 +248,16 @@ def read_plan(workspace_dir):
 
         patterns = {
             "cal_min": r"Daily Calorie Range[:\s]*(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)",
+            "cal_target_single": r"(?:每日热量目标|Daily Calorie Target|Calorie Target|热量目标)[：:\s]*([\d,]+)",
             "tdee": r"TDEE[:\s]*([\d,]+)",
             "bmr": r"BMR[:\s]*([\d,]+)",
             "deficit": r"Daily Calorie Deficit[:\s]*([\d,]+)",
-            "protein_range": r"Protein[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-            "fat_range": r"Fat[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-            "carb_range": r"Carb[:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-            "weight_loss_rate": r"Weight Loss Rate[:\s]*([\d.]+)",
-            "target_weight": r"Target Weight[:\s]*([\d.]+)",
-            "start_weight": r"(?:Start|Initial|Starting) Weight[:\s]*([\d.]+)",
+            "protein_range": r"(?:Protein|蛋白质)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
+            "fat_range": r"(?:Fat|脂肪)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
+            "carb_range": r"(?:Carb|碳水)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
+            "weight_loss_rate": r"(?:Weight Loss Rate|每周减重)[：:\s]*([\d.]+)",
+            "target_weight": r"(?:Target Weight|目标体重)[：:\s]*([\d.]+)",
+            "start_weight": r"(?:Start|Initial|Starting|初始) ?(?:Weight|体重)[：:\s]*([\d.]+)",
         }
 
         for key, pattern in patterns.items():
@@ -270,6 +271,13 @@ def read_plan(workspace_dir):
                         plan[key] = float(groups[0].replace(",", ""))
                     except ValueError:
                         plan[key] = groups[0].replace(",", "")
+
+        # Convert single calorie target to range if no range was found
+        if "cal_min" not in plan and "cal_target_single" in plan:
+            target = int(plan.pop("cal_target_single"))
+            plan["cal_min"] = [target - 200, target + 200]
+        elif "cal_target_single" in plan:
+            plan.pop("cal_target_single")  # range takes priority
 
         if not plan:
             plan = None

@@ -376,6 +376,31 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     h += '<div class="date-range">' + meta.start_date + ' ~ ' + meta.end_date + '</div>';
     h += '</header>';
 
+    // Empty week check — show message instead of empty charts
+    var loggedDays = summary.logged_days || 0;
+    if (loggedDays === 0 && allWeight.length === 0) {
+      h += '<div class="report-card"><div class="card-body" style="text-align:center;padding:2rem 1rem;">';
+      h += '<div style="font-size:2rem;margin-bottom:0.5rem;">📭</div>';
+      h += '<div style="font-size:0.95rem;color:#666;">本周没有记录数据</div>';
+      h += '<div style="font-size:0.82rem;color:#aaa;margin-top:0.3rem;">开始记录后，这里会出现详细的分析报告</div>';
+      h += '</div></div>';
+      h += '<div class="report-footer">NanoRhino · 小犀牛营养师</div>';
+
+      document.getElementById('content').innerHTML = h;
+      document.getElementById('content').style.display = '';
+      document.getElementById('loading').style.display = 'none';
+      // Nav click handlers
+      var emptyNavBtns = document.querySelectorAll('.week-nav-btn:not(.disabled)');
+      for (var en = 0; en < emptyNavBtns.length; en++) {
+        emptyNavBtns[en].addEventListener('click', function(e) {
+          e.preventDefault();
+          var week = this.getAttribute('data-week');
+          if (week) { history.pushState(null, '', location.pathname + '?week=' + week); loadWeek(week); }
+        });
+      }
+      return;
+    }
+
     // Section 1: Logging Calendar
     h += '<div class="report-card"><div class="card-header">📅 记录日历</div><div class="card-body">';
     h += '<div class="logging-grid">';
