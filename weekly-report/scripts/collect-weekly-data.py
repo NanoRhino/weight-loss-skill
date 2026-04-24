@@ -102,11 +102,11 @@ def collect_meals(nutrition_calc, data_dir, start_date, end_date, tz_offset):
                             foods = [i.get("name", "?") for i in items if isinstance(i, dict)]
                             meals.append({
                                 "meal_type": key,
-                                "cal": meal_cal,
-                                "protein": meal_protein,
-                                "fat": meal_fat,
-                                "carb": meal_carb,
-                                "fiber": meal_fiber,
+                                "cal": round(meal_cal),
+                                "protein": round(meal_protein, 1),
+                                "fat": round(meal_fat, 1),
+                                "carb": round(meal_carb, 1),
+                                "fiber": round(meal_fiber, 1),
                                 "foods": foods
                             })
                 elif isinstance(raw, list):
@@ -129,11 +129,11 @@ def collect_meals(nutrition_calc, data_dir, start_date, end_date, tz_offset):
                                 foods = []
                             meals.append({
                                 "meal_type": item.get("meal_type") or item.get("name", "unknown"),
-                                "cal": meal_cal,
-                                "protein": meal_protein,
-                                "fat": meal_fat,
-                                "carb": meal_carb,
-                                "fiber": meal_fiber,
+                                "cal": round(meal_cal),
+                                "protein": round(meal_protein, 1),
+                                "fat": round(meal_fat, 1),
+                                "carb": round(meal_carb, 1),
+                                "fiber": round(meal_fiber, 1),
                                 "foods": foods
                             })
 
@@ -141,11 +141,11 @@ def collect_meals(nutrition_calc, data_dir, start_date, end_date, tz_offset):
                     day_data["logged"] = True
                     day_data["meals"] = meals
                     day_data["totals"] = {
-                        "cal": sum(m["cal"] for m in meals),
-                        "protein": sum(m["protein"] for m in meals),
-                        "fat": sum(m["fat"] for m in meals),
-                        "carb": sum(m["carb"] for m in meals),
-                        "fiber": sum(m["fiber"] for m in meals),
+                        "cal": round(sum(m["cal"] for m in meals)),
+                        "protein": round(sum(m["protein"] for m in meals), 1),
+                        "fat": round(sum(m["fat"] for m in meals), 1),
+                        "carb": round(sum(m["carb"] for m in meals), 1),
+                        "fiber": round(sum(m["fiber"] for m in meals), 1),
                     }
             except (json.JSONDecodeError, IOError) as e:
                 log(f"Error reading {meal_file}: {e}")
