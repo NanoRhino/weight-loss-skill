@@ -59,6 +59,10 @@ python3 {baseDir}/scripts/pre-send-check.py \
 - **`SEND welcome_back=true from_stage=N`** → 用户沉默后回来了！**先热情欢迎，再处理内容。** 语气：开心、温暖、简短（1-2句欢迎 + 正常提醒）。不要提"你消失了X天"这种让人有压力的话，轻松点，比如"欢迎回来！继续记录吧～"。然后清除 flag（见下方）。
 - **`SEND recall stage=N days_silent=X`** → 用户处于召回阶段（Stage N）。**必须发召回消息，不是正常提醒。** 忽略 cron 原始的 meal-type，按召回阶段的语气和内容模板写。参考第四步的 Stage 2/3/4 分支。
 
+> ⚠️ pre-send-check 会在请假期间自动返回 `NO_REPLY`，无需 agent 额外判断。
+> ⚠️ 假期期间用户主动打卡 → 正常记录，不拦。leave 只影响 cron 提醒。
+> ⚠️ 用户提前说"我回来了" → 调用 `leave-manager.py clear`。
+
 > ⚠️ 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。
 > ⚠️ **当输出包含 `recall` 时，绝对不能写正常的餐食提醒。** 即使 cron prompt 说 "Run notification-composer for breakfast"，你也必须发召回消息。
 > ⚠️ **当输出包含 `welcome_back` 时：** 发送欢迎+正常提醒后，执行：

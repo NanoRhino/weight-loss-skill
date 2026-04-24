@@ -351,6 +351,43 @@ def check_scheduling_constraints(workspace_dir, meal_type, tz_offset):
     return True, None
 
 
+def check_leave(workspace_dir, tz_offset, mock_date=None):
+    """Check if user is on leave. If so, suppress all reminders."""
+    leave_path = os.path.join(workspace_dir, "data", "leave.json")
+    if not os.path.exists(leave_path):
+        return True, None
+
+    try:
+        with open(leave_path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return True, None
+
+    if not data.get("active"):
+        return True, None
+
+    if mock_date:
+        today = mock_date
+    else:
+        tz = timezone(timedelta(seconds=tz_offset))
+        today = datetime.now(tz).strftime("%Y-%m-%d")
+    start = data.get("start", "")
+    end = data.get("end", "")
+
+    if start <= today <= end:
+        return False, f"user on leave ({start} to {end})"
+
+    # Auto-expire past leave
+    if today > end:
+        data["active"] = False
+        with open(leave_path, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+    return True, None
+
+
+
+
 def main():
     parser = argparse.ArgumentParser(description="Pre-send check for meal/weight reminders")
     parser.add_argument("--workspace-dir", required=True, help="Agent workspace root")
@@ -361,6 +398,8 @@ def main():
                         help="Meal type to check")
     parser.add_argument("--tz-offset", required=True, type=int,
                         help="Timezone offset in seconds from UTC")
+    parser.add_argument("--mock-date", default=None,
+                        help="Mock today's date YYYY-MM-DD (for testing)")
     args = parser.parse_args()
     args.workspace_dir = _normalize_path(args.workspace_dir)
 
@@ -370,6 +409,7 @@ def main():
     _run_check_stage(args.workspace_dir, args.tz_offset)
 
     checks = [
+        ("leave", lambda: check_leave(args.workspace_dir, args.tz_offset, args.mock_date)),
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
         ("engagement_stage", lambda: check_engagement_stage(
             args.workspace_dir, args.meal_type, args.tz_offset)),
@@ -421,6 +461,7 @@ def main():
             pass
 
     log("All checks passed")
+
     if stage_info.get("welcome_back"):
         print(f"SEND welcome_back=true from_stage={stage_info.get('welcome_back_from_stage', 2)}")
     elif stage_info["stage"] >= 2:
