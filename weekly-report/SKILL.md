@@ -632,8 +632,7 @@ python3 {baseDir}/scripts/collect-weekly-data.py \
   2>&1 | tail -n +2 | \
 python3 {baseDir}/scripts/generate-report-html.py \
   --output {workspaceDir}/data/reports/weekly-data-{start_date}.html \
-  --template-output {workspaceDir}/data/reports/weekly-report.html \
-  --username {username} \
+  --workspace-dir {workspaceDir} \
   --nickname {user_nickname} \
   --tagline '{short fun summary of the week}' \
   --plan-rate {weight_loss_rate_per_week} \
@@ -642,68 +641,36 @@ python3 {baseDir}/scripts/generate-report-html.py \
   --suggestions '{JSON array of suggestion strings}'
 ```
 
-**Agent responsibilities** (what YOU provide as parameters):
+**The script's stdout is the report URL.** Capture it and use it in the Part 1 message.
+
+**What the script does automatically** (you do NOT need to do these manually):
+1. Generates JSON data file
+2. Copies `weekly-data-latest.html` (if this is the newest week)
+3. Copies HTML template to reports dir
+4. **Uploads 3 files to cloud storage** (dated data + latest + template)
+5. **Writes report log** to `data/logs/weekly-report-{start_date}.json`
+6. Outputs the public report URL to stdout
+
+**What YOU provide as parameters:**
 - `--nickname`: user's display name (from USER.md)
-- `--tagline`: short, fun one-liner summarizing the week (be creative, match the user's personality!)
-- `--commentary`: JSON object with keys `logging`, `calories`, `weight`, `macros` — your personalized analysis for each section. **Write like a sassy best friend who happens to know nutrition**: use casual spoken Chinese (口语化), be funny/witty, tease when appropriate, but always back it up with real numbers. Use `cal_avg_estimated` (meal-filled estimate) for dietary assessment, NOT `cal_avg` (which is deflated by missed-meal days). If `days_with_missing_meals > 0`, mention that some days had incomplete records. Example: "补全漏餐估算日均1573大卡，离目标1600就差一口气了！不过有4天漏记了，记全了数据才更准。" Each commentary should be 2-4 sentences.
 - `--tagline`: short, fun one-liner summarizing the week (witty, teasing, spoken Chinese — like a friend roasting you with love)
-- `--highlights`: JSON array of 2-3 this-week highlights — be specific and celebratory (e.g. "蛋白质从上周36g冲到56g，进步肉眼可见！")
-- `--suggestions`: JSON array of 1-2 actionable next-week suggestions — concrete and encouraging (e.g. "早餐加杯牛奶+俩鸡蛋，蛋白质直接拉满到80g")
+- `--commentary`: JSON object with keys `logging`, `calories`, `weight`, `macros` — your personalized analysis for each section. **Write like a sassy best friend who happens to know nutrition**: use casual spoken Chinese (口语化), be funny/witty, tease when appropriate, but always back it up with real numbers. Use `cal_avg_estimated` (meal-filled estimate) for dietary assessment, NOT `cal_avg` (which is deflated by missed-meal days). If `days_with_missing_meals > 0`, mention that some days had incomplete records. Each commentary should be 2-4 sentences.
+- `--highlights`: JSON array of 2-3 this-week highlights — be specific and celebratory
+- `--suggestions`: JSON array of 1-2 actionable next-week suggestions — concrete and encouraging
 - `--plan-rate`: weight loss rate in kg/week (read from health-profile, default 0.5)
-- `--username`: read from `plan-url.json` in workspace (auto-set by upload script)
 
-**Script responsibilities** (what the script handles automatically):
-- Merges all data + commentary into a single JSON file
-- Copies `weekly-data-latest.html` for default URL access
-- Copies HTML template to deployment path (via `--template-output`)
+**Optional flags:**
+- `--no-upload`: Skip cloud upload (for local testing)
+- `--no-log`: Skip writing report log (for backfilling history)
+- `--username`: Override auto-resolved username
 
-The JSON is written to `data/reports/weekly-data-{start_date}.html`.
-The template is written to `data/reports/weekly-report.html`.
+**Username is auto-resolved** from the workspace path (→ agentId → `agent-registry.json` shortId). Do NOT pass `--username` manually unless testing.
 
-**Upload to cloud storage** — three uploads per report:
-
-```bash
-# 1. Upload dated JSON data (permanent archive)
-bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
-  --file {workspaceDir}/data/reports/weekly-data-{start_date}.html \
-  --bucket nanorhino-im-plans \
-  --key weekly-data-{start_date} \
-  --workspace {workspaceDir}
-
-# 2. Upload latest JSON (overwrites previous)
-bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
-  --file {workspaceDir}/data/reports/weekly-data-{start_date}.html \
-  --bucket nanorhino-im-plans \
-  --key weekly-data-latest \
-  --workspace {workspaceDir}
-
-# 3. Upload HTML template (ALWAYS — ensures template exists for new users and picks up updates)
-bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
-  --file {workspaceDir}/data/reports/weekly-report.html \
-  --bucket nanorhino-im-plans \
-  --key weekly-report \
-  --workspace {workspaceDir}
-```
-
-- The script **auto-resolves the username** from the workspace path (→ agentId → `agent-registry.json` shortId). Do NOT pass `--username` manually.
-- The script outputs the public URL to stdout. **Send this URL to the user** alongside the Part 1 message.
+**Report URLs:**
 - **Report URL**: `https://nanorhino.ai/user/{username}/weekly-report.html?week={start_date}`
 - **Latest URL**: `https://nanorhino.ai/user/{username}/weekly-report.html` (no `?week=` → loads latest)
-- `plan-url.json` is auto-updated with the `weekly-report` key.
 
-### Backfill historical reports
-
-After uploading the current report, check `data/reports/` for any older `weekly-data-*.json` files that may not have been uploaded. For each such file:
-
-```bash
-bash {plan-export:baseDir}/scripts/upload-to-s3.sh \
-  --file {workspaceDir}/data/reports/weekly-data-{old_start_date}.html \
-  --bucket nanorhino-im-plans \
-  --key weekly-data-{old_start_date} \
-  --workspace {workspaceDir}
-```
-
-This ensures the `← 上一周` navigation links always resolve. Only upload files that haven't been uploaded yet (check if the dated URL returns 200, or simply re-upload — the operation is idempotent).
+⚠️ **Do NOT manually call `upload-to-s3.sh` for weekly reports.** The script handles all uploads internally. Manual upload is only needed for one-off fixes.
 
 ### Week Navigation (Previous / Next)
 
@@ -736,11 +703,13 @@ When querying meal data, weight data, and exercise data, use exactly this Monday
 ⚠️ **Do NOT use the `jdcloud-oss-upload` skill** for weekly reports. Always use
 `plan-export`'s `upload-to-s3.sh` to ensure consistent storage backend selection.
 
-### Report JSON (stored to workspace)
+### Report JSON (auto-written by script)
 
-After displaying the report to the user, write a structured JSON summary to
-`logs.weekly_report.{start_date}` for cross-session reference and trend
-analysis. Schema in `references/data-schemas.md`. Includes `next_week_focus`.
+`generate-report-html.py` automatically writes a structured JSON summary to
+`data/logs/weekly-report-{start_date}.json` after each generation.
+Includes summary stats, commentary, highlights, suggestions, and the report URL.
+Used for `next_week_focus` tracking and cross-session reference.
+To skip (e.g., backfilling): pass `--no-log`.
 
 ---
 
