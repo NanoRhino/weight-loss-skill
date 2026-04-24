@@ -275,7 +275,7 @@ def read_plan(workspace_dir):
         # Convert single calorie target to range if no range was found
         if "cal_min" not in plan and "cal_target_single" in plan:
             target = int(plan.pop("cal_target_single"))
-            plan["cal_min"] = [target - 200, target + 200]
+            plan["cal_min"] = [round(target * 0.9), round(target * 1.1)]
         elif "cal_target_single" in plan:
             plan.pop("cal_target_single")  # range takes priority
 
@@ -350,8 +350,8 @@ def _fill_macro_defaults(workspace_dir, plan):
                 pass
 
         if cal_from_json and cal_from_json > 0:
-            # Use calorie_target as center, ±200 range
-            plan["cal_min"] = [cal_from_json - 200, cal_from_json + 200]
+            # Use calorie_target as center, ±10% range
+            plan["cal_min"] = [round(cal_from_json * 0.9), round(cal_from_json * 1.1)]
         else:
             # Standard deficit: BMR~1400-1650 for most users, target 1600-2000
             plan["cal_min"] = [1600, 2000]
@@ -359,27 +359,27 @@ def _fill_macro_defaults(workspace_dir, plan):
     cal_mid = (plan["cal_min"][0] + plan["cal_min"][1]) / 2
 
     # Protein target (g)
+    # Weight loss: 1.2-1.6 g/kg (preserve muscle mass)
+    # High protein mode: 1.6-2.0 g/kg
     if "protein_range" not in plan:
         if diet_mode == "high_protein":
-            protein_per_kg = 1.2
+            plan["protein_range"] = [round(weight * 1.6), round(weight * 2.0)]
         else:
-            protein_per_kg = 0.8
-        protein_target = round(weight * protein_per_kg)
-        plan["protein_range"] = [protein_target - 10, protein_target + 10]
+            plan["protein_range"] = [round(weight * 1.2), round(weight * 1.6)]
 
-    # Fat target (g) — 25-35% of calories
+    # Fat target (g) — 20-30% of calories (lower end for weight loss)
     if "fat_range" not in plan:
-        fat_low = round(cal_mid * 0.25 / 9)
-        fat_high = round(cal_mid * 0.35 / 9)
+        fat_low = round(cal_mid * 0.20 / 9)
+        fat_high = round(cal_mid * 0.30 / 9)
         plan["fat_range"] = [fat_low, fat_high]
 
-    # Carb target (g) — remainder
+    # Carb target (g) — remainder after protein and fat
     if "carb_range" not in plan:
         protein_mid = (plan["protein_range"][0] + plan["protein_range"][1]) / 2
         fat_mid = (plan["fat_range"][0] + plan["fat_range"][1]) / 2
         remaining_cal = cal_mid - (protein_mid * 4) - (fat_mid * 9)
-        carb_mid = max(remaining_cal / 4, 80)  # at least 80g
-        plan["carb_range"] = [round(carb_mid * 0.8), round(carb_mid * 1.2)]
+        carb_target = max(remaining_cal / 4, 100)  # at least 100g for brain function
+        plan["carb_range"] = [round(carb_target * 0.85), round(carb_target * 1.15)]
 
     return plan
 
