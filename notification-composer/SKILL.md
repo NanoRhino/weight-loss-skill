@@ -337,7 +337,7 @@ python3 {baseDir}/scripts/tips-check.py \
 ```
 3. 输出处理：
    - **`NO_REPLY`** → 回复 `NO_REPLY`，结束
-   - **`SEND tip_id=N topic=...`** → 根据主题，结合用户的实际使用情况生成个性化消息
+   - **`SEND tip_id=N topic=...`** + **`PROMPT: ...`** → 按 PROMPT 内容，结合用户的实际使用情况生成个性化消息。**不需要去读 tip-topics.json，PROMPT 已经包含了所有指引。**
 
 ### 生成规则
 

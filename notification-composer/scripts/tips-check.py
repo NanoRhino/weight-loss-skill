@@ -132,8 +132,7 @@ def main():
 
     log(f"Sending tip {next_id}: {tip['topic']}")
     print(f"SEND tip_id={next_id} topic={tip['topic']}")
-    # Print prompt on stderr for the cron message to pick up
-    print(f"PROMPT:{tip['prompt']}", file=sys.stderr)
+    print(f"PROMPT: {tip['prompt']}")
 
 
 if __name__ == "__main__":
