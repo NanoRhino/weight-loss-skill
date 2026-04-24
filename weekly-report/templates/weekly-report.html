@@ -20,7 +20,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .logging-grid .day-label { font-size: 0.78rem; color: #888; font-weight: 500; padding: 0.3rem 0; }
 .logging-grid .day-status { font-size: 1.2rem; padding: 0.2rem 0 0.3rem; }
 .logging-summary { text-align: center; font-size: 0.85rem; font-weight: 600; color: #333; padding-top: 0.5rem; }
-.cal-chart { position: relative; height: 220px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 0 0 2rem; margin-bottom: 0.4rem; }
+.cal-chart { position: relative; height: 238px; display: flex; align-items: flex-end; justify-content: space-between; padding: 18px 0 0 2rem; margin-bottom: 0.4rem; }
 .cal-target-band { position: absolute; left: 2rem; right: 0; background: rgba(0,0,0,0.05); z-index: 0; }
 .cal-target-label { position: absolute; right: 4px; top: 2px; font-size: 0.65rem; color: #aaa; }
 .cal-grid-line { position: absolute; left: 2rem; right: 0; height: 0; border-bottom: 1px dashed #e8e5dd; z-index: 0; }
@@ -36,7 +36,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .macro-chart-section { margin-bottom: 4.5rem; }
 .macro-chart-section:first-of-type { margin-top: 1.5rem; }
 .macro-chart-section:last-of-type { margin-bottom: 0.5rem; }
-.macro-chart-title { text-align: center; font-size: 0.82rem; font-weight: 600; color: #333; margin-bottom: 1rem; }
+.macro-chart-title { text-align: center; font-size: 0.82rem; font-weight: 600; color: #333; margin-bottom: 1.5rem; }
 .macro-avg-line { position: absolute; left: 2rem; right: 0; height: 0; border-top: 1px dashed #333; z-index: 2; }
 .macro-avg-label { position: absolute; right: 4px; transform: translateY(-100%); font-size: 0.65rem; color: #333; font-weight: 500; }
 .weight-chart-wrapper { position: relative; display: flex; margin-bottom: 0.6rem; }
@@ -302,7 +302,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 
     var h = '<div class="macro-chart-section">\n';
     h += '<div class="macro-chart-title">' + esc(name) + '</div>\n';
-    h += '<div class="cal-chart" style="height:' + chartH + 'px;">\n';
+    h += '<div class="cal-chart" style="height:' + (chartH + 18) + 'px;padding-top:18px;">\n';
 
     for (var i = 0; i < ticks.length; i++) {
       var t = ticks[i];
