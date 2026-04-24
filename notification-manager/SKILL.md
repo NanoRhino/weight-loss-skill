@@ -466,6 +466,17 @@ python3 {notification-composer:baseDir}/scripts/leave-manager.py info \
 
 ---
 
+## Tips 管理
+
+用户说"别发了"/"不要再发小贴士"/"关掉tips"时：
+
+```bash
+python3 {notification-composer:baseDir}/scripts/tips-optout.py \
+  --data-dir {workspaceDir}/data
+```
+
+---
+
 ## Skill Routing
 
 **See `SKILL-ROUTING.md` for the full conflict resolution system.** This skill
