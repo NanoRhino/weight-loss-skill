@@ -188,6 +188,22 @@ def main():
         shutil.copy2(args.output, latest_path)
         log(f"Copied to {latest_path}")
 
+    # Backfill: set prev week's next_exists = true
+    prev_start = data.get('meta', {}).get('prev_start', '')
+    if prev_start:
+        prev_path = os.path.join(out_dir, f'weekly-data-{prev_start}.html')
+        if os.path.exists(prev_path):
+            try:
+                with open(prev_path) as f:
+                    prev_data = json.load(f)
+                if not prev_data.get('meta', {}).get('next_exists', False):
+                    prev_data['meta']['next_exists'] = True
+                    with open(prev_path, 'w') as f:
+                        json.dump(prev_data, f, ensure_ascii=False, indent=2)
+                    log(f"Backfilled next_exists=true in {prev_path}")
+            except (json.JSONDecodeError, IOError) as e:
+                log(f"WARNING: could not backfill prev week {prev_path}: {e}")
+
     # Always copy template to workspace reports dir
     template_src = os.path.join(os.path.dirname(__file__), '..', 'templates', 'weekly-report.html')
     template_src = os.path.abspath(template_src)
@@ -238,6 +254,13 @@ def main():
             if os.path.exists(default_template_dest):
                 _upload_file(upload_script, default_template_dest,
                              "weekly-report", workspace_dir)
+
+            # 4. Upload prev week data if backfilled
+            if prev_start:
+                prev_path_upload = os.path.join(out_dir, f'weekly-data-{prev_start}.html')
+                if os.path.exists(prev_path_upload):
+                    _upload_file(upload_script, prev_path_upload,
+                                 f"weekly-data-{prev_start}", workspace_dir)
 
             # Build report URL
             if data_url:
