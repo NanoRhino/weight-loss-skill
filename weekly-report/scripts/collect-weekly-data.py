@@ -248,7 +248,7 @@ def read_plan(workspace_dir):
 
         patterns = {
             "cal_min": r"Daily Calorie Range[:\s]*(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)",
-            "cal_target_single": r"(?:每日热量目标|Daily Calorie Target|Calorie Target|热量目标)[：:\s]*([\d,]+)",
+            "cal_target_single": r"(?:每日热量目标|Daily Calorie Target|Calorie Target|热量目标)[：:\s]*(?:约|~|≈)?\s*([\d,]+)",
             "tdee": r"TDEE[:\s]*([\d,]+)",
             "bmr": r"BMR[:\s]*([\d,]+)",
             "deficit": r"Daily Calorie Deficit[:\s]*([\d,]+)",
