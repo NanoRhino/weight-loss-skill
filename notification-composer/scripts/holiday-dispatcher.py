@@ -128,7 +128,11 @@ def get_engagement_stage(workspace_dir):
         try:
             with open(eng_path) as f:
                 data = json.load(f)
-            return data.get("notification_stage", data.get("stage", 1))
+            raw = data.get("notification_stage", data.get("stage", 1))
+            try:
+                return int(raw)
+            except (ValueError, TypeError):
+                return 1
         except (json.JSONDecodeError, IOError):
             pass
     return 1
