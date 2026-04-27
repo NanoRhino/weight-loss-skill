@@ -351,6 +351,17 @@ python3 {baseDir}/scripts/tips-check.py \
    - **`NO_REPLY`** → 回复 `NO_REPLY`，结束
    - **`SEND tip_id=N topic=...`** + **`PROMPT: ...`** → 按 PROMPT 内容，结合用户的实际使用情况生成个性化消息。**不需要去读 tip-topics.json，PROMPT 已经包含了所有指引。**
 
+4. **记录上下文**：生成 tip 消息后，在输出前，把消息内容写入 `{workspaceDir}/data/last-tip.md`（覆盖写入），格式：
+```
+# Last Tip Sent
+Date: {当前日期}
+Tip ID: {N}
+Topic: {topic}
+
+{你生成的完整 tip 消息}
+```
+这样用户在主对话中回复时，agent 能读到最近发了什么 tip。
+
 ### 生成规则
 
 - **定位**：不是功能介绍，是回访 — 用了一段时间了，想了解使用感受，引导用户按自己的偏好调整
