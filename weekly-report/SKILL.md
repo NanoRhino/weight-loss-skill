@@ -241,16 +241,19 @@ range band. See `.cal-chart`, `.cal-bar`, `.cal-target-band` in the HTML templat
 
 ### Section 2b: Weekly Low-Calorie Safety Check
 
-Run **after** Section 2 calorie analysis. Uses the per-day calorie data already
-collected in Section 2 — no external script call needed.
+Run **after** Section 2 calorie analysis.
 
-**Data logic (inline calculation):**
+**Data logic:**
 1. Get BMR from `PLAN.md` (or calculate via Mifflin-St Jeor: see `weight-loss-planner/references/formulas.md`)
-2. From Section 2's per-day calorie totals (only days with logged data):
-   - `weekly_avg_cal` = average of daily totals across logged days
-   - `days_below_floor` = list of dates where daily total < BMR
-   - `days_below_count` = length of that list
-   - `below_floor` = true if `weekly_avg_cal` < BMR
+2. Run the check script:
+   ```bash
+   python3 {baseDir}/scripts/weekly-low-cal-check.py \
+     --data-dir {workspaceDir}/data/meals \
+     --bmr <BMR from PLAN.md> \
+     --date <end-of-week YYYY-MM-DD> \
+     --tz-offset {tz_offset}
+   ```
+   Returns: `weekly_avg_calories`, `bmr`, `below_floor`, `days_below_floor`, `days_below_count`
 
 **When `below_floor` is true:**
 Append a gentle safety note in the Calorie Analysis section:
