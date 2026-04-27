@@ -204,8 +204,7 @@ def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday
     try:
         # Use Popen to avoid blocking (cron add can take 30-60s via Kafka)
         proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            timeout=90
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         stdout, stderr = proc.communicate(timeout=90)
         if proc.returncode == 0:
@@ -216,8 +215,14 @@ def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday
         return {"status": "error", "error": str(e)}
 
 
-def scan_and_dispatch(openclaw_dir, tz_offset, holiday, today, dry_run=False):
-    """Scan all workspaces and create cron jobs for eligible users."""
+def scan_and_dispatch(openclaw_dir, tz_offset, holiday, today, dry_run=False,
+                      agent_filter=None, trigger_delay_min=None):
+    """Scan all workspaces and create cron jobs for eligible users.
+
+    Args:
+        agent_filter: optional set of agent_ids to include (skip all others)
+        trigger_delay_min: if set, override trigger time to now + N minutes
+    """
     results = []
 
     for entry in sorted(os.listdir(openclaw_dir)):
@@ -229,6 +234,10 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holiday, today, dry_run=False):
             continue
 
         agent_id = entry.replace("workspace-", "")
+
+        # Filter by agent list if provided
+        if agent_filter and agent_id not in agent_filter:
+            continue
 
         # Check onboarded
         if not os.path.exists(os.path.join(workspace_dir, "health-profile.md")):
@@ -246,21 +255,24 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holiday, today, dry_run=False):
             results.append({"agent_id": agent_id, "status": "skipped", "reason": "already asked or has leave"})
             continue
 
-        # Get breakfast time and compute trigger time (breakfast - 30min)
-        breakfast_hour = get_breakfast_time(workspace_dir)
-        # Convert to UTC: breakfast_hour in local time - tz_offset
-        tz = timezone(timedelta(seconds=tz_offset))
-        local_trigger = datetime(
-            today.year, today.month, today.day,
-            breakfast_hour, 0, tzinfo=tz
-        ) - timedelta(minutes=30)
-        trigger_utc = local_trigger.astimezone(timezone.utc)
+        # Compute trigger time
+        if trigger_delay_min is not None:
+            trigger_utc = datetime.now(timezone.utc) + timedelta(minutes=trigger_delay_min)
+        else:
+            # Get breakfast time and compute trigger time (breakfast - 30min)
+            breakfast_hour = get_breakfast_time(workspace_dir)
+            tz = timezone(timedelta(seconds=tz_offset))
+            local_trigger = datetime(
+                today.year, today.month, today.day,
+                breakfast_hour, 0, tzinfo=tz
+            ) - timedelta(minutes=30)
+            trigger_utc = local_trigger.astimezone(timezone.utc)
 
-        # If trigger time already passed today, skip
-        now_utc = datetime.now(timezone.utc)
-        if trigger_utc <= now_utc:
-            results.append({"agent_id": agent_id, "status": "skipped", "reason": "trigger time already passed"})
-            continue
+            # If trigger time already passed today, skip
+            now_utc = datetime.now(timezone.utc)
+            if trigger_utc <= now_utc:
+                results.append({"agent_id": agent_id, "status": "skipped", "reason": "trigger time already passed"})
+                continue
 
         # Mark as asked
         mark_holiday_asked(workspace_dir, holiday["name"])
@@ -284,6 +296,8 @@ def main():
     parser.add_argument("--tz-offset", type=int, required=True, help="Timezone offset in seconds")
     parser.add_argument("--mock-date", default=None, help="Mock today's date YYYY-MM-DD")
     parser.add_argument("--dry-run", action="store_true", help="Don't create crons, just show what would happen")
+    parser.add_argument("--agents", default=None, help="Comma-separated agent IDs to target (skip all others)")
+    parser.add_argument("--trigger-delay", type=int, default=None, help="Override trigger time to now + N minutes")
     args = parser.parse_args()
 
     today = get_today(args.tz_offset, args.mock_date)
@@ -305,9 +319,13 @@ def main():
     log(f"Found upcoming holiday: {holiday['name']} ({holiday['start']} to {holiday['end']})")
 
     # Step 2: Scan users and create crons
+    agent_filter = set(args.agents.split(",")) if args.agents else None
+
     results = scan_and_dispatch(
         args.openclaw_dir, args.tz_offset, holiday, today,
-        dry_run=args.dry_run
+        dry_run=args.dry_run,
+        agent_filter=agent_filter,
+        trigger_delay_min=args.trigger_delay
     )
 
     output = {
