@@ -237,14 +237,14 @@ if should_create_type "pattern" && [[ -n "$DINNER_TIME" ]]; then
   fi
 fi
 
-# 6. Product tips (daily, 21:00 or 21:30 if 21:00 conflicts with other reminders)
+# 6. Product tips (daily, prefer 21:00 — slot allocator handles conflicts)
 if should_create_type "tips"; then
-  queue_job "Product tips" "Run notification-composer for tips." "0 21 * * *" other
+  queue_job "Product tips" "Run notification-composer for tips." "0 21 * * *" tips
 fi
 
-# 7. Weekly insight (Thursday 21:00, starts after tips 1-5 finish)
+# 7. Weekly insight (Thursday, prefer 21:00 — slot allocator handles conflicts)
 if should_create_type "tips"; then
-  queue_job "Weekly insight" "Run notification-composer for weekly-insight." "0 21 * * 4" other
+  queue_job "Weekly insight" "Run notification-composer for weekly-insight." "0 21 * * 4" tips
 fi
 
 TOTAL=${#QUEUED_NAMES[@]}

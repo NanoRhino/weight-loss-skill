@@ -5,7 +5,7 @@ weekly-insight-check.py — Check if a weekly personalized insight should be sen
 Runs once a week (e.g. Thursday 21:00). Sends a coach-style observation
 based on user's recent meals and conversations.
 
-Starts after all one-time tips (1-5) are finished.
+Starts after all one-time tips (1-7) are finished.
 
 Output:
   SEND  → agent should generate and send insight
@@ -67,7 +67,7 @@ def main():
         print("NO_REPLY reason=invalid_onboarding_date")
         return
 
-    # Must be at least 7 days after onboarding (tips 1-5 should be done)
+    # Must be at least 7 days after onboarding
     days_since = (today - onboarding).days
     if days_since < 7:
         log(f"Too early: {days_since} days since onboarding")
@@ -81,11 +81,19 @@ def main():
         print("NO_REPLY reason=on_leave")
         return
 
-    # Check tips opt-out (shared with tips)
+    # All one-time tips must be finished before weekly insights start
     tips_data = load_json(os.path.join(args.data_dir, "tips.json"))
+
     if tips_data.get("opted_out"):
         log("User opted out")
         print("NO_REPLY reason=opted_out")
+        return
+
+    # tip-topics.json has 7 tips; next_tip > 7 means all sent
+    next_tip = tips_data.get("next_tip", 1)
+    if next_tip <= 7:
+        log(f"Tips not finished yet (next_tip={next_tip})")
+        print("NO_REPLY reason=tips_not_finished")
         return
 
     # Check if already sent this week
@@ -101,12 +109,9 @@ def main():
         except ValueError:
             pass
 
-    # All checks passed — update state and send
-    insight_data["last_sent"] = str(today)
-    insight_data["send_count"] = insight_data.get("send_count", 0) + 1
-    save_json(os.path.join(args.data_dir, "weekly-insight.json"), insight_data)
-
-    log(f"Sending weekly insight (#{insight_data['send_count']})")
+    # Do NOT advance state here — agent calls weekly-insight-mark-sent.py
+    # after confirming delivery.
+    log("Weekly insight ready to send")
     print("SEND")
 
 
