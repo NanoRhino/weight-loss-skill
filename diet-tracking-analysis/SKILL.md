@@ -231,6 +231,7 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 **CN produce (REQUIRED — never omit either item):**
 🥦 Vegetables: ~{produce.vegetables_g}g {produce.vegetables_status}  🍎 Fruits: ~{produce.fruits_g}g {produce.fruits_status}
 - Mandatory for CN region. Always include BOTH on the same line.
+- `vegetables_g` = **cooked weight** (as served). No raw-weight conversion needed.
 - Vegetable low → suggest at next meal.
 - Fruit low → suggest only at final meal of the day.
 

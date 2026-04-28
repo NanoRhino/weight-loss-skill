@@ -570,7 +570,7 @@ def produce_check(meals: int, current_meal: str, log: list,
     Fruits: checked only at the final meal of the day (200–350 g daily total).
 
     Meal JSON records may include optional fields:
-      - vegetables_g: grams of vegetables in this meal
+      - vegetables_g: grams of vegetables in this meal (cooked weight)
       - fruits_g: grams of fruit in this meal
     Missing fields default to 0.
     """
