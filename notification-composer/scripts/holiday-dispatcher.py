@@ -250,6 +250,26 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holiday, today, dry_run=False,
             results.append({"agent_id": agent_id, "status": "skipped", "reason": f"stage {stage}"})
             continue
 
+        # Check recently active (meal logged in last 7 days)
+        meals_dir = os.path.join(workspace_dir, "data", "meals")
+        recently_active = False
+        if os.path.isdir(meals_dir):
+            cutoff_str = (today - timedelta(days=7)).strftime("%Y-%m-%d")
+            for mf in os.listdir(meals_dir):
+                if mf.endswith(".json") and not mf.endswith(".reset"):
+                    if mf.replace(".json", "") >= cutoff_str:
+                        try:
+                            with open(os.path.join(meals_dir, mf)) as f:
+                                data = json.load(f)
+                            if isinstance(data, list) and len(data) > 0:
+                                recently_active = True
+                                break
+                        except Exception:
+                            pass
+        if not recently_active:
+            results.append({"agent_id": agent_id, "status": "skipped", "reason": "no meals in last 7 days"})
+            continue
+
         # Check already asked
         if is_already_asked(workspace_dir, holiday["name"]):
             results.append({"agent_id": agent_id, "status": "skipped", "reason": "already asked or has leave"})
