@@ -125,11 +125,8 @@ def main():
         print("NO_REPLY reason=all_tips_sent")
         return
 
-    # Advance state
-    state["next_tip"] = next_id + 1
-    state["last_sent"] = str(today)
-    save_tips_state(args.data_dir, state)
-
+    # Do NOT advance state here — agent calls tips-mark-sent.py after
+    # confirming delivery, so a failed send won't skip a tip.
     log(f"Sending tip {next_id}: {tip['topic']}")
     print(f"SEND tip_id={next_id} topic={tip['topic']}")
     print(f"PROMPT: {tip['prompt']}")

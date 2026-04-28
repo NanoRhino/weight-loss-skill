@@ -339,7 +339,15 @@ python3 {baseDir}/scripts/tips-check.py \
    - **`NO_REPLY`** → 回复 `NO_REPLY`，结束
    - **`SEND tip_id=N topic=...`** + **`PROMPT: ...`** → 按 PROMPT 内容，结合用户的实际使用情况生成个性化消息。**不需要去读 tip-topics.json，PROMPT 已经包含了所有指引。**
 
-4. **记录上下文**：生成 tip 消息后，在输出前，把消息内容写入 `{workspaceDir}/data/last-tip.md`（覆盖写入），格式：
+4. **标记已发送**：生成并发送 tip 消息后，调用 mark-sent 脚本（确保发送失败不会跳过 tip）：
+```bash
+python3 {baseDir}/scripts/tips-mark-sent.py \
+  --data-dir {workspaceDir}/data \
+  --tip-id <N> \
+  --date <YYYY-MM-DD>
+```
+
+5. **记录上下文**：把消息内容写入 `{workspaceDir}/data/last-tip.md`（覆盖写入），格式：
 ```
 # Last Tip Sent
 Date: {当前日期}
@@ -389,6 +397,12 @@ python3 {baseDir}/scripts/weekly-insight-check.py \
 3. 输出处理：
    - **`NO_REPLY`** → 回复 `NO_REPLY`，结束
    - **`SEND`** → 结合用户最近一周的餐食记录和对话，生成一条个性化洞察
+4. **标记已发送**：生成并发送洞察后，调用：
+```bash
+python3 {baseDir}/scripts/weekly-insight-mark-sent.py \
+  --data-dir {workspaceDir}/data \
+  --date <YYYY-MM-DD>
+```
 
 ### 生成规则
 
