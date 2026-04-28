@@ -213,7 +213,7 @@ Once the user confirms the plan presented in Step 2/3, **do NOT re-present the p
 
 1. Silently save the most recently presented Plan Presentation content as `PLAN.md` in the current workspace. The PLAN.md contains only the Plan Presentation content — no macro breakdowns, no diet mode, no meal-related information. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
 2. Save the `bmr` value from `forward-calc` output to `health-profile.md > Body > BMR` (e.g., `- **BMR:** 1434`). This is used by diet-tracking for case_d safety evaluation.
-3. Do not generate PDF or send via Slack.
+3. **Run `plan-export`** — read the `plan-export` skill to check if this user's channel requires URL export. If yes, generate HTML and upload; send the URL to the user along with a brief message (e.g., "你的计划已生成，点击查看：[URL]"). If the channel doesn't need URL export, skip silently. Do not mention technical details to the user.
 
 **Do NOT mention meal or weight reminders here.** Reminders (meal check-ins, weight logging) are handled by the `notification-manager` and will be configured automatically when the `meal-planner` skill collects the user's meal schedule. Do not mention, summarize, or set up any reminder schedule during the weight-loss planning phase.
 

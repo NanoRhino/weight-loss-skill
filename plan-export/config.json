@@ -1,0 +1,4 @@
+{
+  "urlExportChannels": ["twilio", "telegram", "whatsapp", "slack"],
+  "_comment": "Channels that receive plan URLs instead of inline text. Agent checks channel-source.json against this list."
+}

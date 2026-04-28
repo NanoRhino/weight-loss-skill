@@ -395,6 +395,7 @@ After presenting the diet template:
    ```
    Use the `date` field from the output.
 2. **Activate `notification-manager`** — so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create all cron jobs (meal reminders, weight reminders, daily review, diet pattern detection). `notification-manager` owns all reminder lifecycle management.
+3. **Run `plan-export` for MEAL-PLAN.md** — read the `plan-export` skill to check if this user's channel requires URL export. If yes, generate meal plan HTML and upload; send the URL to the user along with a brief message (e.g., "你的食谱已生成，点击查看：[URL]"). If the channel doesn't need URL export, skip silently.
 
 Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
 

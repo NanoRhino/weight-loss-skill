@@ -14,9 +14,18 @@ metadata:
 
 Convert Markdown plans into professionally styled documents and deliver them to users.
 
-**Primary mode:** HTML web page uploaded to cloud storage — generates a beautiful, mobile-friendly web page and provides a presigned URL (valid 7 days).
+**Primary mode:** HTML web page uploaded to cloud storage — generates a beautiful, mobile-friendly web page and provides a permanent URL.
 
-**Fallback mode:** PDF via Slack file upload — used when cloud storage is not configured.
+**Note:** `--bucket` is required. Always pass `--bucket nanorhino-im-plans` (or the appropriate bucket name) when calling the script.
+
+## Channel-Based Export Policy
+
+Not all channels need URL export. Read `{baseDir}/config.json` to get the `urlExportChannels` list, then read the agent workspace's `channel-source.json` to determine the user's channel.
+
+- **If the user's channel is in `urlExportChannels`**: Generate HTML, upload, and send the URL to the user.
+- **If the user's channel is NOT in the list**: Skip URL export entirely. The calling skill (weight-loss-planner / meal-planner) already presented the plan as inline text — no additional action needed.
+
+When called by another skill, **always check channel first**. If the channel doesn't need URL export, return silently — do not generate HTML, do not upload, do not send any message.
 
 ## Supported Document Types
 
@@ -52,15 +61,20 @@ The upload script automatically detects the storage backend:
 URL=$(bash {baseDir}/scripts/generate-and-send.sh \
   --agent <YOUR_AGENT_ID> \
   --input PLAN.md \
-  --bucket <BUCKET_NAME> \
   --workspace <AGENT_WORKSPACE_PATH> \
   --key weight-loss-plan)
 
-# Meal plan
+# Meal plan (diet template — generated during onboarding)
 URL=$(bash {baseDir}/scripts/generate-and-send.sh \
   --agent <YOUR_AGENT_ID> \
   --input MEAL-PLAN.md \
-  --bucket <BUCKET_NAME> \
+  --workspace <AGENT_WORKSPACE_PATH> \
+  --key meal-plan)
+
+# 7-day meal plan (detailed weekly plan — only if user requests)
+URL=$(bash {baseDir}/scripts/generate-and-send.sh \
+  --agent <YOUR_AGENT_ID> \
+  --input MEAL-PLAN.md \
   --workspace <AGENT_WORKSPACE_PATH> \
   --template meal-plan \
   --key meal-plan)
@@ -109,18 +123,6 @@ Each key is updated independently — uploading a new meal plan doesn't affect t
 1. Read `plan-url.json` → find the relevant key
 2. Send the existing `url` — URLs are permanent (no expiry)
 3. If the plan content has been updated since last upload, re-run the script to push the new version (URL stays the same)
-
-## Fallback Mode: PDF via Slack
-
-When `--bucket` is NOT provided, the script falls back to PDF generation and Slack file upload:
-
-```bash
-bash {baseDir}/scripts/generate-and-send.sh \
-  --agent <YOUR_AGENT_ID> \
-  --input PLAN.md \
-  --message "📋 这是你的体重管理计划" \
-  --filename "体重管理计划.pdf"
-```
 
 ## Individual Scripts (Advanced)
 
