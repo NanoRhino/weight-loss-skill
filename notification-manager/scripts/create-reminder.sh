@@ -153,6 +153,25 @@ print('NOT_FOUND')
       # App channel: use webhook delivery to Bridge
       TO="http://127.0.0.1:8100/cron-webhook"
       ;;
+    twilio)
+      # Look up phone number from openclaw.json bindings
+      CONFIG="$HOME/.openclaw/openclaw.json"
+      TWILIO_PHONE=$(python3 -c "
+import json, sys
+with open('$CONFIG') as f:
+    cfg = json.load(f)
+for b in cfg.get('bindings', []):
+    if b.get('agentId') == '$AGENT' and b.get('match', {}).get('channel') == 'twilio':
+        print(b['match']['peer']['id'])
+        sys.exit(0)
+print('NOT_FOUND')
+")
+      if [[ "$TWILIO_PHONE" == "NOT_FOUND" ]]; then
+        echo "ERROR: No Twilio binding found for agent $AGENT" >&2
+        exit 1
+      fi
+      TO="$TWILIO_PHONE"
+      ;;
     wechat|wecom)
       # Extract userId from agent ID: wechat-dm-xxx → xxx, wecom-dm-xxx → xxx
       USER_ID=$(echo "$AGENT" | sed -E 's/^(wechat|wecom)-dm-//')
