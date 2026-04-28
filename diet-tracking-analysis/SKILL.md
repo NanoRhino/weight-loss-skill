@@ -267,30 +267,6 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 - **2+ days** → Serious: state consequences + analyze cause + actionable plan. No consolation.
 - User shows negative emotion → empathy first, defer to emotional-support (P1).
 
-### Photo Reference Object Guidance
+### Photo Reference Object
 
-**Goal:** Encourage users to include a size reference (chopsticks, spoon, or fist) in food photos for better portion estimation.
-
-**`has_reference_object`** (returned by `meal_checkin`): `true` if photo contains a recognizable size reference, `false` if not, `null` if no photo was provided.
-
-**When to nudge:**
-
-1. **Text-only check-in (no photo):** If user describes food in text only, gently mention that a photo with a reference object (chopsticks ~24cm, spoon ~15cm, or a fist) would help estimate portions more accurately. One sentence max, appended after ③.
-
-2. **Photo without reference object (`has_reference_object: false`):** Read `{workspaceDir}/data/photo-reference-hints.json`. If file doesn't exist or `hint_count < 2`:
-   - `hint_count == 0`: Light nudge — "下次拍的时候旁边放双筷子或勺子，我估量能更准哦"
-   - `hint_count == 1`: Slightly stronger — "放个参照物（筷子、勺子、或握个拳头入镜）我能估得更准，试试看？"
-   - After nudging, increment `hint_count` and update `last_hint_date` in the file.
-   - `hint_count >= 2`: Stop nudging. User's choice.
-
-3. **Photo with reference object (`has_reference_object: true`):** No nudge needed. Good job.
-
-**Reference object suggestions by eating style** (from `health-preferences.md`):
-- Chinese food → chopsticks (~24cm), spoon (~15cm), fist
-- Western food → fork (~20cm), knife (~23cm), fist
-- Default/mixed → chopsticks or spoon, fist
-
-**`photo-reference-hints.json` format:**
-```json
-{ "hint_count": 0, "last_hint_date": null }
-```
+**`has_reference_object`** (returned by `meal_checkin`): `true` if photo contains a recognizable size reference (chopsticks, spoon, fork, fist, etc.), `false` if not, `null` if no photo was provided. Stored in meal log for downstream use by notification-composer.
