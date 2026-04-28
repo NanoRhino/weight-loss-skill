@@ -48,13 +48,6 @@ def load_tips_state(data_dir):
     return {"next_tip": 1, "opted_out": False}
 
 
-def save_tips_state(data_dir, state):
-    path = os.path.join(data_dir, "tips.json")
-    os.makedirs(data_dir, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(state, f, indent=2, ensure_ascii=False)
-
-
 def check_leave(data_dir):
     leave_path = os.path.join(data_dir, "leave.json")
     if os.path.exists(leave_path):
