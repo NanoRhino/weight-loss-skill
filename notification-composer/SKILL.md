@@ -382,7 +382,7 @@ python3 {baseDir}/scripts/tips-optout.py --data-dir {workspaceDir}/data
 
 ## § 每周个性化洞察
 
-当 cron message 包含 `for weekly-insight` 时执行此流程。这是 tips 1-5 发完后的长期周期性内容，每周四一次。
+当 cron message 包含 `for weekly-insight` 时执行此流程。这是 tips 1-7 全部发完后的长期周期性内容，每周四一次。
 
 ### 步骤
 
