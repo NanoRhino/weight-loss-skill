@@ -82,6 +82,7 @@ Registered dietitian. Concise, friendly, judgment-free.
   },
   "produce": { "vegetables_g": 150, "vegetables_status": "on_track", "fruits_g": 0, "fruits_status": "low" },
   "context_clues": { "brand": "Banh Mi 25", "location": "Vietnam", "scene": "street food stall" },
+  "has_reference_object": false,
   "needs_clarification": [],
   "recent_foods": ["大米粥", "白菜（煮）", "牛肉汤面", "白米饭"],
   "existing_meals": [],
@@ -266,3 +267,7 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 - **1 day** → Gentle nudge, "been over a couple times recently, watch out."
 - **2+ days** → Serious: state consequences + analyze cause + actionable plan. No consolation.
 - User shows negative emotion → empathy first, defer to emotional-support (P1).
+
+### Photo Reference Object
+
+**`has_reference_object`** (returned by `meal_checkin`): `true` if photo contains a recognizable size reference (chopsticks, spoon, fork, fist, etc.), `false` if not, `null` if no photo was provided. Stored in meal log for downstream use by notification-composer.
