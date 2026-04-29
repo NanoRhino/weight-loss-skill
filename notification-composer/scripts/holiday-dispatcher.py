@@ -196,12 +196,12 @@ def get_engagement_stage(workspace_dir):
     return 1
 
 
-def is_already_asked(workspace_dir, holiday_name):
+def is_already_asked(workspace_dir, holiday_name, holiday_start):
     """Check if this holiday has already been asked about.
 
     Checks two things:
-    1. leave.json exists → user already has leave set → don't ask
-    2. engagement.json has holiday_asked matching this holiday → already asked
+    1. leave.json exists with active leave → don't ask
+    2. engagement.json has holiday_asked matching "name:start" → already asked
     """
     # Check if leave is already set
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
@@ -215,12 +215,13 @@ def is_already_asked(workspace_dir, holiday_name):
             pass
 
     # Check if already asked (stored in engagement.json)
+    holiday_key = f"{holiday_name}:{holiday_start}"
     eng_path = os.path.join(workspace_dir, "data", "engagement.json")
     if os.path.exists(eng_path):
         try:
             with open(eng_path) as f:
                 data = json.load(f)
-            if data.get("holiday_asked") == holiday_name:
+            if data.get("holiday_asked") == holiday_key:
                 return True
         except (json.JSONDecodeError, IOError):
             pass
@@ -228,8 +229,8 @@ def is_already_asked(workspace_dir, holiday_name):
     return False
 
 
-def mark_holiday_asked(workspace_dir, holiday_name):
-    """Write holiday_asked to engagement.json (not leave.json)."""
+def mark_holiday_asked(workspace_dir, holiday_name, holiday_start):
+    """Write holiday_asked as 'name:start' to engagement.json."""
     eng_path = os.path.join(workspace_dir, "data", "engagement.json")
     data = {}
     if os.path.exists(eng_path):
@@ -238,7 +239,7 @@ def mark_holiday_asked(workspace_dir, holiday_name):
                 data = json.load(f)
         except (json.JSONDecodeError, IOError):
             pass
-    data["holiday_asked"] = holiday_name
+    data["holiday_asked"] = f"{holiday_name}:{holiday_start}"
     os.makedirs(os.path.dirname(eng_path), exist_ok=True)
     with open(eng_path, "w") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
@@ -376,7 +377,7 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
             continue
 
         # Check already asked
-        if is_already_asked(workspace_dir, holiday["name"]):
+        if is_already_asked(workspace_dir, holiday["name"], holiday["start"]):
             results.append({"agent_id": agent_id, "status": "skipped", "reason": "already asked or has leave"})
             continue
 
@@ -414,7 +415,7 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
 
         # Mark as asked ONLY after successful cron creation
         if cron_result.get("status") == "created":
-            mark_holiday_asked(workspace_dir, holiday["name"])
+            mark_holiday_asked(workspace_dir, holiday["name"], holiday["start"])
 
     return results
 
