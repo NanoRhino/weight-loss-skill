@@ -65,6 +65,26 @@ def find_upcoming_holiday(today, region="cn"):
     return None
 
 
+def find_all_upcoming_holidays(today):
+    """Scan all region holiday files, return {region: holiday_dict} for holidays within LOOKAHEAD_DAYS.
+    Only includes regions that have an upcoming holiday. Returns empty dict if none."""
+    result = {}
+    if not os.path.isdir(HOLIDAYS_DIR):
+        return result
+    for fname in os.listdir(HOLIDAYS_DIR):
+        if not fname.endswith(".json"):
+            continue
+        # Extract region from filename like "cn-2026.json"
+        parts = fname.replace(".json", "").rsplit("-", 1)
+        if len(parts) != 2:
+            continue
+        region = parts[0]
+        holiday = find_upcoming_holiday(today, region)
+        if holiday:
+            result[region] = holiday
+    return result
+
+
 def detect_language(workspace_dir):
     """Detect user language from USER.md Language field. Returns 'zh' or 'en'."""
     user_md = os.path.join(workspace_dir, "USER.md")
@@ -94,6 +114,7 @@ def detect_region(workspace_dir):
                 for line in f:
                     if "language" in line.lower() and ":" in line:
                         lang = line.split(":", 1)[1].strip().lower()
+                        lang = lang.lstrip("* ").strip()
                         if lang in lang_map:
                             return lang_map[lang]
                         break
@@ -265,11 +286,12 @@ def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday
         return {"status": "error", "error": str(e)}
 
 
-def scan_and_dispatch(openclaw_dir, tz_offset, holiday, today, dry_run=False,
+def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_run=False,
                       agent_filter=None):
     """Scan all workspaces and create cron jobs for eligible users.
 
     Args:
+        holidays_by_region: dict of {region: holiday_dict} from find_all_upcoming_holidays
         agent_filter: optional set of agent_ids to include (skip all others)
     """
     results = []
@@ -317,6 +339,13 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holiday, today, dry_run=False,
                             pass
         if not recently_active:
             results.append({"agent_id": agent_id, "status": "skipped", "reason": "no meals in last 7 days"})
+            continue
+
+        # Match holiday by user's region
+        user_region = detect_region(workspace_dir)
+        holiday = holidays_by_region.get(user_region)
+        if not holiday:
+            results.append({"agent_id": agent_id, "status": "skipped", "reason": f"no holiday for region {user_region}"})
             continue
 
         # Check already asked
@@ -376,26 +405,22 @@ def main():
     today = get_today(args.tz_offset, args.mock_date)
     log(f"Today: {today}")
 
-    # Step 1: Check if any holiday is within 3 days
-    # Try all regions that might be relevant
-    holiday = None
-    for region in ["cn", "us"]:
-        holiday = find_upcoming_holiday(today, region)
-        if holiday:
-            break
+    # Step 1: Check all regions for upcoming holidays within LOOKAHEAD_DAYS
+    holidays_by_region = find_all_upcoming_holidays(today)
 
-    if not holiday:
-        log("No upcoming holiday within 3 days. Done.")
+    if not holidays_by_region:
+        log(f"No upcoming holiday within {LOOKAHEAD_DAYS} days. Done.")
         print(json.dumps({"status": "no_holiday", "date": str(today)}))
         return
 
-    log(f"Found upcoming holiday: {holiday['name']} ({holiday['start']} to {holiday['end']})")
+    for region, h in holidays_by_region.items():
+        log(f"Found upcoming holiday [{region}]: {h['name']} ({h['start']} to {h['end']})")
 
-    # Step 2: Scan users and create crons
+    # Step 2: Scan users and create crons (each user matched to their region's holiday)
     agent_filter = set(args.agents.split(",")) if args.agents else None
 
     results = scan_and_dispatch(
-        args.openclaw_dir, args.tz_offset, holiday, today,
+        args.openclaw_dir, args.tz_offset, holidays_by_region, today,
         dry_run=args.dry_run,
         agent_filter=agent_filter
     )
@@ -403,7 +428,7 @@ def main():
     output = {
         "status": "dispatched",
         "date": str(today),
-        "holiday": holiday,
+        "holidays": holidays_by_region,
         "users": results,
         "summary": {
             "total": len(results),
