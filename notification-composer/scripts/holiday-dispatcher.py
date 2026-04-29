@@ -265,7 +265,9 @@ def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday
             f"For example, if the user says 'back on the 5th', set --end to the 4th. "
             f"If the user says they don't need a break, say okay. "
             f"Also let them know: anytime they're unable to log meals (not just holidays), "
-            f"they can just tell you and you'll pause reminders."
+            f"they can just tell you and you'll pause reminders. "
+            f"When the user says they don't need a pause: praise their commitment to tracking even during holidays, then confirm reminders will continue as usual. "
+            f"After setting leave, if the start date is ≥1 day away: encourage them to log meals diligently in the days before departure to build up a buffer for the vacation."
         )
     else:
         message = (
@@ -277,6 +279,8 @@ def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday
             f"例如用户说'5号回来'，set --end 2026-05-04（4号是最后一天不在）。"
             f"如果用户说不需要暂停，就说好的。"
             f"另外告诉用户：不只是假期，平时如果有不方便记录饮食的时候，也可以随时跟我说，我会暂停提醒。"
+            f"当用户说不需要暂停时：表扬用户假期也坚持打卡的态度，然后告知照常提醒。"
+            f"设完请假后，如果离请假开始日还有 ≥1 天：鼓励用户在出发前这几天好好记录饮食，为假期攒缓冲。"
         )
 
     at_time = trigger_time_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
