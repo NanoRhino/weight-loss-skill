@@ -78,6 +78,30 @@ def load_engagement(workspace_dir):
         return dict(ENGAGEMENT_DEFAULTS), False
 
 
+def load_leave(workspace_dir):
+    """
+    Load leave.json if exists and valid.
+    Returns (leave_data, file_existed) or (None, False) if no valid leave data.
+    """
+    path = os.path.join(workspace_dir, "data", "leave.json")
+    if not os.path.exists(path):
+        return None, False
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        # Validate required fields
+        if not isinstance(data, dict):
+            log("Warning: leave.json is not a dict")
+            return None, False
+        if "start" not in data or "end" not in data:
+            log("Warning: leave.json missing start or end field")
+            return None, False
+        return data, True
+    except (json.JSONDecodeError, IOError) as e:
+        log(f"Warning: could not read leave.json: {e}")
+        return None, False
+
+
 def save_engagement(workspace_dir, data):
     """Write engagement.json (creates data/ dir if needed)."""
     path = os.path.join(workspace_dir, "data", "engagement.json")
@@ -279,10 +303,47 @@ def main():
         changed = True
         log(f"User returned after {original_days_silent} day(s) — welcome_back flag set (still S1)")
 
+    # --- Check if user is on leave ---
+    leave_data, leave_existed = load_leave(args.workspace_dir)
+    on_leave = False
+    if leave_data:
+        try:
+            leave_start = datetime.strptime(leave_data["start"], "%Y-%m-%d").date()
+            leave_end = datetime.strptime(leave_data["end"], "%Y-%m-%d").date()
+
+            if leave_start <= today_date <= leave_end:
+                # User is currently on leave — freeze stage
+                on_leave = True
+                log(f"User is on leave ({leave_data.get('start')} to {leave_data.get('end')}) — stage frozen at {stage}")
+            elif leave_end < today_date:
+                # Leave just ended — update last_active_date to leave end date
+                # Only update if current last_active_date is older or missing
+                current_last_active = data.get("last_active_date")
+                should_update = False
+                if not current_last_active:
+                    should_update = True
+                else:
+                    try:
+                        current_last_active_date = datetime.strptime(current_last_active, "%Y-%m-%d").date()
+                        if current_last_active_date < leave_end:
+                            should_update = True
+                    except ValueError:
+                        should_update = True
+
+                if should_update:
+                    data["last_active_date"] = leave_data["end"]
+                    # Recalculate days_silent from leave end date
+                    days_silent = (today_date - leave_end).days
+                    changed = True
+                    log(f"Leave ended on {leave_data['end']}, updated last_active_date, days_silent now {days_silent}")
+        except (ValueError, KeyError) as e:
+            log(f"Warning: could not parse leave dates: {e}")
+
     # --- Forward transitions (fast-forward to correct stage) ---
     # Skip forward transitions if --user-active: user just sent a message,
     # so they are active right now regardless of meal history.
-    elif not args.user_active:
+    # Also skip if user is on leave — stage should remain frozen.
+    elif not args.user_active and not on_leave:
         # Calculate target stage directly from days_silent.
         # This avoids the one-step-per-cron problem where a user stuck at S1
         # due to a reset takes multiple cron cycles to reach the correct stage.
