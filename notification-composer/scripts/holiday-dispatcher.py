@@ -73,8 +73,10 @@ def detect_language(workspace_dir):
             with open(user_md, "r", encoding="utf-8") as f:
                 for line in f:
                     if "language" in line.lower() and ":" in line:
-                        lang = line.split(":", 1)[1].strip().lower()
-                        if lang.startswith("en"):
+                        # Handle "- **Language:** en-US" format
+                        val = line.split(":", 1)[1].strip().lower()
+                        val = val.lstrip("* ").strip()
+                        if val.startswith("en"):
                             return "en"
                         break
         except IOError:
