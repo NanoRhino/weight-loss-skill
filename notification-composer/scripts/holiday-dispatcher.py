@@ -21,6 +21,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HOLIDAYS_DIR = os.path.join(SCRIPT_DIR, "..", "references", "holidays")
@@ -384,7 +385,13 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
         # Compute trigger time
         # Get breakfast time and compute trigger time (breakfast - 30min)
         breakfast_hour = get_breakfast_time(workspace_dir)
-        tz = timezone(timedelta(seconds=tz_offset))
+        # Use user's timezone instead of global offset
+        user_tz_name = detect_timezone(workspace_dir)
+        try:
+            tz = ZoneInfo(user_tz_name)
+        except Exception:
+            # Fallback to global offset if ZoneInfo construction fails
+            tz = timezone(timedelta(seconds=tz_offset))
         local_trigger = datetime(
             today.year, today.month, today.day,
             breakfast_hour, 0, tzinfo=tz
