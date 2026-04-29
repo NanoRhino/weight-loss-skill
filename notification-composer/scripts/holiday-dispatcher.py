@@ -9,9 +9,9 @@ Usage (main agent's daily cron, 01:00):
     --tz-offset 28800
 
 Flow:
-  1. Load holiday JSON for current year + region
-  2. If no holiday within 3 days → exit immediately
-  3. Scan all user workspaces → filter eligible users
+  1. Load holiday JSONs for all regions, find holidays within LOOKAHEAD_DAYS
+  2. If no holiday in any region → exit immediately
+  3. Scan all user workspaces → match each user to their region's holiday
   4. For each eligible user, create a one-shot cron (breakfast - 30min)
 """
 
@@ -102,6 +102,24 @@ def detect_language(workspace_dir):
         except IOError:
             pass
     return "zh"
+
+
+def detect_timezone(workspace_dir):
+    """Detect user timezone from USER.md Timezone field. Returns IANA tz name like 'Asia/Shanghai'."""
+    user_md = os.path.join(workspace_dir, "USER.md")
+    if os.path.exists(user_md):
+        try:
+            with open(user_md, "r", encoding="utf-8") as f:
+                for line in f:
+                    if "timezone" in line.lower() and ":" in line:
+                        val = line.split(":", 1)[1].strip()
+                        val = val.lstrip("* ").strip()
+                        if "/" in val:  # Basic sanity check for IANA format
+                            return val
+                        break
+        except IOError:
+            pass
+    return "Asia/Shanghai"
 
 
 def detect_region(workspace_dir):
@@ -226,7 +244,7 @@ def mark_holiday_asked(workspace_dir, holiday_name):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday_end, lang="zh", dry_run=False):
+def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday_end, lang="zh", tz_name="Asia/Shanghai", dry_run=False):
     """Create a one-shot cron job for the user."""
     if lang == "en":
         message = (
@@ -254,6 +272,15 @@ def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday
         )
 
     at_time = trigger_time_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Derive channel and recipient from agent_id prefix
+    if agent_id.startswith("wecom-dm-"):
+        channel = "wecom"
+        to_user = agent_id.replace("wecom-dm-", "")
+    else:
+        channel = "wechat"
+        to_user = agent_id.replace("wechat-dm-", "")
+
     cmd = [
         "openclaw", "cron", "add",
         "--agent", agent_id,
@@ -263,10 +290,10 @@ def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday
         "--message", message,
         "--name", f"holiday-ask-{holiday_name}",
         "--announce",
-        "--channel", "wechat",
-        "--to", agent_id.replace("wechat-dm-", ""),
+        "--channel", channel,
+        "--to", to_user,
         "--timeout", "30000",
-        "--tz", "Asia/Shanghai",
+        "--tz", tz_name,
     ]
 
     if dry_run:
@@ -369,24 +396,23 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
             results.append({"agent_id": agent_id, "status": "skipped", "reason": "trigger time already passed"})
             continue
 
-        # Mark as asked
-        mark_holiday_asked(workspace_dir, holiday["name"])
-
-        # Detect language for cron message
+        # Detect language and timezone for cron message
         lang = detect_language(workspace_dir)
+        tz_name = detect_timezone(workspace_dir)
 
         # Create cron
         cron_result = create_cron(
             agent_id, trigger_utc,
             holiday["name"], holiday["start"], holiday["end"],
             lang=lang,
+            tz_name=tz_name,
             dry_run=dry_run
         )
         cron_result["agent_id"] = agent_id
         cron_result["trigger_time"] = trigger_utc.isoformat()
         results.append(cron_result)
 
-        # Mark as asked ONLY after successful cron creation (not dry-run)
+        # Mark as asked ONLY after successful cron creation
         if cron_result.get("status") == "created":
             mark_holiday_asked(workspace_dir, holiday["name"])
 
