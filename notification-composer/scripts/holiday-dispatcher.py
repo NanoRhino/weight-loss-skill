@@ -197,11 +197,11 @@ def get_engagement_stage(workspace_dir):
     return 1
 
 
-def is_already_asked(workspace_dir, holiday_name, holiday_start):
+def is_already_asked(workspace_dir, holiday_name, holiday_start, today):
     """Check if this holiday has already been asked about.
 
     Checks two things:
-    1. leave.json exists with active leave → don't ask
+    1. leave.json exists with active leave (end >= today) → don't ask
     2. engagement.json has holiday_asked matching "name:start" → already asked
     """
     # Check if leave is already set
@@ -211,7 +211,13 @@ def is_already_asked(workspace_dir, holiday_name, holiday_start):
             with open(leave_path) as f:
                 data = json.load(f)
             if data.get("start") and data.get("end"):
-                return True  # has active leave
+                # Parse end date and check if it's still active
+                try:
+                    leave_end = datetime.strptime(data["end"], "%Y-%m-%d").date()
+                    if leave_end >= today:
+                        return True  # has active leave
+                except (ValueError, KeyError):
+                    pass
         except (json.JSONDecodeError, IOError):
             pass
 
@@ -378,7 +384,7 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
             continue
 
         # Check already asked
-        if is_already_asked(workspace_dir, holiday["name"], holiday["start"]):
+        if is_already_asked(workspace_dir, holiday["name"], holiday["start"], today):
             results.append({"agent_id": agent_id, "status": "skipped", "reason": "already asked or has leave"})
             continue
 
@@ -386,9 +392,9 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
         # Get breakfast time and compute trigger time (breakfast - 30min)
         breakfast_hour = get_breakfast_time(workspace_dir)
         # Use user's timezone instead of global offset
-        user_tz_name = detect_timezone(workspace_dir)
+        tz_name = detect_timezone(workspace_dir)
         try:
-            tz = ZoneInfo(user_tz_name)
+            tz = ZoneInfo(tz_name)
         except Exception:
             # Fallback to global offset if ZoneInfo construction fails
             tz = timezone(timedelta(seconds=tz_offset))
@@ -404,9 +410,8 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
             results.append({"agent_id": agent_id, "status": "skipped", "reason": "trigger time already passed"})
             continue
 
-        # Detect language and timezone for cron message
+        # Detect language for cron message
         lang = detect_language(workspace_dir)
-        tz_name = detect_timezone(workspace_dir)
 
         # Create cron
         cron_result = create_cron(
