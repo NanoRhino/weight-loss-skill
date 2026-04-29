@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HOLIDAYS_DIR = os.path.join(SCRIPT_DIR, "..", "references", "holidays")
-LOOKAHEAD_DAYS = 3
+LOOKAHEAD_DAYS = 5
 
 
 def log(msg):
@@ -63,6 +63,23 @@ def find_upcoming_holiday(today, region="cn"):
         if 0 <= delta <= LOOKAHEAD_DAYS:
             return h
     return None
+
+
+def detect_language(workspace_dir):
+    """Detect user language from USER.md Language field. Returns 'zh' or 'en'."""
+    user_md = os.path.join(workspace_dir, "USER.md")
+    if os.path.exists(user_md):
+        try:
+            with open(user_md, "r", encoding="utf-8") as f:
+                for line in f:
+                    if "language" in line.lower() and ":" in line:
+                        lang = line.split(":", 1)[1].strip().lower()
+                        if lang.startswith("en"):
+                            return "en"
+                        break
+        except IOError:
+            pass
+    return "zh"
 
 
 def detect_region(workspace_dir):
@@ -169,15 +186,28 @@ def mark_holiday_asked(workspace_dir, holiday_name):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday_end, dry_run=False):
+def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday_end, lang="zh", dry_run=False):
     """Create a one-shot cron job for the user."""
-    message = (
-        f"{holiday_name}（{holiday_start} 至 {holiday_end}）快到了。"
-        f"给用户发一条消息，问问假期有没有出去玩的计划，哪几天不方便打卡记录。"
-        f"注意：你只需要问用户，不要自己替用户做决定。"
-        f"等用户回复了具体日期后，再调用 leave-manager.py set 设置请假。"
-        f"如果用户说不需要暂停，就说好的。"
-    )
+    if lang == "en":
+        message = (
+            f"{holiday_name} ({holiday_start} to {holiday_end}) is coming up. "
+            f"Send the user a message asking if they have any plans for the holiday "
+            f"and which days they won't be able to log meals. "
+            f"Note: just ask — don't decide for the user. "
+            f"Once they reply with specific dates, call leave-manager.py set to set the leave. "
+            f"If the user says they don't need a break, say okay. "
+            f"Also let them know: anytime they're unable to log meals (not just holidays), "
+            f"they can just tell you and you'll pause reminders."
+        )
+    else:
+        message = (
+            f"{holiday_name}（{holiday_start} 至 {holiday_end}）快到了。"
+            f"给用户发一条消息，问问假期有没有出去玩的计划，哪几天不方便打卡记录。"
+            f"注意：你只需要问用户，不要自己替用户做决定。"
+            f"等用户回复了具体日期后，再调用 leave-manager.py set 设置请假。"
+            f"如果用户说不需要暂停，就说好的。"
+            f"另外告诉用户：不只是假期，平时如果有不方便记录饮食的时候，也可以随时跟我说，我会暂停提醒。"
+        )
 
     at_time = trigger_time_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     cmd = [
@@ -261,10 +291,14 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holiday, today, dry_run=False):
         # Mark as asked
         mark_holiday_asked(workspace_dir, holiday["name"])
 
+        # Detect language for cron message
+        lang = detect_language(workspace_dir)
+
         # Create cron
         cron_result = create_cron(
             agent_id, trigger_utc,
             holiday["name"], holiday["start"], holiday["end"],
+            lang=lang,
             dry_run=dry_run
         )
         cron_result["agent_id"] = agent_id
