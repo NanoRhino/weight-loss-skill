@@ -139,37 +139,50 @@ def get_engagement_stage(workspace_dir):
 
 
 def is_already_asked(workspace_dir, holiday_name):
-    """Check if this holiday has already been asked about."""
-    leave_path = os.path.join(workspace_dir, "data", "leave.json")
-    if not os.path.exists(leave_path):
-        return False
-    try:
-        with open(leave_path) as f:
-            data = json.load(f)
-        # Already has active leave → don't ask
-        if data.get("active"):
-            return True
-        # Already asked about this specific holiday
-        if data.get("holiday_asked") == holiday_name:
-            return True
-    except (json.JSONDecodeError, IOError):
-        pass
-    return False
+    """Check if this holiday has already been asked about.
 
-
-def mark_holiday_asked(workspace_dir, holiday_name):
-    """Write holiday_asked to leave.json."""
+    Checks two things:
+    1. leave.json exists → user already has leave set → don't ask
+    2. engagement.json has holiday_asked matching this holiday → already asked
+    """
+    # Check if leave is already set
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
-    data = {}
     if os.path.exists(leave_path):
         try:
             with open(leave_path) as f:
                 data = json.load(f)
+            if data.get("start") and data.get("end"):
+                return True  # has active leave
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    # Check if already asked (stored in engagement.json)
+    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
+    if os.path.exists(eng_path):
+        try:
+            with open(eng_path) as f:
+                data = json.load(f)
+            if data.get("holiday_asked") == holiday_name:
+                return True
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    return False
+
+
+def mark_holiday_asked(workspace_dir, holiday_name):
+    """Write holiday_asked to engagement.json (not leave.json)."""
+    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
+    data = {}
+    if os.path.exists(eng_path):
+        try:
+            with open(eng_path) as f:
+                data = json.load(f)
         except (json.JSONDecodeError, IOError):
             pass
     data["holiday_asked"] = holiday_name
-    os.makedirs(os.path.dirname(leave_path), exist_ok=True)
-    with open(leave_path, "w") as f:
+    os.makedirs(os.path.dirname(eng_path), exist_ok=True)
+    with open(eng_path, "w") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
@@ -180,6 +193,8 @@ def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday
         f"给用户发一条消息，问问假期有没有出去玩的计划，哪几天不方便打卡记录。"
         f"注意：你只需要问用户，不要自己替用户做决定。"
         f"等用户回复了具体日期后，再调用 leave-manager.py set 设置请假。"
+        f"end 日期 = 用户不在的最后一天（不含回来当天）。"
+        f"例如用户说"5号回来"，set --end 2026-05-04（4号是最后一天不在）。"
         f"如果用户说不需要暂停，就说好的。"
     )
 

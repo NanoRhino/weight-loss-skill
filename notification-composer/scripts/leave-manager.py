@@ -53,26 +53,62 @@ def _today(tz_offset, mock_date=None):
     return datetime.now(tz).strftime("%Y-%m-%d")
 
 
-def cmd_check(args):
-    """Check if today is within a leave period. Returns JSON."""
-    data = _load(args.data_dir)
-    today = _today(args.tz_offset, getattr(args, 'mock_date', None))
+def _clear_holiday_asked(data_dir):
+    """Remove holiday_asked from engagement.json when user confirms leave."""
+    eng_path = os.path.join(os.path.dirname(data_dir.rstrip("/")), "data", "engagement.json")
+    # data_dir might already be the data dir
+    if not os.path.exists(eng_path):
+        eng_path = os.path.join(data_dir, "engagement.json")
+    if not os.path.exists(eng_path):
+        return
+    try:
+        with open(eng_path) as f:
+            eng = json.load(f)
+        if "holiday_asked" in eng:
+            del eng["holiday_asked"]
+            with open(eng_path, "w") as f:
+                json.dump(eng, f, indent=2, ensure_ascii=False)
+    except (json.JSONDecodeError, IOError):
+        pass
 
-    if not data.get("active"):
+
+def cmd_check(args):
+    """Check if today is within a leave period. Returns JSON.
+
+    Simplified: file exists with start/end = leave is set.
+    No 'active' field needed.
+    """
+    path = _leave_path(args.data_dir)
+    if not os.path.exists(path):
         print(json.dumps({"on_leave": False}))
         return
+
+    data = _load(args.data_dir)
+    today = _today(args.tz_offset, getattr(args, 'mock_date', None))
 
     start = data.get("start", "")
     end = data.get("end", "")
 
+    if not start or not end:
+        print(json.dumps({"on_leave": False}))
+        return
+
     on_leave = start <= today <= end
+
     # Check if leave ended yesterday (for welcome back)
     tz = timezone(timedelta(seconds=args.tz_offset))
     if getattr(args, 'mock_date', None):
         yesterday = (datetime.strptime(args.mock_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     else:
         yesterday = (datetime.now(tz) - timedelta(days=1)).strftime("%Y-%m-%d")
-    just_returned = data.get("active") and end == yesterday
+    just_returned = (not on_leave) and end == yesterday
+
+    # Auto-expire: delete file if leave ended
+    if today > end:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
     print(json.dumps({
         "on_leave": on_leave,
@@ -84,65 +120,89 @@ def cmd_check(args):
 
 
 def cmd_set(args):
-    """Set a leave period."""
-    # Auto-fix year if it's in the past
+    """Set a leave period.
+
+    Semantics: end = last full day user is AWAY. Reminders resume on end+1.
+    Example: user says "5号回来" → end = 05-04 (last day away),
+             reminders resume on 05-05 (return day).
+    The agent calling this should interpret user intent correctly.
+    """
     today = _today(args.tz_offset, getattr(args, 'mock_date', None))
     current_year = today[:4]
     start = args.start
     end = args.end
     if start < today and start[5:] >= today[5:]:
-        # Date is in past but month/day is upcoming — likely wrong year
         start = current_year + start[4:]
     if end < start:
         end = current_year + end[4:]
 
     data = {
-        "active": True,
         "start": start,
         "end": end,
         "reason": args.reason or "",
         "created_at": today,
     }
-    # Clear holiday_asked since user responded
-    data.pop("holiday_asked", None)
     _save(args.data_dir, data)
+
+    # Clear holiday_asked from engagement.json since user responded
+    _clear_holiday_asked(args.data_dir)
+
     print(json.dumps(data, ensure_ascii=False))
 
 
 def cmd_clear(args):
-    """Clear active leave."""
-    data = _load(args.data_dir)
-    if data.get("active"):
-        data["active"] = False
-        data["cleared_at"] = _today(args.tz_offset) if hasattr(args, 'tz_offset') else ""
-        _save(args.data_dir, data)
-    print(json.dumps({"cleared": True}))
+    """Clear active leave by deleting leave.json."""
+    path = _leave_path(args.data_dir)
+    existed = os.path.exists(path)
+    if existed:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    print(json.dumps({"cleared": True, "existed": existed}))
 
 
 def cmd_info(args):
-    """Show current leave status."""
-    data = _load(args.data_dir)
-    today = _today(args.tz_offset, getattr(args, 'mock_date', None))
+    """Show current leave status.
 
-    if not data.get("active"):
-        print(json.dumps({"active": False}))
+    Simplified: file exists with dates = leave is set.
+    File absent = no leave.
+    """
+    path = _leave_path(args.data_dir)
+    if not os.path.exists(path):
+        print(json.dumps({"has_leave": False}))
         return
 
+    data = _load(args.data_dir)
     start = data.get("start", "")
     end = data.get("end", "")
 
+    if not start or not end:
+        print(json.dumps({"has_leave": False}))
+        return
+
+    today = _today(args.tz_offset, getattr(args, 'mock_date', None))
     status = "upcoming" if today < start else ("active" if today <= end else "expired")
+
+    # Auto-expire: delete file if leave ended
     if status == "expired":
-        data["active"] = False
-        _save(args.data_dir, data)
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+    try:
+        days_remaining = max(0, (datetime.strptime(end, "%Y-%m-%d") - datetime.strptime(today, "%Y-%m-%d")).days)
+    except ValueError:
+        days_remaining = 0
 
     print(json.dumps({
-        "active": data.get("active", False),
+        "has_leave": status != "expired",
         "status": status,
         "start": start,
         "end": end,
         "reason": data.get("reason", ""),
-        "days_remaining": max(0, (datetime.strptime(end, "%Y-%m-%d") - datetime.strptime(today, "%Y-%m-%d")).days) if status != "expired" else 0,
+        "days_remaining": days_remaining if status != "expired" else 0,
     }, ensure_ascii=False))
 
 

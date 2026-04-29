@@ -352,7 +352,14 @@ def check_scheduling_constraints(workspace_dir, meal_type, tz_offset):
 
 
 def check_leave(workspace_dir, tz_offset, mock_date=None):
-    """Check if user is on leave. If so, suppress all reminders."""
+    """Check if user is on leave. If so, suppress all reminders.
+
+    Simplified model:
+      - leave.json exists with start/end → on leave
+      - leave.json absent or empty/invalid → not on leave
+      - today > end → delete file (auto-expire) → allow send
+    No 'active' field needed — file existence = leave is set.
+    """
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
     if not os.path.exists(leave_path):
         return True, None
@@ -361,9 +368,22 @@ def check_leave(workspace_dir, tz_offset, mock_date=None):
         with open(leave_path) as f:
             data = json.load(f)
     except (json.JSONDecodeError, IOError):
+        # Corrupted file — treat as no leave, remove it
+        try:
+            os.remove(leave_path)
+        except OSError:
+            pass
         return True, None
 
-    if not data.get("active"):
+    start = data.get("start", "")
+    end = data.get("end", "")
+
+    # No valid dates → not a real leave file, clean up
+    if not start or not end:
+        try:
+            os.remove(leave_path)
+        except OSError:
+            pass
         return True, None
 
     if mock_date:
@@ -371,17 +391,19 @@ def check_leave(workspace_dir, tz_offset, mock_date=None):
     else:
         tz = timezone(timedelta(seconds=tz_offset))
         today = datetime.now(tz).strftime("%Y-%m-%d")
-    start = data.get("start", "")
-    end = data.get("end", "")
 
     if start <= today <= end:
         return False, f"user on leave ({start} to {end})"
 
-    # Auto-expire past leave
+    # Auto-expire: leave ended → delete file
     if today > end:
-        data["active"] = False
-        with open(leave_path, "w") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        try:
+            os.remove(leave_path)
+        except FileNotFoundError:
+            pass  # concurrent cron already deleted it
+        except OSError as e:
+            log(f"Warning: could not delete expired leave.json: {e}")
+            # Still allow send even if delete fails
 
     return True, None
 
