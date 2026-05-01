@@ -41,15 +41,36 @@ def parse_macros(macro_str):
 
 
 def parse_metadata(lines):
-    """Parse H1 metadata section."""
+    """Parse H1 metadata section.
+
+    Handles bold-wrapped keys like **Goal:** and strips Markdown
+    formatting from both keys and values.
+    """
     meta = {}
+    # Alias map: normalize common key variants to canonical keys
+    aliases = {
+        'goal': 'goal',
+        'daily calories': 'calories',
+        'daily calorie target': 'calories',
+        'calories': 'calories',
+        'calorie target': 'calories',
+        'diet mode': 'mode',
+        'mode': 'mode',
+        'macros': 'macros',
+        'macro targets': 'macros',
+        'date': 'date',
+    }
     for line in lines:
         line = line.strip()
         if line.startswith('- '):
             line = line[2:]
         if ':' in line:
             key, val = line.split(':', 1)
-            meta[key.strip().lower()] = val.strip()
+            # Strip Markdown bold markers and whitespace
+            key = key.strip().strip('*').strip().lower()
+            val = val.strip().strip('*').strip()
+            canonical = aliases.get(key, key)
+            meta[canonical] = val
     return meta
 
 
@@ -175,7 +196,8 @@ def parse_meal_plan(md_text):
             continue
 
         # Metadata lines (between H1 and first H2)
-        if in_metadata and stripped.startswith('- '):
+        # Accept both '- Key: Value' and '**Key:** Value' formats
+        if in_metadata and stripped and not stripped.startswith('#'):
             metadata_lines.append(stripped)
             continue
 
