@@ -246,7 +246,7 @@ If `context_clues` is present and non-null in meal_checkin result, naturally wea
 · {dish_name} — {weight}g — {calories} kcal
 · {dish_name} — {weight}g — {calories} kcal
 
-**Weight display:** Use the user's reported weight (if they provided it). Otherwise, use the main ingredient weight—do NOT sum in condiments/oil.
+**Weight display:** If user reported weight, use that. Otherwise, sum all ingredients (including oil/condiments) and round to nearest 10g (cooked weight is estimated anyway, no point in single-digit precision).
 
 **Multi-person meal:** If `serving_context.type` is "shared", tell the user this looks like a {estimated_diners}-person meal and all portions/calories shown are already divided to 1 person's share.
 
