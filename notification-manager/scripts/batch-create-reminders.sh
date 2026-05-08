@@ -59,6 +59,22 @@ fi
 HEALTH_PROFILE="$WORKSPACE/health-profile.md"
 USER_MD="$WORKSPACE/USER.md"
 
+# Ensure engagement.json exists (default stage=1 for new users)
+ENGAGEMENT_PATH="$WORKSPACE/data/engagement.json"
+if [[ ! -f "$ENGAGEMENT_PATH" ]]; then
+  mkdir -p "$(dirname "$ENGAGEMENT_PATH")"
+  cat > "$ENGAGEMENT_PATH" << 'ENGAGEMENT_EOF'
+{
+  "notification_stage": 1,
+  "stage_changed_at": null,
+  "last_recall_date": null,
+  "recall_2_sent": false,
+  "reminder_config": {}
+}
+ENGAGEMENT_EOF
+  echo "Created engagement.json (stage=1)"
+fi
+
 if [[ ! -f "$HEALTH_PROFILE" ]]; then
   echo "ERROR: health-profile.md not found: $HEALTH_PROFILE" >&2; exit 1
 fi
