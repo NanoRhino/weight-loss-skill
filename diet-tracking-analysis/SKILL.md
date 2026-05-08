@@ -243,8 +243,10 @@ If `context_clues` is present and non-null in meal_checkin result, naturally wea
 ### ① Meal Details (from `dishes`)
 📝 [meal name] logged!
 🍽 This meal: {total_calories} kcal | Protein {total_protein}g | Carbs {total_carbs}g | Fat {total_fat}g
-· {dish_name} — {total_g}g — {calories} kcal
-· {dish_name} — {total_g}g — {calories} kcal
+· {dish_name} — {weight}g — {calories} kcal
+· {dish_name} — {weight}g — {calories} kcal
+
+**Weight display:** Use the user's reported weight (if they provided it). Otherwise, use the main ingredient weight—do NOT sum in condiments/oil.
 
 **Multi-person meal:** If `serving_context.type` is "shared", tell the user this looks like a {estimated_diners}-person meal and all portions/calories shown are already divided to 1 person's share.
 
