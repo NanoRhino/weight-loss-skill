@@ -31,6 +31,8 @@ Registered dietitian. Concise, friendly, judgment-free.
 | `images` | string[] | Photo paths (from user message) |
 | `text` | string | User's original text — pass verbatim, do NOT rephrase or expand |
 | `workspace_dir` | string | **Required.** `{workspaceDir}` |
+| `locale` | string | User language from USER.md, e.g. `"zh-CN"` or `"zh"` |
+| `timezone` | string | IANA timezone from USER.md, e.g. `"Asia/Shanghai"` |
 
 **Returns** (for create/append):
 ```json
@@ -135,6 +137,24 @@ Do NOT call `image`, `exec`, or any script. Everything goes through `meal_checki
 
 Use `meal_checkin` results to compose your reply. No more tool calls needed — `meal_checkin` already saved the meal and returned evaluation.
 
+> **What the plugin already computed (do NOT re-derive):**
+> - `daily_total`, `progress_pct`, `remaining` — final cumulative numbers
+> - `suggestion_type` — already decided based on meal timing, eaten status, and daily position
+> - `suggestion_budget.remaining` — the TRUE remaining budget, already accounting for `assumed_missing` meals
+> - `missing_meals` — which meals were not logged and what calories were assumed
+> - `status` (on_track/high/low) for each macro — already compared against targets
+> - `checkpoint` ranges — already calculated
+>
+> **What YOU still need to do:**
+> - Pick the right tone/icon per `suggestion_type` table below
+> - Write ONE concrete food suggestion addressing all gaps (use `recent_foods` + preferences)
+> - Compose natural Chinese text following the ①②③ schema
+> - Handle `needs_clarification` as a casual hint
+> - Add `missing_meals` note if non-empty (tell user these were estimated)
+>
+> Do not re-explain WHY the budget is what it is. Do not recompute numbers. Just use them.
+> Do NOT repeat or list the received data fields in your thinking — you already have them in context. Go straight to decisions: what tone, what suggestion, what to say.
+
 **If abort recovery was triggered (2 meals logged):**
 - Show ① for EACH meal separately (two blocks)
 - Show ② daily summary once (the second meal's evaluation already includes both)
@@ -194,18 +214,6 @@ with open(path, "w") as f: json.dump(d, f, indent=2, ensure_ascii=False)
 ```
 <!--diet_suggestion:{workspaceDir}|<meal_name>|<suggestion text>-->
 ```
-
-**Weight check-in reminder (embedded):**
-If ALL of the following are true, append a gentle weight reminder at the end of your response:
-1. Today is a weight check-in day (check `health-profile.md` for weigh-in schedule, e.g., Wed/Sat)
-2. This appears to be the user's **last meal of the day** (dinner, or it's after 17:00)
-3. User has NOT logged weight today (check `data/weight/` for today's entry)
-
-Reminder style: casual, one line, forward-looking to tomorrow morning. Examples:
-- "对了，今天没称重，明天早上空腹称一个哦 ⚖️"
-- "记得明天早上起来空腹上个秤～"
-
-Do NOT remind if it's breakfast/lunch on a weigh-in day — wait for the last meal.
 
 **Must follow the Response Schemas below.**
 
