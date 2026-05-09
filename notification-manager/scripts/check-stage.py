@@ -290,6 +290,7 @@ def main():
         data["recall_2_sent"] = False
         data["recall_count"] = 0
         data["last_nudge_date"] = None
+        data.pop("leave_ended_at", None)
         data["welcome_back"] = True
         data["welcome_back_from_stage"] = prev_stage
         data["welcome_back_days_away"] = original_days_silent
@@ -314,6 +315,8 @@ def main():
             if leave_start <= today_date <= leave_end:
                 # User is currently on leave — freeze stage
                 on_leave = True
+                data["leave_ended_at"] = leave_data["end"]
+                changed = True
                 log(f"User is on leave ({leave_data.get('start')} to {leave_data.get('end')}) — stage frozen at {stage}")
             elif leave_end < today_date:
                 # Leave just ended — update last_active_date to leave end date
@@ -332,6 +335,7 @@ def main():
 
                 if should_update:
                     data["last_active_date"] = leave_data["end"]
+                    data["leave_ended_at"] = leave_data["end"]
                     # Recalculate days_silent from leave end date
                     days_silent = (today_date - leave_end).days
                     changed = True
@@ -339,11 +343,41 @@ def main():
         except (ValueError, KeyError) as e:
             log(f"Warning: could not parse leave dates: {e}")
 
+    # --- Fallback: use leave_ended_at if leave.json was deleted ---
+    if not leave_data:
+        leave_ended_str = data.get("leave_ended_at")
+        if leave_ended_str:
+            try:
+                leave_ended_date = datetime.strptime(leave_ended_str, "%Y-%m-%d").date()
+
+                # Check if leave ended before today and user hasn't logged since
+                if leave_ended_date < today_date and leave_ended_date >= last_logged_date:
+                    # Update last_active_date if needed
+                    current_last_active = data.get("last_active_date")
+                    should_update_active = False
+                    if not current_last_active:
+                        should_update_active = True
+                    else:
+                        try:
+                            current_last_active_date = datetime.strptime(current_last_active, "%Y-%m-%d").date()
+                            if current_last_active_date < leave_ended_date:
+                                should_update_active = True
+                        except ValueError:
+                            should_update_active = True
+
+                    if should_update_active:
+                        data["last_active_date"] = leave_ended_str
+                        days_silent = (today_date - leave_ended_date).days
+                        changed = True
+                        log(f"Fallback: using leave_ended_at {leave_ended_str}, days_silent now {days_silent}")
+            except ValueError as e:
+                log(f"Warning: could not parse leave_ended_at: {e}")
+
     # --- Forward transitions (fast-forward to correct stage) ---
     # Skip forward transitions if --user-active: user just sent a message,
     # so they are active right now regardless of meal history.
     # Also skip if user is on leave — stage should remain frozen.
-    elif not args.user_active and not on_leave:
+    if not args.user_active and not on_leave:
         # Calculate target stage directly from days_silent.
         # This avoids the one-step-per-cron problem where a user stuck at S1
         # due to a reset takes multiple cron cycles to reach the correct stage.
