@@ -141,11 +141,26 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             if is_weight:
                 return False, f"notification_stage={stage} — weight reminders suppressed during recall"
 
-        # Stage 2-4: suppress custom reminders, weekly reports, daily summaries
+        # Stage 2-4: suppress custom reminders, daily summaries
+        # Stage 3-4: also suppress weekly reports
         if stage in (2, 3, 4):
-            is_non_recall = meal_type in ("custom", "weekly_report", "daily_summary")
+            is_non_recall = meal_type in ("custom", "daily_summary")
             if is_non_recall:
                 return False, f"notification_stage={stage} — {meal_type} suppressed during recall"
+            if stage >= 3 and meal_type == "weekly_report":
+                return False, f"notification_stage={stage} — weekly_report suppressed at stage 3+"
+            # Stage 2: suppress weekly_report too (all meal/weight stopped)
+            if stage == 2 and meal_type == "weekly_report":
+                return False, f"notification_stage=2 — weekly_report suppressed during recall"
+
+        # Stage 2: only allow lunch slot, only on days_silent 2 or 4 (Day 3 and Day 5)
+        if stage == 2:
+            is_lunch = meal_type in ("lunch", "meal_2")
+            if not is_lunch:
+                return False, f"notification_stage=2 — only lunch recall allowed, got {meal_type}"
+            days_silent_val = data.get("days_silent", 0)
+            if days_silent_val not in (2, 4):
+                return False, f"notification_stage=2 — days_silent={days_silent_val}, recall only on day 3 (ds=2) and day 5 (ds=4)"
 
         local_date = get_local_date(tz_offset)
 
@@ -157,7 +172,8 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             data["last_recall_date"] = local_date
             with open(path, "w") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            return True, None
+            days_silent_val = data.get("days_silent", 0)
+            return True, f"recall stage=2 days_silent={days_silent_val}"
 
         if stage == 3:
             last_recall_date = data.get("last_recall_date", "")
