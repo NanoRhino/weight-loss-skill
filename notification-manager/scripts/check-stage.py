@@ -6,15 +6,15 @@ Derives last interaction from meal logging records (data/meals/*.json)
 rather than relying on a platform-written timestamp. A "logged day" is
 any date with at least one meal entry that contains food data.
 
-Lifecycle rules:
+Lifecycle rules (V2):
 
-  Stage 1 (ACTIVE)   → 3 full calendar days silent  → Stage 2 (RECALL)
-  Stage 2 (RECALL)   → 3 days of daily recalls       → Stage 3 (WEEKLY)
-  Stage 3 (WEEKLY)   → 3 weeks of weekly recalls      → Stage 4 (MONTHLY)
-  Stage 4 (MONTHLY)  → 90 days total silence          → Stage 5 (SILENT)
+  Stage 1 (ACTIVE)   → 2 full calendar days silent  → Stage 2 (RECALL)
+  Stage 2 (RECALL)   → days_silent >= 5              → Stage 3 (WEEKLY)
+  Stage 3 (WEEKLY)   → 3 weekly recalls sent          → Stage 4 (MONTHLY)
+  Stage 4 (MONTHLY)  → 3 monthly recalls sent         → Stage 5 (SILENT)
   Stage 5 (SILENT)   → permanent silence
 
-When a silent user returns (new meal logged while stage > 1),
+When a silent user returns (any message or meal logged while stage > 1),
 resets to Stage 1.
 
 Usage:
@@ -46,11 +46,11 @@ def log(msg):
     print(f"[check-stage] {msg}", file=sys.stderr)
 
 
-# Transition thresholds
-STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → daily recall
-STAGE_2_TO_3_DAYS = 3   # 3 days of daily recalls (Day 4-6) → weekly recall
-STAGE_3_TO_4_WEEKS = 3  # 3 weeks of weekly recalls → monthly recall
-STAGE_4_TO_5_DAYS = 90  # 90 days total silence → permanent silence
+# Transition thresholds (V2)
+STAGE_1_TO_2_DAYS = 2   # 2 full calendar days silent → recall
+# Stage 2→3: days_silent >= 5
+# Stage 3→4: weekly_recall_count >= 3
+# Stage 4→5: monthly_recall_count >= 3
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
@@ -382,15 +382,19 @@ def main():
         # This avoids the one-step-per-cron problem where a user stuck at S1
         # due to a reset takes multiple cron cycles to reach the correct stage.
         def calc_target_stage(ds):
-            if ds >= STAGE_4_TO_5_DAYS:
-                return 5   # 90+ days → permanent silence
-            if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS + STAGE_3_TO_4_WEEKS * 7:
-                return 4   # 3 + 3 + 21 = 27+ days → monthly recall (Week 5+)
-            if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS:
-                return 3   # 3 + 3 = 6+ days → weekly recall (Week 2-4)
-            if ds >= STAGE_1_TO_2_DAYS:
-                return 2   # 3+ days → daily recall (Day 4-6)
-            return 1
+            """V2 stage calculation based on days_silent + recall counts."""
+            if ds < STAGE_1_TO_2_DAYS:
+                return 1   # 0-1 days → active
+            if ds < 5:
+                return 2   # 2-4 days → recall (Day 3-5)
+            # days_silent >= 5 → check recall counts for S3/S4/S5
+            weekly_count = data.get("weekly_recall_count", 0)
+            monthly_count = data.get("monthly_recall_count", 0)
+            if weekly_count < 3:
+                return 3   # weekly recall phase
+            if monthly_count < 3:
+                return 4   # monthly recall phase
+            return 5       # all recalls exhausted → silent
 
         target = calc_target_stage(days_silent)
         # Only move forward, never backward (backward is handled by reset above)

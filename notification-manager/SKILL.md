@@ -258,29 +258,47 @@ bash {baseDir}/scripts/create-reminder.sh \
 ## Lifecycle: Active → Recall → Silent
 
 ```
-Stage 1: ACTIVE — normal reminders (Day 2-3: morning nudge + normal recommendation)
+Stage 1: ACTIVE — normal reminders
+    │   Day 1: normal reminders, no extra
+    │   Day 2: first meal adds gentle nudge, rest normal
     │
-    └── 3 full calendar days: zero replies + zero messages
+    └── 2 full calendar days: zero replies + zero messages
            │
-Stage 2: RECALL — stop normal reminders, send daily recall (Day 4-6)
-    │       First meal cron of the day: one recall message (no meal recommendations)
-    │       Subsequent meal crons + weight: suppressed
-    │       Tone escalation: Day 4 clingy → Day 5 fake angry → Day 6 pouty/vulnerable
+Stage 2: RECALL — stop meal/weight reminders, lunch-only recall
+    │       Day 3 (ds=2): emotion + content template (lunch slot)
+    │       Day 4: nothing sent
+    │       Day 5 (ds=4): ask if busy, offer to pause (lunch slot)
     │
-    ├── User replies → back to Stage 1
-    └── 3 days, no reply
+    ├── User sends any message → back to Stage 1
+    └── days_silent >= 5
            │
-Stage 3: FINAL RECALL — one last emotional message
+Stage 3: WEEKLY RECALL — 1x/week, rotate content types
+    │       Week 1: nutrition knowledge
+    │       Week 2: feature update
+    │       Week 3: casual check-in
+    │       Also stops weekly report
     │
-    ├── User replies → back to Stage 1
-    └── 1 day, no reply → Stage 4
+    ├── User sends any message → back to Stage 1
+    └── 3 weekly recalls sent
            │
-Stage 4: SILENT — send nothing. Wait for user to return.
+Stage 4: MONTHLY RECALL — 1x/month, feature updates
+    │
+    ├── User sends any message → back to Stage 1
+    └── 3 monthly recalls sent → Stage 5
+           │
+Stage 5: SILENT — send nothing. Wait for user to return.
 ```
 
-Recall replaces the next meal reminder slot — don't send at random hours.
-Weight reminders also stop at Stage 2. Write current stage to
-`data/engagement.json > notification_stage`.
+**Suppression rules:**
+- Stage 2+: stop weight reminders + meal reminders (only recall messages at lunch)
+- Stage 3+: also stop weekly report
+- Stage 5: stop everything
+
+Recall replaces the lunch reminder slot — don't send at random hours.
+Write current stage to `data/engagement.json > notification_stage`.
+
+**Template dedup:** All recall messages tracked in `engagement.json > recall_history[]`.
+Same template_id never reused for the same user across sessions.
 
 **Stage transition logic:** Before every reminder, `notification-composer` calls this skill's
 stage-check script to update the engagement stage:
