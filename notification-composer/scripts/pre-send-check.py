@@ -162,6 +162,12 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             if days_silent_val not in (2, 4):
                 return False, f"notification_stage=2 — days_silent={days_silent_val}, recall only on day 3 (ds=2) and day 5 (ds=4)"
 
+        # Stage 3-4: also only allow lunch slot for recall messages
+        if stage in (3, 4):
+            is_lunch = meal_type in ("lunch", "meal_2")
+            if not is_lunch:
+                return False, f"notification_stage={stage} — only lunch recall allowed, got {meal_type}"
+
         local_date = get_local_date(tz_offset)
 
         if stage == 2:
