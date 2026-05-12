@@ -467,9 +467,10 @@ If the user says "取消提醒" without specifying which one:
 1. 表达理解，主动提出暂停提醒
 2. 询问暂停多久（"大概要忙多久呀？"）
 3. 用户给了时间 → set leave 对应日期
-4. 用户没给时间 → set leave 开放式（start=今天, end=远期如+90天），告知"想回来随时跟我说"
+4. 用户没给时间 → 不设leave，直接让check-stage按days_silent推进到S3（7天后第1条每周召回）
 5. 暂停期间所有主动消息停止
-6. 到期自动恢复 / 用户提前回来 → clear leave
+6. 给了时间的：到期自动恢复 / 用户提前回来 → clear leave
+7. 没给时间的：按S3→S4→S5正常流转，用户随时回来重置到S1
 
 ### Set leave
 ```bash
