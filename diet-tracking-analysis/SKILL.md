@@ -314,3 +314,38 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 ### Photo Reference Object
 
 **`has_reference_object`** (returned by `meal_checkin`): `true` if photo contains a recognizable size reference (chopsticks, spoon, fork, fist, etc.), `false` if not, `null` if no photo was provided. Stored in meal log for downstream use by notification-composer.
+
+### Nutrition Focus Tracking (from `nutrition_focus`)
+
+`meal_checkin` may return a `nutrition_focus` field when a nutrition issue persists for 2+ consecutive days.
+
+| Field | Meaning |
+|-------|---------|
+| `issue` | The key issue (e.g. `protein_low`, `calories_over`) |
+| `streak` | Consecutive days this issue appeared |
+| `priority` | P0 (calories) → P1 (protein) → P2 (carbs) → P3 (fat) → P4 (veg) → P5 (fruit) |
+| `alert` | `true` = needs intervention |
+| `blocker_talked` | Whether we've already discussed blockers |
+| `all_on_track` | All nutrition indicators met today |
+| `all_on_track_streak` | Consecutive days all on track |
+
+**Behavior:**
+- `nutrition_focus` is null → Normal ③ suggestion, no special handling.
+- `alert: true` + `!blocker_talked` → After ③, address the focus issue directly:
+  1. State what's been happening factually ("蛋白质连续3天偏低")
+  2. Explain why it matters for fat loss in ONE sentence (use nutrition science, not scare tactics)
+  3. Give your professional recommendation on what to change, ranked by impact on fat loss
+  4. Ask ONE open question: "实际操作上有什么困难吗？"
+  5. Based on user's answer:
+     - Practical obstacle → give targeted alternatives, update health-preferences
+     - Forgot/lazy → suggest a micro-habit via habit-builder
+     - "别管了" → respect it, note in adherence (7-day cooldown for this issue)
+     - Finds it hard → lower the bar to the simplest possible action
+- `alert: true` + `blocker_talked` → Don't repeat the blocker conversation. Keep ③ naturally focused on the issue.
+- `all_on_track: true` + `all_on_track_streak ≥ 7` → All basics are solid. ③ can introduce food quality topics, one at a time as gentle suggestions:
+  1. Whole grains ratio (粗粮比例)
+  2. Produce color variety (蔬果颜色多样性)
+  3. Food variety (食物种类丰富度)
+  4. Processed food ratio (加工食品比例)
+
+**Important:** `nutrition_focus` is independent of weekly report's "下周一件事". Weekly report may focus on anything (behavior, exercise, nutrition). `nutrition_focus` only tracks nutrition indicators from daily check-in data.
