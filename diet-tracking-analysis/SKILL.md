@@ -317,27 +317,36 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 
 ### Nutrition Focus Tracking (from `nutrition_focus`)
 
-`meal_checkin` may return a `nutrition_focus` field when a nutrition issue persists for 2+ consecutive days.
+`meal_checkin` may return these fields alongside normal evaluation:
 
 | Field | Meaning |
 |-------|---------|
-| `issue` | The key issue (e.g. `protein_low`, `calories_over`) |
-| `streak` | Consecutive days this issue appeared |
-| `priority` | P0 (calories) → P1 (protein) → P2 (carbs) → P3 (fat) → P4 (veg) → P5 (fruit) |
-| `alert` | `true` = needs intervention |
-| `blocker_talked` | Whether we've already discussed the blocker for this cycle |
+| `nutrition_focus` | Current focus issue (null if no recurring problem) |
+| `nutrition_focus.issue` | The key issue (e.g. `protein_low`, `calories_over`) |
+| `nutrition_focus.streak` | Consecutive days this issue appeared |
+| `nutrition_focus.priority` | P0 (calories) → P1 (protein) → P2 (carbs) → P3 (fat) → P4 (veg) → P5 (fruit) |
+| `nutrition_focus.alert` | `true` = needs intervention |
+| `nutrition_focus.blocker_talked` | Whether we've discussed the blocker this cycle |
 | `all_on_track` | All nutrition indicators met today |
-| `all_on_track_streak` | Consecutive days all on track |
-
-**Also may return `sunday_review`** on Sunday's last meal:
-| Field | Meaning |
-|-------|---------|
-| `action` | `graduate` (met ≥80%, move to next) / `continue` (keep focus) / `carry_over` (< 3 days data) |
-| `met_ratio` | Percentage of tracked days this issue was met |
+| `on_track_ratio` | % of recent days all on track (last 7 days with data) |
+| `graduated_count` | How many issues/topics user has graduated from |
+| `advanced` | Advanced topic info (if all basics met) |
+| `sunday_review` | Array of review results on Sunday's last meal |
 
 ---
 
-**Behavior:**
+#### Stage Progression (give user clear sense of stages)
+
+The system has stages. When graduating from one stage, **celebrate the achievement AND announce the new focus**. Make the user feel they're leveling up.
+
+**Basic stages** (P0→P5): Fixing nutrition issues one at a time
+**Advanced stages**: Food quality improvements after basics are all solid
+
+Example graduation message: "🎉 蛋白质这周达标{met_ratio}%，这关过了！接下来我们关注碳水——控好碳水对血糖稳定和饱腹感都有帮助。"
+
+---
+
+#### Behavior by State
 
 **Normal (no alert):**
 - `nutrition_focus` is null → Normal ③ suggestion, no special handling.
@@ -346,30 +355,36 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 - `alert: true` + `!blocker_talked` → After ③, address the focus issue:
   1. State what's been happening factually ("蛋白质连续X天偏低")
   2. Explain why it matters for fat loss — ONE sentence, nutrition science, no scare tactics
-  3. Give your professional recommendation, ranked by impact on fat loss. **Food swap suggestions always say "下次/下一餐" — never suggest changing the meal just logged.**
+  3. Give your professional recommendation, ranked by impact on fat loss
   4. Ask ONE open question: "实际操作上有什么困难吗？"
+- Suggestion timing follows the existing `suggestion_type` logic (right_now / next_meal / etc.) — do NOT override it.
 
 **After user responds to blocker question:**
-- Practical obstacle → give targeted alternatives, update health-preferences. Call `meal_checkin({ text: "mark_blocker_talked:<issue>" })` to reset streak and track.
-- Forgot/lazy → suggest a micro-habit via habit-builder. Mark blocker talked.
-- User gives no reply (next meal comes in without responding) → call `meal_checkin({ text: "dismiss_issue:<issue>" })`. **Never ask again** until Sunday review.
-- User explicitly refuses ("别管了"/"不用管") → call `meal_checkin({ text: "dismiss_issue:<issue>" })`. **Never ask again** until Sunday review.
-- Finds it hard → lower the bar to simplest possible action. Mark blocker talked.
+- Practical obstacle → targeted alternatives, update health-preferences. Call `meal_checkin({ text: "mark_blocker_talked:<issue>" })`.
+- Forgot/lazy → suggest micro-habit via habit-builder. Mark blocker talked.
+- User gives no reply (next meal comes in without responding) → `meal_checkin({ text: "dismiss_issue:<issue>" })`. **Stop asking** until Sunday review.
+- User explicitly refuses → `meal_checkin({ text: "dismiss_issue:<issue>" })`. **Stop asking** until Sunday review.
+- Finds it hard → lower the bar to simplest action. Mark blocker talked.
 
-**Re-alert (blocker talked, but issue persists again streak ≥ 2):**
-- `alert: true` + `blocker_talked` → Re-discuss: "上次聊完之后蛋白质还是连续偏低，之前的方案不太好执行吗？" Offer to adjust the plan. If user refuses again → dismiss.
+**Re-alert (blocker talked, issue persists streak ≥ 2 again):**
+- Re-discuss with new angle: "之前的方案不太好执行吗？" Offer adjustment. Second refusal → dismiss.
 
-**Sunday review (`sunday_review` field):**
-- `action: "graduate"` → Celebrate briefly ("这周蛋白质达标{met_ratio}%，很棒！"), move on. Next issue auto-detected by priority.
-- `action: "continue"` → "这周{issue}达标{met_ratio}%，下周继续关注这个". No guilt.
-- `action: "carry_over"` → Not enough data, silently continue.
+**Sunday review (`sunday_review` array):**
+Each item has `type` (basic/advanced) and `action`:
+- `graduate` → **Celebrate + announce next focus**: "🎉 {issue}这周达标{met_ratio}%，这关过了！（已完成{graduated_total}项）接下来关注{next_issue}——{why_it_matters}"
+- `continue` → "{issue}这周达标{met_ratio}%，下周继续，你已经在进步了". No guilt.
+- `carry_over` → Silently continue (< 3 days data).
 
-**All on track — advanced topics:**
-- `all_on_track_streak ≥ 7` → All basics solid. ③ can introduce food quality topics, one at a time, as gentle "升级建议" not corrections:
-  1. Whole grains ratio (粗粮比例)
-  2. Produce color variety (蔬果颜色多样性)
-  3. Food variety (食物种类丰富度)
-  4. Processed food ratio (加工食品比例)
-- If any basic issue reappears → immediately drop advanced, back to basics.
+#### Advanced Topics (when `advanced` is present)
+
+- `advanced.is_formal: false` → Today all basics met, can casually mention the topic as a "小建议"
+- `advanced.is_formal: true` (on_track_ratio ≥ 80%) → This is now a formal focus. Announce the stage upgrade: "基础营养全部达标了！现在进入进阶阶段，我们来关注{topic}"
+- `advanced.paused: true` → Basic issue returned. "先把{basic_issue}搞定，进阶的不着急"
+
+Advanced topic order:
+1. 粗粮比例 (whole_grains)
+2. 蔬果颜色多样性 (produce_color_variety)
+3. 食物种类丰富度 (food_variety)
+4. 加工食品比例 (processed_food_ratio)
 
 **Important:** `nutrition_focus` is independent of weekly report's "下周一件事". Weekly report may focus on anything (behavior, exercise, nutrition). `nutrition_focus` only tracks nutrition indicators from daily check-in data.
