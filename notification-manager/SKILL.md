@@ -458,6 +458,19 @@ If the user says "取消提醒" without specifying which one:
 
 用户要求暂停打卡（假期、出游、不方便记录等）时，调用 leave-manager 设置请假。
 
+**触发场景：**
+1. 用户主动说要请假/暂停/放假不打卡
+2. 用户在对话中表达最近很忙、无法打卡、顾不上记录
+3. S2 Day 5 询问暂停后用户确认暂停
+
+**处理流程：**
+1. 表达理解，主动提出暂停提醒
+2. 询问暂停多久（"大概要忙多久呀？"）
+3. 用户给了时间 → set leave 对应日期
+4. 用户没给时间 → set leave 开放式（start=今天, end=远期如+90天），告知"想回来随时跟我说"
+5. 暂停期间所有主动消息停止
+6. 到期自动恢复 / 用户提前回来 → clear leave
+
 ### Set leave
 ```bash
 python3 {notification-composer:baseDir}/scripts/leave-manager.py set \

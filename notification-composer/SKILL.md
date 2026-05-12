@@ -62,6 +62,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 > ⚠️ pre-send-check 会在请假期间自动返回 `NO_REPLY`，无需 agent 额外判断。
 > ⚠️ 假期期间用户主动打卡 → 正常记录，不拦。leave 只影响 cron 提醒。
 > ⚠️ 用户提前说"我回来了" → 调用 `leave-manager.py clear`。
+> ⚠️ **用户在对话中表达忙碌/无法打卡时**（任何阶段），主动提出暂停提醒，询问暂停多久，然后调用 `leave-manager.py set` 设置请假。详见 `references/recall-messages.md` § 用户主动表达忙碌。
 
 > ⚠️ 你输出的任何文本都会送达用户。`NO_REPLY` 是唯一的抑制方式。
 > ⚠️ **当输出包含 `recall` 时，绝对不能写正常的餐食提醒。** 即使 cron prompt 说 "Run notification-composer for breakfast"，你也必须发召回消息。
