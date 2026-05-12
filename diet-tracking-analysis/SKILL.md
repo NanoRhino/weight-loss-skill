@@ -314,3 +314,26 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 ### Photo Reference Object
 
 **`has_reference_object`** (returned by `meal_checkin`): `true` if photo contains a recognizable size reference (chopsticks, spoon, fork, fist, etc.), `false` if not, `null` if no photo was provided. Stored in meal log for downstream use by notification-composer.
+
+### Weekly Focus Tracking (from `weekly_focus_check`)
+
+`meal_checkin` may return a `weekly_focus_check` field when the user has an active weekly focus goal (set by weekly report).
+
+| Field | Meaning |
+|-------|---------|
+| `met_today` | Whether this meal's daily totals meet the focus goal |
+| `alert` | `true` = consecutive 2+ days missed, needs intervention |
+| `blocker_talked` | Whether we've already discussed blockers this cycle |
+| `all_on_track` | All basic nutrition indicators are on track |
+| `all_on_track_streak` | Consecutive days all on track |
+
+**Behavior:**
+- `met_today: true` → Weave a brief acknowledgment into ③ ("本周重点是蛋白质，今天做到了👍")
+- `met_today: false` + `!alert` → ③ suggestion naturally focuses on the weekly focus issue. Don't lecture.
+- `alert: true` + `!blocker_talked` → After ③, explain WHY this focus matters for fat loss (one sentence, backed by nutrition science), then ask ONE open question: "有什么实际困难吗？" Based on user's answer:
+  - Practical obstacle → give targeted alternative suggestions, update health-preferences
+  - Forgot/lazy → suggest a micro-habit via habit-builder
+  - "别管了" → respect it, mark cooldown (agent calls `meal_checkin` with `text: "mark_blocker_cooldown"`)
+  - Finds it too hard → lower the bar (e.g., "一餐加一个鸡蛋就好"), mark difficulty_mode
+- `alert: true` + `blocker_talked` → Don't repeat the blocker conversation. Keep ③ focused on the weekly issue.
+- `all_on_track: true` + `all_on_track_streak ≥ 7` → All basics are solid. ③ can introduce health quality topics in this priority: 1) whole grains ratio 2) produce color variety 3) food variety 4) processed food ratio. One topic at a time, as gentle suggestions not corrections.

@@ -459,16 +459,46 @@ progress_pct = (start_weight − current_weight) / (start_weight − target_weig
 After composing the 🎯 section, write the focus action to
 `logs.weekly_report.{start_date}` as `next_week_focus` (plain text string).
 
+**Also sync to `data/suggestion-adherence.json`** so daily meal check-ins can track it:
+```json
+{
+  "weekly_focus": {
+    "issue": "<issue_key>",
+    "text": "<actionable one-liner>",
+    "priority": "<P0-P4 or advanced>",
+    "reason": "<why this matters for fat loss, one sentence>",
+    "source_week": "<start_date>"
+  },
+  "focus_tracking": {
+    "met_days": [],
+    "missed_days": [],
+    "consecutive_missed": 0,
+    "blocker_talked": false,
+    "blocker_cooldown_until": null,
+    "difficulty_mode": false
+  }
+}
+```
+
+**Issue priority (pick highest unresolved):**
+P0: calories_over | P1: protein_low | P2: carbs_high | P3: fat_high | P4: vegetables_low | P5: fruits_low
+
+**If all basic issues resolved (last week's focus met ≥5/7 days AND no other basic issue):**
+Advance to health quality topics: 1) whole_grains 2) produce_color_variety 3) food_variety 4) processed_food_ratio
+
+**If last week's focus was NOT met (<5/7 days):** Keep the same focus but reframe with a different angle/suggestion.
+
 ### Reading (at report generation start)
 Before composing this week's report, read `logs.weekly_report.{previous_start_date}`
-and check `next_week_focus`.
+and check `next_week_focus`. Also read `data/suggestion-adherence.json` for execution data.
 
 Determine if the user acted on it by inspecting relevant data for the current week
 (e.g., if the focus was protein, check this week's protein average against last week's).
+Also check `focus_tracking.met_days` count for concrete evidence.
 
 | Outcome | Action |
 |---------|--------|
-| Acted on it | Add to ✨ 本周亮点: `"上周说要{focus_summary}——做到了。"` |
+| Acted on it (met ≥5/7 days) | Add to ✨ 本周亮点: `"上周说要{focus_summary}——做到了。"` |
 | Did not act on it | Carry it forward as the first bullet in 🎯，no guilt language |
 | Unclear (insufficient data) | Skip — do not mention either way |
 
