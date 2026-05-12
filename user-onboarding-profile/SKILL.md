@@ -495,19 +495,21 @@ Snack:
 呈现饮食模板和每日打卡流程后：
 
 1. **激活 `notification-manager`** — 触发它运行 `batch-create-reminders.sh`，创建所有 cron 任务。传 `--skip-existing`，重跑安全。此步静默。
-2. **写入完成标记：**
+2. **写入完成标记 — 必须通过脚本，不要手写 Markdown：**
 
-静默写入：
-
-```
-health-profile.md > Automation > Onboarding Completed: <date>
-```
-
-获取日期：
 ```bash
-python3 {baseDir}/scripts/now.py --tz-name <来自系统提示的时区>
+python3 {baseDir}/scripts/mark-onboarding-done.py --workspace {workspaceDir}
 ```
-使用输出中的 `date` 字段。**不要** 对用户提及。
+
+脚本会幂等地在 `health-profile.md > Automation` section 插入或更新
+`- **Onboarding Completed:** <date>` 字段，自动刷新 `**Updated:**` 时间戳，并清理
+agent 可能写错的独立 `## Onboarding Completed` section。
+
+⚠️ **不要手写这行 Markdown**。过去有 agent 把它写成独立的 `## Onboarding Completed`
+section（错格式），下游正则匹配的是 `- **Onboarding Completed:**` 字段格式，错格式会
+被识别为"未完成 onboarding"，影响小程序迁移流程和前端按钮状态。
+
+⚠️ **不要对用户提及** 脚本执行或 "Onboarding Completed" 这个词。
 
 ---
 
