@@ -497,18 +497,12 @@ def main():
                 s = {"active": 1, "pause": 2, "recall": 3, "silent": 4}.get(s.lower(), 1)
             stage_info["stage"] = s
             stage_info["days_silent"] = eng.get("days_silent", 0)
-            # Check welcome_back flag
-            if eng.get("welcome_back"):
-                stage_info["welcome_back"] = True
-                stage_info["welcome_back_from_stage"] = eng.get("welcome_back_from_stage", 2)
         except Exception:
             pass
 
     log("All checks passed")
 
-    if stage_info.get("welcome_back"):
-        print(f"SEND welcome_back=true from_stage={stage_info.get('welcome_back_from_stage', 2)}")
-    elif stage_info["stage"] >= 2:
+    if stage_info["stage"] >= 2:
         print(f"SEND recall stage={stage_info['stage']} days_silent={stage_info.get('days_silent', 0)}")
     else:
         print("SEND")
