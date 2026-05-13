@@ -144,9 +144,11 @@ Use `meal_checkin` results to compose your reply. No more tool calls needed — 
 > - `missing_meals` — which meals were not logged and what calories were assumed
 > - `status` (on_track/high/low) for each macro — already compared against targets
 > - `checkpoint` ranges — already calculated
+> - `nutrition_focus` — recurring issue alert (if present)
 >
 > **What YOU still need to do:**
-> - Pick the right tone/icon per `suggestion_type` table below
+> - **FIRST check `nutrition_focus`**: if `alert == true`, ③ is REPLACED by the blocker discussion (see Nutrition Focus Tracking section). Do NOT write a normal food suggestion when alert is active.
+> - If no alert: pick the right tone/icon per `suggestion_type` table below
 > - Write ONE concrete food suggestion addressing all gaps (use `recent_foods` + preferences)
 > - Compose natural Chinese text following the ①②③ schema
 > - Handle `needs_clarification` as a casual hint
