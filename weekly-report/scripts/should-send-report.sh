@@ -86,8 +86,8 @@ print('yes' if has else 'no')
   fi
 done
 
-if [[ "$DAYS_WITH_DATA" -lt "$MIN_DAYS" ]]; then
-  echo "no: only $DAYS_WITH_DATA days with data (need $MIN_DAYS)"
+if [[ "$DAYS_WITH_DATA" -le "$MIN_DAYS" ]]; then
+  echo "no: only $DAYS_WITH_DATA days with data (need more than $MIN_DAYS)"
   exit 0
 fi
 
