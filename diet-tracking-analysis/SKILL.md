@@ -283,6 +283,11 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 
 ### ③ Suggestion (by `suggestion_type`)
 
+**⚠️ FIRST: Check `nutrition_focus` before writing ③.**
+If `nutrition_focus.alert == true` AND `!blocker_talked`: **SKIP the normal suggestion below entirely.** Instead write the blocker discussion as ③ (see "Behavior by State" → First alert). Do NOT give a normal food suggestion AND a blocker discussion — only the blocker discussion.
+If `nutrition_focus.alert == true` AND `blocker_talked`: **SKIP the normal suggestion.** Write the follow-up discussion as ③ (see "Behavior by State" → Re-alert).
+Otherwise: proceed with normal suggestion below.
+
 **Staying within calorie target is the #1 priority.** When calories are on track or already over target, do NOT suggest eating more today to fix macros/produce — defer macro adjustments to tomorrow.
 
 **Calorie budget for suggestions (CRITICAL):** Always use `suggestion_budget.remaining` for ③ advice. When missing meals exist, `daily_total.remaining` is inflated (doesn't account for assumed missing meals). If `suggestion_budget.remaining` ≤ 50, tell user today's budget is nearly used up and suggest only very light options or nothing extra. If `suggestion_budget.remaining` < 0, explicitly tell user the estimated budget is already exceeded.
