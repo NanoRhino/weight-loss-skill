@@ -149,9 +149,6 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
                 return False, f"notification_stage={stage} — {meal_type} suppressed during recall"
             if stage >= 3 and meal_type == "weekly_report":
                 return False, f"notification_stage={stage} — weekly_report suppressed at stage 3+"
-            # Stage 2: suppress weekly_report too (all meal/weight stopped)
-            if stage == 2 and meal_type == "weekly_report":
-                return False, f"notification_stage=2 — weekly_report suppressed during recall"
 
         # Stage 2: only allow lunch slot, only on days_silent 2 or 4 (Day 3 and Day 5)
         if stage == 2:
