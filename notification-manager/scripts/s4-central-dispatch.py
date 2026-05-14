@@ -75,7 +75,27 @@ def parse_routing_info(session_key):
     return {"channel": None, "target": None}
 
 
-def needs_monthly_recall(engagement, tz_offset):
+def mark_recall_sent(workspace_dir, tz_offset):
+    """Update engagement.json after a recall message is sent."""
+    tz = timezone(timedelta(seconds=tz_offset))
+    today_str = datetime.now(tz).strftime("%Y-%m-%d")
+    
+    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
+    try:
+        with open(eng_path) as f:
+            data = json.load(f)
+        
+        data["last_recall_date"] = today_str
+        data["monthly_recall_count"] = data.get("monthly_recall_count", 0) + 1
+        
+        with open(eng_path, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        log(f"  updated engagement: last_recall_date={today_str}, monthly_recall_count={data['monthly_recall_count']}")
+    except Exception as e:
+        log(f"  ERROR updating engagement for {workspace_dir}: {e}")
+
+
     """Check if this S4 user needs a recall message today."""
     stage = engagement.get("notification_stage", 1)
     if isinstance(stage, str):
@@ -108,7 +128,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--openclaw-dir", default="/home/admin/.openclaw")
     parser.add_argument("--tz-offset", type=int, default=28800)
+    parser.add_argument("--mark-sent", metavar="WORKSPACE_DIR",
+                        help="Mark a recall as sent for this workspace (call after message delivered)")
     args = parser.parse_args()
+
+    # --mark-sent mode: update engagement.json and exit
+    if args.mark_sent:
+        mark_recall_sent(args.mark_sent, args.tz_offset)
+        return
 
     workspaces = scan_workspaces(args.openclaw_dir)
     log(f"Found {len(workspaces)} user workspaces")

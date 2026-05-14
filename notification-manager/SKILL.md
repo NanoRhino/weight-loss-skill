@@ -293,13 +293,26 @@ Stage 5: SILENT — send nothing. Wait for user to return.
 
 Stage 4 users no longer consume personal cron resources. Instead:
 
-1. When a user enters S4, `check-stage.py` sets `crons_should_disable=true`
-2. The agent/SKILL-ROUTING reads this flag and runs `openclaw cron disable <job-id>` for all personal crons
-3. A single central cron runs daily at lunch, executing `s4-central-dispatch.py`
-4. The script scans all workspaces, finds S4 users due for monthly recall (>=30 days since last)
-5. For each matched user, the main agent generates and sends a recall message via `message` tool
-6. When a S4 user returns (sends any message), `check-stage.py` sets `crons_should_enable=true`
-7. SKILL-ROUTING reads this flag and re-enables all personal crons
+1. When a user enters S4, `check-stage.py` directly disables all their personal crons (`disabled_by=s4_auto`)
+2. A single central cron runs daily at lunch, executing `s4-central-dispatch.py`
+3. The script scans all workspaces, finds S4 users due for monthly recall (>=30 days since last)
+4. For each matched user, the main agent:
+   a. Reads user data from their workspace (meals, preferences, etc.)
+   b. Generates a recall message following `recall-messages.md` S4 rules
+   c. Sends via `message` tool with the `channel` and `target` from script output
+   d. Calls `s4-central-dispatch.py --mark-sent <workspace_dir>` to update engagement.json
+5. When a S4 user returns (sends any message), `check-stage.py` re-enables their personal crons (only those with `disabled_by=s4_auto`)
+
+**Central dispatch usage:**
+```bash
+# Scan for S4 users needing recall
+python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
+  --openclaw-dir /home/admin/.openclaw --tz-offset 28800
+
+# After sending message to a user, mark as sent
+python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
+  --mark-sent <workspace_dir> --tz-offset 28800
+```
 
 **Suppression rules:**
 - Stage 2+: stop weight reminders + meal reminders (only recall messages at lunch)

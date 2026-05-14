@@ -79,7 +79,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 如果 `days_silent` 为 2（来自第二步），在当天第一个 meal cron 前加一句**温柔提醒（Gentle Nudge）**。见 § 温柔提醒。仅 Day 3（days_silent=2）加 nudge，Day 1-2 正常不加。
 
-#### Stage 2 → 召回（Day 3 和 Day 5）
+#### Stage 2 → 召回（Day 4 和 Day 6）
 
 **仅在午餐时段触发。** 早餐/晚餐 cron 被 pre-send-check 拦截。
 
