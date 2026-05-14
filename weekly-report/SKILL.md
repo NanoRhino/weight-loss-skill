@@ -523,25 +523,22 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 ```
 📊 第{N}周周报
 
-📅 记录 {X}/7 天   🔥 {cal_avg} kcal{calorie_context}   ⚖️ {weight_change}{weight_context}
+📅 记录 {X}/7 天   🔥 {cal_avg} kcal   ⚖️ {weight_change}
 
-{one_sentence_summary}
+{data_hook}
 
-✨ 本周亮点
-· {achievement_1}
-· {achievement_2}
-
-🎯 下周一件事
-{focus_action}
-
-完整数据 👇
+完整分析 👇
+{report_url}
 ```
 
 - No progress bar — too early to show a meaningful arc
-- `one_sentence_summary`: freely written, focuses on "getting started" and what
-  the user overcame this week. Not a data restatement.
-- Achievements: celebrate showing up, first completions, small resistances
-- Max 2 achievement bullets
+- `data_hook`: ONE sentence based on this week's actual data that sparks curiosity.
+  Must reference a specific finding, not a generic summary.
+  Examples:
+  · "你周三那顿搭配蛋白质特别高，值得看看为什么"
+  · "这周日均热量比上周低了200大卡，有个变化挺明显的"
+  · "你这周有3天蛋白质达标了，之前最多2天"
+  NOT: "本周表现不错" / "继续加油" / generic praise
 
 ---
 
@@ -553,23 +550,14 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 {progress_bar}  已走 {progress_pct}%
 {start_weight} → {current_weight} kg → 目标 {target_weight} kg
 
-📅 记录 {X}/7 天   🔥 {cal_avg} kcal{calorie_context}   ⚖️ {weight_change}{weight_context}
+{data_hook}
 
-{one_sentence_summary}
-
-✨ 本周亮点
-· {achievement_1}
-· {achievement_2}
-
-🎯 下周一件事
-{focus_action}
-
-完整数据 👇
+完整分析 👇
+{report_url}
 ```
 
-- `one_sentence_summary`: pattern-level observation, not a data restatement.
-  Focus on what this week reveals about the user's trajectory.
-- Max 2 achievement bullets; if `next_week_focus` was acted on, it counts as one
+- `data_hook`: same rules as above — one specific data-driven observation that
+  makes the user want to click. Reference a concrete pattern, change, or anomaly.
 
 ---
 
@@ -581,30 +569,14 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 {progress_bar}  已走 {progress_pct}%
 {start_weight} → {current_weight} kg → 目标 {target_weight} kg  只差 {remaining} kg
 
-📅 记录 {X}/7 天   🔥 {cal_avg} kcal{calorie_context}   ⚖️ {weight_change}{weight_context}
+{data_hook}
 
-{one_sentence_summary}
-
-✨ 本周亮点
-· {achievement_1}
-· {achievement_2}
-
-🎯 下周一件事
-{focus_action}
-
-完整数据 👇
+完整分析 👇
+{report_url}
 ```
 
 - `remaining` = `current_weight − target_weight` (display in user's unit)
-- `one_sentence_summary`: connect this week to the full journey arc —
-  acknowledge how far they've come, not just this week's numbers
-- Achievements: at least one should reference the longer journey
-  (e.g. "从{start_weight}走到今天" / "这几个月积累的结果")
-- 🎯 **still gives a concrete action** — typically protein/muscle preservation
-  focus, or preparing for maintenance transition. Do not replace with
-  "keep it up" — always give something specific and actionable.
-- Estimated weeks remaining: append after `{focus_action}` if computable:
-  `按这个节奏，大约还有 {estimated_weeks} 周。`
+- `data_hook`: connect to the journey arc — reference a trend or milestone
 
 ---
 
@@ -612,7 +584,7 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 - Omit the ⚖️ line entirely
 - Omit the progress bar and weight fields
-- 本周亮点 focuses on consistency, variety, energy — never weight or restriction
+- `data_hook` focuses on consistency, variety, energy — never weight or restriction
 
 ---
 
