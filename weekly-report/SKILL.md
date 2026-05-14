@@ -522,23 +522,23 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 
 ```
 📊 第{N}周周报
+完整分析 👇 {report_url}
 
 {progress_bar}  已走 {progress_pct}%
 {start_weight} → {current_weight} kg → 目标 {target_weight} kg
 
 {data_hook}
-
-完整分析 👇
-{report_url}
 ```
 
 - `data_hook`: ONE sentence based on this week's actual data that sparks curiosity.
   Must reference a specific finding, not a generic summary.
-  Examples:
-  · "你周三那顿搭配蛋白质特别高，值得看看为什么"
-  · "这周日均热量比上周低了200大卡，有个变化挺明显的"
-  · "你这周有3天蛋白质达标了，之前最多2天"
-  NOT: "本周表现不错" / "继续加油" / generic praise
+  Rotate between different hook styles — never repeat the same angle two weeks in a row:
+  · **反直觉**: "这周有一天吃得最多反而掉秤最狠，猜猜是哪天👀"
+  · **发现规律**: "你可能没注意到，这周每次吃面的那天热量都超了🍜"
+  · **对比悬念**: "跟第1周比你有一个数据变化很大，点进来看"
+  · **接近里程碑**: "再掉0.7就到55了，这周的节奏够不够？看完就知道"
+  · **具体某餐**: "周四那顿是这6周以来营养最均衡的一餐，不是巧合"
+  NOT: "本周表现不错" / "继续加油" / generic praise / template-sounding language
 
 ---
 
@@ -546,18 +546,16 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 
 ```
 📊 第{N}周周报
+完整分析 👇 {report_url}
 
 {progress_bar}  已走 {progress_pct}%
 {start_weight} → {current_weight} kg → 目标 {target_weight} kg
 
 {data_hook}
-
-完整分析 👇
-{report_url}
 ```
 
-- `data_hook`: same rules as above — one specific data-driven observation that
-  makes the user want to click. Reference a concrete pattern, change, or anomaly.
+- `data_hook`: same rules as above — one specific data-driven observation.
+  Rotate styles, keep it fresh. Write like a human who just noticed something interesting.
 
 ---
 
@@ -565,14 +563,12 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 
 ```
 📊 第{N}周周报
+完整分析 👇 {report_url}
 
 {progress_bar}  已走 {progress_pct}%
 {start_weight} → {current_weight} kg → 目标 {target_weight} kg  只差 {remaining} kg
 
 {data_hook}
-
-完整分析 👇
-{report_url}
 ```
 
 - `remaining` = `current_weight − target_weight` (display in user's unit)
