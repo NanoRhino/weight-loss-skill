@@ -47,7 +47,7 @@ def log(msg):
 
 
 # Transition thresholds (V2)
-STAGE_1_TO_2_DAYS = 2   # 2 full calendar days silent → recall
+STAGE_1_TO_2_DAYS = 3   # 3 days_silent (2 full missed days) → recall
 # Stage 2→3: days_silent >= 5
 # Stage 3→4: weekly_recall_count >= 3
 # Stage 4→5: monthly_recall_count >= 3
@@ -385,8 +385,8 @@ def main():
             """V2 stage calculation based on days_silent + recall counts."""
             if ds < STAGE_1_TO_2_DAYS:
                 return 1   # 0-1 days → active
-            if ds < 5:
-                return 2   # 2-4 days → recall (Day 3-5)
+            if ds < 6:
+                return 2   # 3-5 days → recall (Day 3-5)
             # days_silent >= 5 → check recall counts for S3/S4/S5
             weekly_count = data.get("weekly_recall_count", 0)
             monthly_count = data.get("monthly_recall_count", 0)

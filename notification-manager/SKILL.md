@@ -262,12 +262,12 @@ Stage 1: ACTIVE — normal reminders
     │   Day 1: normal reminders, no extra
     │   Day 2: first meal adds gentle nudge, rest normal
     │
-    └── 2 full calendar days: zero replies + zero messages
+    └── 2 full missed days (days_silent=3): zero replies + zero messages
            │
 Stage 2: RECALL — stop meal/weight reminders, lunch-only recall
-    │       Day 3 (ds=2): emotion + content template (lunch slot)
+    │       Day 4 (ds=3): emotion + content recall (lunch slot)
     │       Day 4: nothing sent
-    │       Day 5 (ds=4): ask if busy, offer to pause (lunch slot)
+    │       Day 6 (ds=5): ask if busy, offer to pause (lunch slot)
     │
     ├── User sends any message → back to Stage 1
     └── days_silent >= 5

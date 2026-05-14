@@ -24,9 +24,9 @@
 
 ---
 
-## S1 温柔提醒（Gentle Nudge）— Day 2 仅第一餐
+## S1 温柔提醒（Gentle Nudge）— Day 3 仅第一餐
 
-**触发：** Stage 1，days_silent = 1，当天第一个 meal cron
+**触发：** Stage 1，days_silent = 2，当天第一个 meal cron
 
 **策略：**
 - 在正常餐前提醒前加一句
@@ -43,9 +43,9 @@
 
 ---
 
-## S2 Day 3 情绪召回（days_silent=2）
+## S2 Day 4 情绪召回（days_silent=3）
 
-**触发：** Stage 2，days_silent = 2，午餐时段
+**触发：** Stage 2，days_silent = 3，午餐时段
 
 **策略：**
 - 和食物/营养相关，不要脱离主题
@@ -66,9 +66,9 @@
 
 ---
 
-## S2 Day 5 询问暂停（days_silent=4）
+## S2 Day 6 询问暂停（days_silent=5）
 
-**触发：** Stage 2，days_silent = 4，午餐时段
+**触发：** Stage 2，days_silent = 5，午餐时段
 
 **策略：**
 - 给用户选择权：要不要暂停提醒
