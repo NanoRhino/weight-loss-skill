@@ -63,6 +63,18 @@ def extract_session_key(workspace_dir):
     return basename
 
 
+def parse_routing_info(session_key):
+    """Parse channel and target from session key.
+    
+    wecom-dm-username -> channel=wecom, target=username
+    wechat-dm-accXXX -> channel=wechat, target=accXXX
+    """
+    parts = session_key.split("-", 2)  # ['wecom', 'dm', 'username']
+    if len(parts) >= 3:
+        return {"channel": parts[0], "target": parts[2]}
+    return {"channel": None, "target": None}
+
+
 def needs_monthly_recall(engagement, tz_offset):
     """Check if this S4 user needs a recall message today."""
     stage = engagement.get("notification_stage", 1)
@@ -110,15 +122,18 @@ def main():
 
         if needs_monthly_recall(eng, args.tz_offset):
             session_key = extract_session_key(ws)
+            routing = parse_routing_info(session_key)
             results.append({
                 "workspace_dir": ws,
                 "session_key": session_key,
+                "channel": routing["channel"],
+                "target": routing["target"],
                 "stage": 4,
                 "days_silent": eng.get("days_silent", 0),
                 "monthly_recall_count": eng.get("monthly_recall_count", 0),
                 "last_recall_date": eng.get("last_recall_date"),
             })
-            log(f"  → {session_key}: needs monthly recall (count={eng.get('monthly_recall_count', 0)})")
+            log(f"  → {session_key}: needs monthly recall (count={eng.get('monthly_recall_count', 0)}, channel={routing['channel']}, target={routing['target']})")
 
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
