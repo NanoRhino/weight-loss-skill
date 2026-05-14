@@ -523,7 +523,8 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 ```
 📊 第{N}周周报
 
-📅 记录 {X}/7 天   🔥 {cal_avg} kcal   ⚖️ {weight_change}
+{progress_bar}  已走 {progress_pct}%
+{start_weight} → {current_weight} kg → 目标 {target_weight} kg
 
 {data_hook}
 
@@ -531,7 +532,6 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 {report_url}
 ```
 
-- No progress bar — too early to show a meaningful arc
 - `data_hook`: ONE sentence based on this week's actual data that sparks curiosity.
   Must reference a specific finding, not a generic summary.
   Examples:
