@@ -31,6 +31,7 @@ import glob
 import json
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone, timedelta
 
@@ -182,6 +183,75 @@ def get_last_logged_date(workspace_dir, tz_offset=0):
     return max(logged_dates) if logged_dates else None
 
 
+def _get_agent_id(workspace_dir):
+    """Derive agentId from workspace directory name.
+    /home/admin/.openclaw/workspace-wecom-dm-fuzhuoran -> wecom-dm-fuzhuoran
+    """
+    basename = os.path.basename(os.path.normpath(workspace_dir))
+    if basename.startswith("workspace-"):
+        return basename[len("workspace-"):]
+    return basename
+
+
+def _get_cron_jobs_path():
+    """Find the cron jobs.json file."""
+    openclaw_dir = os.path.expanduser("~/.openclaw")
+    return os.path.join(openclaw_dir, "cron", "jobs.json")
+
+
+def _toggle_user_crons(workspace_dir, disable=True):
+    """Disable or enable all cron jobs for a user by agentId."""
+    agent_id = _get_agent_id(workspace_dir)
+    jobs_path = _get_cron_jobs_path()
+    
+    if not os.path.exists(jobs_path):
+        log(f"cron jobs.json not found at {jobs_path}")
+        return
+    
+    try:
+        with open(jobs_path) as f:
+            data = json.load(f)
+        
+        jobs = data.get("jobs", []) if isinstance(data, dict) else data
+        changed = False
+        
+        for job in jobs:
+            if job.get("agentId") == agent_id:
+                if disable and not job.get("disabled"):
+                    job["disabled"] = True
+                    job["disabled_by"] = "s4_auto"
+                    changed = True
+                    log(f"  disabled cron: {job.get('id')} ({job.get('name')})")
+                elif not disable and job.get("disabled_by") == "s4_auto":
+                    job.pop("disabled", None)
+                    job.pop("disabled_by", None)
+                    changed = True
+                    log(f"  re-enabled cron: {job.get('id')} ({job.get('name')})")
+        
+        if changed:
+            with open(jobs_path, "w") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            # Signal gateway to reload cron config
+            try:
+                subprocess.run(["openclaw", "cron", "list"], 
+                             capture_output=True, timeout=10)
+            except Exception:
+                pass  # best-effort reload
+        else:
+            action = "disable" if disable else "enable"
+            log(f"  no cron jobs to {action} for agentId={agent_id}")
+    except Exception as e:
+        log(f"Error toggling crons for {agent_id}: {e}")
+
+
+def _disable_user_crons(workspace_dir):
+    _toggle_user_crons(workspace_dir, disable=True)
+
+
+def _enable_user_crons(workspace_dir):
+    _toggle_user_crons(workspace_dir, disable=False)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Update engagement stage based on user silence duration"
@@ -296,8 +366,8 @@ def main():
         data["welcome_back_days_away"] = original_days_silent
         # If returning from S4+, signal that personal crons should be re-enabled
         if prev_stage >= 4:
-            data["crons_should_enable"] = True
-            log("User returning from S4+ — flagging crons_should_enable=true")
+            _enable_user_crons(args.workspace_dir)
+            log("User returning from S4+ — personal crons re-enabled")
         changed = True
         log(f"RESET to stage 1 (user returned, last meal {last_logged}) — welcome_back flag set")
     elif user_returned_brief:
@@ -420,12 +490,10 @@ def main():
             changed = True
             log(f"FAST-FORWARD {old_stage} → {stage} (silent {days_silent} days)")
 
-            # When entering S4+, signal that personal crons should be disabled.
-            # The calling agent/script should run: openclaw cron disable <job-id>
-            # for all personal reminder crons of this user.
+            # When entering S4+, disable personal crons immediately.
             if stage >= 4 and old_stage < 4:
-                data["crons_should_disable"] = True
-                log("S4 entered — flagging crons_should_disable=true")
+                _disable_user_crons(args.workspace_dir)
+                log("S4 entered — personal crons disabled")
 
     # Stage 5 is permanent silence — no further transitions
 
