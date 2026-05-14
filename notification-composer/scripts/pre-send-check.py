@@ -151,7 +151,8 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
                 return False, f"notification_stage={stage} — weekly_report suppressed at stage 3+"
 
         # Stage 2: only allow lunch slot, only on days_silent 3 or 5 (Day 3 and Day 5)
-        if stage == 2:
+        # Exception: weekly_report is allowed through at S2 (user has recent data)
+        if stage == 2 and meal_type not in ("weekly_report",):
             is_lunch = meal_type in ("lunch", "meal_2")
             if not is_lunch:
                 return False, f"notification_stage=2 — only lunch recall allowed, got {meal_type}"

@@ -8,10 +8,10 @@ any date with at least one meal entry that contains food data.
 
 Lifecycle rules (V2):
 
-  Stage 1 (ACTIVE)   → 2 full calendar days silent  → Stage 2 (RECALL)
-  Stage 2 (RECALL)   → days_silent >= 5              → Stage 3 (WEEKLY)
-  Stage 3 (WEEKLY)   → 3 weekly recalls sent          → Stage 4 (MONTHLY)
-  Stage 4 (MONTHLY)  → 3 monthly recalls sent         → Stage 5 (SILENT)
+  Stage 1 (ACTIVE)   → days_silent >= 3 (2 full missed days) → Stage 2 (RECALL)
+  Stage 2 (RECALL)   → days_silent >= 6                       → Stage 3 (WEEKLY)
+  Stage 3 (WEEKLY)   → 3 weekly recalls sent                   → Stage 4 (MONTHLY)
+  Stage 4 (MONTHLY)  → 3 monthly recalls sent                  → Stage 5 (SILENT)
   Stage 5 (SILENT)   → permanent silence
 
 When a silent user returns (any message or meal logged while stage > 1),
