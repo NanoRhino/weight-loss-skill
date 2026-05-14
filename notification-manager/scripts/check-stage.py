@@ -294,6 +294,10 @@ def main():
         data["welcome_back"] = True
         data["welcome_back_from_stage"] = prev_stage
         data["welcome_back_days_away"] = original_days_silent
+        # If returning from S4+, signal that personal crons should be re-enabled
+        if prev_stage >= 4:
+            data["crons_should_enable"] = True
+            log("User returning from S4+ — flagging crons_should_enable=true")
         changed = True
         log(f"RESET to stage 1 (user returned, last meal {last_logged}) — welcome_back flag set")
     elif user_returned_brief:
@@ -415,6 +419,13 @@ def main():
                 data["monthly_recall_count"] = 0
             changed = True
             log(f"FAST-FORWARD {old_stage} → {stage} (silent {days_silent} days)")
+
+            # When entering S4+, signal that personal crons should be disabled.
+            # The calling agent/script should run: openclaw cron disable <job-id>
+            # for all personal reminder crons of this user.
+            if stage >= 4 and old_stage < 4:
+                data["crons_should_disable"] = True
+                log("S4 entered — flagging crons_should_disable=true")
 
     # Stage 5 is permanent silence — no further transitions
 

@@ -279,15 +279,27 @@ Stage 3: WEEKLY RECALL — 1x/week, rotate content types
     │       Also stops weekly report
     │
     ├── User sends any message → back to Stage 1
-    └── 3 weekly recalls sent
+    └── 3 weekly recalls sent → disable personal crons
            │
-Stage 4: MONTHLY RECALL — 1x/month, feature updates
+Stage 4: MONTHLY RECALL — 1x/month, central dispatch (not personal crons)
     │
-    ├── User sends any message → back to Stage 1
+    ├── User sends any message → back to Stage 1, re-enable personal crons
     └── 3 monthly recalls sent → Stage 5
            │
 Stage 5: SILENT — send nothing. Wait for user to return.
 ```
+
+### S4 Central Dispatch
+
+Stage 4 users no longer consume personal cron resources. Instead:
+
+1. When a user enters S4, `check-stage.py` sets `crons_should_disable=true`
+2. The agent/SKILL-ROUTING reads this flag and runs `openclaw cron disable <job-id>` for all personal crons
+3. A single central cron runs daily at lunch, executing `s4-central-dispatch.py`
+4. The script scans all workspaces, finds S4 users due for monthly recall (>=30 days since last)
+5. For each matched user, the main agent generates and sends a recall message via `message` tool
+6. When a S4 user returns (sends any message), `check-stage.py` sets `crons_should_enable=true`
+7. SKILL-ROUTING reads this flag and re-enables all personal crons
 
 **Suppression rules:**
 - Stage 2+: stop weight reminders + meal reminders (only recall messages at lunch)
