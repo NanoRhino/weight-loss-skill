@@ -176,38 +176,10 @@ Use `meal_checkin` results to compose your reply. No more tool calls needed — 
 
 ## Post-response Suggestion Tag
 
-### Step 0: Welcome Back Check (returning users only)
+### Step 0: Welcome Back Check — MOVED
 
-**Skip if you've already chatted with this user in the current session.**
-
-On first interaction in a new session, check if the user missed any days:
-
-1. Read `engagement.json` → get `days_silent` field (already computed by check-stage)
-2. If `days_silent` is missing or `<= 1`: skip to Step 1 (user active recently)
-3. If `days_silent >= 2`: user missed at least one full day. Run:
-
-```bash
-python3 {notification-manager:baseDir}/scripts/check-stage.py \
-  --workspace-dir {workspaceDir} --user-active
-```
-
-Then add a warm, brief welcome-back line before your meal response:
-- **1-2 days away**: cheerful, no mention of absence — "早上好呀！今天开始记录啦 ✨" / "嘿！看到你就开心 😊"
-- **3-5 days away**: warm and excited to see them — "好久不见！想你啦 🎉"
-- **6+ days away**: celebrate their return — "你回来啦！超开心！💪"
-
-⚠️ **NEVER mention the absence, judge, or imply they were wrong to not log.** No "昨天休息了", no "好几天没见", no "这次要坚持哦". Just be genuinely happy to see them, like greeting a friend. Keep it to ONE short line, then go straight to processing the meal.
-
-After sending the welcome-back line, **clear the flag** so cron doesn't repeat it:
-```python
-import json
-path = "{workspaceDir}/data/engagement.json"
-with open(path) as f: d = json.load(f)
-d.pop("welcome_back", None)
-d.pop("welcome_back_from_stage", None)
-d.pop("welcome_back_days_away", None)
-with open(path, "w") as f: json.dump(d, f, indent=2, ensure_ascii=False)
-```
+> ⚠️ Welcome back 检测已统一到 **SKILL-ROUTING.md** 全局前置检查。diet-tracking 不再单独处理。
+> 用户发消息时 SKILL-ROUTING 会自动检测回归、发欢迎、清 flag，然后才路由到 diet-tracking。
 
 ### Step 1: Recognize & Log
 

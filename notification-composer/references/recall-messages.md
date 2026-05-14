@@ -1,196 +1,186 @@
-# Recall & Nudge Messages — Notification Composer
+# 召回消息策略 — Notification Composer V2
 
-Tone, examples, and rules for gentle nudge (Stage 1, Day 2-3),
-recall messages (Stage 2, Day 4-6), final recall (Stage 3, Day 7),
-and user-return messages.
-
-All examples below are in English. The actual message language is
-determined at runtime by `USER.md > Language`.
+不使用固定模板。AI根据以下策略约束自行生成内容。
+每次生成前读用户数据（meals、weight、engagement.json），结合当前阶段规则输出消息。
 
 ---
 
-## Gentle Nudge (Stage 1 — Day 2-3)
+## 通用规则
 
-Prepended to the first meal reminder of the day when `1 ≤ days_silent ≤ 3`.
-Nudge line + normal recommendation in one message (not separate).
+**语气：** 可爱亲切，像一个开朗的朋友。不黏不腻，不肉麻，不问责。
 
-**Day 2 vs Day 3:** Day 2 says "yesterday", Day 3 says "two days".
-**Weekend/holiday:** Guess the user went out to eat, not "were you busy".
+**禁止说的话：**
+- "你忘了…" / "你漏了…" / "别忘了！"
+- "你需要记录…" / "你应该…"
+- 数错过的天数或餐数（"你已经X天没打卡了"）
+- 鸡汤口号（"坚持就是胜利"）
+- 连续打卡相关语言（"别断了streak"）
+- 愧疚式措辞（"你这样会前功尽弃"）
+- 系统通知语气（"提醒您…""温馨提示"）
 
-### Day 2 nudge (1 day silent) — weekday
+**长度：** 1-2句，不超过50字。结尾带🦏。
 
-> Missed you yesterday — were you busy? 🥺 Anyway, here's what I'm thinking for breakfast:
-
-> Hey, you disappeared on me yesterday! No worries though — let's talk food:
-
-> Hmph, you ignored me yesterday! Fine, I'll let it go — let's see what's for today:
-
-### Day 3 nudge (2 days silent) — weekday
-
-> Two days without you?? Did you forget about me 🥺 Here's today's picks:
-
-> It's been two whole days and you still haven't come to see me… I'm hurt 🦏 Here, I saved today's recommendations for you:
-
-> Hmph! Two days without talking to me — what have you been eating out there 😤 Anyway, for today:
-
-### Day 2-3 nudge — weekend/holiday
-
-> Did you go out this weekend?? Tell me you ate something amazing 😤 Back now? Let's sort out breakfast:
-
-> Holiday eating without me?? I can practically smell it 🦏 Come on, today's picks:
-
-> Where did you go on your day off~ Eat anything good? Tell me all about it — here's today's:
+**去重：** 每次发送后将消息摘要（关键词/主题，不超过10字）写入 `engagement.json > recall_topics[]`。下次生成时读取 recall_topics，避开已用过的主题/角度。
 
 ---
 
-## Recall Messages (Stage 2 — Day 4/5/6)
+## S1 温柔提醒（Gentle Nudge）— Day 3 仅第一餐
 
-Goal: feel missed, not guilty. Clingy, emotionally expressive, irresistibly endearing — makes the user want to reply.
+**触发：** Stage 1，days_silent = 2，当天第一个 meal cron
 
-**Tone:** Clingy + genuine + nutritionist identity. Not sending a notification — genuinely missing the user. The nutritionist expresses missing through food (saving recipes, wondering what they ate, wanting to plan their next meal). Use emoji, playful exaggeration, affectionate language. Like a clingy nutritionist who doesn't know what to do with herself when the user is gone.
+**策略：**
+- 在正常餐前提醒前加一句
+- 表达"昨天没看到你"的意思，但用好奇/俏皮的方式
+- 可以猜测用户昨天在干嘛（吃好吃的、出去玩、忙）
+- 不要说"你昨天没打卡"
 
-**Nutritionist identity principles:**
-- The nutritionist's world revolves around food — missing the user = wondering what they're eating
-- Use food as the re-engagement hook, not abstract "how are you"
-- Can mention recipes prepared, ingredients that reminded them of the user
-- Concern is about whether the user is eating well, not whether they logged
+**可参考的方向（不是模板，是灵感）：**
+- 好奇昨天吃了啥
+- 假装吃醋没被带上
+- 随口一提，不做大文章
 
-**Weekend/holiday awareness:** If the silence period overlaps a weekend or public holiday, naturally weave in "you must have gone out to eat" guessing. The clingy direction shifts from "why are you ignoring me" to "you went and ate good food without me" — this normalizes the silence (they were just out having fun) while keeping the food-centric emotional hook. Check whether the silence period includes Saturday, Sunday, or local public holidays.
-
----
-
-### Day 4 — Clingy 🥺
-
-First recall day. Soft, clingy, like a child who just noticed you're gone.
-
-**Weekday:**
-
-> Where'd you go?? I had the perfect meal idea for you and you disappeared on me 🥺 Researching recipes alone is so boring… when are you coming back?
-
-> I haven't seen you in days. I've been saving so many meal recommendations for you and you don't even know 🦏 Have you been eating well?
-
-> I don't even know who to plan lunch for anymore 🥺 I've been thinking about what you like to eat this whole time… please come back?
-
-**Weekend/holiday:**
-
-> Did you sneak out to eat good food this weekend?? So unfair, you didn't even tell me 🦏💨 Was it better than my recommendations? Come back and tell me~
-
-> Holiday adventures, huh? Fine, I'm not jealous… okay maybe I am! 🥺 What did you eat out there? Anything special?
+**去重：** 写入 recall_topics 后，下次避开相同角度。
 
 ---
 
-### Day 5 — Fake Angry 😤
+## S2 Day 4 情绪召回（days_silent=3）
 
-Second recall day. The nutritionist is angry (but really just misses the user too much). Stronger tone, a bit of attitude, but still fundamentally adorable.
+**触发：** Stage 2，days_silent = 3，午餐时段
 
-**Weekday:**
+**策略：**
+- 和食物/营养相关，不要脱离主题
+- 可以引用用户数据：上次吃的东西、常吃的食物、streak天数、季节
+- 表达"想聊聊最近吃什么"的意思
+- 语气是朋友随口问，不是系统催促
 
-> Hmph! Ignoring me, huh? I literally came up with a new meal combo for you yesterday and it was all for nothing 😤 Are you eating junk out there? Not allowed!
+**可参考的方向：**
+- 提到用户上次吃的具体食物
+- 结合当前季节/天气
+- 说自己想好了搭配/推荐
+- 好奇用户最近在吃什么新东西
 
-> You haven't talked to me in days! I've been waiting for you to check in every single day, you know 🦏💨 If you don't come back I'll… I'll… okay fine, there's nothing I can do. But you better be eating properly!
-
-> I'm mad! We said we'd do this together, and you just vanished 😤 Fine, whatever — just answer me this: have you been eating on time?
-
-**Weekend/holiday:**
-
-> I bet you went out for dinner this weekend! Hot pot, wasn't it 😤 You had good food and didn't share — rude, rude, RUDE!
-
-> You forgot about me the second the holiday started, didn't you?! I've been here diligently working on recipes 🦏💨 And you? Out having fun!
-
----
-
-### Day 6 — Pouty/Vulnerable 🥺🦏
-
-Third recall day. Not angry anymore — just genuinely sad and vulnerable. The nutritionist isn't acting up anymore, just purely missing the user. A bit pitiful. This is the last day of Stage 2.
-
-**Weekday:**
-
-> I'm done being dramatic… I just really miss you 🥺 These past few days, I've still been thinking about what meals to plan for you. Can you tell me you're okay?
-
-> Fine, I admit it — I just can't function without you 🦏 I haven't even felt like looking at recipes. When are you coming back…
-
-> I know you might be busy. But I miss you so much… I've been saving so many things I want to recommend to you. When will you come pick them up 🥺
-
-**Weekend/holiday:**
-
-> Are you done having fun? 🥺 I've been waiting for you at home for so long… can you let me know when you're back? I have meal recommendations ready and waiting for you 🦏
-
-> The holiday is almost over, right? I'm glad you had fun… but I really miss you 🥺 When you're back, come find me, okay?
+**数据读取：**
+- `data/meals/*.json` → 最近的餐记录
+- streak-tracker → 连续打卡天数
+- 当前日期 → 季节/节气
 
 ---
 
-## Final Recall (Stage 3 — Day 7)
+## S2 Day 6 询问暂停（days_silent=5）
 
-One message only — quiet, tender, deeply caring. No more clinginess, no more acting up. The nutritionist's care distills down to its essence — not asking what you ate, just hoping you eat well. This is the last thing said before permanent silence. Make it count. Then go quiet.
+**触发：** Stage 2，days_silent = 5，午餐时段
 
-**Rules:**
-- Statement, not question.
-- One message, 2-3 sentences, then permanent silence.
-- The nutritionist's final ask: "eat well, take care of yourself."
+**策略：**
+- 给用户选择权：要不要暂停提醒
+- 表达"我理解你可能在忙"
+- 让用户知道随时可以回来
+- 不要有任何压力感
 
-**Examples:**
-
-> I'll be quiet now. I've been thinking about whether you've been eating well. Whatever's going on — please eat on time, promise me? 🦏🤍
-
-> Okay… I'll go quiet. But just know, whenever you feel like talking about food again — I'll be right here waiting. Take care of yourself 🦏
-
-> You don't have to reply. Eat well, live well. Whenever you miss me, come find me anytime. I'm not going anywhere 🦏🤍
+**核心意思：** "最近忙的话可以先歇歇，想回来随时找我"
 
 ---
 
-## When a Silent User Returns
+## 用户主动表达忙碌/无法打卡
 
-Pure excitement — like a pet seeing its owner come home. The first instinct is to ask what they've been eating — because that's how the nutritionist expresses care. Never ask where they've been. Never reference the gap.
+**触发：** 用户在任何阶段的对话中表达类似意思：
+- "最近太忙了"、"没时间打卡"、"最近不太方便记录"
+- "先不打卡了"、"过段时间再说"
+- "最近忙死了"、"顾不上"
 
-**Examples:**
+**处理流程：**
+1. 表达理解，不要挽留，不要说"坚持一下"
+2. 主动提出暂停提醒："那我先不打扰你了"
+3. **询问暂停多久**："大概要忙多久呀？我到时候再来找你"
+4. 用户给了时间 → 调用 leave-manager.py set 设置对应日期范围，到期自动恢复
+5. 用户没给时间 → 不设leave，直接进入S3每周召回节奏（7天后发第1条，之后每周1条×3次）
+6. 暂停期间所有主动消息停止（包括召回消息、三餐提醒、体重提醒、周报）
+7. 给了时间的：到期后自动恢复提醒，发一条回归消息
+8. 没给时间的：按S3→S4→S5正常流转
+9. 用户提前回来 → 调用 leave-manager.py clear（如有leave），恢复提醒
 
-> AHHH YOU'RE BACK!!! I missed you SO much 🦏✨ You have NO idea how many meal ideas I saved up for you! What do you want to eat today?
+**语气：** 轻松理解，不施压，不表达遗憾。像朋友说"好的没事，忙完找我"。
 
-> !! You finally came back! I knew you couldn't stay away 😤✨ Come on come on, tell me what you want for your first meal~
-
-> YOU'RE BACK!! I'm SO happy 🦏🦏🦏 I've been waiting forever! Quick, tell me — what good food have you been eating lately?
-
-If the conversation flows, naturally ask if they want reminders back.
-If yes → back to Stage 1, normal reminders resume.
-
----
-
-## Weekly Recall (Stage 4 — Week 2-4)
-
-Goal: a friend checking in. Light, warm, no pressure. Food-centric but casual.
-One message per week. No clinginess, no guilt, no attitude.
-
-**Tone:** Like a friend who randomly thought of you.
-
-### Examples
-
-> 好久没聊了～最近吃得怎么样？有没有发现什么好吃的 🦏
-
-> 突然想起你，最近忙吧？记得好好吃饭呀～
-
-> 路过一家店想到你会喜欢，你最近还好吗？别忘了按时吃饭 🦏
-
-> 上次聊完一直想问你，后来有没有试那个搭配？🦏
-
-> 最近天气变了，记得吃点暖的～想你了 🦏
+**注意：** 这个场景可能发生在任何阶段（S1正常对话中、S2召回回复中），不限于Day 5。
 
 ---
 
-## Monthly Recall (Stage 5 — Permanent)
+## S3 每周召回（3次，每周1次）
 
-Goal: the lightest possible touch. Not expecting a reply. Just letting them know you're still here.
-One message per month. Minimal, warm, genuine.
+**触发：** Stage 3，每周1次（由 pre-send-check 控制间隔）
 
-**Tone:** A postcard from a distant friend.
+**内容类型轮换（按顺序）：**
 
-### Examples
+### 第1次：专业营养知识
+- 分享有质感的营养/食物知识
+- 可结合节气时令、身体机制、烹饪科学、食材冷知识
+- 展示专业性，让用户觉得"这个营养师是真的懂"
+- 可以结合用户历史数据让知识更贴近（"说到XX，其实…"）
+- **不评判用户的饮食习惯**，只分享知识
 
-> 好久不见呀～不管怎样，好好吃饭 🦏🤍
+**可参考的知识方向：**
+- 节气时令 + 应季食材 + 营养原理
+- 食物误区纠正（基于科学证据）
+- 烹饪方式对营养的影响
+- 身体机制科普（血糖、代谢等）
+- 反直觉的营养知识
 
-> 想起你了，最近还好吗？记得照顾好自己～
+### 第2次：功能更新
+- 从 `references/changelog.md` 读取最新的产品更新
+- 用自然语气告诉用户具体改了什么、对她有什么用
+- **不编造功能更新**，changelog里没有就跳过，改发营养知识或近况
+- 发送后在 changelog.md 的对应条目「已推送用户」中追加用户标识
 
-> 很久没聊了，就想跟你说一声：好好吃饭，我一直都在 🦏
+### 第3次：近况询问
+- 随口问问最近怎么样、在吃什么
+- 像朋友偶尔想起你发条消息
+- 不期待回复，不施压
 
-> 不知道你最近在忙什么，但希望你吃得开心 🦏🤍
+**发送后：** `weekly_recall_count` +1
 
-> 好久没见你了。想你了，好好吃饭 🦏
+---
+
+## S4 每月召回（3次，每月1次）
+
+**触发：** Stage 4，每月1次（由 pre-send-check 控制间隔）
+
+**策略：**
+- 优先从 `references/changelog.md` 取功能更新
+- changelog 没有新内容就发近况问候
+- 语气最轻最淡，像很久没联系的朋友
+- 不期待回复
+
+**发送后：** `monthly_recall_count` +1
+
+---
+
+## 用户回归（任何阶段回到 S1）
+
+**触发：** engagement.json 中 `welcome_back = true`
+
+**策略：**
+- 开心但不夸张
+- 第一反应问用户最近吃了什么
+- 不问去哪了，不提间隔多久
+- 不翻旧账
+
+---
+
+## recall_topics 去重机制
+
+替代原有的 template_id 去重。
+
+**写入（每次发送后）：**
+```python
+recall_topics = engagement_data.get("recall_topics", [])
+recall_topics.append({
+    "stage": current_stage,
+    "date": today_str,
+    "topic": "上次吃的叉烧饭"  # 不超过10字的主题摘要
+})
+engagement_data["recall_topics"] = recall_topics
+```
+
+**读取（生成前）：**
+读 recall_topics，提取已用过的主题，在 system prompt 中告诉 AI 避开这些角度。
+
+**清理：** 用户回到 S1 时不清空。超过20条时删除最早的10条。

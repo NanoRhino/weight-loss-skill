@@ -258,29 +258,72 @@ bash {baseDir}/scripts/create-reminder.sh \
 ## Lifecycle: Active → Recall → Silent
 
 ```
-Stage 1: ACTIVE — normal reminders (Day 2-3: morning nudge + normal recommendation)
+Stage 1: ACTIVE — normal reminders
+    │   Day 1: normal reminders, no extra
+    │   Day 2: first meal adds gentle nudge, rest normal
     │
-    └── 3 full calendar days: zero replies + zero messages
+    └── 2 full missed days (days_silent=3): zero replies + zero messages
            │
-Stage 2: RECALL — stop normal reminders, send daily recall (Day 4-6)
-    │       First meal cron of the day: one recall message (no meal recommendations)
-    │       Subsequent meal crons + weight: suppressed
-    │       Tone escalation: Day 4 clingy → Day 5 fake angry → Day 6 pouty/vulnerable
+Stage 2: RECALL — stop meal/weight reminders, lunch-only recall
+    │       Day 4 (ds=3): emotion + content recall (lunch slot)
+    │       Day 4: nothing sent
+    │       Day 6 (ds=5): ask if busy, offer to pause (lunch slot)
     │
-    ├── User replies → back to Stage 1
-    └── 3 days, no reply
+    ├── User sends any message → back to Stage 1
+    └── days_silent >= 5
            │
-Stage 3: FINAL RECALL — one last emotional message
+Stage 3: WEEKLY RECALL — 1x/week, rotate content types
+    │       Week 1: nutrition knowledge
+    │       Week 2: feature update
+    │       Week 3: casual check-in
+    │       Also stops weekly report
     │
-    ├── User replies → back to Stage 1
-    └── 1 day, no reply → Stage 4
+    ├── User sends any message → back to Stage 1
+    └── 3 weekly recalls sent → disable personal crons
            │
-Stage 4: SILENT — send nothing. Wait for user to return.
+Stage 4: MONTHLY RECALL — 1x/month, central dispatch (not personal crons)
+    │
+    ├── User sends any message → back to Stage 1, re-enable personal crons
+    └── 3 monthly recalls sent → Stage 5
+           │
+Stage 5: SILENT — send nothing. Wait for user to return.
 ```
 
-Recall replaces the next meal reminder slot — don't send at random hours.
-Weight reminders also stop at Stage 2. Write current stage to
-`data/engagement.json > notification_stage`.
+### S4 Central Dispatch
+
+Stage 4 users no longer consume personal cron resources. Instead:
+
+1. When a user enters S4, `check-stage.py` directly disables all their personal crons (`disabled_by=s4_auto`)
+2. A single central cron runs daily at lunch, executing `s4-central-dispatch.py`
+3. The script scans all workspaces, finds S4 users due for monthly recall (>=30 days since last)
+4. For each matched user, the main agent:
+   a. Reads user data from their workspace (meals, preferences, etc.)
+   b. Generates a recall message following `recall-messages.md` S4 rules
+   c. Sends via `message` tool with the `channel` and `target` from script output
+   d. Calls `s4-central-dispatch.py --mark-sent <workspace_dir>` to update engagement.json
+5. When a S4 user returns (sends any message), `check-stage.py` re-enables their personal crons (only those with `disabled_by=s4_auto`)
+
+**Central dispatch usage:**
+```bash
+# Scan for S4 users needing recall
+python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
+  --openclaw-dir /home/admin/.openclaw --tz-offset 28800
+
+# After sending message to a user, mark as sent
+python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
+  --mark-sent <workspace_dir> --tz-offset 28800
+```
+
+**Suppression rules:**
+- Stage 2+: stop weight reminders + meal reminders (only recall messages at lunch)
+- Stage 3+: also stop weekly report
+- Stage 5: stop everything
+
+Recall replaces the lunch reminder slot — don't send at random hours.
+Write current stage to `data/engagement.json > notification_stage`.
+
+**Template dedup:** All recall messages tracked in `engagement.json > recall_history[]`.
+Same template_id never reused for the same user across sessions.
 
 **Stage transition logic:** Before every reminder, `notification-composer` calls this skill's
 stage-check script to update the engagement stage:
@@ -439,6 +482,20 @@ If the user says "取消提醒" without specifying which one:
 ## Leave / Vacation Management
 
 用户要求暂停打卡（假期、出游、不方便记录等）时，调用 leave-manager 设置请假。
+
+**触发场景：**
+1. 用户主动说要请假/暂停/放假不打卡
+2. 用户在对话中表达最近很忙、无法打卡、顾不上记录
+3. S2 Day 5 询问暂停后用户确认暂停
+
+**处理流程：**
+1. 表达理解，主动提出暂停提醒
+2. 询问暂停多久（"大概要忙多久呀？"）
+3. 用户给了时间 → set leave 对应日期
+4. 用户没给时间 → 不设leave，直接让check-stage按days_silent推进到S3（7天后第1条每周召回）
+5. 暂停期间所有主动消息停止
+6. 给了时间的：到期自动恢复 / 用户提前回来 → clear leave
+7. 没给时间的：按S3→S4→S5正常流转，用户随时回来重置到S1
 
 ### Set leave
 ```bash

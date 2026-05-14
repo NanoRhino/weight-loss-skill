@@ -141,11 +141,30 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             if is_weight:
                 return False, f"notification_stage={stage} — weight reminders suppressed during recall"
 
-        # Stage 2-4: suppress custom reminders, weekly reports, daily summaries
+        # Stage 2-4: suppress custom reminders, daily summaries
+        # Stage 3-4: also suppress weekly reports
         if stage in (2, 3, 4):
-            is_non_recall = meal_type in ("custom", "weekly_report", "daily_summary")
+            is_non_recall = meal_type in ("custom", "daily_summary")
             if is_non_recall:
                 return False, f"notification_stage={stage} — {meal_type} suppressed during recall"
+            if stage >= 3 and meal_type == "weekly_report":
+                return False, f"notification_stage={stage} — weekly_report suppressed at stage 3+"
+
+        # Stage 2: only allow lunch slot, only on days_silent 3 or 5 (Day 3 and Day 5)
+        # Exception: weekly_report is allowed through at S2 (user has recent data)
+        if stage == 2 and meal_type not in ("weekly_report",):
+            is_lunch = meal_type in ("lunch", "meal_2")
+            if not is_lunch:
+                return False, f"notification_stage=2 — only lunch recall allowed, got {meal_type}"
+            days_silent_val = data.get("days_silent", 0)
+            if days_silent_val not in (3, 5):
+                return False, f"notification_stage=2 — days_silent={days_silent_val}, recall only on day 3 (ds=3) and day 5 (ds=5)"
+
+        # Stage 3-4: also only allow lunch slot for recall messages
+        if stage in (3, 4):
+            is_lunch = meal_type in ("lunch", "meal_2")
+            if not is_lunch:
+                return False, f"notification_stage={stage} — only lunch recall allowed, got {meal_type}"
 
         local_date = get_local_date(tz_offset)
 
@@ -157,7 +176,8 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
             data["last_recall_date"] = local_date
             with open(path, "w") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            return True, None
+            days_silent_val = data.get("days_silent", 0)
+            return True, f"recall stage=2 days_silent={days_silent_val}"
 
         if stage == 3:
             last_recall_date = data.get("last_recall_date", "")
@@ -475,18 +495,12 @@ def main():
                 s = {"active": 1, "pause": 2, "recall": 3, "silent": 4}.get(s.lower(), 1)
             stage_info["stage"] = s
             stage_info["days_silent"] = eng.get("days_silent", 0)
-            # Check welcome_back flag
-            if eng.get("welcome_back"):
-                stage_info["welcome_back"] = True
-                stage_info["welcome_back_from_stage"] = eng.get("welcome_back_from_stage", 2)
         except Exception:
             pass
 
     log("All checks passed")
 
-    if stage_info.get("welcome_back"):
-        print(f"SEND welcome_back=true from_stage={stage_info.get('welcome_back_from_stage', 2)}")
-    elif stage_info["stage"] >= 2:
+    if stage_info["stage"] >= 2:
         print(f"SEND recall stage={stage_info['stage']} days_silent={stage_info.get('days_silent', 0)}")
     else:
         print("SEND")

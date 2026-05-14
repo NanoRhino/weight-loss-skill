@@ -39,6 +39,7 @@ make the user repeat themselves.
      with open(path, 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False)
      "
      ```
+   - Note: if user is returning from S4+, `check-stage.py --user-active` already re-enabled their personal crons automatically.
 3. If `notification_stage` == 1 and no `welcome_back` → proceed normally.
 
 **Welcome style:** Warm but brief. "好久不见！" / "欢迎回来～" — never mention how long they were gone.

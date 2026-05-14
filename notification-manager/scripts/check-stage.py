@@ -6,15 +6,15 @@ Derives last interaction from meal logging records (data/meals/*.json)
 rather than relying on a platform-written timestamp. A "logged day" is
 any date with at least one meal entry that contains food data.
 
-Lifecycle rules:
+Lifecycle rules (V2):
 
-  Stage 1 (ACTIVE)   → 3 full calendar days silent  → Stage 2 (RECALL)
-  Stage 2 (RECALL)   → 3 days of daily recalls       → Stage 3 (WEEKLY)
-  Stage 3 (WEEKLY)   → 3 weeks of weekly recalls      → Stage 4 (MONTHLY)
-  Stage 4 (MONTHLY)  → 90 days total silence          → Stage 5 (SILENT)
+  Stage 1 (ACTIVE)   → days_silent >= 3 (2 full missed days) → Stage 2 (RECALL)
+  Stage 2 (RECALL)   → days_silent >= 6                       → Stage 3 (WEEKLY)
+  Stage 3 (WEEKLY)   → 3 weekly recalls sent                   → Stage 4 (MONTHLY)
+  Stage 4 (MONTHLY)  → 3 monthly recalls sent                  → Stage 5 (SILENT)
   Stage 5 (SILENT)   → permanent silence
 
-When a silent user returns (new meal logged while stage > 1),
+When a silent user returns (any message or meal logged while stage > 1),
 resets to Stage 1.
 
 Usage:
@@ -31,6 +31,7 @@ import glob
 import json
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone, timedelta
 
@@ -46,11 +47,11 @@ def log(msg):
     print(f"[check-stage] {msg}", file=sys.stderr)
 
 
-# Transition thresholds
-STAGE_1_TO_2_DAYS = 3   # 3 full calendar days silent → daily recall
-STAGE_2_TO_3_DAYS = 3   # 3 days of daily recalls (Day 4-6) → weekly recall
-STAGE_3_TO_4_WEEKS = 3  # 3 weeks of weekly recalls → monthly recall
-STAGE_4_TO_5_DAYS = 90  # 90 days total silence → permanent silence
+# Transition thresholds (V2)
+STAGE_1_TO_2_DAYS = 3   # 3 days_silent (2 full missed days) → recall
+# Stage 2→3: days_silent >= 5
+# Stage 3→4: weekly_recall_count >= 3
+# Stage 4→5: monthly_recall_count >= 3
 
 ENGAGEMENT_DEFAULTS = {
     "notification_stage": 1,
@@ -182,6 +183,75 @@ def get_last_logged_date(workspace_dir, tz_offset=0):
     return max(logged_dates) if logged_dates else None
 
 
+def _get_agent_id(workspace_dir):
+    """Derive agentId from workspace directory name.
+    /home/admin/.openclaw/workspace-wecom-dm-fuzhuoran -> wecom-dm-fuzhuoran
+    """
+    basename = os.path.basename(os.path.normpath(workspace_dir))
+    if basename.startswith("workspace-"):
+        return basename[len("workspace-"):]
+    return basename
+
+
+def _get_cron_jobs_path():
+    """Find the cron jobs.json file."""
+    openclaw_dir = os.path.expanduser("~/.openclaw")
+    return os.path.join(openclaw_dir, "cron", "jobs.json")
+
+
+def _toggle_user_crons(workspace_dir, disable=True):
+    """Disable or enable all cron jobs for a user by agentId."""
+    agent_id = _get_agent_id(workspace_dir)
+    jobs_path = _get_cron_jobs_path()
+    
+    if not os.path.exists(jobs_path):
+        log(f"cron jobs.json not found at {jobs_path}")
+        return
+    
+    try:
+        with open(jobs_path) as f:
+            data = json.load(f)
+        
+        jobs = data.get("jobs", []) if isinstance(data, dict) else data
+        changed = False
+        
+        for job in jobs:
+            if job.get("agentId") == agent_id:
+                if disable and not job.get("disabled"):
+                    job["disabled"] = True
+                    job["disabled_by"] = "s4_auto"
+                    changed = True
+                    log(f"  disabled cron: {job.get('id')} ({job.get('name')})")
+                elif not disable and job.get("disabled_by") == "s4_auto":
+                    job.pop("disabled", None)
+                    job.pop("disabled_by", None)
+                    changed = True
+                    log(f"  re-enabled cron: {job.get('id')} ({job.get('name')})")
+        
+        if changed:
+            with open(jobs_path, "w") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            # Signal gateway to reload cron config
+            try:
+                subprocess.run(["openclaw", "cron", "list"], 
+                             capture_output=True, timeout=10)
+            except Exception:
+                pass  # best-effort reload
+        else:
+            action = "disable" if disable else "enable"
+            log(f"  no cron jobs to {action} for agentId={agent_id}")
+    except Exception as e:
+        log(f"Error toggling crons for {agent_id}: {e}")
+
+
+def _disable_user_crons(workspace_dir):
+    _toggle_user_crons(workspace_dir, disable=True)
+
+
+def _enable_user_crons(workspace_dir):
+    _toggle_user_crons(workspace_dir, disable=False)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Update engagement stage based on user silence duration"
@@ -294,6 +364,10 @@ def main():
         data["welcome_back"] = True
         data["welcome_back_from_stage"] = prev_stage
         data["welcome_back_days_away"] = original_days_silent
+        # If returning from S4+, signal that personal crons should be re-enabled
+        if prev_stage >= 4:
+            _enable_user_crons(args.workspace_dir)
+            log("User returning from S4+ — personal crons re-enabled")
         changed = True
         log(f"RESET to stage 1 (user returned, last meal {last_logged}) — welcome_back flag set")
     elif user_returned_brief:
@@ -382,15 +456,19 @@ def main():
         # This avoids the one-step-per-cron problem where a user stuck at S1
         # due to a reset takes multiple cron cycles to reach the correct stage.
         def calc_target_stage(ds):
-            if ds >= STAGE_4_TO_5_DAYS:
-                return 5   # 90+ days → permanent silence
-            if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS + STAGE_3_TO_4_WEEKS * 7:
-                return 4   # 3 + 3 + 21 = 27+ days → monthly recall (Week 5+)
-            if ds >= STAGE_1_TO_2_DAYS + STAGE_2_TO_3_DAYS:
-                return 3   # 3 + 3 = 6+ days → weekly recall (Week 2-4)
-            if ds >= STAGE_1_TO_2_DAYS:
-                return 2   # 3+ days → daily recall (Day 4-6)
-            return 1
+            """V2 stage calculation based on days_silent + recall counts."""
+            if ds < STAGE_1_TO_2_DAYS:
+                return 1   # 0-1 days → active
+            if ds < 6:
+                return 2   # 3-5 days → recall (Day 3-5)
+            # days_silent >= 5 → check recall counts for S3/S4/S5
+            weekly_count = data.get("weekly_recall_count", 0)
+            monthly_count = data.get("monthly_recall_count", 0)
+            if weekly_count < 3:
+                return 3   # weekly recall phase
+            if monthly_count < 3:
+                return 4   # monthly recall phase
+            return 5       # all recalls exhausted → silent
 
         target = calc_target_stage(days_silent)
         # Only move forward, never backward (backward is handled by reset above)
@@ -411,6 +489,11 @@ def main():
                 data["monthly_recall_count"] = 0
             changed = True
             log(f"FAST-FORWARD {old_stage} → {stage} (silent {days_silent} days)")
+
+            # When entering S4+, disable personal crons immediately.
+            if stage >= 4 and old_stage < 4:
+                _disable_user_crons(args.workspace_dir)
+                log("S4 entered — personal crons disabled")
 
     # Stage 5 is permanent silence — no further transitions
 
