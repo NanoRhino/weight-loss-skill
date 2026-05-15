@@ -239,7 +239,7 @@ bash {baseDir}/scripts/create-reminder.sh \
 
 ### Diet pattern detection (self-destructing, onboarding + 3 days)
 
-One-time diet pattern analysis. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = same as daily review (dinner + 3h).
+One-time diet pattern analysis. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = dinner + 3h.
 
 ```bash
 bash {baseDir}/scripts/create-reminder.sh \
