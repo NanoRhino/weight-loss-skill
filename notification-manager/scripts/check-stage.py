@@ -33,6 +33,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone, timedelta
 
 def _normalize_path(p):
@@ -229,8 +230,20 @@ def _toggle_user_crons(workspace_dir, disable=True):
                     log(f"  re-enabled cron: {job.get('id')} ({job.get('name')})")
         
         if changed:
-            with open(jobs_path, "w") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+            # Atomic write: tmp file + os.replace to avoid race with gateway reads
+            tmp_fd, tmp_path = tempfile.mkstemp(
+                dir=os.path.dirname(jobs_path), suffix=".tmp"
+            )
+            try:
+                with os.fdopen(tmp_fd, "w") as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                os.replace(tmp_path, jobs_path)
+            except Exception:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
             # Signal gateway to reload cron config
             try:
                 subprocess.run(["openclaw", "cron", "list"], 
