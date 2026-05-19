@@ -253,6 +253,13 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 
 1-sentence comment bridging to ③.
 
+**Text must match status (HARD RULE):** Your bridging comment and ③ suggestion text MUST faithfully reflect the status arrows above. Do NOT contradict them:
+- ⬆️ high → must say "偏高/超了/多了/过量". NEVER say "够了/达标/充足".
+- ⬇️ low → must say "偏少/不够/偏低". NEVER say "够了/达标/充足".
+- ✅ on_track → may say "达标/合适/刚好/够了".
+
+If fat is ⬆️, you cannot say "脂肪够了". If protein is ⬇️, you cannot say "蛋白质ok". Verify consistency before outputting.
+
 ### ③ Suggestion (by `suggestion_type`)
 
 **Staying within calorie target is the #1 priority.** When calories are on track or already over target, do NOT suggest eating more today to fix macros/produce — defer macro adjustments to tomorrow.
