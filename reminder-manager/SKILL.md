@@ -34,16 +34,16 @@ Add `--keep` to preserve one-shot jobs after firing.
 
 The `--message` is what you (the agent) will receive when the job fires. Write it as an instruction to yourself.
 
-**IMPORTANT: Always prepend an engagement check to the message.** This ensures the agent checks if the user is still active before sending reminders to recalled users:
+**IMPORTANT: Always prepend a pre-send-check call to the message.** This ensures the reminder is suppressed when the user enters recall stages (Stage 2+). The check also auto-creates/updates `engagement.json`, so it works even if the file doesn't exist yet.
 
 ```
-先检查 engagement.json 的 stage 字段（如果文件不存在，默认 stage=1）。如果 stage >= 2，不要发送此提醒，直接跳过（回复 NO_REPLY）。如果 stage <= 1，继续执行：[actual reminder instruction]
+先执行 python3 {notification-manager:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：[actual reminder instruction]
 ```
 
 Examples:
-- `--message "先检查 engagement.json 的 stage 字段（如果文件不存在，默认 stage=1）。如果 stage >= 2，不要发送此提醒，直接跳过。如果 stage <= 1，继续执行：提醒用户该喝水了，简短自然"`
-- `--message "先检查 engagement.json 的 stage 字段（如果文件不存在，默认 stage=1）。如果 stage >= 2，不要发送此提醒，直接跳过。如果 stage <= 1，继续执行：Ask the user if they've had lunch yet"`
-- `--message "先检查 engagement.json 的 stage 字段（如果文件不存在，默认 stage=1）。如果 stage >= 2，不要发送此提醒，直接跳过。如果 stage <= 1，继续执行：提醒用户去称体重，鼓励一下"`
+- `--message "先执行 python3 {notification-manager:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：提醒用户该喝水了，简短自然"`
+- `--message "先执行 python3 {notification-manager:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：Ask the user if they've had lunch yet"`
+- `--message "先执行 python3 {notification-manager:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：提醒用户去称体重，鼓励一下"`
 
 ### List
 
