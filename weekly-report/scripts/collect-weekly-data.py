@@ -97,7 +97,7 @@ def collect_meals(nutrition_calc, data_dir, start_date, end_date, tz_offset):
                             meal_cal = sum(i.get("calories", 0) or i.get("cal", 0) or 0 for i in items if isinstance(i, dict))
                             meal_protein = sum((i.get("protein_g") or i.get("protein") or 0) for i in items if isinstance(i, dict))
                             meal_fat = sum((i.get("fat_g") or i.get("fat") or 0) for i in items if isinstance(i, dict))
-                            meal_carb = sum((i.get("carb_g") or i.get("carb") or i.get("carbs") or 0) for i in items if isinstance(i, dict))
+                            meal_carb = sum((i.get("carbs_g") or i.get("carb_g") or i.get("carb") or i.get("carbs") or 0) for i in items if isinstance(i, dict))
                             meal_fiber = sum(i.get("fiber", 0) or 0 for i in items if isinstance(i, dict))
                             foods = [i.get("name", "?") for i in items if isinstance(i, dict)]
                             meals.append({
@@ -117,14 +117,14 @@ def collect_meals(nutrition_calc, data_dir, start_date, end_date, tz_offset):
                                 meal_cal = sum(i.get("calories", 0) or i.get("cal", 0) or 0 for i in items_list if isinstance(i, dict))
                                 meal_protein = sum((i.get("protein_g") or i.get("protein") or 0) for i in items_list if isinstance(i, dict))
                                 meal_fat = sum((i.get("fat_g") or i.get("fat") or 0) for i in items_list if isinstance(i, dict))
-                                meal_carb = sum((i.get("carb_g") or i.get("carb") or i.get("carbs") or 0) for i in items_list if isinstance(i, dict))
+                                meal_carb = sum((i.get("carbs_g") or i.get("carb_g") or i.get("carb") or i.get("carbs") or 0) for i in items_list if isinstance(i, dict))
                                 meal_fiber = sum(i.get("fiber", 0) or 0 for i in items_list if isinstance(i, dict))
                                 foods = [i.get("name", "?") for i in items_list if isinstance(i, dict)]
                             else:
                                 meal_cal = item.get("cal", 0) or item.get("calories", 0) or 0
                                 meal_protein = (item.get("protein_g") or item.get("protein") or 0)
                                 meal_fat = (item.get("fat_g") or item.get("fat") or 0)
-                                meal_carb = (item.get("carb_g") or item.get("carb") or item.get("carbs") or 0)
+                                meal_carb = (item.get("carbs_g") or item.get("carb_g") or item.get("carb") or item.get("carbs") or 0)
                                 meal_fiber = item.get("fiber", 0) or 0
                                 foods = []
                             meals.append({
