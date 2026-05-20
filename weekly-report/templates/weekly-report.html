@@ -9,11 +9,11 @@
 body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #faf9f5; color: #333; line-height: 1.5; font-size: 14px; -webkit-text-size-adjust: 100%; }
 .page { max-width: 800px; margin: 0 auto; padding: 0 1.5rem 2rem; }
 .report-header { text-align: center; margin-top: 1.5rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e0ddd5; }
-.report-header h1 { font-size: 1.4rem; font-weight: 700; color: #2d5016; margin-bottom: 0.3rem; }
+.report-header h1 { font-size: 1.4rem; font-weight: 700; color: #D73C63; margin-bottom: 0.3rem; }
 .report-header .subtitle { font-size: 0.85rem; color: #666; }
 .report-header .date-range { font-size: 0.75rem; color: #aaa; margin-top: 0.2rem; }
 .report-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
-.card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
+.card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #D73C63; border-bottom: 1px solid #f0ede5; }
 .card-body { padding: 0.8rem 21px; }
 .card-commentary { font-size: 0.85rem; color: #666; padding: 0.6rem 21px 0.8rem; border-top: 1px solid #f0ede5; line-height: 1.6; }
 .logging-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 0.2rem; }
@@ -51,14 +51,14 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .weight-change.up { color: #e57373; }
 .weight-change.down { color: #6bcb8b; }
 .weight-progress { text-align: center; font-size: 0.78rem; color: #888; padding-top: 0.2rem; }
-.section-subtitle { font-size: 0.85rem; font-weight: 600; color: #2d5016; margin-bottom: 0.3rem; padding-top: 0.3rem; }
+.section-subtitle { font-size: 0.85rem; font-weight: 600; color: #D73C63; margin-bottom: 0.3rem; padding-top: 0.3rem; }
 .section-subtitle:first-child { padding-top: 0; }
 .suggestions-divider { border: none; border-top: 1px solid #f0ede5; margin: 0.6rem 0; }
 .achievement-list, .suggestion-list { padding-left: 1.2rem; font-size: 0.82rem; color: #444; }
 .achievement-list li, .suggestion-list li { margin-bottom: 0.3rem; }
 .week-nav { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; background: #faf9f5; padding: 0.6rem 1rem; margin: 0 -1.5rem; border-bottom: 1px solid #e0ddd5; }
-.week-nav-btn { display: inline-block; padding: 0.35rem 0.7rem; background: #2d5016; color: #fff; text-decoration: none; border-radius: 6px; font-size: 0.78rem; font-weight: 600; transition: background 0.2s; cursor: pointer; }
-.week-nav-btn:hover { background: #3d6b1f; }
+.week-nav-btn { display: inline-block; padding: 0.35rem 0.7rem; background: #D73C63; color: #fff; text-decoration: none; border-radius: 6px; font-size: 0.78rem; font-weight: 600; transition: background 0.2s; cursor: pointer; }
+.week-nav-btn:hover { background: #c0345a; }
 .week-nav-btn.disabled { background: #ccc; color: #999; pointer-events: none; cursor: default; }
 .week-nav-current { font-size: 0.78rem; color: #666; font-weight: 500; }
 .report-footer { text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0ddd5; font-size: 0.8rem; color: #aaa; }
@@ -255,8 +255,8 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
       var isThisWeek = thisWeekDates[points[di].date];
       if (isThisWeek) {
         svg += '<circle cx="' + x + '" cy="' + y + '" r="6" fill="#6bcb8b" stroke="#fff" stroke-width="2.5"/>\n';
-        svg += '<text x="' + x + '" y="167" text-anchor="middle" font-size="10" fill="#2d5016" font-weight="600">' + label + '</text>\n';
-        svg += '<text x="' + x + '" y="' + (y - 8) + '" text-anchor="middle" font-size="11.5" fill="#2d5016" font-weight="700">' + points[di].value + '</text>\n';
+        svg += '<text x="' + x + '" y="167" text-anchor="middle" font-size="10" fill="#D73C63" font-weight="600">' + label + '</text>\n';
+        svg += '<text x="' + x + '" y="' + (y - 8) + '" text-anchor="middle" font-size="11.5" fill="#D73C63" font-weight="700">' + points[di].value + '</text>\n';
       } else {
         svg += '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#fff" stroke="#a8deb8" stroke-width="2"/>\n';
         svg += '<text x="' + x + '" y="167" text-anchor="middle" font-size="9.5" fill="#aaa">' + label + '</text>\n';
