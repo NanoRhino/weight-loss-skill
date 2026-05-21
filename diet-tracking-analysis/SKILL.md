@@ -258,9 +258,15 @@ Protein {protein_g}g [status] | Carbs {carbs_g}g [status] | Fat {fat_g}g [status
 - Fixed 10 chars: `█` = filled, `░` = remaining
 - Each char = 10% of daily target (round to nearest)
 - ≤100%: normal display
-- >100%: all 10 filled + show surplus `(+{overflow})` + `⚠️`
+- >100% AND `daily_total.over_max == true`: all 10 filled + show surplus `(+{overflow_over_max})` + `⚠️` (overflow = actual calories - effective max)
+- >100% BUT `daily_total.over_max == false`: all 10 filled, NO surplus number, NO ⚠️ icon (within allowed range)
 
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar).
+
+**Exercise adjustment (when `evaluation.exercise.net_kcal > 0`):**
+- 在进度条下方加一行：🏃 运动消耗 +{net_kcal} kcal → 今日上限 {effective_max} kcal
+- status 判定已自动使用放宽后上限，按正常逻辑输出即可
+- 不要主动说"你还能多吃xxx"
 
 **CN produce (REQUIRED — never omit either item):**
 🥦 Vegetables: ~{produce.vegetables_g}g {produce.vegetables_status}  🍎 Fruits: ~{produce.fruits_g}g {produce.fruits_status}
