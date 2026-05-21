@@ -47,6 +47,8 @@ python3 {notification-manager:baseDir}/scripts/check-stage.py \
 
 ### 第三步：前置检查
 
+> **Cron workspace 路径：** 当由 cron 触发时，消息可能包含 `User workspace: /absolute/path` 行。如果存在，用该路径替代 `{workspaceDir}`（默认 workspace 可能指向模板目录）。提取路径方法：从消息中搜索以 `User workspace:` 开头的行，取该行冒号后的内容并去除首尾空格。
+
 ```bash
 python3 {baseDir}/scripts/pre-send-check.py \
   --workspace-dir {workspaceDir} \

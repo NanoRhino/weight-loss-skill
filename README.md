@@ -29,12 +29,12 @@ clawhub install NanoRhino/weekly-report
 
 ```bash
 git clone https://github.com/NanoRhino/weight-loss-skill.git
-cp -r weight-loss-skill/notification-manager        ~/.openclaw/skills/
-cp -r weight-loss-skill/notification-composer       ~/.openclaw/skills/
-cp -r weight-loss-skill/diet-tracking-analysis      ~/.openclaw/skills/
-cp -r weight-loss-skill/user-onboarding-profile     ~/.openclaw/skills/
-cp -r weight-loss-skill/weight-loss-planner         ~/.openclaw/skills/
-cp -r weight-loss-skill/weekly-report               ~/.openclaw/skills/
+cp -r weight-loss-skill/notification-manager        ~/.openclaw-user-service/skills/
+cp -r weight-loss-skill/notification-composer       ~/.openclaw-user-service/skills/
+cp -r weight-loss-skill/diet-tracking-analysis      ~/.openclaw-user-service/skills/
+cp -r weight-loss-skill/user-onboarding-profile     ~/.openclaw-user-service/skills/
+cp -r weight-loss-skill/weight-loss-planner         ~/.openclaw-user-service/skills/
+cp -r weight-loss-skill/weekly-report               ~/.openclaw-user-service/skills/
 ```
 
 ### Claude Code (plugin)
