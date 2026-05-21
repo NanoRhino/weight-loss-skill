@@ -33,10 +33,10 @@ from pathlib import Path
 
 # ── Constants ──
 
-WORKSPACE_GLOB = "/home/admin/.openclaw/workspace-wechat-dm-*"
+WORKSPACE_GLOB = "/home/nanorhino/backend-service/.openclaw-gateway/workspace-wechat-dm-*"
 AGENT_PREFIX = "wechat-dm-"
 MEMORY_SUBDIR = "memory"
-SESSION_DIR_TEMPLATE = "/home/admin/.openclaw/agents/{agent_id}/sessions"
+SESSION_DIR_TEMPLATE = "/home/nanorhino/backend-service/.openclaw-gateway/agents/{agent_id}/sessions"
 
 # How old short-term entries must be before medium-term consolidation (days)
 SHORT_TERM_MAX_AGE_DAYS = 2
@@ -362,7 +362,7 @@ def build_sub_task_prompt(user: dict) -> str:
     task_list = ", ".join(tasks)
 
     prompt = (
-        f"Read the memory-consolidation skill at /home/admin/.openclaw/skills/memory-consolidation/SKILL.md and follow it.\n\n"
+        f"Read the memory-consolidation skill at /home/nanorhino/backend-service/.openclaw-user-service/skills/memory-consolidation/SKILL.md and follow it.\n\n"
         f"User: `{account_id}`\n"
         f"Workspace: `{workspace}`\n"
         f"Memory dir: `{memory_dir}`\n"
