@@ -2,7 +2,7 @@
 """
 generate-html.py — Convert Markdown to a beautifully styled standalone HTML file.
 
-Usage: python3 generate-html.py <input.md> [output.html]
+Usage: python3 generate-html.py <input.md> [output.html] [--username NAME] [--date DATE]
 
 Reuses the same HTML template and CSS as generate-pdf.py but outputs HTML
 instead of PDF (no WeasyPrint dependency needed).
@@ -11,6 +11,9 @@ instead of PDF (no WeasyPrint dependency needed).
 import sys
 import os
 import markdown
+import re
+import argparse
+from datetime import datetime, timezone, timedelta
 
 
 def get_html_template(body_html: str) -> str:
@@ -34,65 +37,84 @@ def get_html_template(body_html: str) -> str:
 }}
 
 body {{
-    font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: #1e293b;
+    font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: #333;
     line-height: 1.65;
-    font-size: 15px;
+    font-size: 14px;
     max-width: 800px;
     margin: 0 auto;
-    padding: 32px 24px;
-    background: #ffffff;
+    padding: 0 1.5rem 2rem;
+    background: #faf9f5;
+    -webkit-text-size-adjust: 100%;
 }}
 
 /* ── Main Title ── */
 h1 {{
-    font-size: 28px;
+    font-size: 1.4rem;
     font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 6px;
+    color: #D73C63;
+    margin-top: 1.5rem;
+    margin-bottom: 0.3rem;
     padding-bottom: 10px;
-    border-bottom: 3px solid #3b82f6;
+    border-bottom: 2px solid #e0ddd5;
+    text-align: center;
 }}
 
 /* ── Section Headers ── */
 h2 {{
-    font-size: 18px;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #1e40af;
-    margin-top: 28px;
-    margin-bottom: 12px;
-    padding: 8px 0 8px 14px;
-    border-left: 4px solid #3b82f6;
-    background: linear-gradient(90deg, #eff6ff 0%, transparent 100%);
+    color: #D73C63;
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+    padding: 0.6rem 1rem;
+    background: #fff;
 }}
 
-/* Special section colors */
-h2:nth-of-type(3), h2:nth-of-type(4) {{
-    border-left-color: #10b981;
-    background: linear-gradient(90deg, #ecfdf5 0%, transparent 100%);
-    color: #065f46;
+/* ── Card-style sections ── */
+.section-card {{
+    background: #fff;
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
 }}
-
-h2:nth-of-type(5), h2:nth-of-type(6) {{
-    border-left-color: #f59e0b;
-    background: linear-gradient(90deg, #fffbeb 0%, transparent 100%);
-    color: #92400e;
+.section-card h2 {{
+    margin-top: 0;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid #f0ede5;
+}}
+.section-card .section-body {{
+    padding: 0.8rem 1rem;
 }}
 
 h3 {{
-    font-size: 16px;
+    font-size: 0.85rem;
     font-weight: 600;
-    color: #334155;
-    margin-top: 18px;
-    margin-bottom: 8px;
+    color: #D73C63;
+    margin-top: 14px;
+    margin-bottom: 6px;
 }}
 
 /* ── Metadata (subtitle lines after h1) ── */
+.plan-meta {{
+    text-align: center;
+    margin-bottom: 1.2rem;
+}}
+.plan-meta p {{
+    font-size: 0.85rem;
+    color: #666;
+    margin: 2px 0;
+    line-height: 1.5;
+}}
+
 h1 + p, h1 + p + p, h1 + p + p + p {{
-    font-size: 14px;
-    color: #64748b;
+    font-size: 0.85rem;
+    color: #666;
     margin-bottom: 2px;
     line-height: 1.5;
+    text-align: center;
 }}
 
 /* ── Tables ── */
@@ -101,31 +123,32 @@ table {{
     border-collapse: separate;
     border-spacing: 0;
     margin: 12px 0 20px;
-    font-size: 14px;
+    font-size: 13px;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #e0ddd5;
+    background: #fff;
 }}
 
 thead th {{
-    background: #1e40af;
+    background: #D73C63;
     color: white;
     font-weight: 600;
     padding: 10px 14px;
     text-align: left;
-    font-size: 13px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }}
 
 tbody td {{
     padding: 9px 14px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f0ede5;
     vertical-align: top;
 }}
 
 tbody tr:nth-child(even) {{
-    background: #f8fafc;
+    background: #faf9f5;
 }}
 
 tbody tr:last-child td {{
@@ -135,13 +158,13 @@ tbody tr:last-child td {{
 /* First column styling */
 tbody td:first-child {{
     font-weight: 500;
-    color: #1e293b;
+    color: #333;
     white-space: nowrap;
 }}
 
 /* Value column */
 tbody td:last-child {{
-    color: #475569;
+    color: #555;
 }}
 
 /* ── Lists ── */
@@ -153,33 +176,33 @@ ul, ol {{
 li {{
     margin-bottom: 6px;
     line-height: 1.6;
-    color: #334155;
+    color: #444;
 }}
 
 li strong {{
-    color: #1e293b;
+    color: #333;
 }}
 
 /* ── Horizontal Rules ── */
 hr {{
     border: none;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid #e0ddd5;
     margin: 22px 0;
 }}
 
 /* ── Inline elements ── */
 strong {{
     font-weight: 600;
-    color: #0f172a;
+    color: #333;
 }}
 
 em {{
-    color: #64748b;
+    color: #666;
     font-style: italic;
 }}
 
 code {{
-    background: #f1f5f9;
+    background: #f0ede5;
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 13px;
@@ -188,13 +211,15 @@ code {{
 
 /* ── Blockquotes (callouts) ── */
 blockquote {{
-    background: #f0fdf4;
-    border-left: 4px solid #22c55e;
+    background: #fff;
+    border-left: 4px solid #D73C63;
     padding: 14px 18px;
     margin: 14px 0;
     border-radius: 0 8px 8px 0;
-    font-size: 14px;
-    color: #166534;
+    font-size: 0.85rem;
+    color: #555;
+    border: 1px solid #e0ddd5;
+    border-left: 4px solid #D73C63;
 }}
 
 blockquote p {{
@@ -209,7 +234,7 @@ p {{
 
 /* ── Links ── */
 a {{
-    color: #2563eb;
+    color: #D73C63;
     text-decoration: none;
 }}
 
@@ -220,11 +245,11 @@ a:hover {{
 /* ── Responsive ── */
 @media (max-width: 600px) {{
     body {{
-        font-size: 14px;
-        padding: 16px 12px;
+        font-size: 13px;
+        padding: 0 1rem 2rem;
     }}
-    h1 {{ font-size: 22px; }}
-    h2 {{ font-size: 16px; }}
+    h1 {{ font-size: 1.2rem; }}
+    h2 {{ font-size: 0.9rem; }}
     table {{ font-size: 12px; }}
     thead th, tbody td {{ padding: 6px 8px; }}
 }}
@@ -238,12 +263,15 @@ a:hover {{
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 generate-html.py <input.md> [output.html]", file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Convert Markdown to styled HTML")
+    parser.add_argument("input", help="Input Markdown file")
+    parser.add_argument("output", nargs="?", help="Output HTML file")
+    parser.add_argument("--username", help="User display name (shown below title)")
+    parser.add_argument("--date", help="Date string (shown below username). Default: today")
+    args = parser.parse_args()
 
-    input_path = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else input_path.rsplit('.', 1)[0] + '.html'
+    input_path = args.input
+    output_path = args.output or input_path.rsplit('.', 1)[0] + '.html'
 
     if not os.path.isfile(input_path):
         print(f"Error: Input file not found: {input_path}", file=sys.stderr)
@@ -258,6 +286,36 @@ def main():
         md_text,
         extensions=['tables', 'fenced_code', 'nl2br', 'sane_lists']
     )
+
+    # Wrap sections in card divs (h2 + content until next h2)
+    parts = re.split(r'(<h2>.*?</h2>)', body_html)
+    wrapped = ''
+    i = 0
+    while i < len(parts):
+        part = parts[i]
+        if part.startswith('<h2>'):
+            # Collect all content until next h2
+            body_content = ''
+            i += 1
+            while i < len(parts) and not parts[i].startswith('<h2>'):
+                body_content += parts[i]
+                i += 1
+            wrapped += '<div class="section-card">' + part + '<div class="section-body">' + body_content + '</div></div>'
+        else:
+            wrapped += part
+            i += 1
+    body_html = wrapped
+
+    # Insert username and date after <h1>...</h1>
+    if args.username or args.date:
+        date_str = args.date or datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+        meta_lines = []
+        if args.username:
+            meta_lines.append(f'<p>{args.username}</p>')
+        meta_lines.append(f'<p>{date_str}</p>')
+        meta_html = '<div class="plan-meta">' + ''.join(meta_lines) + '</div>'
+        # Insert after closing </h1>
+        body_html = re.sub(r'(</h1>)', r'\1' + meta_html, body_html, count=1)
 
     # Wrap in styled template
     full_html = get_html_template(body_html)
