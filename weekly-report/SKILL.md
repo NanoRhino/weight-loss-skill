@@ -126,14 +126,6 @@ Output JSON structure:
 
 Use this JSON to populate all report sections. **Do NOT call `nutrition-calc.py load` per-day or other individual scripts.**
 
-**Legacy note:** The following individual script calls are kept for reference but should NOT be used when generating weekly reports:
-| Path | Script | Purpose |
-|------|--------|---------|
-| `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py load` | Per-day meal data |
-| `data/weight.json` | `weight-tracker.py load` | Weight readings |
-| `data/exercise.json` | `exercise-calc.py load` | Exercise sessions |
-| `habits.active` | direct read | Habit data |
-
 ---
 
 ## Report Structure
@@ -149,10 +141,8 @@ Show each day of the week with a status indicator. See `.logging-grid` in the
 HTML template.
 
 **Data logic:**
-- For each day (Mon–Sun), call `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` to check:
-  - If at least 1 meal has `status: "logged"` → ✅
-  - If all meals are `"skipped"` or `"no_reply"` or no log exists → ❌
-- Count total days with ✅ → `{X}/7 days logged`
+- Use `collect-weekly-data.py` output → `days[].logged` field
+- Count days with `logged: true` → `{X}/7 days logged`
 
 **Commentary rules:**
 - 7/7 → `"Perfect week! 🎉"` / `"满勤！🎉"`
@@ -162,76 +152,16 @@ HTML template.
 
 ---
 
-### 📐 Chart Design Rules (Global)
-
-All charts in the HTML report follow these universal rules:
-
-**Layout & alignment:**
-- All charts use the same left padding (`2.5rem`) for Y-axis labels → charts align vertically
-- Bar chart Y-axis labels: `position: absolute; left: -2.5rem; transform: translateY(-50%)`
-- X-axis labels (周一-周日) go **outside** the chart div in a separate `.cal-x-labels` container
-- Weight chart Y-axis is a separate fixed div (`.weight-y-axis`, width `2.5rem`) that doesn't scroll with the SVG
-
-**Bar chart rules (calorie + macros):**
-- Bar colors: `#6bcb8b` (on-target/达标), `#c8e6c9` (below/偏低), `#fdd0b1` (over/超标)
-- All bars have `opacity: 0.75`
-- Bar width: `60%` of column, `max-width: 36px`, `border-radius: 4px 4px 0 0`
-- Each bar has a value label above it (`.cal-bar-value`)
-- Days with no data: `class="empty"`, height 0, no value label
-- Target range band: grey shadow only (`background: rgba(0,0,0,0.05)`), **no border/dashed lines** on the band itself
-- Grid lines: `1px dashed #e8e5dd` at round-number intervals
-- **0-coordinate grid line: solid** (`border-bottom-style: solid`), not dashed
-- Y-axis ticks: 3-5 round numbers max (avoid clutter). Examples:
-  - Calories (max ~2400): 0, 500, 1000, 1500, 2000
-  - Carbs (max ~300): 0, 100, 200, 300
-  - Protein (max ~120): 0, 40, 80, 120
-  - Fat (max ~90): 0, 40, 80
-
-**Average line (macros only):**
-- `1px dashed #333` (black), z-index 2 (above bars)
-- Label: `"平均摄入 {value}"`, color `#333`, font-weight 500, positioned at right edge
-
-**Legend (macros section):**
-- Displayed once above all three macro charts
-- Items: 达标 (深绿) / 偏低 (浅绿) / 超标 (浅橙)
-
-**Weight chart (SVG):**
-- Smooth curves using **Catmull-Rom** spline (not polyline, not manually-tweaked bezier)
-- Green gradient fill under actual data curve (`#6bcb8b`, opacity 0.3→0.02)
-- Plan/target path: grey solid thin line (`stroke: #ccc`, `stroke-width: 1`) with light fill (`rgba(0,0,0,0.04)`)
-  - Calculated from first weight reading, decreasing at planned rate (default -0.5kg/week)
-  - Label: `"计划 −Xkg/周"` at bottom-right of plan area
-- Historical data points: small circles (`r=4.5`, white fill, `#a8deb8` stroke)
-- Current week data points: larger circles (`r=6`, `#6bcb8b` fill, white stroke), bold labels
-- Y-axis: auto-range to fit both actual data AND plan path, with ~10% padding
-- Y-axis labels: fixed position (don't scroll with SVG)
-- SVG is horizontally scrollable on mobile (`overflow-x: auto`, `-webkit-overflow-scrolling: touch`)
-- Default scroll position: rightmost (show latest data)
-- Scroll hint: `"← 左右滑动查看更多 →"` below chart
-
-**Sticky navigation:**
-- `.week-nav`: `position: sticky; top: 0; z-index: 100`
-- Parent `.page` must have `padding-top: 0` (not 2rem) to avoid sticky offset
-- `.report-header` gets `margin-top: 1.5rem` to compensate
-
----
-
 ### Section 2: Calorie Analysis
 
 Show daily calorie intake vs target range with a **vertical bar chart** and grey target
 range band. See `.cal-chart`, `.cal-bar`, `.cal-target-band` in the HTML template.
 
 **Data logic:**
-- For each day, call `nutrition-calc.py load --date YYYY-MM-DD --tz-offset {tz_offset}` and sum `cal` across all meals
-- Compare against `Daily Calorie Range` from `PLAN.md`:
-  - Below range min → class `below`
-  - Within range → class `on-target`
-  - Above range max → class `over`
-- Days with no data → class `empty`, height 0, no value label
-- Chart max = `max(max_calories_in_week, CAL_MAX * 1.2)` (ensure target band is visible)
-- Bar height (px) = `(day_calories / chart_max) * 220`
-- **Target range band:** `bottom = (CAL_MIN / chart_max) * 100%`, `height = ((CAL_MAX - CAL_MIN) / chart_max) * 100%`
-- **Grid lines:** place at round 500 kcal intervals, `bottom = (value / chart_max) * 100%`
+- Use `collect-weekly-data.py` output → `days[].totals.cal` and `plan.cal_min`
+- Compare each day against `Daily Calorie Range` from `PLAN.md`:
+  - Below range min → below / Within range → on-target / Above range max → over
+- Days with no data → empty
 
 **Commentary rules:**
 - Average within range → `"Right on track this week."` / `"这周热量控制得很好。"`
@@ -276,10 +206,10 @@ Show weight readings and net change. See `.weight-table` and `.weight-change`
 in the HTML template.
 
 **Data logic:**
-- Call `weight-tracker.py load --from <start> --to <end> --display-unit <unit>` to collect all entries within the period
-- If 2+ readings: calculate change = last reading − first reading
-- If 1 reading: show it, compare to previous week's last reading if available
-- If 0 readings: skip this section entirely (remove the card), add a gentle note
+- Use `collect-weekly-data.py` output → `weight.readings[]` and `weight.change`
+- If 2+ readings: show change (last − first)
+- If 1 reading: compare to previous week's last reading if available
+- If 0 readings: skip this section entirely
 
 **Commentary rules:**
 - Loss within expected rate (from `PLAN.md` weekly rate) → `"Right on pace."` / `"进度刚好。"`
@@ -305,12 +235,7 @@ Uses the same `.cal-chart`, `.cal-bar-col`, `.cal-bar-wrapper` CSS as the calori
   - Below range min → `background: #c8e6c9` (浅绿)
   - Within range → `background: #6bcb8b` (深绿)
   - Above range max → `background: #fdd0b1` (浅橙)
-- Days with no logged data → empty bar (height 0)
-- Average line (`平均摄入 {value}`): `1px dashed #333`, label in black
-- Target range: grey band only (no border lines), with label `目标 {low}–{high}`
-- Chart max per macro: enough to show all bars + target high with padding
-  - Carb: ~300-350g, Protein: ~120-150g, Fat: ~90-100g
-- Y-axis ticks: 3-5 round numbers (e.g., carb: 0/100/200/300)
+- Days with no logged data → empty bar
 - If `macro_estimated: true`, show footnote: `"* 部分天数记录不全，缺失餐次按本周同类餐平均值估算"`
 
 **Target range source:**
@@ -520,7 +445,7 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 
 ---
 
-**Phase: 初始（report_count < 4）**
+**Message template (all phases):**
 
 ```
 📊 第{N}周周报
@@ -532,49 +457,18 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 {data_hook}
 ```
 
-- `data_hook`: ONE sentence based on this week's actual data that sparks curiosity.
-  Must reference a specific finding, not a generic summary.
-  Rotate between different hook styles — never repeat the same angle two weeks in a row:
-  · **反直觉**: "这周有一天吃得最多反而掉秤最狠，猜猜是哪天👀"
-  · **发现规律**: "你可能没注意到，这周每次吃面的那天热量都超了🍜"
-  · **对比悬念**: "跟第1周比你有一个数据变化很大，点进来看"
-  · **接近里程碑**: "再掉0.7就到55了，这周的节奏够不够？看完就知道"
-  · **具体某餐**: "周四那顿是这6周以来营养最均衡的一餐，不是巧合"
-  NOT: "本周表现不错" / "继续加油" / generic praise / template-sounding language
+**Phase variations:**
+- **快完成** (`progress_pct ≥ 80%`): append `只差 {remaining} kg` after target weight
 
----
-
-**Phase: 中段（report_count ≥ 4，progress_pct < 80%）**
-
-```
-📊 第{N}周周报
-完整分析 👇 {report_url}
-
-{progress_bar}  已走 {progress_pct}%
-{start_weight} → {current_weight} kg → 目标 {target_weight} kg
-
-{data_hook}
-```
-
-- `data_hook`: same rules as above — one specific data-driven observation.
-  Rotate styles, keep it fresh. Write like a human who just noticed something interesting.
-
----
-
-**Phase: 快完成（report_count ≥ 4，progress_pct ≥ 80%）**
-
-```
-📊 第{N}周周报
-完整分析 👇 {report_url}
-
-{progress_bar}  已走 {progress_pct}%
-{start_weight} → {current_weight} kg → 目标 {target_weight} kg  只差 {remaining} kg
-
-{data_hook}
-```
-
-- `remaining` = `current_weight − target_weight` (display in user's unit)
-- `data_hook`: connect to the journey arc — reference a trend or milestone
+**`data_hook` rules:** ONE sentence based on this week's actual data that sparks curiosity.
+Must reference a specific finding, not a generic summary.
+Rotate between different hook styles — never repeat the same angle two weeks in a row:
+· **反直觉**: "这周有一天吃得最多反而掉秤最狠，猜猜是哪天👀"
+· **发现规律**: "你可能没注意到，这周每次吃面的那天热量都超了🍜"
+· **对比悬念**: "跟第1周比你有一个数据变化很大，点进来看"
+· **接近里程碑**: "再掉0.7就到55了，这周的节奏够不够？看完就知道"
+· **具体某餐**: "周四那顿是这6周以来营养最均衡的一餐，不是巧合"
+NOT: "本周表现不错" / "继续加油" / generic praise / template-sounding language
 
 ---
 
