@@ -12,6 +12,8 @@ metadata:
 
 > 🚨 **CRITICAL: ALL reports use template+data separation. `generate-report-html.py` outputs JSON data files. The HTML template (`templates/weekly-report.html`) renders client-side. WRITING HTML YOURSELF IS FORBIDDEN. NO EXCEPTIONS.**
 
+
+> 🚨 **OUTPUT CONTRACT: Every execution MUST produce a clickable report URL (`https://nanorhino.ai/user/{username}/weekly-report.html?week=...`). A text-only summary without a URL = FAILED execution. If scripts fail, report the error to the user — do NOT fall back to a plain-text summary.**
 > ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
 
 

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📊 周报</title>
+<link href="https://fonts.googleapis.com/css2?family=Irish+Grover&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #faf9f5; color: #333; line-height: 1.5; font-size: 14px; -webkit-text-size-adjust: 100%; }
@@ -61,7 +62,10 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .week-nav-btn:hover { background: #3d6b1f; }
 .week-nav-btn.disabled { background: #ccc; color: #999; pointer-events: none; cursor: default; }
 .week-nav-current { font-size: 0.78rem; color: #666; font-weight: 500; }
-.report-footer { text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0ddd5; font-size: 0.8rem; color: #aaa; }
+.report-footer { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e0ddd5; }
+.report-footer img { width: 32px; height: 32px; border-radius: 6px; }
+.report-footer .brand-name { font-family: 'Irish Grover', cursive; font-size: 1.1rem; color: #D73C63; margin: 0; }
+.report-disclaimer { text-align: center; font-size: 0.8rem; color: #aaa; margin-top: 0.5rem; }
 .loading { text-align: center; padding: 4rem 1rem; color: #888; font-size: 1rem; }
 .error { text-align: center; padding: 4rem 1rem; color: #e57373; font-size: 1rem; }
 </style>
@@ -395,7 +399,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
       h += '<div style="font-size:0.95rem;color:#666;">本周没有记录数据</div>';
       h += '<div style="font-size:0.82rem;color:#aaa;margin-top:0.3rem;">开始记录后，这里会出现详细的分析报告</div>';
       h += '</div></div>';
-      h += '<div class="report-footer">NanoRhino · 小犀牛营养师</div>';
+      h += '<div class="report-footer"><img src="https://nanorhino.ai/assets/logo.png" alt="NanoRhino"><span class="brand-name">NanoRhino</span></div><div class="report-disclaimer">AI 营养师生成 · 仅供参考，如有医学饮食需求请咨询专业营养师</div>';
 
       document.getElementById('content').innerHTML = h;
       document.getElementById('content').style.display = '';
@@ -508,7 +512,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     h += '</div></div>';
 
     // Footer
-    h += '<div class="report-footer">NanoRhino · 小犀牛营养师</div>';
+    h += '<div class="report-footer"><img src="https://nanorhino.ai/assets/logo.png" alt="NanoRhino"><span class="brand-name">NanoRhino</span></div><div class="report-disclaimer">AI 营养师生成 · 仅供参考，如有医学饮食需求请咨询专业营养师</div>';
 
     document.getElementById('content').innerHTML = h;
     document.getElementById('content').style.display = '';
