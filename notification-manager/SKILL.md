@@ -233,7 +233,7 @@ One fixed cron job — every Sunday at 21:00 user local time.
 ```bash
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Weekly report" \
-  --message "Run weekly-report to generate this week's progress report." \
+  --message "🚨 WEEKLY REPORT — MANDATORY SCRIPT EXECUTION\n\nGenerate this week's weekly report using the weekly-report skill.\n\nABSOLUTE RULES:\n1. Run collect-weekly-data.py to gather all nutrition/weight/exercise data\n2. Run generate-report-html.py with real commentary/highlights/suggestions — capture the URL from stdout\n3. The final message to user MUST contain the clickable report URL\n4. If any script fails, report the error — do NOT fall back to a text-only summary\n5. A delivery without a report URL = FAILED execution\n\n❌ FORBIDDEN: Writing a text summary without running the scripts\n❌ FORBIDDEN: Sending a message without a report link (https://nanorhino.ai/user/...)\n✅ REQUIRED: The message MUST contain the actual uploaded report URL\n\nSkill: weekly-report\nUser workspace: {workspaceDir}" \
   --cron "0 21 * * 0"
 ```
 
