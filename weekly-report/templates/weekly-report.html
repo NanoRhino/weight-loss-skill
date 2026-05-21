@@ -10,11 +10,11 @@
 body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #faf9f5; color: #333; line-height: 1.5; font-size: 14px; -webkit-text-size-adjust: 100%; }
 .page { max-width: 800px; margin: 0 auto; padding: 0 1.5rem 2rem; }
 .report-header { text-align: center; margin-top: 1.5rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e0ddd5; }
-.report-header h1 { font-size: 1.4rem; font-weight: 700; color: #D73C63; margin-bottom: 0.3rem; }
+.report-header h1 { font-size: 1.4rem; font-weight: 700; color: #2d5016; margin-bottom: 0.3rem; }
 .report-header .subtitle { font-size: 0.85rem; color: #666; }
 .report-header .date-range { font-size: 0.75rem; color: #aaa; margin-top: 0.2rem; }
 .report-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
-.card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #D73C63; border-bottom: 1px solid #f0ede5; }
+.card-header { padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: 600; color: #2d5016; border-bottom: 1px solid #f0ede5; }
 .icon-svg { display: inline-block; width: 16px; height: 16px; margin-right: 5px; vertical-align: -2px; }
 .card-body { padding: 0.8rem 21px; }
 .card-commentary { font-size: 0.85rem; color: #666; padding: 0.6rem 21px 0.8rem; border-top: 1px solid #f0ede5; line-height: 1.6; }
@@ -53,14 +53,14 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 .weight-change.up { color: #e57373; }
 .weight-change.down { color: #6bcb8b; }
 .weight-progress { text-align: center; font-size: 0.78rem; color: #888; padding-top: 0.2rem; }
-.section-subtitle { font-size: 0.85rem; font-weight: 600; color: #D73C63; margin-bottom: 0.3rem; padding-top: 0.3rem; }
+.section-subtitle { font-size: 0.85rem; font-weight: 600; color: #2d5016; margin-bottom: 0.3rem; padding-top: 0.3rem; }
 .section-subtitle:first-child { padding-top: 0; }
 .suggestions-divider { border: none; border-top: 1px solid #f0ede5; margin: 0.6rem 0; }
 .achievement-list, .suggestion-list { padding-left: 1.2rem; font-size: 0.82rem; color: #444; }
 .achievement-list li, .suggestion-list li { margin-bottom: 0.3rem; }
 .week-nav { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; background: #faf9f5; padding: 0.6rem 1rem; margin: 0 -1.5rem; border-bottom: 1px solid #e0ddd5; }
-.week-nav-btn { display: inline-block; padding: 0.35rem 0.7rem; background: #D73C63; color: #fff; text-decoration: none; border-radius: 6px; font-size: 0.78rem; font-weight: 600; transition: background 0.2s; cursor: pointer; }
-.week-nav-btn:hover { background: #c0345a; }
+.week-nav-btn { display: inline-block; padding: 0.35rem 0.7rem; background: #2d5016; color: #fff; text-decoration: none; border-radius: 6px; font-size: 0.78rem; font-weight: 600; transition: background 0.2s; cursor: pointer; }
+.week-nav-btn:hover { background: #1e3d10; }
 .week-nav-btn.disabled { background: #ccc; color: #999; pointer-events: none; cursor: default; }
 .week-nav-current { font-size: 0.78rem; color: #666; font-weight: 500; }
 .report-footer { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e0ddd5; }
@@ -259,8 +259,8 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
       var isThisWeek = thisWeekDates[points[di].date];
       if (isThisWeek) {
         svg += '<circle cx="' + x + '" cy="' + y + '" r="6" fill="#6bcb8b" stroke="#fff" stroke-width="2.5"/>\n';
-        svg += '<text x="' + x + '" y="167" text-anchor="middle" font-size="10" fill="#D73C63" font-weight="600">' + label + '</text>\n';
-        svg += '<text x="' + x + '" y="' + (y - 8) + '" text-anchor="middle" font-size="11.5" fill="#D73C63" font-weight="700">' + points[di].value + '</text>\n';
+        svg += '<text x="' + x + '" y="167" text-anchor="middle" font-size="10" fill="#2d5016" font-weight="600">' + label + '</text>\n';
+        svg += '<text x="' + x + '" y="' + (y - 8) + '" text-anchor="middle" font-size="11.5" fill="#2d5016" font-weight="700">' + points[di].value + '</text>\n';
       } else {
         svg += '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#fff" stroke="#a8deb8" stroke-width="2"/>\n';
         svg += '<text x="' + x + '" y="167" text-anchor="middle" font-size="9.5" fill="#aaa">' + label + '</text>\n';
@@ -417,7 +417,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     }
 
     // Section 1: Logging Calendar
-    h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="#D73C63"><rect x="2" y="3" width="12" height="11" rx="1.5" fill="none" stroke="#D73C63" stroke-width="1.3"/><line x1="2" y1="6" x2="14" y2="6" stroke="#D73C63" stroke-width="1.3"/><line x1="5" y1="1.5" x2="5" y2="4" stroke="#D73C63" stroke-width="1.3" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4" stroke="#D73C63" stroke-width="1.3" stroke-linecap="round"/></svg> 记录日历</div><div class="card-body">';
+    h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="#2d5016"><rect x="2" y="3" width="12" height="11" rx="1.5" fill="none" stroke="#2d5016" stroke-width="1.3"/><line x1="2" y1="6" x2="14" y2="6" stroke="#2d5016" stroke-width="1.3"/><line x1="5" y1="1.5" x2="5" y2="4" stroke="#2d5016" stroke-width="1.3" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4" stroke="#2d5016" stroke-width="1.3" stroke-linecap="round"/></svg> 记录日历</div><div class="card-body">';
     h += '<div class="logging-grid">';
     for (var i = 0; i < days.length; i++) h += '<div class="day-label">' + days[i].weekday + '</div>';
     h += '</div><div class="logging-grid">';
@@ -443,7 +443,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     var loggedCals = days.filter(function(d) { return d.logged; }).map(function(d) { return d.totals.cal; });
     var chartMax = summary.chart_max || Math.max(Math.max.apply(null, loggedCals.length ? loggedCals : [0]), calMaxTarget * 1.2);
 
-    h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="#D73C63"><path d="M8 1.5c0 0-4.5 4-4.5 7.5a4.5 4.5 0 0 0 9 0C12.5 5.5 8 1.5 8 1.5z" fill="none" stroke="#D73C63" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8c0 0-1.5 1.5-1.5 2.8a1.5 1.5 0 0 0 3 0C9.5 9.5 8 8 8 8z" fill="#D73C63"/></svg> 热量分析</div><div class="card-body">';
+    h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="#2d5016"><path d="M8 1.5c0 0-4.5 4-4.5 7.5a4.5 4.5 0 0 0 9 0C12.5 5.5 8 1.5 8 1.5z" fill="none" stroke="#2d5016" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8c0 0-1.5 1.5-1.5 2.8a1.5 1.5 0 0 0 3 0C9.5 9.5 8 8 8 8z" fill="#2d5016"/></svg> 热量分析</div><div class="card-body">';
     h += renderCalorieChart(days, calMin, calMaxTarget, chartMax);
     var calAvgEst = summary.cal_avg_estimated || summary.cal_avg;
     var missingDays = summary.days_with_missing_meals || 0;
@@ -458,7 +458,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 
     // Section 3: Weight Chart
     if (allWeight.length > 0) {
-      h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="#D73C63" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"/><path d="M8 4.5v3.5l2 2" stroke-linecap="round" stroke-linejoin="round"/></svg> 体重记录</div><div class="card-body">';
+      h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="#2d5016" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"/><path d="M8 4.5v3.5l2 2" stroke-linecap="round" stroke-linejoin="round"/></svg> 体重记录</div><div class="card-body">';
       h += renderWeightChart(weightReadings, allWeight, meta, planRate);
       h += '</div>';
       if (commentary.weight) h += '<div class="card-commentary">' + esc(commentary.weight) + '</div>';
@@ -485,7 +485,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
         macroH += '<p style="font-size:0.82rem;color:#888;margin-top:0.5rem;">* 部分天数记录不全，缺失餐次按本周同类餐平均值估算</p>';
       }
 
-      h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="#D73C63" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v5.5h5.5" stroke-linecap="round"/></svg> 营养素分析</div><div class="card-body">';
+      h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="#2d5016" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v5.5h5.5" stroke-linecap="round"/></svg> 营养素分析</div><div class="card-body">';
       h += macroH;
       h += '</div>';
       if (commentary.macros) h += '<div class="card-commentary">' + esc(commentary.macros) + '</div>';
@@ -493,7 +493,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     }
 
     // Section 5: Highlights & Suggestions (always show — fallback if empty)
-    h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="#D73C63"><polygon points="8,1.5 9.8,5.8 14.5,6.2 11,9.3 12,14 8,11.5 4,14 5,9.3 1.5,6.2 6.2,5.8" fill="none" stroke="#D73C63" stroke-width="1.2" stroke-linejoin="round"/></svg> 本周亮点 & 建议</div><div class="card-body">';
+    h += '<div class="report-card"><div class="card-header"><svg class="icon-svg" viewBox="0 0 16 16" fill="#2d5016"><polygon points="8,1.5 9.8,5.8 14.5,6.2 11,9.3 12,14 8,11.5 4,14 5,9.3 1.5,6.2 6.2,5.8" fill="none" stroke="#2d5016" stroke-width="1.2" stroke-linejoin="round"/></svg> 本周亮点 & 建议</div><div class="card-body">';
     if (highlights.length) {
       h += '<div class="section-subtitle">亮点</div><ul class="achievement-list">';
       for (var hi = 0; hi < highlights.length; hi++) h += '<li>' + esc(highlights[hi]) + '</li>';

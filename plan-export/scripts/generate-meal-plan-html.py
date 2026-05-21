@@ -336,11 +336,11 @@ def render_html(plan, lang='en', username=None):
   .summary-card .full-width {{ grid-column: 1 / -1; }}
   .day-card {{ background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }}
   .day-header {{
-    background: #D73C63; color: #fff; padding: 0.8rem 1.2rem;
+    background: #fff; color: #333; padding: 0.8rem 1.2rem; border-bottom: 1px solid #f0ede5;
     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;
   }}
-  .day-header h2 {{ font-size: 1.15rem; font-weight: 600; margin: 0; }}
-  .day-header .day-macros {{ font-size: 0.82rem; opacity: 0.9; font-weight: 400; }}
+  .day-header h2 {{ font-size: 1.15rem; font-weight: 600; margin: 0; color: #D73C63; }}
+  .day-header .day-macros {{ font-size: 0.82rem; color: #888; font-weight: 400; }}
   .day-body {{ padding: 0.2rem 0; }}
   .meal-block {{ padding: 0.8rem 1.2rem; border-bottom: 1px solid #f0ede5; }}
   .meal-block:last-child {{ border-bottom: none; }}
@@ -364,10 +364,10 @@ def render_html(plan, lang='en', username=None):
   .grocery-category h3 {{ font-size: 0.95rem; font-weight: 600; color: #555; margin: 0.8rem 0 0.3rem 0; padding-bottom: 0.2rem; border-bottom: 1px solid #f0ede5; }}
   .grocery-category ul {{ list-style: none; padding: 0; margin: 0; columns: 2; column-gap: 2rem; }}
   .grocery-category li {{ font-size: 0.88rem; color: #444; padding: 0.12rem 0; break-inside: avoid; }}
-  .brand-footer {{ display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e0ddd5; }}
+  .brand-footer {{ display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-top: 0.5rem; }}
   .brand-footer img {{ width: 32px; height: 32px; border-radius: 6px; }}
   .brand-footer .brand-name {{ font-family: 'Irish Grover', cursive; font-size: 1.1rem; color: #D73C63; margin: 0; }}
-  .plan-footer {{ text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0ddd5; font-size: 0.8rem; color: #aaa; }}
+  .plan-footer {{ text-align: center; margin-top: 0.5rem; padding-top: 0; font-size: 0.8rem; color: #aaa; }}
   @media (max-width: 600px) {{
     html {{ font-size: 14px; }}
     .page {{ padding: 1rem; }}
@@ -380,8 +380,8 @@ def render_html(plan, lang='en', username=None):
     body {{ background: #fff; font-size: 11pt; }}
     .page {{ max-width: none; padding: 0; }}
     .day-card {{ break-inside: avoid; border: 1px solid #ccc; margin-bottom: 1rem; }}
-    .day-header {{ background: #D73C63 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-    .brand-footer {{ display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e0ddd5; }}
+    .day-header {{ background: #fff !important; }}
+    .brand-footer {{ display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-top: 0.5rem; }}
   .brand-footer img {{ width: 32px; height: 32px; border-radius: 6px; }}
   .brand-footer .brand-name {{ font-family: 'Irish Grover', cursive; font-size: 1.1rem; color: #D73C63; margin: 0; }}
   .plan-footer {{ display: none; }}
