@@ -23,7 +23,7 @@ def get_html_template(body_html: str) -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Irish+Grover&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 
 @page {{
     size: A4;
@@ -48,12 +48,22 @@ body {{
     -webkit-text-size-adjust: 100%;
 }}
 
+/* ── Sticky Header ── */
+.sticky-header {{
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #faf9f5;
+    padding-top: 1rem;
+    padding-bottom: 0;
+}}
+
 /* ── Main Title ── */
 h1 {{
     font-size: 1.4rem;
     font-weight: 700;
     color: #D73C63;
-    margin-top: 1.5rem;
+    margin-top: 0;
     margin-bottom: 0.3rem;
     padding-bottom: 0;
     text-align: center;
@@ -244,6 +254,28 @@ a:hover {{
     text-decoration: underline;
 }}
 
+/* ── Brand Footer ── */
+.brand-footer {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid #e0ddd5;
+}}
+.brand-footer img {{
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+}}
+.brand-footer .brand-name {{
+    font-family: 'Irish Grover', cursive;
+    font-size: 1.1rem;
+    color: #D73C63;
+    margin: 0;
+}}
+
 /* ── Responsive ── */
 @media (max-width: 600px) {{
     body {{
@@ -260,6 +292,10 @@ a:hover {{
 </head>
 <body>
 {body_html}
+<div class="brand-footer">
+  <img src="https://nanorhino.ai/assets/logo.png" alt="NanoRhino">
+  <p class="brand-name">NanoRhino</p>
+</div>
 </body>
 </html>"""
 
@@ -308,7 +344,7 @@ def main():
             i += 1
     body_html = wrapped
 
-    # Insert username and date after <h1>...</h1>
+    # Insert username and date after <h1>...</h1>, wrap in sticky header
     if args.username or args.date:
         date_str = args.date or datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
         meta_lines = []
@@ -316,8 +352,11 @@ def main():
             meta_lines.append(f'<p>{args.username}</p>')
         meta_lines.append(f'<p>{date_str}</p>')
         meta_html = '<div class="plan-meta">' + ''.join(meta_lines) + '</div>'
-        # Insert after closing </h1>
-        body_html = re.sub(r'(</h1>)', r'\1' + meta_html, body_html, count=1)
+        # Wrap h1 + meta in sticky header
+        body_html = re.sub(r'(<h1>.*?</h1>)', r'<div class="sticky-header">\1' + meta_html + '</div>', body_html, count=1)
+    else:
+        # Still wrap h1 in sticky header without meta
+        body_html = re.sub(r'(<h1>.*?</h1>)', r'<div class="sticky-header">\1</div>', body_html, count=1)
 
     # Wrap in styled template
     full_html = get_html_template(body_html)

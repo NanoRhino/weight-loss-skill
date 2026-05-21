@@ -314,17 +314,16 @@ def render_html(plan, lang='en', username=None):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{escape(plan['title'])}</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Irish+Grover&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
   html {{ font-size: 15px; -webkit-text-size-adjust: 100%; }}
   body {{
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                 "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC",
-                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    line-height: 1.6; color: #1a1a1a; background: #f5f5f0; padding: 0; margin: 0;
+    font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    line-height: 1.6; color: #1a1a1a; background: #faf9f5; padding: 0; margin: 0;
   }}
   .page {{ max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }}
-  .plan-header {{ text-align: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e0ddd5; }}
-  .plan-header h1 {{ font-size: 1.8rem; font-weight: 700; color: #2d5016; margin-bottom: 0.4rem; }}
+  .plan-header {{ position: sticky; top: 0; z-index: 100; background: #faf9f5; text-align: center; margin-bottom: 2rem; padding-top: 1rem; padding-bottom: 1rem; border-bottom: 2px solid #e0ddd5; }}
+  .plan-header h1 {{ font-size: 1.8rem; font-weight: 700; color: #D73C63; margin-bottom: 0.4rem; }}
   .plan-header .subtitle {{ font-size: 0.95rem; color: #666; }}
   .summary-card {{
     background: #fff; border: 1px solid #e0ddd5; border-radius: 12px;
@@ -337,7 +336,7 @@ def render_html(plan, lang='en', username=None):
   .summary-card .full-width {{ grid-column: 1 / -1; }}
   .day-card {{ background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }}
   .day-header {{
-    background: #2d5016; color: #fff; padding: 0.8rem 1.2rem;
+    background: #D73C63; color: #fff; padding: 0.8rem 1.2rem;
     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;
   }}
   .day-header h2 {{ font-size: 1.15rem; font-weight: 600; margin: 0; }}
@@ -346,7 +345,7 @@ def render_html(plan, lang='en', username=None):
   .meal-block {{ padding: 0.8rem 1.2rem; border-bottom: 1px solid #f0ede5; }}
   .meal-block:last-child {{ border-bottom: none; }}
   .meal-title {{ display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.3rem; }}
-  .meal-title h3 {{ font-size: 1rem; font-weight: 600; color: #2d5016; margin: 0; }}
+  .meal-title h3 {{ font-size: 1rem; font-weight: 600; color: #D73C63; margin: 0; }}
   .meal-title .meal-macros {{ font-size: 0.78rem; color: #888; white-space: nowrap; }}
   .meal-title .tag {{
     display: inline-block; font-size: 0.7rem; font-weight: 500;
@@ -361,10 +360,13 @@ def render_html(plan, lang='en', username=None):
   .meal-tip {{ font-size: 0.82rem; color: #b45309; margin-top: 0.3rem; padding-left: 1.2rem; }}
   .meal-block.eating-out .order-info {{ font-size: 0.88rem; color: #444; padding-left: 1.2rem; margin-bottom: 0.2rem; }}
   .grocery-section {{ background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; padding: 1.2rem 1.5rem; margin-top: 2rem; }}
-  .grocery-section h2 {{ font-size: 1.15rem; font-weight: 600; color: #2d5016; margin-bottom: 0.8rem; }}
+  .grocery-section h2 {{ font-size: 1.15rem; font-weight: 600; color: #D73C63; margin-bottom: 0.8rem; }}
   .grocery-category h3 {{ font-size: 0.95rem; font-weight: 600; color: #555; margin: 0.8rem 0 0.3rem 0; padding-bottom: 0.2rem; border-bottom: 1px solid #f0ede5; }}
   .grocery-category ul {{ list-style: none; padding: 0; margin: 0; columns: 2; column-gap: 2rem; }}
   .grocery-category li {{ font-size: 0.88rem; color: #444; padding: 0.12rem 0; break-inside: avoid; }}
+  .brand-footer {{ display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e0ddd5; }}
+  .brand-footer img {{ width: 32px; height: 32px; border-radius: 6px; }}
+  .brand-footer .brand-name {{ font-family: 'Irish Grover', cursive; font-size: 1.1rem; color: #D73C63; margin: 0; }}
   .plan-footer {{ text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e0ddd5; font-size: 0.8rem; color: #aaa; }}
   @media (max-width: 600px) {{
     html {{ font-size: 14px; }}
@@ -378,8 +380,11 @@ def render_html(plan, lang='en', username=None):
     body {{ background: #fff; font-size: 11pt; }}
     .page {{ max-width: none; padding: 0; }}
     .day-card {{ break-inside: avoid; border: 1px solid #ccc; margin-bottom: 1rem; }}
-    .day-header {{ background: #2d5016 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-    .plan-footer {{ display: none; }}
+    .day-header {{ background: #D73C63 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+    .brand-footer {{ display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e0ddd5; }}
+  .brand-footer img {{ width: 32px; height: 32px; border-radius: 6px; }}
+  .brand-footer .brand-name {{ font-family: 'Irish Grover', cursive; font-size: 1.1rem; color: #D73C63; margin: 0; }}
+  .plan-footer {{ display: none; }}
   }}
 </style>
 </head>
@@ -409,6 +414,10 @@ def render_html(plan, lang='en', username=None):
 {chr(10).join(days_html)}
 {grocery_html}
 
+  <div class="brand-footer">
+    <img src="https://nanorhino.ai/assets/logo.png" alt="NanoRhino">
+    <p class="brand-name">NanoRhino</p>
+  </div>
   <footer class="plan-footer">
     {footer_text}
   </footer>
