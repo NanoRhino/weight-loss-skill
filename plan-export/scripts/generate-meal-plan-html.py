@@ -232,7 +232,7 @@ def parse_meal_plan(md_text):
     return plan
 
 
-def render_html(plan, lang='en'):
+def render_html(plan, lang='en', username=None):
     """Render parsed plan into full HTML."""
     meta = plan['metadata']
     date_str = meta.get('date', '')
@@ -387,6 +387,7 @@ def render_html(plan, lang='en'):
 <div class="page">
   <header class="plan-header">
     <h1>🍽️ {escape(plan['title'])}</h1>
+    {f'<p class="subtitle" style="font-weight:500;color:#333;margin-bottom:2px">{escape(username)}</p>' if username else ''}
     <p class="subtitle">{escape(date_str)}</p>
   </header>
 
@@ -417,12 +418,15 @@ def render_html(plan, lang='en'):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 generate-meal-plan-html.py <input.md> [output.html]", file=sys.stderr)
-        sys.exit(1)
+    import argparse
+    parser = argparse.ArgumentParser(description="Convert Meal Plan Markdown to styled HTML")
+    parser.add_argument("input", help="Input Markdown file")
+    parser.add_argument("output", nargs="?", help="Output HTML file")
+    parser.add_argument("--username", help="User display name (shown below title)")
+    args = parser.parse_args()
 
-    input_path = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else input_path.rsplit('.', 1)[0] + '.html'
+    input_path = args.input
+    output_path = args.output or input_path.rsplit('.', 1)[0] + '.html'
 
     if not os.path.isfile(input_path):
         print(f"Error: Input file not found: {input_path}", file=sys.stderr)
@@ -433,7 +437,7 @@ def main():
 
     lang = detect_lang(md_text)
     plan = parse_meal_plan(md_text)
-    html_output = render_html(plan, lang=lang)
+    html_output = render_html(plan, lang=lang, username=args.username)
 
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html_output)

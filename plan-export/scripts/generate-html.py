@@ -55,9 +55,22 @@ h1 {{
     color: #D73C63;
     margin-top: 1.5rem;
     margin-bottom: 0.3rem;
+    padding-bottom: 0;
+    text-align: center;
+}}
+
+/* ── Plan meta (username + date below title) ── */
+.plan-meta {{
+    text-align: center;
     padding-bottom: 10px;
     border-bottom: 2px solid #e0ddd5;
-    text-align: center;
+    margin-bottom: 1.2rem;
+}}
+.plan-meta p {{
+    font-size: 0.85rem;
+    color: #666;
+    margin: 2px 0;
+    line-height: 1.5;
 }}
 
 /* ── Section Headers ── */
@@ -97,18 +110,7 @@ h3 {{
     margin-bottom: 6px;
 }}
 
-/* ── Metadata (subtitle lines after h1) ── */
-.plan-meta {{
-    text-align: center;
-    margin-bottom: 1.2rem;
-}}
-.plan-meta p {{
-    font-size: 0.85rem;
-    color: #666;
-    margin: 2px 0;
-    line-height: 1.5;
-}}
-
+/* ── Metadata (subtitle lines after h1, fallback when no .plan-meta) ── */
 h1 + p, h1 + p + p, h1 + p + p + p {{
     font-size: 0.85rem;
     color: #666;
