@@ -109,9 +109,10 @@ Use values directly from collect output (`meta.*`):
 
 ```
 📊 第{meta.week_number}周周报
-完整分析 👇 {report_url}
+完整分析 👇
+{report_url}
 
-{meta.progress_bar}  已走 {meta.progress_pct}%
+{meta.progress_bar} 已走 {meta.progress_pct}%
 {meta.start_weight} → {meta.current_weight} {unit} → 目标 {meta.target_weight} {unit}
 
 {data_hook}
