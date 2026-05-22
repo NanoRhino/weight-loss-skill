@@ -41,15 +41,17 @@ bash {baseDir}/scripts/should-send-report.sh --workspace-dir {workspaceDir}
 
 If output starts with "no" → reply `NO_REPLY`. Stop.
 
-### Step 3: Collect Data
+### Step 3: Collect Data (once, reuse in Step 6)
 
 ```bash
 python3 {baseDir}/scripts/collect-weekly-data.py \
   --workspace-dir {workspaceDir} \
-  --start-date {monday} --end-date {sunday} --tz-offset {tz_offset}
+  --start-date {monday} --end-date {sunday} --tz-offset {tz_offset} \
+  2>/dev/null > /tmp/weekly-data.json
 ```
 
 This outputs ALL data as JSON. **Do NOT call individual scripts per-day.**
+Save to a temp file — you'll read it now for analysis and pipe it to the report generator in Step 6.
 
 ### Step 4: Read Context
 
@@ -75,10 +77,7 @@ Progress bar (中段/快完成): 12 chars, `▓` × `round(pct/100×12)`, rest `
 ### Step 6: Generate Report
 
 ```bash
-python3 {baseDir}/scripts/collect-weekly-data.py \
-  --workspace-dir {workspaceDir} \
-  --start-date {monday} --end-date {sunday} --tz-offset {tz_offset} \
-  2>&1 | tail -n +2 | \
+cat /tmp/weekly-data.json | tail -n +2 | \
 python3 {baseDir}/scripts/generate-report-html.py \
   --output {workspaceDir}/data/reports/weekly-data-{start_date}.html \
   --workspace-dir {workspaceDir} \
