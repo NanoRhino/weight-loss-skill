@@ -238,10 +238,10 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 
     var h = '<div class="cal-chart">\n';
     for (var i = 0; i < ticks.length; i++) {
-      var t = ticks[i];
-      var pct = (t / chartMax) * 100;
-      var solid = t === 0 ? ' border-bottom-style: solid;' : '';
-      h += '<div class="cal-grid-line" style="bottom:' + pct.toFixed(1) + '%;' + solid + '"><span class="cal-grid-label">' + t + '</span></div>\n';
+      var tick = ticks[i];
+      var pct = (tick / chartMax) * 100;
+      var solid = tick === 0 ? ' border-bottom-style: solid;' : '';
+      h += '<div class="cal-grid-line" style="bottom:' + pct.toFixed(1) + '%;' + solid + '"><span class="cal-grid-label">' + tick + '</span></div>\n';
     }
     h += '<div class="cal-target-band" style="bottom:' + bandBottom.toFixed(1) + '%;height:' + bandHeight.toFixed(1) + '%"><span class="cal-target-label">' + t('targetLabel', {min: calMin, max: calMaxTarget}) + '</span></div>\n';
 
@@ -410,10 +410,10 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
     h += '<div class="cal-chart" style="height:' + chartH + 'px;">\n';
 
     for (var i = 0; i < ticks.length; i++) {
-      var t = ticks[i];
-      var pct = (t / chartMax) * 100;
-      var solid = t === 0 ? ' border-bottom-style: solid;' : '';
-      h += '<div class="cal-grid-line" style="bottom:' + pct.toFixed(1) + '%;' + solid + '"><span class="cal-grid-label">' + t + '</span></div>\n';
+      var tick = ticks[i];
+      var pct = (tick / chartMax) * 100;
+      var solid = tick === 0 ? ' border-bottom-style: solid;' : '';
+      h += '<div class="cal-grid-line" style="bottom:' + pct.toFixed(1) + '%;' + solid + '"><span class="cal-grid-label">' + tick + '</span></div>\n';
     }
     h += '<div class="cal-target-band" style="bottom:' + tLowPct.toFixed(1) + '%;height:' + (tHighPct - tLowPct).toFixed(1) + '%"><span class="cal-target-label">' + t('targetLabel', {min: targetLow, max: targetHigh}) + '</span></div>\n';
     // If avg line overlaps target band, put label below the line instead of above
