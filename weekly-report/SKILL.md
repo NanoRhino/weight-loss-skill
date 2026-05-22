@@ -1,11 +1,6 @@
 ---
 name: weekly-report
-version: 1.1.0
-description: "Generate a personalized weekly progress report. Trigger: 'weekly report', '周报', '这周怎么样', or auto Sunday 21:00."
-metadata:
-  openclaw:
-    emoji: "bar_chart"
-    homepage: https://github.com/NanoRhino/weight-loss-skill
+description: generate personalized weekly progress reports for Nano Rhino users. Use for manual weekly report requests such as "weekly report", "周报", "这周怎么样", and for scheduled Sunday 21:00 user-local cron runs. Always generate a clickable report URL using the bundled weekly report scripts; never return a text-only report.
 ---
 
 # Weekly Report
