@@ -113,6 +113,7 @@ def main():
     parser.add_argument('--tagline', help='Short fun summary line for header')
     parser.add_argument('--no-upload', action='store_true', help='Skip cloud upload')
     parser.add_argument('--no-log', action='store_true', help='Skip writing report log')
+    parser.add_argument('--lang', default='zh', help='Report language (zh or en)')
     args = parser.parse_args()
 
     # Read input data
@@ -159,6 +160,7 @@ def main():
     data['tagline'] = args.tagline or ''
     data['plan_rate'] = args.plan_rate
     data['username'] = args.username or 'unknown'
+    data.setdefault('meta', {})['lang'] = args.lang
 
     # Write output JSON
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)

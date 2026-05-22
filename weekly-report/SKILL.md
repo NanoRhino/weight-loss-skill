@@ -108,6 +108,7 @@ python3 {baseDir}/scripts/generate-report-html.py \
 | `--highlights` | JSON array: 2-3 specific data-backed wins |
 | `--suggestions` | JSON array: 1-2 concrete actionable improvements |
 | `--plan-rate` | kg/week from health-profile (default 0.5) |
+| `--lang` | Report language: `zh` (default) or `en`. Read from user's profile or infer from conversation language |
 
 > 🚨 **ALL parameters are REQUIRED with real content. Empty `'{}'` or `'[]'` = degraded experience. Read the data, think, write real commentary.**
 
