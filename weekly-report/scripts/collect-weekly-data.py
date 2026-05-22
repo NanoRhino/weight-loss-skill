@@ -511,6 +511,21 @@ def compute_summary(days, plan, weight_data):
     chart_max = max(cal_max, (plan["cal_min"][1] * 1.2 if plan and "cal_min" in plan else 0))
     summary["chart_max"] = round(chart_max)
 
+    # Low-calorie safety check (integrated from weekly-low-cal-check.py)
+    bmr = plan.get("bmr") if plan else None
+    if bmr and logged_days:
+        daily_cals = [d["totals"]["cal"] for d in logged_days if d["totals"]["cal"] > 0]
+        if daily_cals:
+            avg_for_safety = round(sum(daily_cals) / len(daily_cals))
+            days_below_bmr = [d["date"] for d in logged_days if 0 < d["totals"]["cal"] < bmr]
+            summary["safety"] = {
+                "below_floor": avg_for_safety < bmr,
+                "avg_cal": avg_for_safety,
+                "bmr": bmr,
+                "days_below": days_below_bmr,
+                "days_below_count": len(days_below_bmr),
+            }
+
     return summary
 
 
@@ -590,6 +605,34 @@ def main():
     prev_exists = _report_exists(reports_dir, prev_start)
     next_exists = _report_exists(reports_dir, next_start)
 
+    # Phase detection
+    phase = "初始"
+    progress_pct = 0
+    progress_bar = ""
+    start_weight = None
+    current_weight = None
+    target_weight = plan.get("target_weight") if plan else None
+
+    # start_weight = first weight reading ever (from all weight data)
+    if all_weight.get("readings"):
+        start_weight = all_weight["readings"][0].get("value")
+        current_weight = all_weight["readings"][-1].get("value")
+
+    if start_weight and current_weight and target_weight and start_weight != target_weight:
+        progress_pct = round((start_weight - current_weight) / (start_weight - target_weight) * 100)
+        progress_pct = max(0, min(100, progress_pct))  # clamp 0-100
+
+    if report_count >= 4:
+        if progress_pct >= 80:
+            phase = "快完成"
+        else:
+            phase = "中段"
+
+    # Progress bar (12 chars)
+    if phase in ("中段", "快完成"):
+        filled = round(progress_pct / 100 * 12)
+        progress_bar = "▓" * filled + "░" * (12 - filled)
+
     output = {
         "meta": {
             "start_date": args.start_date,
@@ -597,6 +640,12 @@ def main():
             "week_number": week_number,
             "first_monday": first_monday,
             "report_count": report_count,
+            "phase": phase,
+            "progress_pct": progress_pct,
+            "progress_bar": progress_bar,
+            "start_weight": start_weight,
+            "current_weight": current_weight,
+            "target_weight": target_weight,
             "prev_start": prev_start,
             "prev_exists": prev_exists,
             "next_exists": next_exists,
