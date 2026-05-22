@@ -255,7 +255,7 @@ def read_plan(workspace_dir):
             "protein_range": r"(?:Protein|蛋白质)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
             "fat_range": r"(?:Fat|脂肪)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
             "carb_range": r"(?:Carb|碳水)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-            "weight_loss_rate": r"(?:Weight Loss Rate|每周减重)[：:\s]*([\d.]+)",
+            "weight_loss_rate": r"(?:Weight Loss Rate|每周减重[速率]*)[：:\s]*([\d.]+)",
             "target_weight": r"(?:Target Weight|目标体重)[：:\s]*([\d.]+)",
             "start_weight": r"(?:Start|Initial|Starting|初始) ?(?:Weight|体重)[：:\s]*([\d.]+)",
         }
@@ -612,6 +612,7 @@ def main():
     start_weight = None
     current_weight = None
     target_weight = plan.get("target_weight") if plan else None
+    plan_rate = plan.get("weight_loss_rate", 0.5) if plan else 0.5
 
     # start_weight = first weight reading ever (from all weight data)
     if all_weight.get("readings"):
@@ -646,6 +647,7 @@ def main():
             "start_weight": start_weight,
             "current_weight": current_weight,
             "target_weight": target_weight,
+            "plan_rate": plan_rate,
             "prev_start": prev_start,
             "prev_exists": prev_exists,
             "next_exists": next_exists,
