@@ -66,12 +66,13 @@ if [[ -z "$USERNAME" ]]; then
   # Extract agentId from workspace dir name: workspace-wechat-dm-xxx → wechat-dm-xxx
   WS_BASENAME=$(basename "$WORKSPACE")
   AGENT_ID="${WS_BASENAME#workspace-}"
+  # Extract accountId from agentId (strip "wechat-dm-" prefix)
+  ACCOUNT_ID="${AGENT_ID#wechat-dm-}"
 
-  # Look up shortId from agent-registry.json
-  REGISTRY="${HOME}/.openclaw/extensions/wechat/agent-registry.json"
+  # Look up shortId from agent-registry.json (located in gateway extensions dir)
+  GATEWAY_DIR=$(dirname "$WORKSPACE")
+  REGISTRY="${GATEWAY_DIR}/extensions/wechat/agent-registry.json"
   if [[ -f "$REGISTRY" ]]; then
-    # Extract accountId from agentId (strip "wechat-dm-" prefix)
-    ACCOUNT_ID="${AGENT_ID#wechat-dm-}"
     USERNAME=$(python3 -c "
 import json, sys
 try:
