@@ -56,29 +56,16 @@ Save to a temp file — you'll read it now for analysis and pipe it to the repor
 
 ### Step 4: Read Context
 
-- `PLAN.md` → calorie/macro targets, weight loss rate, start date
-- `USER.md` → name, health flags
-- `health-profile.md` → unit preference, target weight
+- `USER.md` → name, health flags, language preference
+- `health-profile.md` → unit preference
 - Previous report log: `data/logs/weekly-report-{prev_monday}.json` → check `next_week_focus`
 
-### Step 5: Determine Phase
+All calorie/macro targets, weight loss rate, phase, progress bar, and week number are already in the collect output (`meta.*` and `plan.*`). No need to read `PLAN.md` separately.
 
-From collect-weekly-data output:
-- `report_count` = number of past reports
-- Calculate: `progress_pct = (start_weight − current_weight) / (start_weight − target_weight) × 100`
-
-| Phase | Condition |
-|-------|-----------|
-| 初始 | `report_count < 4` |
-| 中段 | `report_count ≥ 4` AND `progress_pct < 80%` |
-| 快完成 | `report_count ≥ 4` AND `progress_pct ≥ 80%` |
-
-Progress bar (中段/快完成): 12 chars, `▓` × `round(pct/100×12)`, rest `░`
-
-### Step 6: Generate Report
+### Step 5: Generate Report
 
 ```bash
-cat /tmp/weekly-data.json | tail -n +2 | \
+cat /tmp/weekly-data.json | \
 python3 {baseDir}/scripts/generate-report-html.py \
   --output {workspaceDir}/data/reports/weekly-data-{start_date}.html \
   --workspace-dir {workspaceDir} \
@@ -108,7 +95,7 @@ python3 {baseDir}/scripts/generate-report-html.py \
 | `--commentary` | JSON: `{"logging": "...", "calories": "...", "weight": "...", "macros": "..."}` — 2-4 sentences each, casual spoken Chinese, funny/witty, backed by real numbers |
 | `--highlights` | JSON array: 2-3 specific data-backed wins |
 | `--suggestions` | JSON array: 1-2 concrete actionable improvements |
-| `--plan-rate` | kg/week from health-profile (default 0.5) |
+| `--plan-rate` | kg/week — use `meta.plan_rate` from collect output (default 0.5) |
 | `--lang` | Report language: `zh` (default) or `en`. Read from user's profile or infer from conversation language |
 
 > 🚨 **ALL parameters are REQUIRED with real content. Empty `'{}'` or `'[]'` = degraded experience. Read the data, think, write real commentary.**
@@ -116,25 +103,25 @@ python3 {baseDir}/scripts/generate-report-html.py \
 For section-by-section rules: `read references/report-sections.md`
 For edge cases (zero data, no plan, ED flags): `read references/edge-cases.md`
 
-### Step 7: Compose Chat Message
+### Step 6: Compose Chat Message
+
+Use values directly from collect output (`meta.*`):
 
 ```
-📊 第{N}周周报
+📊 第{meta.week_number}周周报
 完整分析 👇 {report_url}
 
-{progress_bar}  已走 {progress_pct}%
-{start_weight} → {current_weight} {unit} → 目标 {target_weight} {unit}
+{meta.progress_bar}  已走 {meta.progress_pct}%
+{meta.start_weight} → {meta.current_weight} {unit} → 目标 {meta.target_weight} {unit}
 
 {data_hook}
 ```
 
-**Week number:** `N = ((start_date - first_monday) / 7) + 1`
-`first_monday` = Monday of user's first meal log week (or PLAN.md start date fallback).
+- Skip progress bar line if `meta.phase` is `"初始"`
+- **快完成 phase:** Append `只差 {remaining} {unit}` after target weight
 
 **data_hook:** ONE sentence citing specific data, sparking curiosity to click report.
 For style examples: `read references/hook-examples.md`
-
-**快完成 phase:** Append `只差 {remaining} {unit}` after target weight.
 
 **ED/avoid_weight_focus flags:** Omit progress bar, weight fields, and ⚖️ line. Hook focuses on consistency/variety.
 
