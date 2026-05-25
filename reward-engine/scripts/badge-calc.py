@@ -53,6 +53,7 @@ def parse_plan(workspace_dir: str) -> dict:
     plan_path = Path(workspace_dir) / "PLAN.md"
     result = {
         "calorie_target": None,
+        "cal_range": None,  # (low, high) from Daily Calorie Range
         "bmr": None,
         "daily_deficit": 300,  # default
         "expected_meals": 3,   # default
@@ -66,25 +67,32 @@ def parse_plan(workspace_dir: str) -> dict:
     # Parse Daily Calorie Range (e.g., "Daily Calorie Range: 1200-1400" or "1,200 ~ 1,400")
     range_patterns = [
         r"Daily Calorie Range[:\s]*(\d[,\d]*)\s*[-~]\s*(\d[,\d]*)",
-        r"每日热量[目范]?[标围]?[:\s：]*(\d[,\d]*)\s*[-~]\s*(\d[,\d]*)",
-        r"Daily Calories?[:\s]*~?(\d[,\d]*)",
-        r"每日热量目标[:\s：]*(\d[,\d]*)",
-        r"Daily Calorie Budget[:\s]*(\d[,\d]*)",
+        r"每日热量范围[:\s：]*(\d[,\d]*)\s*[-~]\s*(\d[,\d]*)",
     ]
 
     for pattern in range_patterns:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
-            groups = match.groups()
-            if len(groups) == 2:
-                low = int(groups[0].replace(",", ""))
-                high = int(groups[1].replace(",", ""))
-                result["calorie_target"] = (low + high) // 2
-            else:
-                val = int(groups[0].replace(",", ""))
+            low = int(match.group(1).replace(",", ""))
+            high = int(match.group(2).replace(",", ""))
+            result["cal_range"] = (low, high)
+            result["calorie_target"] = (low + high) // 2
+            break
+
+    # Fallback: single target value
+    if result["calorie_target"] is None:
+        target_patterns = [
+            r"每日热量目标[:\s：]*(\d[,\d]*)",
+            r"Daily Calories?[:\s]*~?(\d[,\d]*)",
+            r"Daily Calorie Budget[:\s]*(\d[,\d]*)",
+        ]
+        for pattern in target_patterns:
+            match = re.search(pattern, content, re.IGNORECASE)
+            if match:
+                val = int(match.group(1).replace(",", ""))
                 if 800 <= val <= 3000:
                     result["calorie_target"] = val
-            break
+                break
 
     # Parse BMR
     bmr_match = re.search(r"BMR[:\s]*(\d[,\d]*)", content, re.IGNORECASE)
@@ -273,7 +281,7 @@ def generate_progress_bar(current_count: int, next_target: int, current_level: i
     return f"{bar} {current_count}/{next_target} → 下一级：{next_level_info['name']}"
 
 
-def qualify_day(workspace_dir: str, date_str: str, calorie_target: int, bmr, expected_meals: int) -> bool:
+def qualify_day(workspace_dir: str, date_str: str, cal_range: tuple, bmr, expected_meals: int) -> bool:
     """Check if a specific date qualifies (3 conditions)."""
     meals = load_today_meals(workspace_dir, date_str)
     main_meal_count = meals["main_meal_count"]
@@ -286,9 +294,8 @@ def qualify_day(workspace_dir: str, date_str: str, calorie_target: int, bmr, exp
     if main_meal_count < expected_meals:
         return False
 
-    # Condition 2: calories in range (target ± 10%)
-    cal_low = calorie_target * 0.9
-    cal_high = calorie_target * 1.1
+    # Condition 2: calories in target range
+    cal_low, cal_high = cal_range
     if not (cal_low <= total_calories <= cal_high):
         return False
 
@@ -301,7 +308,7 @@ def qualify_day(workspace_dir: str, date_str: str, calorie_target: int, bmr, exp
     return True
 
 
-def backfill(workspace_dir: str, calorie_target: int, bmr, expected_meals: int, daily_deficit: int) -> dict:
+def backfill(workspace_dir: str, cal_range: tuple, bmr, expected_meals: int, daily_deficit: int) -> dict:
     """Scan all historical meal files and build badges from scratch.
     Returns the populated calorie_target dict."""
     meals_dir = Path(workspace_dir) / "data" / "meals"
@@ -318,7 +325,7 @@ def backfill(workspace_dir: str, calorie_target: int, bmr, expected_meals: int, 
             except ValueError:
                 continue
 
-            if qualify_day(workspace_dir, date_str, calorie_target, bmr, expected_meals):
+            if qualify_day(workspace_dir, date_str, cal_range, bmr, expected_meals):
                 qualified_dates.append(date_str)
 
     count = len(qualified_dates)
@@ -404,6 +411,7 @@ def check(workspace_dir: str, tz_offset: int):
     # Parse plan data
     plan = parse_plan(workspace_dir)
     calorie_target = plan["calorie_target"]
+    cal_range = plan["cal_range"]
     bmr = plan["bmr"]
     daily_deficit = plan["daily_deficit"]
     expected_meals = plan["expected_meals"]
@@ -427,13 +435,17 @@ def check(workspace_dir: str, tz_offset: int):
         }))
         return
 
+    # If no explicit range, fallback to target ± 10%
+    if cal_range is None:
+        cal_range = (int(calorie_target * 0.9), int(calorie_target * 1.1))
+
     # Load badges
     badges = load_badges(workspace_dir)
     ct = badges["calorie_target"]
 
     # Auto-backfill on first run (badges.json empty or never backfilled)
     if not ct.get("backfilled") and ct["current_count"] == 0:
-        ct = backfill(workspace_dir, calorie_target, bmr, expected_meals, daily_deficit)
+        ct = backfill(workspace_dir, cal_range, bmr, expected_meals, daily_deficit)
         badges["calorie_target"] = ct
         save_badges(workspace_dir, badges)
 
@@ -454,12 +466,11 @@ def check(workspace_dir: str, tz_offset: int):
         qualified = False
         reasons.append(f"main_meals_{main_meal_count}_of_{expected_meals}")
 
-    # Condition 2: calories in range (target ± 10%)
-    cal_low = calorie_target * 0.9
-    cal_high = calorie_target * 1.1
+    # Condition 2: calories in target range (from PLAN.md)
+    cal_low, cal_high = cal_range
     if not (cal_low <= total_calories <= cal_high):
         qualified = False
-        reasons.append(f"calories_{total_calories}_not_in_{cal_low:.0f}-{cal_high:.0f}")
+        reasons.append(f"calories_{total_calories}_not_in_{cal_low}-{cal_high}")
 
     # Condition 3: above safety floor (BMR × 0.8)
     if bmr is not None:
