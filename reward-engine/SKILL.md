@@ -43,8 +43,8 @@ A day counts as "qualified" when ALL THREE conditions are met:
    - Default: 3 meals
    - Intermittent fasting (16:8 or explicit "两餐" in PLAN.md): 2 meals
    - `snack` does NOT count as a main meal
-2. **Calories in target range:** Total daily calories within target × 0.9 ~ target × 1.1
-   - Target = midpoint of `Daily Calorie Range` from PLAN.md
+2. **Calories in target range:** Total daily calories within the `Daily Calorie Range` from PLAN.md (e.g., 1,430 - 1,630)
+   - Falls back to target ± 10% if only a single target value exists
 3. **Above safety floor:** Total daily calories ≥ BMR × 0.8
    - Prevents rewarding dangerous under-eating
 
