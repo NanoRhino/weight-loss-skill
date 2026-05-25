@@ -295,9 +295,9 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 
 Only trigger when ALL of these are true:
 1. `meal_checkin` returned `action: "create"` or `action: "append"` (successful meal log)
-2. This is the user's **3rd or later main meal today** (check `evaluation.meals_logged_today >= 3` or count from daily summary — if only 1-2 meals logged today, skip badge check entirely)
+2. This is the user's **last expected meal of the day** (check `evaluation.meals_logged_today >= expected_meals` from their plan — typically 3, but 2 for intermittent fasting users)
 
-This avoids running the script after breakfast/lunch when qualification is impossible (need ≥3 meals).
+This avoids running the script when qualification is still impossible (not enough meals yet).
 
 ### How to run
 
