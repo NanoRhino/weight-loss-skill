@@ -56,33 +56,6 @@ def get_recent_weights(data_dir, tz_offset, limit=10):
     return readings[-limit:]
 
 
-def get_plan_context(plan_file):
-    """Extract key plan info: target weight, TDEE, calorie target."""
-    if not plan_file or not os.path.exists(plan_file):
-        return None
-    try:
-        with open(plan_file, "r", encoding="utf-8") as f:
-            content = f.read()
-        ctx = {}
-        for line in content.split("\n"):
-            line_lower = line.lower().strip()
-            if "tdee" in line_lower:
-                nums = re.findall(r'[\d.]+', line)
-                if nums:
-                    ctx["tdee"] = int(float(nums[0]))
-            if "target" in line_lower and "weight" in line_lower:
-                nums = re.findall(r'[\d.]+', line)
-                if nums:
-                    ctx["target_weight"] = float(nums[0])
-            if "target" in line_lower and ("kcal" in line_lower or "cal" in line_lower):
-                nums = re.findall(r'[\d.]+', line)
-                if nums:
-                    ctx["calorie_target"] = int(float(nums[0]))
-        return ctx if ctx else None
-    except Exception:
-        return None
-
-
 def get_strategy_status(data_dir, tz_offset):
     """Check if there's an active weight-gain strategy."""
     tz = timezone(timedelta(seconds=tz_offset))
@@ -167,7 +140,6 @@ def main():
 
     # --- Step 2: Context for model judgment ---
     recent = get_recent_weights(args.data_dir, args.tz_offset)
-    plan = get_plan_context(args.plan_file)
     strategy = get_strategy_status(args.data_dir, args.tz_offset)
     last_intervention = get_last_intervention(args.data_dir)
 
@@ -175,7 +147,6 @@ def main():
         "save": save_result,
         "context": {
             "recent_weights": recent,
-            "plan": plan,
             "active_strategy": strategy,
             "last_intervention_date": last_intervention,
         },
