@@ -124,9 +124,9 @@ def parse_health_profile(workspace_dir: str) -> dict:
     return result
 
 
-def load_today_meals(workspace_dir: str, today: str) -> dict:
-    """Load today's meal data and return meal count + total calories."""
-    meals_path = Path(workspace_dir) / "data" / "meals" / f"{today}.json"
+def load_today_meals(workspace_dir: str, date_str: str) -> dict:
+    """Load a specific day's meal data and return meal count + total calories."""
+    meals_path = Path(workspace_dir) / "data" / "meals" / f"{date_str}.json"
     result = {"main_meal_count": 0, "total_calories": 0}
 
     if not meals_path.exists():
@@ -272,6 +272,78 @@ def generate_progress_bar(current_count: int, next_target: int, current_level: i
     return f"{bar} {current_count}/{next_target} → 下一级：{next_level_info['name']}"
 
 
+def qualify_day(workspace_dir: str, date_str: str, calorie_target: int, bmr, expected_meals: int) -> bool:
+    """Check if a specific date qualifies (3 conditions)."""
+    meals = load_today_meals(workspace_dir, date_str)
+    main_meal_count = meals["main_meal_count"]
+    total_calories = meals["total_calories"]
+
+    if total_calories == 0:
+        return False
+
+    # Condition 1: enough main meals
+    if main_meal_count < expected_meals:
+        return False
+
+    # Condition 2: calories in range (target ± 10%)
+    cal_low = calorie_target * 0.9
+    cal_high = calorie_target * 1.1
+    if not (cal_low <= total_calories <= cal_high):
+        return False
+
+    # Condition 3: above safety floor (BMR × 0.8)
+    if bmr is not None:
+        safety_floor = bmr * 0.8
+        if total_calories < safety_floor:
+            return False
+
+    return True
+
+
+def backfill(workspace_dir: str, calorie_target: int, bmr, expected_meals: int, daily_deficit: int) -> dict:
+    """Scan all historical meal files and build badges from scratch.
+    Returns the populated calorie_target dict."""
+    meals_dir = Path(workspace_dir) / "data" / "meals"
+    qualified_dates = []
+
+    if meals_dir.exists():
+        # Get all meal files sorted by date
+        meal_files = sorted(meals_dir.glob("*.json"))
+        for meal_file in meal_files:
+            date_str = meal_file.stem[:10]  # YYYY-MM-DD
+            # Validate date format
+            try:
+                datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                continue
+
+            if qualify_day(workspace_dir, date_str, calorie_target, bmr, expected_meals):
+                qualified_dates.append(date_str)
+
+    count = len(qualified_dates)
+    level = get_level_for_count(count)
+
+    # Build unlocked_at by replaying level transitions
+    unlocked_at = {}
+    running_count = 0
+    for date_str in qualified_dates:
+        running_count += 1
+        new_level = get_level_for_count(running_count)
+        if str(new_level) not in unlocked_at and new_level > 0:
+            unlocked_at[str(new_level)] = date_str
+
+    return {
+        "current_level": level,
+        "current_count": count,
+        "next_level_target": get_next_level_target(level),
+        "qualified_dates": qualified_dates,
+        "unlocked_at": unlocked_at,
+        "daily_deficit": daily_deficit,
+        "last_calculated": qualified_dates[-1] if qualified_dates else None,
+        "backfilled": True,
+    }
+
+
 def check(workspace_dir: str, tz_offset: int):
     """Main check logic."""
     today = get_local_date(tz_offset)
@@ -302,14 +374,20 @@ def check(workspace_dir: str, tz_offset: int):
         }))
         return
 
+    # Load badges
+    badges = load_badges(workspace_dir)
+    ct = badges["calorie_target"]
+
+    # Auto-backfill on first run (badges.json empty or never backfilled)
+    if not ct.get("backfilled") and ct["current_count"] == 0:
+        ct = backfill(workspace_dir, calorie_target, bmr, expected_meals, daily_deficit)
+        badges["calorie_target"] = ct
+        save_badges(workspace_dir, badges)
+
     # Load today's meals
     meals = load_today_meals(workspace_dir, today)
     main_meal_count = meals["main_meal_count"]
     total_calories = meals["total_calories"]
-
-    # Load badges
-    badges = load_badges(workspace_dir)
-    ct = badges["calorie_target"]
 
     # Check if already counted today
     already_counted = today in ct.get("qualified_dates", [])
