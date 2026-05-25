@@ -161,15 +161,19 @@ def load_today_meals(workspace_dir: str, today: str) -> dict:
         calories = 0
 
         if isinstance(meal, dict):
-            # Try to get meal_name
-            meal_name = meal.get("meal_name") or meal.get("_key") or meal.get("type", "")
+            # Try to get meal_name from various formats
+            meal_name = (meal.get("meal_type") or meal.get("meal_name")
+                         or meal.get("_key") or meal.get("type", ""))
             meal_name = meal_name.lower().strip() if meal_name else ""
 
-            # Get calories - could be in dishes or at top level
+            # Get calories - try multiple formats
             if "calories" in meal:
                 calories = meal["calories"] or 0
             elif "total_calories" in meal:
                 calories = meal["total_calories"] or 0
+            elif "items" in meal:
+                for item in meal.get("items", []):
+                    calories += item.get("calories", 0)
             elif "dishes" in meal:
                 for dish in meal.get("dishes", []):
                     calories += dish.get("calories", 0)
