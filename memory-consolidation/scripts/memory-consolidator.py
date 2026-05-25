@@ -364,6 +364,342 @@ def cmd_long_term_stats(memory_dir: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Medium-term: atomic update commands
+# ---------------------------------------------------------------------------
+
+# Field label mapping (English key → Chinese label in file)
+_FIELD_LABELS = {
+    "overview": "整体表现/状态",
+    "conclusion": "当前结论",
+    "strategy": "应对策略",
+    "follow_ups": "待跟进",
+}
+
+# Preferred insertion order for fields within a section
+_FIELD_ORDER = ["overview", "discussions", "conclusion", "strategy", "follow_ups"]
+
+
+def _parse_sections(lines: list[str]) -> list[dict]:
+    """Parse medium-term.md into sections with line ranges.
+
+    Returns list of: {"title": str, "start": int, "end": int}
+    where start is the line index of the ## header and end is the line
+    index of the next ## header (or len(lines)).
+    """
+    sections = []
+    for i, line in enumerate(lines):
+        if line.startswith("## "):
+            if sections:
+                sections[-1]["end"] = i
+            sections.append({"title": line[3:].strip(), "start": i, "end": len(lines)})
+    if sections:
+        sections[-1]["end"] = len(lines)
+    return sections
+
+
+def _find_section(sections: list[dict], title: str) -> dict | None:
+    """Find section by title (exact match)."""
+    for s in sections:
+        if s["title"] == title:
+            return s
+    return None
+
+
+def _find_field_range(lines: list[str], section: dict, field_label: str) -> tuple[int, int] | None:
+    """Find the line range [start, end) of a field within a section.
+
+    The field starts at the line containing `- **{field_label}：**` or `- **{field_label}:**`
+    and extends until the next `- **` line or section end.
+    """
+    start_idx = None
+    for i in range(section["start"] + 1, section["end"]):
+        line = lines[i]
+        # Check if this line starts a field (handles both ： and :)
+        stripped = line.strip()
+        if stripped.startswith("- **") and field_label in stripped:
+            # Verify it's the right field (not a substring match)
+            # Pattern: - **LABEL：** or - **LABEL:**
+            if f"**{field_label}：**" in stripped or f"**{field_label}:**" in stripped:
+                start_idx = i
+                break
+
+    if start_idx is None:
+        return None
+
+    # Find end: next `- **` line or section end
+    end_idx = section["end"]
+    for i in range(start_idx + 1, section["end"]):
+        stripped = lines[i].strip()
+        if stripped.startswith("- **"):
+            end_idx = i
+            break
+
+    return (start_idx, end_idx)
+
+
+def _find_discussions_range(lines: list[str], section: dict) -> tuple[int, int] | None:
+    """Find the line range of the 关键讨论 block (header + entries).
+
+    Returns (header_line_idx, end_idx) where end_idx is the line after the
+    last discussion entry.
+    """
+    return _find_field_range(lines, section, "关键讨论")
+
+
+def cmd_medium_term_set_date(memory_dir: str, new_date: str) -> dict:
+    """Update the 'Last consolidated' date at the top of medium-term.md."""
+    path = _medium_term_path(memory_dir)
+    if not os.path.exists(path):
+        return {"error": "file_not_found"}
+
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Match: **Last consolidated:** YYYY-MM-DD or any date-like string or —
+    pattern = r'(\*\*Last consolidated[：:]\*\*\s*)([\d\-T:.+Z—]+)'
+    m = re.search(pattern, content)
+    if not m:
+        return {"error": "date_marker_not_found"}
+
+    old_date = m.group(2)
+    new_content = content[:m.start(2)] + new_date + content[m.end(2):]
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+
+    return {"status": "ok", "old_date": old_date, "new_date": new_date}
+
+
+def cmd_medium_term_append_discussions(memory_dir: str, section_title: str,
+                                       entries: list[dict]) -> dict:
+    """Append discussion entries to a section's 关键讨论 list."""
+    path = _medium_term_path(memory_dir)
+    if not os.path.exists(path):
+        return {"error": "file_not_found"}
+
+    with open(path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    sections = _parse_sections(lines)
+    section = _find_section(sections, section_title)
+    if not section:
+        return {"error": "section_not_found",
+                "available": [s["title"] for s in sections]}
+
+    disc_range = _find_discussions_range(lines, section)
+
+    # Build new entry lines
+    new_lines = []
+    for entry in entries:
+        date_str = entry.get("date", "??-??")
+        text = entry.get("text", "")
+        new_lines.append(f"  - [{date_str}] {text}\n")
+
+    if disc_range:
+        header_idx, end_idx = disc_range
+        # Find the last discussion entry line (lines starting with spaces + - [)
+        insert_at = header_idx + 1
+        disc_pattern = re.compile(r'^\s+- \[')
+        for i in range(header_idx + 1, end_idx):
+            if disc_pattern.match(lines[i]):
+                insert_at = i + 1
+        # Insert new entries
+        for j, new_line in enumerate(new_lines):
+            lines.insert(insert_at + j, new_line)
+        total_discussions = sum(1 for i in range(header_idx + 1, end_idx + len(new_lines))
+                                if disc_pattern.match(lines[i]))
+    else:
+        # No 关键讨论 field exists — create it
+        # Insert after overview line or after section header
+        overview_range = _find_field_range(lines, section, "整体表现/状态")
+        if overview_range:
+            insert_at = overview_range[1]
+        else:
+            insert_at = section["start"] + 1
+
+        header_line = "- **关键讨论：**\n"
+        lines.insert(insert_at, header_line)
+        for j, new_line in enumerate(new_lines):
+            lines.insert(insert_at + 1 + j, new_line)
+        total_discussions = len(new_lines)
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+    return {"status": "ok", "section": section_title,
+            "entries_added": len(entries), "total_discussions": total_discussions}
+
+
+def cmd_medium_term_set_field(memory_dir: str, section_title: str,
+                              field: str, value: str) -> dict:
+    """Set/replace a field value within a section."""
+    path = _medium_term_path(memory_dir)
+    if not os.path.exists(path):
+        return {"error": "file_not_found"}
+
+    if field not in _FIELD_LABELS:
+        return {"error": "invalid_field",
+                "valid_fields": list(_FIELD_LABELS.keys())}
+
+    field_label = _FIELD_LABELS[field]
+
+    with open(path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    sections = _parse_sections(lines)
+    section = _find_section(sections, section_title)
+    if not section:
+        return {"error": "section_not_found",
+                "available": [s["title"] for s in sections]}
+
+    field_range = _find_field_range(lines, section, field_label)
+
+    if field_range:
+        start_idx, end_idx = field_range
+        # Extract old value (everything after the :** marker on the first line +
+        # continuation lines)
+        first_line = lines[start_idx]
+        # Find the marker end position
+        for marker in [f"**{field_label}：**", f"**{field_label}:**"]:
+            pos = first_line.find(marker)
+            if pos >= 0:
+                old_value_start = pos + len(marker)
+                break
+        else:
+            old_value_start = len(first_line)
+
+        old_first = first_line[old_value_start:].strip()
+        old_rest = [lines[i].strip() for i in range(start_idx + 1, end_idx)]
+        old_value = " ".join([old_first] + old_rest).strip()
+
+        # Build replacement: single line with the new value
+        new_line = f"- **{field_label}：** {value}\n"
+        lines[start_idx:end_idx] = [new_line]
+    else:
+        # Field doesn't exist — create it at appropriate position
+        old_value = ""
+        new_line = f"- **{field_label}：** {value}\n"
+
+        # Determine insertion point based on field order
+        insert_at = section["end"]
+        field_idx = _FIELD_ORDER.index(field) if field in _FIELD_ORDER else len(_FIELD_ORDER)
+
+        # Find the last existing field that comes before this one in order
+        for check_field in reversed(_FIELD_ORDER[:field_idx]):
+            if check_field == "discussions":
+                check_label = "关键讨论"
+            else:
+                check_label = _FIELD_LABELS.get(check_field, "")
+            if not check_label:
+                continue
+            r = _find_field_range(lines, section, check_label)
+            if r:
+                insert_at = r[1]
+                break
+        else:
+            # No preceding field found, insert after header
+            insert_at = section["start"] + 1
+
+        lines.insert(insert_at, new_line)
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+    return {"status": "ok", "section": section_title, "field": field,
+            "old_value_preview": old_value[:50],
+            "new_value_preview": value[:50]}
+
+
+def cmd_medium_term_add_section(memory_dir: str, section_title: str,
+                                overview: str = None, discussions: list[dict] = None,
+                                conclusion: str = None, strategy: str = None,
+                                follow_ups: str = None) -> dict:
+    """Add a new section to medium-term.md."""
+    path = _medium_term_path(memory_dir)
+    if not os.path.exists(path):
+        return {"error": "file_not_found"}
+
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+        lines = content.split("\n")
+
+    # Check if section already exists
+    for line in lines:
+        if line.startswith("## ") and line[3:].strip() == section_title:
+            return {"error": "section_exists"}
+
+    # Build new section
+    new_section_lines = [f"\n## {section_title}\n"]
+
+    if overview:
+        new_section_lines.append(f"- **整体表现/状态：** {overview}\n")
+    if discussions:
+        new_section_lines.append("- **关键讨论：**\n")
+        for entry in discussions:
+            date_str = entry.get("date", "??-??")
+            text = entry.get("text", "")
+            new_section_lines.append(f"  - [{date_str}] {text}\n")
+    if conclusion:
+        new_section_lines.append(f"- **当前结论：** {conclusion}\n")
+    if strategy:
+        new_section_lines.append(f"- **应对策略：** {strategy}\n")
+    if follow_ups:
+        new_section_lines.append(f"- **待跟进：** {follow_ups}\n")
+
+    # Append to file
+    with open(path, "a", encoding="utf-8") as f:
+        f.writelines(new_section_lines)
+
+    return {"status": "ok", "section": section_title,
+            "line_count": len(new_section_lines)}
+
+
+def cmd_medium_term_prune_discussions(memory_dir: str, section_title: str,
+                                      before: str) -> dict:
+    """Remove discussion entries older than a given MM-DD date."""
+    path = _medium_term_path(memory_dir)
+    if not os.path.exists(path):
+        return {"error": "file_not_found"}
+
+    with open(path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    sections = _parse_sections(lines)
+    section = _find_section(sections, section_title)
+    if not section:
+        return {"error": "section_not_found",
+                "available": [s["title"] for s in sections]}
+
+    disc_range = _find_discussions_range(lines, section)
+    if not disc_range:
+        return {"status": "ok", "section": section_title, "removed": 0, "remaining": 0}
+
+    header_idx, end_idx = disc_range
+    disc_pattern = re.compile(r'^\s+- \[(\d{2}-\d{2})\]')
+
+    # Collect indices to remove
+    to_remove = []
+    remaining = 0
+    for i in range(header_idx + 1, end_idx):
+        m = disc_pattern.match(lines[i])
+        if m:
+            entry_date = m.group(1)
+            if entry_date < before:
+                to_remove.append(i)
+            else:
+                remaining += 1
+
+    # Remove in reverse order to preserve indices
+    for i in reversed(to_remove):
+        del lines[i]
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+    return {"status": "ok", "section": section_title,
+            "removed": len(to_remove), "remaining": remaining}
+
+# ---------------------------------------------------------------------------
 # Extract conversations from session files (Batch Mode)
 # ---------------------------------------------------------------------------
 
@@ -529,6 +865,7 @@ def cmd_extract_conversations(session_dir: str, hours: int = 24) -> dict:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main():
     parser = argparse.ArgumentParser(description="Memory consolidation helper")
     sub = parser.add_subparsers(dest="cmd")
@@ -572,6 +909,50 @@ def main():
                            help="Report medium-term.md statistics")
     mts_p.add_argument("--memory-dir", required=True)
 
+    # medium-term-set-date
+    mtsd_p = sub.add_parser("medium-term-set-date",
+                            help="Update 'Last consolidated' date")
+    mtsd_p.add_argument("--memory-dir", required=True)
+    mtsd_p.add_argument("--date", required=True, help="New date (YYYY-MM-DD)")
+
+    # medium-term-append-discussions
+    mtad_p = sub.add_parser("medium-term-append-discussions",
+                            help="Append entries to a section's discussion list")
+    mtad_p.add_argument("--memory-dir", required=True)
+    mtad_p.add_argument("--section", required=True, help="H2 section title")
+    mtad_p.add_argument("--entries", required=True,
+                        help='JSON array: [{"date":"MM-DD","text":"..."}]')
+
+    # medium-term-set-field
+    mtsf_p = sub.add_parser("medium-term-set-field",
+                            help="Set/replace a field value within a section")
+    mtsf_p.add_argument("--memory-dir", required=True)
+    mtsf_p.add_argument("--section", required=True, help="H2 section title")
+    mtsf_p.add_argument("--field", required=True,
+                        choices=["overview", "conclusion", "strategy", "follow_ups"],
+                        help="Field to set")
+    mtsf_p.add_argument("--value", required=True, help="New field value")
+
+    # medium-term-add-section
+    mtas_p = sub.add_parser("medium-term-add-section",
+                            help="Add a new section to medium-term.md")
+    mtas_p.add_argument("--memory-dir", required=True)
+    mtas_p.add_argument("--section", required=True, help="New section title")
+    mtas_p.add_argument("--overview", default=None)
+    mtas_p.add_argument("--discussions", default=None,
+                        help='JSON array: [{"date":"MM-DD","text":"..."}]')
+    mtas_p.add_argument("--conclusion", default=None)
+    mtas_p.add_argument("--strategy", default=None)
+    mtas_p.add_argument("--follow-ups", default=None, dest="follow_ups")
+
+    # medium-term-prune-discussions
+    mtpd_p = sub.add_parser("medium-term-prune-discussions",
+                            help="Remove discussion entries older than a date")
+    mtpd_p.add_argument("--memory-dir", required=True)
+    mtpd_p.add_argument("--section", required=True, help="H2 section title")
+    mtpd_p.add_argument("--before", required=True,
+                        help="Remove entries with date < this (MM-DD)")
+
     # long-term-stats
     lts_p = sub.add_parser("long-term-stats",
                            help="Report long-term.md statistics")
@@ -607,6 +988,35 @@ def main():
         result = cmd_medium_term_read(args.memory_dir)
     elif args.cmd == "medium-term-stats":
         result = cmd_medium_term_stats(args.memory_dir)
+    elif args.cmd == "medium-term-set-date":
+        result = cmd_medium_term_set_date(args.memory_dir, args.date)
+    elif args.cmd == "medium-term-append-discussions":
+        try:
+            entries = json.loads(args.entries)
+        except json.JSONDecodeError as e:
+            print(f"Error: invalid --entries JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        result = cmd_medium_term_append_discussions(
+            args.memory_dir, args.section, entries)
+    elif args.cmd == "medium-term-set-field":
+        result = cmd_medium_term_set_field(
+            args.memory_dir, args.section, args.field, args.value)
+    elif args.cmd == "medium-term-add-section":
+        discussions = None
+        if args.discussions:
+            try:
+                discussions = json.loads(args.discussions)
+            except json.JSONDecodeError as e:
+                print(f"Error: invalid --discussions JSON: {e}", file=sys.stderr)
+                sys.exit(1)
+        result = cmd_medium_term_add_section(
+            args.memory_dir, args.section,
+            overview=args.overview, discussions=discussions,
+            conclusion=args.conclusion, strategy=args.strategy,
+            follow_ups=args.follow_ups)
+    elif args.cmd == "medium-term-prune-discussions":
+        result = cmd_medium_term_prune_discussions(
+            args.memory_dir, args.section, args.before)
     elif args.cmd == "long-term-stats":
         result = cmd_long_term_stats(args.memory_dir)
     elif args.cmd == "extract-conversations":
