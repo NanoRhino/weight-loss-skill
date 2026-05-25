@@ -157,7 +157,7 @@ Called by `diet-tracking-analysis` after `meal_checkin` returns with `action: "c
 3. If level_up == true AND badge_image is null (no template yet):
    → Append text-only celebration (use new_badge.message)
 4. If qualified_today == true but no level_up:
-   → Append one line: "✅ 累计第 {current_count} 天达标"
+   → Say nothing (silent accumulation)
 5. If qualified_today == false:
    → Say nothing about badges
 ```
