@@ -132,7 +132,7 @@ calc_cron_time() {
 
 get_existing_cron_names() {
   command -v openclaw &>/dev/null || return
-  (cd "$STATE_DIR" && openclaw cron list --json) 2>/dev/null \
+  (cd "$STATE_DIR" && openclaw cron list --json --agent "$AGENT") 2>/dev/null \
     | python3 -c "
 import sys, json
 try:
