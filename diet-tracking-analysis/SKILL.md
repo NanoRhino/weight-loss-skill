@@ -324,7 +324,11 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 
 **After composing your full reply (①②③ + suggestion tag), run the badge check.**
 
-Only trigger when `meal_checkin` returned `action: "create"` or `action: "append"` (successful meal log). Skip for corrections, deletions, or errors.
+Only trigger when ALL of these are true:
+1. `meal_checkin` returned `action: "create"` or `action: "append"` (successful meal log)
+2. This is the user's **3rd or later main meal today** (check `evaluation.meals_logged_today >= 3` or count from daily summary — if only 1-2 meals logged today, skip badge check entirely)
+
+This avoids running the script after breakfast/lunch when qualification is impossible (need ≥3 meals).
 
 ### How to run
 
@@ -340,7 +344,7 @@ python3 {reward-engine:baseDir}/scripts/badge-calc.py check \
 |--------|--------|
 | `level_up == true` AND `badge_image` exists | Append badge celebration + send image via `MEDIA: {badge_image}` |
 | `level_up == true` AND `badge_image` is null | Append text celebration (see format below) |
-| `qualified_today == true`, no level-up | Append one line: `✅ 累计第 {current_count} 天达标` |
+| `qualified_today == true`, no level-up | Say nothing (silent accumulation) |
 | `qualified_today == false` | Say nothing about badges |
 | `already_counted == true` | Say nothing (today already counted) |
 | `error` field present | Say nothing (e.g., no PLAN.md yet) |
@@ -357,6 +361,20 @@ python3 {reward-engine:baseDir}/scripts/badge-calc.py check \
 
 {new_badge.progress_bar}
 ```
+
+### Badge image generation (when level_up == true)
+
+Generate the badge card image before sending celebration:
+
+```bash
+node {reward-engine:baseDir}/scripts/generate-badge.js \
+  --data '{"tagline":"稳定的每一步，都算数","badge_name":"{new_badge.name}","data_pill":"{current_count}天达标 · 热量合理","subtitle":"认真照顾自己","username":"{nickname}","date":"{today_formatted}"}' \
+  --output /tmp/badge-{username}-{today}.png
+```
+
+Then send: `MEDIA:/tmp/badge-{username}-{today}.png`
+
+If generate-badge.js fails (e.g., Chrome unavailable), fall back to text-only celebration.
 
 ### Placement
 
