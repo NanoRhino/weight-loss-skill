@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -344,6 +345,58 @@ def backfill(workspace_dir: str, calorie_target: int, bmr, expected_meals: int, 
     }
 
 
+def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, current_count: int) -> str:
+    """Generate badge card PNG via generate-badge.js. Returns path or None on failure."""
+    script_dir = Path(__file__).parent
+    generate_js = script_dir / "generate-badge.js"
+
+    if not generate_js.exists():
+        return None
+
+    # Read user nickname from USER.md
+    nickname = "小犀牛"
+    user_md = Path(workspace_dir) / "USER.md"
+    if user_md.exists():
+        content = user_md.read_text(encoding="utf-8")
+        for line in content.splitlines():
+            if "nickname" in line.lower() or "昵称" in line:
+                parts = line.split(":", 1) if ":" in line else line.split("：", 1)
+                if len(parts) == 2:
+                    nickname = parts[1].strip() or nickname
+                    break
+
+    # Format date
+    date_formatted = today.replace("-", ".")
+
+    data = {
+        "tagline": "稳定的每一步，都算数",
+        "badge_name": new_badge["name"],
+        "data_pill": f"{current_count}天达标 · 热量合理",
+        "subtitle": "认真照顾自己",
+        "username": nickname,
+        "date": date_formatted,
+    }
+
+    output_path = f"/tmp/badge-{Path(workspace_dir).name}-{today}.png"
+
+    try:
+        result = subprocess.run(
+            ["node", str(generate_js), "--data", json.dumps(data, ensure_ascii=False), "--output", output_path],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(script_dir.parent),  # reward-engine dir (where node_modules lives)
+        )
+        if result.returncode == 0 and os.path.exists(output_path):
+            return output_path
+        else:
+            sys.stderr.write(f"generate-badge.js failed: {result.stderr[:200]}\n")
+            return None
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        sys.stderr.write(f"generate-badge.js error: {e}\n")
+        return None
+
+
 def check(workspace_dir: str, tz_offset: int):
     """Main check logic."""
     today = get_local_date(tz_offset)
@@ -453,9 +506,10 @@ def check(workspace_dir: str, tz_offset: int):
                 "progress_bar": progress_bar,
             }
 
-            # Badge image generation placeholder
-            # TODO: Generate image when template assets are provided
-            badge_image = None
+            # Generate badge image
+            badge_image = generate_badge_image(
+                workspace_dir, today, new_badge, ct["current_count"]
+            )
         else:
             ct["next_level_target"] = get_next_level_target(ct["current_level"])
 
