@@ -20,11 +20,14 @@ done
 
 [[ -z "$AGENT_ID" ]] && usage
 
-# Fetch all jobs (enabled + disabled) as JSON, filter by agentId
-openclaw cron list --json --all 2>/dev/null | python3 -c "
+# Fetch all jobs (enabled + disabled) for this agent, server-side filtered to
+# avoid the 200-result hard cap when the gateway has many cron jobs.
+openclaw cron list --json --all --agent "$AGENT_ID" 2>/dev/null | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
 jobs = data if isinstance(data, list) else data.get('jobs', [])
+# Defensive: server already filtered by --agent, but double-check in case
+# of a future CLI regression.
 filtered = [j for j in jobs if j.get('agentId') == '$AGENT_ID']
 # Simplify output for agent consumption
 result = []
