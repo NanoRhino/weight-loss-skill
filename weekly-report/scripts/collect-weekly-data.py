@@ -521,6 +521,12 @@ def main():
     parser.add_argument("--end-date", required=True, help="Sunday of the report week (YYYY-MM-DD)")
     parser.add_argument("--tz-offset", type=int, required=True)
     parser.add_argument("--display-unit", default="kg")
+    parser.add_argument("--targets", default=None,
+                        help="JSON string with plan targets from agent. "
+                             "Keys: cal_min (list[2]), protein_range (list[2]), "
+                             "fat_range (list[2]), carb_range (list[2]), tdee, bmr, "
+                             "weight_loss_rate, target_weight, start_weight. "
+                             "When provided, skips read_plan() entirely.")
     args = parser.parse_args()
 
     workspace_dir = _normalize_path(args.workspace_dir)
@@ -541,7 +547,15 @@ def main():
     all_weight = collect_weight(weight_tracker, data_dir, "2000-01-01", args.end_date, args.display_unit)
     exercise = collect_exercise(exercise_calc, data_dir, args.start_date, args.end_date)
     habits = collect_habits(workspace_dir, args.start_date, args.end_date)
-    plan = read_plan(workspace_dir)
+
+    # Plan targets: prefer agent-provided --targets over regex-based read_plan()
+    if args.targets:
+        plan = json.loads(args.targets)
+        log("Using agent-provided targets (--targets)")
+    else:
+        plan = read_plan(workspace_dir)
+        log("Falling back to read_plan() regex extraction")
+
     summary = compute_summary(meals, plan, weight)
 
     # Week number calculation

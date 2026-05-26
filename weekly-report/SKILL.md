@@ -84,7 +84,10 @@ User can request a report at any time:
 | `Diet Config > Food Restrictions` | Context for suggestions |
 | `Activity & Lifestyle > Exercise Habits` | Context for suggestions |
 
-### Reads from `PLAN.md`
+### Reads from `PLAN.md` (agent-driven extraction)
+
+The agent reads `PLAN.md` directly and uses LLM comprehension to extract target values.
+**Do NOT rely on the script's regex fallback** — always pass targets via `--targets`.
 
 | Field | Purpose |
 |-------|---------|
@@ -94,6 +97,21 @@ User can request a report at any time:
 | `Carb Range` | Macro analysis |
 | `Weight Loss Rate` | Expected weekly loss for progress assessment |
 | `Diet Mode` | Context for suggestions |
+
+**Extraction flow:**
+1. `read` the user's `PLAN.md`
+2. From the content, identify these values (any format/language — use semantic understanding):
+   - `cal_min`: `[lower, upper]` of daily calorie range
+   - `protein_range`: `[min_g, max_g]`
+   - `fat_range`: `[min_g, max_g]`
+   - `carb_range`: `[min_g, max_g]`
+   - `tdee`: number (kcal)
+   - `bmr`: number (kcal)
+   - `weight_loss_rate`: number (kg/week)
+   - `target_weight`: number (kg)
+   - `start_weight`: number (kg)
+3. Pass as `--targets '<JSON>'` to the script (see below)
+4. If `PLAN.md` doesn't exist, omit `--targets` (script will use its legacy fallback)
 
 ### Reads from data (workspace) — ONE-SHOT COLLECTION
 
@@ -107,8 +125,11 @@ python3 {baseDir}/scripts/collect-weekly-data.py \
   --start-date {monday} \
   --end-date {sunday} \
   --tz-offset {tz_offset} \
-  --display-unit <kg|lb>
+  --display-unit <kg|lb> \
+  --targets '{"cal_min":[1164,1364],"protein_range":[70,93],"fat_range":[32,45],"carb_range":[130,170],"tdee":1764,"weight_loss_rate":0.5}'
 ```
+
+> ⚠️ `--targets` is the **preferred** path. Only omit it when PLAN.md doesn't exist.
 
 Output JSON structure:
 ```json
@@ -602,6 +623,7 @@ If `USER.md > Health Flags` contains `avoid_weight_focus` or `history_of_ed`:
 python3 {baseDir}/scripts/collect-weekly-data.py \
   --workspace-dir {workspaceDir} \
   --start-date {monday} --end-date {sunday} --tz-offset {tz_offset} \
+  --targets '{"cal_min":[min,max],...}' \
   2>&1 | tail -n +2 | \
 python3 {baseDir}/scripts/generate-report-html.py \
   --output {workspaceDir}/data/reports/weekly-data-{start_date}.html \
