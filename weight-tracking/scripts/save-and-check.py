@@ -45,7 +45,7 @@ def load_json(path):
         return json.load(f)
 
 
-def get_recent_weights(data_dir, tz_offset, limit=10):
+def get_recent_weights(data_dir, tz_offset, limit=14):
     """Return last N weight readings sorted by date."""
     raw = load_json(os.path.join(data_dir, "weight.json"))
     readings = []
