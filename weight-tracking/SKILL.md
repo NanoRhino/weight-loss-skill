@@ -115,8 +115,8 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
    - **体重停滞**（看 14 天数据，体重在一个狭窄范围内来回波动，没有向目标方向推进）→ **必须**温和询问用户"最近体重好像没什么变化，要不要一起看看原因？"。不要自己分析原因或给建议，先问用户愿不愿意。用户说好 → 走 cause-check-flow
    - **判断倾向：只在你有 80% 以上信心认为偏离/停滞是真实的时候才提。** 不必要的询问也是打扰
    - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预，但可以结合 `consensus` 提醒策略还在跑。可以主动查看最近几天的餐食记录（`{workspaceDir}/data/meals/YYYY-MM-DD.json`），结合共识给具体反馈
-   - 如果 `last_intervention_date` 在 3 天内，不重复干预
-   - **诊断后记录**：只有进入 cause-check 诊断流程后，调一次：
+   - 如果 `last_intervention_date` 在 7 天内，不重复干预（包括停滞询问和偏离询问）
+   - **触发询问后记录**：无论是停滞询问还是偏离询问，只要向用户提出了"要不要看看原因"，就调一次：
      ```bash
      python3 {baseDir}/scripts/save-and-check.py --data-dir {workspaceDir}/data --tz-offset <tz> --mark-intervention
      ```

@@ -21,5 +21,5 @@
 - **大概率真实偏离**（连续多天反方向、从低点明显回升超出波动范围）→ 安抚情绪 + 提一句问要不要看看原因。用户说好 → 读 `weight-gain-strategy/references/cause-check-flow.md`
 - **体重停滞**（14 天内体重基本没变化，波动范围很小）→ 温和询问用户要不要看看原因，用户说好 → 同样走 `cause-check-flow.md`
 - `active_strategy.active: true` → 不重复干预
-- `last_intervention_date` 在 3 天内 → 不重复干预
+- `last_intervention_date` 在 7 天内 → 不重复干预（包括停滞询问和偏离询问后都会记录）
 - **只在 80% 以上信心认为偏离是真实的时候才提。不必要的询问也是打扰。**
