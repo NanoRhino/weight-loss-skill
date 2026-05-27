@@ -128,22 +128,25 @@ def main():
     if args.commentary:
         try:
             commentary = json.loads(args.commentary)
-        except:
-            pass
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"ERROR: --commentary JSON parse failed: {e}")
+            log(f"  Raw input: {args.commentary[:200]}")
 
     highlights = []
     if args.highlights:
         try:
             highlights = json.loads(args.highlights)
-        except:
-            pass
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"ERROR: --highlights JSON parse failed: {e}")
+            log(f"  Raw input: {args.highlights[:200]}")
 
     suggestions = []
     if args.suggestions:
         try:
             suggestions = json.loads(args.suggestions)
-        except:
-            pass
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"ERROR: --suggestions JSON parse failed: {e}")
+            log(f"  Raw input: {args.suggestions[:200]}")
 
     # Validate: warn if commentary/highlights/suggestions are empty
     if not commentary or not any(commentary.values()):

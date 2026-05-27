@@ -565,8 +565,12 @@ def main():
 
     # Plan targets: prefer agent-provided --targets over regex-based read_plan()
     if args.targets:
-        plan = json.loads(args.targets)
-        log("Using agent-provided targets (--targets)")
+        try:
+            plan = json.loads(args.targets)
+            log("Using agent-provided targets (--targets)")
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"WARNING: --targets JSON parse failed: {e}, falling back to read_plan()")
+            plan = read_plan(workspace_dir)
     else:
         plan = read_plan(workspace_dir)
         log("Falling back to read_plan() regex extraction")
