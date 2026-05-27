@@ -116,10 +116,11 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
    - **判断倾向：只在你有 80% 以上信心认为偏离/停滞是真实的时候才提。** 不必要的询问也是打扰
    - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预，但可以结合 `consensus` 提醒策略还在跑。可以主动查看最近几天的餐食记录（`{workspaceDir}/data/meals/YYYY-MM-DD.json`），结合共识给具体反馈
    - 如果 `last_intervention_date` 在 7 天内，不重复干预（包括停滞询问和偏离询问）
-   - **触发询问后记录**：无论是停滞询问还是偏离询问，只要向用户提出了"要不要看看原因"，就调一次：
+   - **触发询问前先标记**：无论是停滞询问还是偏离询问，只要决定向用户提问，**必须先调用 mark-intervention，再输出询问文本**。顺序：tool call → text output。这确保即使用户不回复，intervention 也已被标记，不会在下次称重时重复触发。
      ```bash
      python3 {baseDir}/scripts/save-and-check.py --data-dir {workspaceDir}/data --tz-offset <tz> --mark-intervention
      ```
+     调用成功后，再输出询问文本（如"要不要一起看看原因？"）。
    - **用户视角优先**：不只看科学趋势，也想想用户看到这个数字会怎么想。涨了半斤用户会慌、平台期一周不动用户会焦虑、好不容易降下来又反弹用户会沮丧——回应他们的感受，不是冷冰冰确认一个数字
 
 ### User Asks for Trend / History
