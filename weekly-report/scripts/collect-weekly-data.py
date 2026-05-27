@@ -647,8 +647,8 @@ def main():
         else:
             phase = "中段"
 
-    # Progress bar (12 chars)
-    if phase in ("中段", "快完成"):
+    # Progress bar (12 chars) — only when there's actual progress
+    if phase in ("中段", "快完成") and progress_pct > 0:
         filled = round(progress_pct / 100 * 12)
         progress_bar = "▓" * filled + "░" * (12 - filled)
 

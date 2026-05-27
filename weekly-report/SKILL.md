@@ -118,7 +118,7 @@ Use values directly from collect output (`meta.*`):
 {data_hook}
 ```
 
-- Skip progress bar line if `meta.phase` is `"初始"`
+- Skip progress bar line if `meta.phase` is `"初始"` OR `meta.progress_pct` is `0`
 - **快完成 phase:** Append `只差 {remaining} {unit}` after target weight
 
 **data_hook:** ONE sentence citing specific data, sparking curiosity to click report.
