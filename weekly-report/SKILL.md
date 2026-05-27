@@ -547,11 +547,13 @@ Expected rate comes from `PLAN.md > Weight Loss Rate`.
 📊 第{N}周周报
 完整分析 👇 {report_url}
 
-{progress_bar}  已走 {progress_pct}%
 {start_weight} → {current_weight} kg → 目标 {target_weight} kg
 
 {data_hook}
 ```
+
+**Note:** In 初始 phase, skip the progress bar line entirely.
+Also skip progress bar when `progress_pct = 0` (no progress or weight regressed).
 
 - `data_hook`: ONE sentence based on this week's actual data that sparks curiosity.
   Must reference a specific finding, not a generic summary.
