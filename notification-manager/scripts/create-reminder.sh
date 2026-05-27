@@ -259,10 +259,14 @@ Do NOT output the message as your reply. Instead, put your full message text int
 else
   CMD=(openclaw cron add
     --name "$NAME"
-    --session main
+    --session isolated
     --agent "$AGENT"
-    --system-event "$MESSAGE"
+    --message "$MESSAGE"
+    --announce
+    --channel "$CHANNEL"
+    --to "$TO"
   )
+
 fi
 
 if [[ -n "$AT" ]]; then
