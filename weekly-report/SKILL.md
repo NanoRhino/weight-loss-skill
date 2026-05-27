@@ -48,11 +48,11 @@ python3 {baseDir}/scripts/collect-weekly-data.py \
   --workspace-dir {workspaceDir} \
   --start-date {monday} --end-date {sunday} --tz-offset {tz_offset} \
   --targets '{"cal_min":[min,max],...}' \
-  2>/dev/null > /tmp/weekly-data.json
+  2>/dev/null > /tmp/weekly-data-{username}.json
 ```
 
 This outputs ALL data as JSON. **Do NOT call individual scripts per-day.**
-Save to a temp file — you'll read it now for analysis and pipe it to the report generator in Step 6.
+Save to a temp file (use workspace username to avoid multi-user collision) — you'll read it now for analysis and pipe it to the report generator in Step 5.
 
 ### Step 4: Read Context
 
@@ -65,7 +65,7 @@ All calorie/macro targets, weight loss rate, phase, progress bar, and week numbe
 ### Step 5: Generate Report
 
 ```bash
-cat /tmp/weekly-data.json | \
+cat /tmp/weekly-data-{username}.json | \
 python3 {baseDir}/scripts/generate-report-html.py \
   --output {workspaceDir}/data/reports/weekly-data-{start_date}.html \
   --workspace-dir {workspaceDir} \

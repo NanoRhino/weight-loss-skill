@@ -53,15 +53,19 @@ if [[ ! -d "$MEALS_DIR" ]]; then
 fi
 
 # Get LAST week's Monday-Sunday (the week we're reporting on)
+# If today is Sunday, "last week" = the Mon-Sun that just ended (today is the Sunday)
+# If today is Mon-Sat, "last week" = the previous full Mon-Sun
 DOW=$(date +%u)  # 1=Mon, 7=Sun
 if [[ "$DOW" -eq 7 ]]; then
-  # Sunday: last week = 8-14 days ago
-  MONDAY=$(date -d "13 days ago" +%Y-%m-%d)
+  # Sunday: report on Mon(6 days ago) - Sun(today)
+  MONDAY=$(date -d "6 days ago" +%Y-%m-%d)
+  SUNDAY=$(date +%Y-%m-%d)
 else
-  # Mon-Sat: last week = (DOW-1+7) to (DOW-1+1) days ago
-  MONDAY=$(date -d "$((DOW-1+7)) days ago" +%Y-%m-%d)
+  # Mon-Sat: report on previous week's Mon-Sun
+  DAYS_SINCE_MON=$((DOW - 1))
+  MONDAY=$(date -d "$((DAYS_SINCE_MON + 7)) days ago" +%Y-%m-%d)
+  SUNDAY=$(date -d "$((DAYS_SINCE_MON + 1)) days ago" +%Y-%m-%d)
 fi
-SUNDAY=$(date -d "$MONDAY + 6 days" +%Y-%m-%d)
 
 DAYS_WITH_DATA=0
 for f in "$MEALS_DIR"/*.json; do
