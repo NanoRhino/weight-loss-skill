@@ -107,20 +107,47 @@ milk_tea_cups = (daily_deficit × current_count) ÷ 500
 
 ## Badge Image Generation
 
-When `level_up == true`, generate a personalized badge image:
+When `level_up == true`, generate a personalized badge image using ImageMagick overlay.
 
-- **Template:** from `{baseDir}/assets/` (operator provides base template)
-- **Dynamic text overlay:**
-  - User's name (from USER.md)
-  - Badge level + name
-  - Cumulative days count
-  - Milk tea cups equivalent
-  - Progress bar to next level
-- **Output:** saved to `{workspaceDir}/data/badges/badge_level_{N}.png`
-- **Format:** PNG, dimensions TBD (pending operator's style reference)
+### Base Template
+- **File:** `{baseDir}/assets/badge-base-level{N}.png` (480×480 RGBA PNG)
+- **Fallback:** use `badge-base-level1.png` if level-specific template doesn't exist
 
-> ⚠️ Image template assets pending — operator will provide reference design.
-> Until then, badge_image will be null and celebration is text-only.
+### Dynamic Text (LLM-generated)
+
+The text content is NOT hardcoded. The LLM composes it based on the user's actual data:
+
+| Position | Field | Description |
+|----------|-------|-------------|
+| 绿圈右侧 line1a | `line1a` | 数据概要第一行，如 "过去7天中有5天" |
+| 绿圈右侧 line1b | `line1b` | 数据概要第二行，如 "热量处于合理范围" |
+| 💛右侧 line2 | `line2` | 鼓励语，如 "没有极端节食，认真照顾了自己" |
+| 左下 | `username` | 用户昵称 |
+| 左下副标题 | `username_sub` | 用户英文名/ID（可选） |
+| 右下 | `date` | 获得日期，格式 YYYY.MM.DD |
+
+**LLM 生成规则：**
+- `line1a` + `line1b`：基于 `current_count`、达标天数、时间跨度，用简洁数据描述
+- `line2`：基于用户的实际表现写一句个性化鼓励，温暖但不夸张
+- 语气参考：「认真照顾了自己」「热量稳稳的」「没有极端节食」
+
+### Generation Script
+
+```bash
+bash {baseDir}/scripts/generate-badge-img.sh \
+  --base {baseDir}/assets/badge-base-level1.png \
+  --output {workspaceDir}/data/badges/badge_level_{N}.png \
+  --line1a "{line1a}" \
+  --line1b "{line1b}" \
+  --line2 "{line2}" \
+  --username "{username}" \
+  --username-sub "{username_sub}" \
+  --date "{date}"
+```
+
+### Output
+- Saved to `{workspaceDir}/data/badges/badge_level_{N}.png`
+- Format: PNG 480×480
 
 ## Data Storage
 
@@ -151,13 +178,16 @@ Called by `diet-tracking-analysis` after `meal_checkin` returns with `action: "c
 ```
 # After composing the normal meal reply (①②③):
 1. Run badge-calc.py check
-2. If level_up == true AND badge_image exists:
-   → Append badge celebration text after normal reply
-   → Send badge image via MEDIA: directive
-3. If level_up == true AND badge_image is null (no template yet):
-   → Append text-only celebration (use new_badge.message)
-4. If qualified_today == true but no level_up:
+2. If level_up == true:
+   a. LLM generates badge text fields (line1a, line1b, line2) based on:
+      - new_badge.name, new_badge.message
+      - current_count, qualified_dates history
+      - user's recent eating patterns
+   b. Run generate-badge-img.sh with generated text
+   c. Append badge celebration text after normal reply
+   d. Send badge image via MEDIA: directive
+3. If qualified_today == true but no level_up:
    → Say nothing (silent accumulation)
-5. If qualified_today == false:
+4. If qualified_today == false:
    → Say nothing about badges
 ```
