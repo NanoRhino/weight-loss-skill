@@ -52,12 +52,14 @@ if [[ ! -d "$MEALS_DIR" ]]; then
   exit 0
 fi
 
-# Get this week's Monday (or last Monday if today is Sun)
+# Get LAST week's Monday-Sunday (the week we're reporting on)
 DOW=$(date +%u)  # 1=Mon, 7=Sun
 if [[ "$DOW" -eq 7 ]]; then
-  MONDAY=$(date -d "6 days ago" +%Y-%m-%d)
+  # Sunday: last week = 8-14 days ago
+  MONDAY=$(date -d "13 days ago" +%Y-%m-%d)
 else
-  MONDAY=$(date -d "$((DOW-1)) days ago" +%Y-%m-%d)
+  # Mon-Sat: last week = (DOW-1+7) to (DOW-1+1) days ago
+  MONDAY=$(date -d "$((DOW-1+7)) days ago" +%Y-%m-%d)
 fi
 SUNDAY=$(date -d "$MONDAY + 6 days" +%Y-%m-%d)
 
