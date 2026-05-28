@@ -41,6 +41,116 @@ LEVELS = [
 
 MILK_TEA_KCAL = 500  # One standard full-sugar milk tea
 
+# Meal name normalization: map all variants (Chinese, English, typos) to canonical keys
+MEAL_ALIAS = {
+    "breakfast": "breakfast", "早餐": "breakfast", "早饭": "breakfast", "早点": "breakfast",
+    "lunch": "lunch", "午餐": "lunch", "午饭": "lunch", "中餐": "lunch", "中饭": "lunch",
+    "dinner": "dinner", "晚餐": "dinner", "晚饭": "dinner", "夜饭": "dinner",
+    "meal_1": "meal_1", "meal_2": "meal_2", "meal_3": "meal_3",
+}
+
+MAIN_MEAL_CANONICAL = {"breakfast", "lunch", "dinner", "meal_1", "meal_2", "meal_3"}
+
+
+def normalize_meal_name(name: str) -> str | None:
+    """Normalize meal name to canonical form. Returns None if not a main meal."""
+    cleaned = name.lower().strip()
+    canonical = MEAL_ALIAS.get(cleaned)
+    if canonical:
+        return canonical
+    # Fuzzy fallback: check if any alias is a substring
+    for alias, canon in MEAL_ALIAS.items():
+        if alias in cleaned or cleaned in alias:
+            return canon
+    return None
+
+# Percentile ranking table: level -> list of (max_elapsed_days, percentile_text)
+# elapsed_days = calendar days from previous level-up (or first qualified date for L1) to this level-up
+# Each level only counts the NEW days needed (L1=3, L2=4, L3=7, L4=16, L5=30)
+PERCENTILE_TABLE = {
+    1: [  # needs 3 new days
+        (3, "99%"),
+        (4, "95%"),
+        (5, "90%"),
+        (7, "85%"),
+        (10, "75%"),
+        (14, "60%"),
+        (999999, "50%"),
+    ],
+    2: [  # needs 4 new days
+        (4, "99%"),
+        (5, "95%"),
+        (7, "90%"),
+        (10, "80%"),
+        (14, "70%"),
+        (20, "60%"),
+        (999999, "50%"),
+    ],
+    3: [  # needs 7 new days
+        (7, "99%"),
+        (9, "95%"),
+        (12, "90%"),
+        (17, "80%"),
+        (24, "70%"),
+        (35, "60%"),
+        (999999, "50%"),
+    ],
+    4: [  # needs 16 new days
+        (16, "99%"),
+        (20, "95%"),
+        (27, "90%"),
+        (36, "80%"),
+        (48, "70%"),
+        (65, "60%"),
+        (999999, "50%"),
+    ],
+    5: [  # needs 30 new days
+        (30, "99%"),
+        (38, "95%"),
+        (50, "90%"),
+        (68, "80%"),
+        (90, "70%"),
+        (120, "60%"),
+        (999999, "50%"),
+    ],
+    6: [  # needs 15 new days (45-30)
+        (15, "99%"),
+        (19, "95%"),
+        (25, "90%"),
+        (34, "80%"),
+        (45, "70%"),
+        (60, "60%"),
+        (999999, "50%"),
+    ],
+    7: [  # needs 15 new days (60-45)
+        (15, "99%"),
+        (19, "95%"),
+        (25, "90%"),
+        (34, "80%"),
+        (45, "70%"),
+        (60, "60%"),
+        (999999, "50%"),
+    ],
+    8: [  # needs 30 new days (90-60)
+        (30, "99%"),
+        (38, "95%"),
+        (50, "90%"),
+        (68, "80%"),
+        (90, "70%"),
+        (120, "60%"),
+        (999999, "50%"),
+    ],
+}
+
+
+def calc_percentile(level: int, elapsed_days: int) -> str:
+    """Calculate percentile ranking based on level and elapsed calendar days."""
+    table = PERCENTILE_TABLE.get(level, PERCENTILE_TABLE.get(5))  # fallback to L5
+    for max_days, pct in table:
+        if elapsed_days <= max_days:
+            return pct
+    return "50%"
+
 
 def get_local_date(tz_offset_minutes: int) -> str:
     """Get today's date string in user's local timezone."""
@@ -161,7 +271,6 @@ def load_today_meals(workspace_dir: str, date_str: str) -> dict:
                     val["_key"] = key
                     meals.append(val)
 
-    main_meal_names = {"breakfast", "lunch", "dinner", "meal_1", "meal_2", "meal_3"}
     seen_meals = set()
     total_cal = 0
 
@@ -173,7 +282,7 @@ def load_today_meals(workspace_dir: str, date_str: str) -> dict:
             # Try to get meal_name from various formats
             meal_name = (meal.get("meal_type") or meal.get("meal_name")
                          or meal.get("_key") or meal.get("type", ""))
-            meal_name = meal_name.lower().strip() if meal_name else ""
+            meal_name = meal_name.strip() if meal_name else ""
 
             # Get calories - try multiple formats
             if "calories" in meal:
@@ -187,8 +296,11 @@ def load_today_meals(workspace_dir: str, date_str: str) -> dict:
                 for dish in meal.get("dishes", []):
                     calories += dish.get("calories", 0)
 
-        if meal_name in main_meal_names:
-            seen_meals.add(meal_name)
+        # Normalize meal name and check if it's a main meal
+        if meal_name:
+            canonical = normalize_meal_name(meal_name)
+            if canonical and canonical in MAIN_MEAL_CANONICAL:
+                seen_meals.add(canonical)
         total_cal += calories
 
     result["main_meal_count"] = len(seen_meals)
@@ -384,29 +496,78 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
         "date": date_formatted,
     }
 
-    output_path = f"/tmp/badge-{Path(workspace_dir).name}-{today}.png"
+    # Output to nginx public dir for direct URL access
+    public_dir = "/usr/share/nginx/html/tmp"
+    os.makedirs(public_dir, exist_ok=True)
+    filename = f"badge-{Path(workspace_dir).name}-{today}.png"
+    output_path = f"{public_dir}/{filename}"
+    public_url = f"https://nanorhino.ai/tmp/{filename}"
 
-    try:
-        result = subprocess.run(
-            ["node", str(generate_js), "--data", json.dumps(data, ensure_ascii=False), "--output", output_path],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            cwd=str(script_dir.parent),  # reward-engine dir (where node_modules lives)
-        )
-        if result.returncode == 0 and os.path.exists(output_path):
-            return output_path
-        else:
-            sys.stderr.write(f"generate-badge.js failed: {result.stderr[:200]}\n")
+    # Use ImageMagick overlay script
+    shell_script = script_dir / "generate-badge-img.sh"
+    if shell_script.exists():
+        # Determine base image (level-specific or fallback to level1)
+        assets_dir = script_dir.parent / "assets"
+        level = new_badge.get("level", 1)
+        base_img = assets_dir / f"badge-base-level{level}.png"
+        if not base_img.exists():
+            base_img = assets_dir / "badge-base-level1.png"
+        if not base_img.exists():
+            sys.stderr.write(f"No base badge image found at {base_img}\n")
             return None
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        sys.stderr.write(f"generate-badge.js error: {e}\n")
-        return None
+
+        try:
+            result = subprocess.run(
+                ["bash", str(shell_script),
+                 "--base", str(base_img),
+                 "--output", output_path,
+                 "--line1a", f"累计热量达标{current_count}天",
+                 "--line1b", f"相当于少喝了{new_badge.get('milk_tea_cups', 0)}杯奶茶🧋",
+                 "--line2", f"达标速度超过了{new_badge.get('percentile', '50%')}的人" if new_badge.get("percentile") else new_badge.get("message", "")[:20],
+                 "--username", nickname,
+                 "--username-sub", "",
+                 "--date", date_formatted],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if result.returncode == 0 and os.path.exists(output_path):
+                return public_url
+            else:
+                sys.stderr.write(f"generate-badge-img.sh failed: {result.stderr[:200]}\n")
+        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+            sys.stderr.write(f"generate-badge-img.sh error: {e}\n")
+
+    # Fallback: try generate-badge.js (Puppeteer)
+    generate_js = script_dir / "generate-badge.js"
+    if generate_js.exists():
+        try:
+            result = subprocess.run(
+                ["node", str(generate_js), "--data", json.dumps(data, ensure_ascii=False), "--output", output_path],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=str(script_dir.parent),
+            )
+            if result.returncode == 0 and os.path.exists(output_path):
+                return public_url
+            else:
+                sys.stderr.write(f"generate-badge.js failed: {result.stderr[:200]}\n")
+        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+            sys.stderr.write(f"generate-badge.js error: {e}\n")
+
+    return None
 
 
-def check(workspace_dir: str, tz_offset: int):
-    """Main check logic."""
-    today = get_local_date(tz_offset)
+def check(workspace_dir: str, tz_offset: int, target_date: str = None):
+    """Main check logic.
+    
+    Args:
+        target_date: Optional specific date to check (YYYY-MM-DD). 
+                     Used for back-fill/补录 scenarios.
+                     If None, checks today.
+    """
+    today = target_date if target_date else get_local_date(tz_offset)
 
     # Parse plan data
     plan = parse_plan(workspace_dir)
@@ -497,6 +658,26 @@ def check(workspace_dir: str, tz_offset: int):
             ct["current_level"] = new_level
             ct["unlocked_at"][str(new_level)] = today
 
+            # Calculate elapsed days for percentile ranking
+            # For L1: from first_qualified_date to today
+            # For L2+: from previous level_up_date to today
+            prev_level = new_level - 1
+            if prev_level >= 1 and str(prev_level) in ct.get("unlocked_at", {}):
+                ref_date_str = ct["unlocked_at"][str(prev_level)]
+            elif ct.get("qualified_dates"):
+                ref_date_str = ct["qualified_dates"][0]  # first qualified date
+            else:
+                ref_date_str = today
+
+            try:
+                ref_date = datetime.strptime(ref_date_str, "%Y-%m-%d")
+                current_date = datetime.strptime(today, "%Y-%m-%d")
+                elapsed_days = (current_date - ref_date).days + 1  # inclusive
+            except ValueError:
+                elapsed_days = 999  # fallback
+
+            percentile = calc_percentile(new_level, elapsed_days)
+
             # Find level info
             level_info = None
             for lv in LEVELS:
@@ -515,6 +696,8 @@ def check(workspace_dir: str, tz_offset: int):
                 "message": level_info["message"],
                 "milk_tea_cups": milk_tea_cups,
                 "progress_bar": progress_bar,
+                "elapsed_days": elapsed_days,
+                "percentile": percentile,
             }
 
             # Generate badge image
@@ -528,6 +711,16 @@ def check(workspace_dir: str, tz_offset: int):
     elif not already_counted:
         # Not qualified, don't save
         pass
+
+    # Mark pending delivery if level_up
+    if level_up:
+        ct["pending_delivery"] = {
+            "level": new_badge["level"],
+            "date": today,
+            "badge_image": badge_image,
+            "delivered": False,
+        }
+        save_badges(workspace_dir, badges)
 
     # Build output
     output = {
@@ -543,6 +736,10 @@ def check(workspace_dir: str, tz_offset: int):
     if not qualified:
         output["disqualify_reasons"] = reasons
 
+    # Include pending_delivery info for fallback checks
+    if ct.get("pending_delivery") and not ct["pending_delivery"].get("delivered"):
+        output["pending_delivery"] = ct["pending_delivery"]
+
     print(json.dumps(output, ensure_ascii=False))
 
 
@@ -553,11 +750,12 @@ def main():
     check_parser = sub.add_parser("check", help="Check today's qualification and update badges")
     check_parser.add_argument("--workspace-dir", required=True, help="User workspace directory")
     check_parser.add_argument("--tz-offset", required=True, type=int, help="Timezone offset in minutes")
+    check_parser.add_argument("--date", default=None, help="Specific date to check (YYYY-MM-DD), for back-fill/补录")
 
     args = parser.parse_args()
 
     if args.command == "check":
-        check(args.workspace_dir, args.tz_offset)
+        check(args.workspace_dir, args.tz_offset, target_date=args.date)
     else:
         parser.print_help()
         sys.exit(1)
