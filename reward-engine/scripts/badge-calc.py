@@ -704,6 +704,14 @@ def check(workspace_dir: str, tz_offset: int, target_date: str = None):
             badge_image = generate_badge_image(
                 workspace_dir, today, new_badge, ct["current_count"]
             )
+
+            # Mark pending delivery
+            ct["pending_delivery"] = {
+                "level": new_badge["level"],
+                "date": today,
+                "badge_image": badge_image,
+                "delivered": False,
+            }
         else:
             ct["next_level_target"] = get_next_level_target(ct["current_level"])
 
@@ -711,16 +719,6 @@ def check(workspace_dir: str, tz_offset: int, target_date: str = None):
     elif not already_counted:
         # Not qualified, don't save
         pass
-
-    # Mark pending delivery if level_up
-    if level_up:
-        ct["pending_delivery"] = {
-            "level": new_badge["level"],
-            "date": today,
-            "badge_image": badge_image,
-            "delivered": False,
-        }
-        save_badges(workspace_dir, badges)
 
     # Build output
     output = {
