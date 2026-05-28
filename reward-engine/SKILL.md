@@ -8,13 +8,15 @@ description: >
   WHEN to call:
   - diet-tracking-analysis: after meal_checkin returns successfully (action: create/append).
     Run badge-calc.py check. If level_up is true, append badge celebration + image to reply.
+  - diet-tracking-analysis: after 补录 (back-fill past date), run with --date flag.
+  - notification-composer: at morning reminder, check pending_delivery for fallback delivery.
 
   WHEN NOT to call:
   - During corrections or deletions (action: correct/delete)
   - During recall stages (Stage 2/3/4)
   - If meal_checkin failed or returned an error
 
-  DELIVERY: Badge image sent via MEDIA directive when level_up is true.
+  DELIVERY: Badge image sent via wechat API (upload to OSS → URL → SendMessageToAccount).
   This skill never sends messages directly — only provides data + generates images.
 
   Returns: JSON with qualified_today, current_count, current_level, level_up, badge info.
@@ -175,9 +177,30 @@ File: `{workspaceDir}/data/badges.json`
 
 Called by `diet-tracking-analysis` after `meal_checkin` returns with `action: "create"` or `action: "append"`:
 
+### Triple-Trigger Guarantee
+
+**Trigger 1 — Primary (最后一餐):**
+After every successful meal_checkin (create/append), run badge-calc.py check.
+badge-calc.py itself checks if meals_logged >= expected_meals internally.
+If the user hasn't logged all meals yet, `qualified_today` will be false — that's fine, it's a no-op.
+
+**Trigger 2 — Back-fill (补录):**
+When user logs a past meal (补录 date ≠ today), also run badge-calc.py with `--date {past_date}`.
+This ensures a day that was missed at real-time can still qualify retroactively.
+
+**Trigger 3 — Fallback (兜底 via notification-composer):**
+When the morning reminder fires (next day), check `badges.json` → `pending_delivery`:
+- If `pending_delivery` exists AND `delivered == false`:
+  → Deliver the badge image + celebration text
+  → Mark `delivered = true` in badges.json
+- This catches cases where Trigger 1 or 2 succeeded in qualification/level-up
+  but failed to deliver the image (e.g., no public URL at that moment).
+
+### Execution Flow
+
 ```
 # After composing the normal meal reply (①②③):
-1. Run badge-calc.py check
+1. Run badge-calc.py check [--date {date} if 补录]
 2. If level_up == true:
    a. LLM generates badge text fields (line1a, line1b, line2) based on:
       - new_badge.name, new_badge.message
@@ -185,9 +208,13 @@ Called by `diet-tracking-analysis` after `meal_checkin` returns with `action: "c
       - user's recent eating patterns
    b. Run generate-badge-img.sh with generated text
    c. Append badge celebration text after normal reply
-   d. Send badge image via MEDIA: directive
-3. If qualified_today == true but no level_up:
+   d. Send badge image (upload to OSS → get URL → wechat API)
+   e. Mark pending_delivery.delivered = true in badges.json
+3. If delivery fails (no public URL, API error, etc.):
+   → Leave pending_delivery.delivered = false
+   → Trigger 3 will retry next morning
+4. If qualified_today == true but no level_up:
    → Say nothing (silent accumulation)
-4. If qualified_today == false:
+5. If qualified_today == false:
    → Say nothing about badges
 ```
