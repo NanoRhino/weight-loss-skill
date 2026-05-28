@@ -465,12 +465,8 @@ def backfill(workspace_dir: str, cal_range: tuple, bmr, expected_meals: int, dai
 
 
 def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, current_count: int) -> str:
-    """Generate badge card PNG via generate-badge.js. Returns path or None on failure."""
+    """Generate badge card PNG via ImageMagick overlay. Returns public URL or None on failure."""
     script_dir = Path(__file__).parent
-    generate_js = script_dir / "generate-badge.js"
-
-    if not generate_js.exists():
-        return None
 
     # Read user nickname from USER.md
     nickname = "小犀牛"
@@ -486,15 +482,6 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
 
     # Format date
     date_formatted = today.replace("-", ".")
-
-    data = {
-        "tagline": "稳定的每一步，都算数",
-        "badge_name": new_badge["name"],
-        "data_pill": f"{current_count}天达标 · 热量合理",
-        "subtitle": "认真照顾自己",
-        "username": nickname,
-        "date": date_formatted,
-    }
 
     # Output to nginx public dir for direct URL access
     public_dir = "/usr/share/nginx/html/tmp"
@@ -537,24 +524,6 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
                 sys.stderr.write(f"generate-badge-img.sh failed: {result.stderr[:200]}\n")
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
             sys.stderr.write(f"generate-badge-img.sh error: {e}\n")
-
-    # Fallback: try generate-badge.js (Puppeteer)
-    generate_js = script_dir / "generate-badge.js"
-    if generate_js.exists():
-        try:
-            result = subprocess.run(
-                ["node", str(generate_js), "--data", json.dumps(data, ensure_ascii=False), "--output", output_path],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=str(script_dir.parent),
-            )
-            if result.returncode == 0 and os.path.exists(output_path):
-                return public_url
-            else:
-                sys.stderr.write(f"generate-badge.js failed: {result.stderr[:200]}\n")
-        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-            sys.stderr.write(f"generate-badge.js error: {e}\n")
 
     return None
 
