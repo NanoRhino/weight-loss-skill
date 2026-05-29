@@ -43,11 +43,19 @@ If output starts with "no" → reply `NO_REPLY`. Stop.
 
 ### Step 3: Collect Data (once, reuse in Step 6)
 
+Read `PLAN.md` (or `health-profile.md`) to extract **all** targets for `--targets`:
+- `cal_min`: daily calorie range [min, max]
+- `protein_range`: daily protein grams [min, max]
+- `fat_range`: daily fat grams [min, max]
+- `carb_range`: daily carb grams [min, max]
+
+Pass whatever you find; the script fills missing fields from health-profile as fallback.
+
 ```bash
 python3 {baseDir}/scripts/collect-weekly-data.py \
   --workspace-dir {workspaceDir} \
   --start-date {monday} --end-date {sunday} --tz-offset {tz_offset} \
-  --targets '{"cal_min":[min,max],...}' \
+  --targets '{"cal_min":[min,max],"protein_range":[min,max],"fat_range":[min,max],"carb_range":[min,max]}' \
   2>/dev/null > /tmp/weekly-data-{username}.json
 ```
 
