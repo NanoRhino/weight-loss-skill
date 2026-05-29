@@ -291,32 +291,54 @@ def read_plan(workspace_dir):
 
 
 def _fill_macro_defaults(workspace_dir, plan):
-    """Fill in missing macro targets from health-profile.md using standard formulas."""
-    hp_path = os.path.join(workspace_dir, "health-profile.md")
-    if not os.path.exists(hp_path):
-        return plan
-
-    try:
-        with open(hp_path) as f:
-            content = f.read()
-    except IOError:
-        return plan
-
+    """Fill missing macro targets using nutrition-calc.py's calc_targets() for consistency
+    with daily meal tracking feedback. Falls back to basic formulas if import fails."""
     import re
 
-    # Extract weight (current or target for calculation)
-    weight = None
-    weight_match = re.search(r"Weight to Lose[:\s]*([\d.]+)", content)
-    target_match = re.search(r"Target Weight[:\s]*([\d.]+)", content)
+    # --- Resolve daily_cal ---
+    daily_cal = None
+    if "cal_min" in plan:
+        daily_cal = round((plan["cal_min"][0] + plan["cal_min"][1]) / 2)
+    else:
+        # Try health-profile.json
+        hp_json_path = os.path.join(workspace_dir, "data", "health-profile.json")
+        if os.path.exists(hp_json_path):
+            try:
+                with open(hp_json_path) as f:
+                    hp_data = json.load(f)
+                cal_from_json = hp_data.get("calorie_target")
+                if cal_from_json and cal_from_json > 0:
+                    daily_cal = int(cal_from_json)
+            except (json.JSONDecodeError, IOError):
+                pass
 
-    # Try to get current weight from weight.json
+        # Try PLAN.md single value
+        if daily_cal is None:
+            plan_path = os.path.join(workspace_dir, "PLAN.md")
+            if os.path.exists(plan_path):
+                try:
+                    with open(plan_path) as f:
+                        plan_content = f.read()
+                    m = re.search(r"(?:每日热量目标|Daily Calorie Target|Calorie Target|热量目标)[：:\s]*(?:约|~|≈)?\s*([\d,]+)", plan_content, re.IGNORECASE)
+                    if m:
+                        daily_cal = int(m.group(1).replace(",", ""))
+                except IOError:
+                    pass
+
+        if daily_cal is None:
+            daily_cal = 1800  # safe fallback
+
+        # Set cal_min using ±100 (same as nutrition-calc.py)
+        plan["cal_min"] = [daily_cal - 100, daily_cal + 100]
+
+    # --- Resolve weight ---
+    weight = None
     weight_file = os.path.join(workspace_dir, "data", "weight.json")
     if os.path.exists(weight_file):
         try:
             with open(weight_file) as f:
                 wd = json.load(f)
             if isinstance(wd, dict):
-                # Get latest reading
                 readings = [(k, v) for k, v in wd.items() if isinstance(v, dict) and "value" in v]
                 if readings:
                     readings.sort(key=lambda x: x[0])
@@ -324,62 +346,81 @@ def _fill_macro_defaults(workspace_dir, plan):
         except (json.JSONDecodeError, IOError):
             pass
 
-    if weight is None and target_match:
-        weight = float(target_match.group(1))
+    if weight is None:
+        hp_path = os.path.join(workspace_dir, "health-profile.md")
+        if os.path.exists(hp_path):
+            try:
+                with open(hp_path) as f:
+                    content = f.read()
+                m = re.search(r"(?:Target Weight|目标体重)[：:\s]*([\d.]+)", content)
+                if m:
+                    weight = float(m.group(1))
+            except IOError:
+                pass
+
     if weight is None:
         weight = 65  # safe default
 
-    # Detect diet mode
+    # --- Resolve diet mode ---
     diet_mode = "balanced"
-    if "high_protein" in content.lower() or "高蛋白" in content:
-        diet_mode = "high_protein"
-    elif "low_carb" in content.lower() or "低碳" in content:
-        diet_mode = "low_carb"
+    hp_path = os.path.join(workspace_dir, "health-profile.md")
+    if os.path.exists(hp_path):
+        try:
+            with open(hp_path) as f:
+                content = f.read()
+            if "high_protein" in content.lower() or "高蛋白" in content:
+                diet_mode = "high_protein"
+            elif "low_carb" in content.lower() or "低碳" in content:
+                diet_mode = "low_carb"
+            elif "keto" in content.lower() or "生酮" in content:
+                diet_mode = "keto"
+        except IOError:
+            pass
 
-    # Default calorie range if missing
-    if "cal_min" not in plan:
-        # Try health-profile.json first
-        hp_json_path = os.path.join(workspace_dir, "data", "health-profile.json")
-        cal_from_json = None
-        if os.path.exists(hp_json_path):
-            try:
-                with open(hp_json_path) as f:
-                    hp_data = json.load(f)
-                cal_from_json = hp_data.get("calorie_target")
-            except (json.JSONDecodeError, IOError):
-                pass
+    # --- Use nutrition-calc's calc_targets for consistency with daily tracking ---
+    if "protein_range" not in plan or "fat_range" not in plan or "carb_range" not in plan:
+        try:
+            # Import calc_targets from nutrition-calc.py
+            skills_base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            nc_path = os.path.join(skills_base, "diet-tracking-analysis", "scripts", "nutrition-calc.py")
+            if os.path.exists(nc_path):
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("nutrition_calc", nc_path)
+                nc = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(nc)
+                targets = nc.calc_targets(weight, daily_cal, mode=diet_mode)
 
-        if cal_from_json and cal_from_json > 0:
-            # Use calorie_target as center, ±10% range
-            plan["cal_min"] = [round(cal_from_json * 0.9), round(cal_from_json * 1.1)]
-        else:
-            # Standard deficit: BMR~1400-1650 for most users, target 1600-2000
-            plan["cal_min"] = [1600, 2000]
+                if "protein_range" not in plan:
+                    plan["protein_range"] = [round(targets["protein"]["min"]), round(targets["protein"]["max"])]
+                if "fat_range" not in plan:
+                    plan["fat_range"] = [round(targets["fat"]["min"]), round(targets["fat"]["max"])]
+                if "carb_range" not in plan:
+                    plan["carb_range"] = [round(targets["carb"]["min"]), round(targets["carb"]["max"])]
+                # Also align cal_min with nutrition-calc's ±100 logic
+                if "cal_min" not in plan or plan["cal_min"] == [daily_cal - 100, daily_cal + 100]:
+                    plan["cal_min"] = [targets["calories_range"]["min"], targets["calories_range"]["max"]]
 
-    cal_mid = (plan["cal_min"][0] + plan["cal_min"][1]) / 2
+                log(f"Macro targets from nutrition-calc: protein={plan.get('protein_range')}, fat={plan.get('fat_range')}, carb={plan.get('carb_range')}")
+                return plan
+            else:
+                log(f"WARNING: nutrition-calc.py not found at {nc_path}, using fallback")
+        except Exception as e:
+            log(f"WARNING: Failed to import calc_targets: {e}, using fallback")
 
-    # Protein target (g)
-    # Weight loss: 1.2-1.6 g/kg (preserve muscle mass)
-    # High protein mode: 1.6-2.0 g/kg
-    if "protein_range" not in plan:
-        if diet_mode == "high_protein":
-            plan["protein_range"] = [round(weight * 1.6), round(weight * 2.0)]
-        else:
+        # --- Fallback: manual calculation (same formulas as before) ---
+        cal_mid = daily_cal
+        if "protein_range" not in plan:
             plan["protein_range"] = [round(weight * 1.2), round(weight * 1.6)]
-
-    # Fat target (g) — 20-30% of calories (lower end for weight loss)
-    if "fat_range" not in plan:
-        fat_low = round(cal_mid * 0.20 / 9)
-        fat_high = round(cal_mid * 0.30 / 9)
-        plan["fat_range"] = [fat_low, fat_high]
-
-    # Carb target (g) — remainder after protein and fat
-    if "carb_range" not in plan:
-        protein_mid = (plan["protein_range"][0] + plan["protein_range"][1]) / 2
-        fat_mid = (plan["fat_range"][0] + plan["fat_range"][1]) / 2
-        remaining_cal = cal_mid - (protein_mid * 4) - (fat_mid * 9)
-        carb_target = max(remaining_cal / 4, 100)  # at least 100g for brain function
-        plan["carb_range"] = [round(carb_target * 0.85), round(carb_target * 1.15)]
+        if "fat_range" not in plan:
+            fat_low = round(cal_mid * 0.25 / 9)
+            fat_high = round(cal_mid * 0.35 / 9)
+            plan["fat_range"] = [fat_low, fat_high]
+        if "carb_range" not in plan:
+            protein_mid = (plan["protein_range"][0] + plan["protein_range"][1]) / 2
+            fat_mid = (plan["fat_range"][0] + plan["fat_range"][1]) / 2
+            remaining_cal = cal_mid - (protein_mid * 4) - (fat_mid * 9)
+            carb_target = max(remaining_cal / 4, 100)
+            plan["carb_range"] = [round(carb_target * 0.85), round(carb_target * 1.15)]
 
     return plan
 
