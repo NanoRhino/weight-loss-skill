@@ -255,7 +255,7 @@ def read_plan(workspace_dir):
             "protein_range": r"(?:Protein|蛋白质)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
             "fat_range": r"(?:Fat|脂肪)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
             "carb_range": r"(?:Carb|碳水)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-            "weight_loss_rate": r"(?:Weight Loss Rate|每周减重)[：:\s]*([\d.]+)",
+            "weight_loss_rate": r"(?:Weight Loss Rate|每周减重[速率]*)[：:\s]*([\d.]+)",
             "target_weight": r"(?:Target Weight|目标体重)[：:\s]*([\d.]+)",
             "start_weight": r"(?:Start|Initial|Starting|初始) ?(?:Weight|体重)[：:\s]*([\d.]+)",
         }
@@ -511,6 +511,21 @@ def compute_summary(days, plan, weight_data):
     chart_max = max(cal_max, (plan["cal_min"][1] * 1.2 if plan and "cal_min" in plan else 0))
     summary["chart_max"] = round(chart_max)
 
+    # Low-calorie safety check (integrated from weekly-low-cal-check.py)
+    bmr = plan.get("bmr") if plan else None
+    if bmr and logged_days:
+        daily_cals = [d["totals"]["cal"] for d in logged_days if d["totals"]["cal"] > 0]
+        if daily_cals:
+            avg_for_safety = round(sum(daily_cals) / len(daily_cals))
+            days_below_bmr = [d["date"] for d in logged_days if 0 < d["totals"]["cal"] < bmr]
+            summary["safety"] = {
+                "below_floor": avg_for_safety < bmr,
+                "avg_cal": avg_for_safety,
+                "bmr": bmr,
+                "days_below": days_below_bmr,
+                "days_below_count": len(days_below_bmr),
+            }
+
     return summary
 
 
@@ -521,6 +536,12 @@ def main():
     parser.add_argument("--end-date", required=True, help="Sunday of the report week (YYYY-MM-DD)")
     parser.add_argument("--tz-offset", type=int, required=True)
     parser.add_argument("--display-unit", default="kg")
+    parser.add_argument("--targets", default=None,
+                        help="JSON string with plan targets from agent. "
+                             "Keys: cal_min (list[2]), protein_range (list[2]), "
+                             "fat_range (list[2]), carb_range (list[2]), tdee, bmr, "
+                             "weight_loss_rate, target_weight, start_weight. "
+                             "When provided, skips read_plan() entirely.")
     args = parser.parse_args()
 
     workspace_dir = _normalize_path(args.workspace_dir)
@@ -541,7 +562,19 @@ def main():
     all_weight = collect_weight(weight_tracker, data_dir, "2000-01-01", args.end_date, args.display_unit)
     exercise = collect_exercise(exercise_calc, data_dir, args.start_date, args.end_date)
     habits = collect_habits(workspace_dir, args.start_date, args.end_date)
-    plan = read_plan(workspace_dir)
+
+    # Plan targets: prefer agent-provided --targets over regex-based read_plan()
+    if args.targets:
+        try:
+            plan = json.loads(args.targets)
+            log("Using agent-provided targets (--targets)")
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"WARNING: --targets JSON parse failed: {e}, falling back to read_plan()")
+            plan = read_plan(workspace_dir)
+    else:
+        plan = read_plan(workspace_dir)
+        log("Falling back to read_plan() regex extraction")
+
     summary = compute_summary(meals, plan, weight)
 
     # Week number calculation
@@ -590,6 +623,35 @@ def main():
     prev_exists = _report_exists(reports_dir, prev_start)
     next_exists = _report_exists(reports_dir, next_start)
 
+    # Phase detection
+    phase = "初始"
+    progress_pct = 0
+    progress_bar = ""
+    start_weight = None
+    current_weight = None
+    target_weight = plan.get("target_weight") if plan else None
+    plan_rate = plan.get("weight_loss_rate", 0.5) if plan else 0.5
+
+    # start_weight = first weight reading ever (from all weight data)
+    if all_weight.get("readings"):
+        start_weight = all_weight["readings"][0].get("value")
+        current_weight = all_weight["readings"][-1].get("value")
+
+    if start_weight and current_weight and target_weight and start_weight != target_weight:
+        progress_pct = round((start_weight - current_weight) / (start_weight - target_weight) * 100)
+        progress_pct = max(0, min(100, progress_pct))  # clamp 0-100
+
+    if report_count >= 4:
+        if progress_pct >= 80:
+            phase = "快完成"
+        else:
+            phase = "中段"
+
+    # Progress bar (12 chars) — only when there's actual progress
+    if phase in ("中段", "快完成") and progress_pct > 0:
+        filled = round(progress_pct / 100 * 12)
+        progress_bar = "▓" * filled + "░" * (12 - filled)
+
     output = {
         "meta": {
             "start_date": args.start_date,
@@ -597,6 +659,13 @@ def main():
             "week_number": week_number,
             "first_monday": first_monday,
             "report_count": report_count,
+            "phase": phase,
+            "progress_pct": progress_pct,
+            "progress_bar": progress_bar,
+            "start_weight": start_weight,
+            "current_weight": current_weight,
+            "target_weight": target_weight,
+            "plan_rate": plan_rate,
             "prev_start": prev_start,
             "prev_exists": prev_exists,
             "next_exists": next_exists,

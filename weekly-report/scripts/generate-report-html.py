@@ -113,6 +113,7 @@ def main():
     parser.add_argument('--tagline', help='Short fun summary line for header')
     parser.add_argument('--no-upload', action='store_true', help='Skip cloud upload')
     parser.add_argument('--no-log', action='store_true', help='Skip writing report log')
+    parser.add_argument('--lang', default='zh', help='Report language (zh or en)')
     args = parser.parse_args()
 
     # Read input data
@@ -127,22 +128,25 @@ def main():
     if args.commentary:
         try:
             commentary = json.loads(args.commentary)
-        except:
-            pass
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"ERROR: --commentary JSON parse failed: {e}")
+            log(f"  Raw input: {args.commentary[:200]}")
 
     highlights = []
     if args.highlights:
         try:
             highlights = json.loads(args.highlights)
-        except:
-            pass
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"ERROR: --highlights JSON parse failed: {e}")
+            log(f"  Raw input: {args.highlights[:200]}")
 
     suggestions = []
     if args.suggestions:
         try:
             suggestions = json.loads(args.suggestions)
-        except:
-            pass
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"ERROR: --suggestions JSON parse failed: {e}")
+            log(f"  Raw input: {args.suggestions[:200]}")
 
     # Validate: warn if commentary/highlights/suggestions are empty
     if not commentary or not any(commentary.values()):
@@ -159,6 +163,7 @@ def main():
     data['tagline'] = args.tagline or ''
     data['plan_rate'] = args.plan_rate
     data['username'] = args.username or 'unknown'
+    data.setdefault('meta', {})['lang'] = args.lang
 
     # Write output JSON
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
