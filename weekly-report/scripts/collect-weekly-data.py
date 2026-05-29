@@ -575,6 +575,9 @@ def main():
         plan = read_plan(workspace_dir)
         log("Falling back to read_plan() regex extraction")
 
+    # Always fill missing macro fields (protein/fat/carb) from health-profile
+    plan = _fill_macro_defaults(workspace_dir, plan if plan else {})
+
     summary = compute_summary(meals, plan, weight)
 
     # Week number calculation
