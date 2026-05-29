@@ -247,7 +247,7 @@ def read_plan(workspace_dir):
         import re
 
         patterns = {
-            "cal_min": r"Daily Calorie Range[:\s]*(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)",
+            "cal_min": r"(?:Daily Calorie Range|每日热量范围)[：:\s]*(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)",
             "cal_target_single": r"(?:每日热量目标|Daily Calorie Target|Calorie Target|热量目标)[：:\s]*(?:约|~|≈)?\s*([\d,]+)",
             "tdee": r"TDEE[:\s]*([\d,]+)",
             "bmr": r"BMR[:\s]*([\d,]+)",
@@ -582,7 +582,7 @@ def main():
                              "Keys: cal_min (list[2]), protein_range (list[2]), "
                              "fat_range (list[2]), carb_range (list[2]), tdee, bmr, "
                              "weight_loss_rate, target_weight, start_weight. "
-                             "When provided, skips read_plan() entirely.")
+                             "When provided, merges with (overrides) read_plan() fields.")
     args = parser.parse_args()
 
     workspace_dir = _normalize_path(args.workspace_dir)
@@ -604,20 +604,24 @@ def main():
     exercise = collect_exercise(exercise_calc, data_dir, args.start_date, args.end_date)
     habits = collect_habits(workspace_dir, args.start_date, args.end_date)
 
-    # Plan targets: prefer agent-provided --targets over regex-based read_plan()
+    # Plan targets: always read PLAN.md as base, then merge agent-provided overrides
+    plan = read_plan(workspace_dir) or {}
+    log(f"Base plan from read_plan(): {list(plan.keys()) if plan else 'empty'}")
+
     if args.targets:
         try:
-            plan = json.loads(args.targets)
-            log("Using agent-provided targets (--targets)")
+            agent_targets = json.loads(args.targets)
+            if agent_targets:  # non-empty dict
+                # Merge: agent-provided fields override PLAN.md fields
+                plan.update(agent_targets)
+                log(f"Merged agent --targets overrides: {list(agent_targets.keys())}")
+            else:
+                log("--targets was empty '{}', using read_plan() only")
         except (json.JSONDecodeError, ValueError) as e:
-            log(f"WARNING: --targets JSON parse failed: {e}, falling back to read_plan()")
-            plan = read_plan(workspace_dir)
-    else:
-        plan = read_plan(workspace_dir)
-        log("Falling back to read_plan() regex extraction")
+            log(f"WARNING: --targets JSON parse failed: {e}, using read_plan() only")
 
-    # Always fill missing macro fields (protein/fat/carb) from health-profile
-    plan = _fill_macro_defaults(workspace_dir, plan if plan else {})
+    # Always fill missing macro fields via nutrition-calc
+    plan = _fill_macro_defaults(workspace_dir, plan)
 
     summary = compute_summary(meals, plan, weight)
 
