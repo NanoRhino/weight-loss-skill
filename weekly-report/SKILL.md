@@ -43,19 +43,23 @@ If output starts with "no" → reply `NO_REPLY`. Stop.
 
 ### Step 3: Collect Data (once, reuse in Step 6)
 
-Read `PLAN.md` (or `health-profile.md`) to extract **all** targets for `--targets`:
-- `cal_min`: daily calorie range [min, max]
-- `protein_range`: daily protein grams [min, max]
-- `fat_range`: daily fat grams [min, max]
-- `carb_range`: daily carb grams [min, max]
+Read `PLAN.md` (or `health-profile.md`) to extract targets for `--targets`:
+- `protein_range`: daily protein grams [min, max] — pass if explicitly stated
+- `fat_range`: daily fat grams [min, max] — pass if explicitly stated
+- `carb_range`: daily carb grams [min, max] — pass if explicitly stated
 
-Pass whatever you find; the script fills missing fields from health-profile as fallback.
+**Calorie target:** Do NOT estimate or convert single values into ranges yourself.
+Only pass `cal_min` if PLAN.md already has an explicit range (e.g. "1138 - 1390").
+If PLAN.md only has a single value (e.g. "1264 kcal"), omit `cal_min` — the script
+will read it and convert to ±10% range automatically.
+
+Pass whatever you find verbatim; the script fills all missing fields from health-profile as fallback.
 
 ```bash
 python3 {baseDir}/scripts/collect-weekly-data.py \
   --workspace-dir {workspaceDir} \
   --start-date {monday} --end-date {sunday} --tz-offset {tz_offset} \
-  --targets '{"cal_min":[min,max],"protein_range":[min,max],"fat_range":[min,max],"carb_range":[min,max]}' \
+  --targets '{"protein_range":[min,max],"fat_range":[min,max],"carb_range":[min,max]}' \
   2>/dev/null > /tmp/weekly-data-{username}.json
 ```
 
