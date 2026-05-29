@@ -556,12 +556,9 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
     # Format date
     date_formatted = today.replace("-", ".")
 
-    # Output to nginx public dir for direct URL access
-    public_dir = "/usr/share/nginx/html/tmp"
-    os.makedirs(public_dir, exist_ok=True)
+    # Output to /tmp, then upload to S3/OSS for permanent CDN URL
     filename = f"badge-{Path(workspace_dir).name}-{today}.png"
-    output_path = f"{public_dir}/{filename}"
-    public_url = f"https://nanorhino.ai/tmp/{filename}"
+    output_path = f"/tmp/{filename}"
 
     # Use ImageMagick overlay script
     shell_script = script_dir / "generate-badge-img.sh"
@@ -591,12 +588,36 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
                 text=True,
                 timeout=15,
             )
-            if result.returncode == 0 and os.path.exists(output_path):
-                return public_url
-            else:
+            if result.returncode != 0 or not os.path.exists(output_path):
                 sys.stderr.write(f"generate-badge-img.sh failed: {result.stderr[:200]}\n")
+                return None
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
             sys.stderr.write(f"generate-badge-img.sh error: {e}\n")
+            return None
+
+        # Upload to S3/OSS via upload-to-s3.sh for permanent CDN URL
+        upload_script = script_dir.parent.parent / "plan-export" / "scripts" / "upload-to-s3.sh"
+        if not upload_script.exists():
+            sys.stderr.write(f"upload-to-s3.sh not found at {upload_script}\n")
+            return None
+
+        try:
+            upload_result = subprocess.run(
+                ["bash", str(upload_script),
+                 "--file", output_path,
+                 "--workspace", workspace_dir,
+                 "--key", f"badge-{today}"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if upload_result.returncode == 0 and upload_result.stdout.strip():
+                public_url = upload_result.stdout.strip().splitlines()[-1]
+                return public_url
+            else:
+                sys.stderr.write(f"upload-to-s3.sh failed: {upload_result.stderr[:200]}\n")
+        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+            sys.stderr.write(f"upload-to-s3.sh error: {e}\n")
 
     return None
 
