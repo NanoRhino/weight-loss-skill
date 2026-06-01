@@ -133,6 +133,8 @@ detect_content_type() {
   fi
   case "$FILE_EXT" in
     json) echo "application/json; charset=utf-8" ;;
+    png)  echo "image/png" ;;
+    jpg|jpeg) echo "image/jpeg" ;;
     *)    echo "text/html; charset=utf-8" ;;
   esac
 }
