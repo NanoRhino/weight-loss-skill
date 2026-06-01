@@ -547,10 +547,11 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
     if user_md.exists():
         content = user_md.read_text(encoding="utf-8")
         for line in content.splitlines():
-            if "nickname" in line.lower() or "昵称" in line:
+            if "nickname" in line.lower() or "昵称" in line or ("**name" in line.lower() and ":" in line):
                 parts = line.split(":", 1) if ":" in line else line.split("：", 1)
                 if len(parts) == 2:
-                    nickname = parts[1].strip() or nickname
+                    val = parts[1].strip().strip("*").strip()
+                    nickname = val or nickname
                     break
 
     # Format date
