@@ -22,7 +22,7 @@ set -euo pipefail
 # Optional:
 #   --dry-run                Print commands without executing (skips slot allocation)
 #   --skip-existing          Skip reminders that already exist (checked before queuing)
-#   --only <type>            Only create specific type: meal, weight, review, report,
+#   --only <type>            Only create specific type: meal, weight, report,
 #                            pattern, tips, all (default: all). Comma-separated for multiple.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -234,13 +234,6 @@ fi
 # 3. Weekly report
 if should_create_type "report"; then
   queue_job "Weekly report" "Run weekly-report to generate this week's progress report." "0 21 * * 0" other
-fi
-
-# 4. Daily review
-if should_create_type "review" && [[ -n "$DINNER_TIME" ]]; then
-  ct=$(calc_cron_time "$DINNER_TIME" 180)
-  cm=$(echo "$ct" | awk '{print $1}'); ch=$(echo "$ct" | awk '{print $2}')
-  queue_job "Daily review" "Run daily-review to generate today's nutrition summary." "$cm $ch * * *" other
 fi
 
 # 5. Diet pattern detection

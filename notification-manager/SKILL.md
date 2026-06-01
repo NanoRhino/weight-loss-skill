@@ -158,7 +158,7 @@ bash {baseDir}/scripts/batch-create-reminders.sh \
   --skip-existing
 ```
 
-Use `--only meal,weight,report,review,pattern` to restrict which job types are created. The `--skip-existing` flag prevents duplicate creation during partial syncs.
+Use `--only meal,weight,report,pattern` to restrict which job types are created. The `--skip-existing` flag prevents duplicate creation during partial syncs.
 
 ---
 
