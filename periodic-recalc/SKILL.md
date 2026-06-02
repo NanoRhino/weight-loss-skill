@@ -28,15 +28,22 @@ Less than 25 days since last recalculation. Do nothing — silently exit.
 
 ### `action: "recalculated"`
 
-The plan has been updated. Compose a celebratory "new phase" message for the user:
-- **Tone:** Positive and motivating — this is a milestone, not a criticism
-- **Content:**
-  - Weight progress since last calculation (e.g., "You've lost 2.1 kg in the last 4 weeks!")
-  - Old → new calorie target comparison (e.g., "1,290 → 1,260 kcal/day")
-  - Old → new TDEE comparison
-  - New macro ranges (protein / fat / carbs in grams)
-  - Explain: "As you lose weight, your body needs fewer calories to maintain its new size. This adjustment keeps your progress on track."
-  - Encourage: "You're doing great — keep going!"
+The plan has been updated. Compose a "周期复盘 + 开启新周期" message for the user.
+
+**Message structure:**
+1. 宣布上一减脂周期完成 + 实际体重变化（from `previous_weight` → `current_weight`）
+2. 宣布开启下一个减脂周期
+3. 解释本次调整原因——**根据实际情况灵活措辞**，参考以下数据综合判断：
+   - `weight_change`：掉了多少？快还是慢？
+   - `old_calories` vs `new_calories`：热量是升了还是降了？
+   - `rate_kg_per_week` 变化：速度加了还是减了？
+   - 过去4周打卡情况（读 `data/meals/` 最近28天，统计实际平均摄入 vs 旧目标）
+   - 可能的解释方向：TDEE 随体重下降、安全减速保代谢、实际吃超了需收紧、进度好可以维持节奏等
+4. 列出新周期具体数字：每日热量目标、预计减脂速度（kg/周）、4周预期减重
+5. 宏量素范围（蛋白质/碳水/脂肪 g）
+6. 鼓励
+
+**Tone:** 像私人教练做阶段性回顾，实事求是，不回避问题也不打击信心。
 
 After composing the message, run `scripts/diet-mode-review.py` with `--workspace` and `--days 28`.
 
