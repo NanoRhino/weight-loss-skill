@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: transparent; display: flex; justify-content: center; align-items: flex-start; padding: 20px; font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+
+.card {
+  width: 580px;
+  background: linear-gradient(180deg, #fdf5f0 0%, #fef8f4 40%, #fffaf7 100%);
+  border-radius: 28px;
+  padding: 40px 40px 32px;
+  box-shadow: 0 8px 32px rgba(180, 120, 90, 0.12), 0 2px 8px rgba(0,0,0,0.04);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle decorative dots */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: radial-gradient(circle, rgba(210,160,130,0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.tagline {
+  font-size: 14px;
+  color: #b08968;
+  letter-spacing: 2px;
+  margin-bottom: 28px;
+  font-weight: 400;
+}
+
+.mascot {
+  width: 240px;
+  height: 240px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mascot img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Fallback mascot placeholder */
+.mascot-placeholder {
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(135deg, #f0d9c8 0%, #e8c4a8 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+}
+
+.badge-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: #3d2c1e;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+.data-pill {
+  display: inline-block;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 8px 20px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.stars {
+  font-size: 14px;
+  color: #d4a574;
+  margin-bottom: 10px;
+  letter-spacing: 6px;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: #8d6e5a;
+  font-weight: 400;
+  margin-bottom: 28px;
+}
+
+.divider {
+  width: 60px;
+  height: 1px;
+  background: #e0cfc0;
+  margin: 0 auto 16px;
+}
+
+.signature {
+  font-size: 12px;
+  color: #b8a090;
+  letter-spacing: 1px;
+}
+
+.signature .paw {
+  font-size: 14px;
+  margin-right: 4px;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="tagline" id="tagline">稳定的每一步，都算数</div>
+
+  <div class="mascot">
+    <div class="mascot-placeholder">🦏</div>
+  </div>
+
+  <div class="badge-name" id="badge-name">⭐ 稳稳吃饭的人</div>
+
+  <div class="data-pill" id="data-pill">3天达标 · 热量合理</div>
+
+  <div class="stars">✦ ✦</div>
+
+  <div class="subtitle" id="subtitle">认真照顾自己</div>
+
+  <div class="divider"></div>
+
+  <div class="signature">
+    <span class="paw">🐾</span>
+    <span id="username">小犀牛</span> | <span id="date">2026.05.25</span>
+  </div>
+</div>
+
+<script>
+// Data injection — will be replaced by the screenshot script
+const DATA = /*BADGE_DATA*/ {
+  tagline: "稳定的每一步，都算数",
+  badge_name: "⭐ 稳稳吃饭的人",
+  data_pill: "3天达标 · 热量合理",
+  subtitle: "认真照顾自己",
+  username: "小犀牛",
+  date: "2026.05.25"
+} /*END_DATA*/;
+
+document.getElementById('tagline').textContent = DATA.tagline;
+document.getElementById('badge-name').textContent = DATA.badge_name;
+document.getElementById('data-pill').textContent = DATA.data_pill;
+document.getElementById('subtitle').textContent = DATA.subtitle;
+document.getElementById('username').textContent = DATA.username;
+document.getElementById('date').textContent = DATA.date;
+</script>
+</body>
+</html>
