@@ -22,6 +22,10 @@ Run `scripts/periodic-recalc.py` with:
 
 Based on the JSON output `action` field:
 
+### `action: "skipped"`
+
+Less than 25 days since last recalculation. Do nothing — silently exit.
+
 ### `action: "recalculated"`
 
 The plan has been updated. Compose a celebratory "new phase" message for the user:

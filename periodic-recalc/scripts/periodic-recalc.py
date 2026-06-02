@@ -267,6 +267,28 @@ def main():
     plan_md = workspace / 'PLAN.md'
     health_profile = workspace / 'health-profile.md'
 
+    # Step 0: Check if it's too soon since last recalc (< 25 days)
+    # This allows the cron to fire every Sunday but only execute every ~4 weeks
+    # Skip this check if triggered by pending-recalc (secondary trigger)
+    if pending_json.exists():
+        pending_data = read_json(pending_json)
+        # If there's a pending flag, this is a secondary trigger — always proceed
+    else:
+        # Check PLAN.md "Updated" date
+        if plan_md.exists():
+            plan_content = plan_md.read_text(encoding='utf-8')
+            updated_match = re.search(r'\*\*Updated:\*\*\s*(\d{4}-\d{2}-\d{2})', plan_content)
+            if updated_match:
+                last_updated = date.fromisoformat(updated_match.group(1))
+                days_since = (date.today() - last_updated).days
+                if days_since < 25:
+                    print(json.dumps({
+                        "action": "skipped",
+                        "reason": f"Only {days_since} days since last update (need >= 25)",
+                        "days_since_last": days_since
+                    }))
+                    return
+
     # Step 1: Check if on leave
     if is_on_leave(leave_json):
         if not args.dry_run:
