@@ -13,10 +13,11 @@ import argparse
 import json
 import os
 import re
-import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 # Badge level definitions
@@ -40,6 +41,44 @@ LEVELS = [
 ]
 
 MILK_TEA_KCAL = 500  # One standard full-sugar milk tea
+
+# Percentile speed table: level -> list of (max_elapsed_days, percentile_str)
+PERCENTILE_TABLE = {
+    1: [(3, "99%"), (5, "95%"), (7, "90%"), (10, "85%"), (14, "80%"), (21, "75%"), (28, "70%"), (35, "60%"), (42, "50%"), (56, "40%"), (70, "30%"), (90, "20%"), (999999, "10%")],
+    2: [(5, "99%"), (7, "95%"), (10, "90%"), (14, "85%"), (21, "80%"), (28, "75%"), (35, "70%"), (42, "60%"), (56, "50%"), (70, "40%"), (90, "30%"), (120, "20%"), (999999, "10%")],
+    3: [(7, "99%"), (10, "95%"), (14, "90%"), (21, "85%"), (28, "80%"), (35, "75%"), (42, "70%"), (56, "60%"), (70, "50%"), (90, "40%"), (120, "30%"), (150, "20%"), (999999, "10%")],
+    4: [(7, "99%"), (14, "95%"), (21, "90%"), (28, "85%"), (35, "80%"), (42, "75%"), (56, "70%"), (70, "60%"), (90, "50%"), (120, "40%"), (150, "30%"), (200, "20%"), (999999, "10%")],
+    5: [(10, "99%"), (14, "95%"), (21, "90%"), (30, "85%"), (42, "80%"), (56, "75%"), (70, "70%"), (90, "60%"), (120, "50%"), (150, "40%"), (200, "30%"), (300, "20%"), (999999, "10%")],
+    6: [(14, "99%"), (21, "95%"), (30, "90%"), (42, "85%"), (56, "80%"), (70, "75%"), (90, "70%"), (120, "60%"), (150, "50%"), (200, "40%"), (250, "30%"), (350, "20%"), (999999, "10%")],
+    7: [(14, "99%"), (21, "95%"), (30, "90%"), (42, "85%"), (56, "80%"), (70, "75%"), (90, "70%"), (120, "60%"), (150, "50%"), (200, "40%"), (300, "30%"), (400, "20%"), (999999, "10%")],
+    8: [(21, "99%"), (30, "95%"), (42, "90%"), (56, "85%"), (70, "80%"), (90, "75%"), (120, "70%"), (150, "60%"), (200, "50%"), (250, "40%"), (300, "30%"), (400, "20%"), (999999, "10%")],
+}
+
+PERCENTILE_LINE2 = {
+    "99%": "太厉害了，达标速度超过了99%的人",
+    "95%": "这速度绝了，超过了95%的人",
+    "90%": "进度飞快，超过了90%的人",
+    "85%": "节奏很稳，超过了85%的人",
+    "80%": "比80%的人都快到这一步",
+    "75%": "不知不觉已经超过了75%的人",
+    "70%": "稳扎稳打，超过了70%的人",
+    "60%": "你的坚持超过了60%的人",
+    "50%": "已经跑赢了一半的人",
+    "40%": "每一天都在往前走，超过了40%的人",
+    "30%": "还在路上，超过了30%的人",
+    "20%": "起步不怕慢，已经超过了20%的人",
+    "10%": "迈出第一步就已经赢了，超过了10%的人",
+}
+
+
+def calc_percentile(level: int, elapsed_days: int) -> str:
+    """Calculate percentile ranking based on level and elapsed calendar days."""
+    table = PERCENTILE_TABLE.get(level, PERCENTILE_TABLE.get(5))
+    for max_days, pct in table:
+        if elapsed_days <= max_days:
+            return pct
+    return "50%"
+
 
 
 def get_local_date(tz_offset_minutes: int) -> str:
@@ -352,55 +391,113 @@ def backfill(workspace_dir: str, cal_range: tuple, bmr, expected_meals: int, dai
     }
 
 
-def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, current_count: int) -> str:
-    """Generate badge card PNG via generate-badge.js. Returns path or None on failure."""
+def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, current_count: int, badges: dict = None) -> str:
+    """
+    Generate badge card PNG using Pillow.
+    Renders one dynamic line (line2: personalized encouragement) on a pre-designed base image.
+    Returns local file path or None on failure.
+    """
     script_dir = Path(__file__).parent
-    generate_js = script_dir / "generate-badge.js"
+    assets_dir = script_dir.parent / "assets"
 
-    if not generate_js.exists():
+    # Determine base image (level-specific or fallback to level1)
+    level = new_badge.get("level", 1)
+    base_img_path = assets_dir / f"badge-base-level{level}.png"
+    if not base_img_path.exists():
+        base_img_path = assets_dir / "badge-base-level1.png"
+    if not base_img_path.exists():
+        sys.stderr.write(f"No base badge image found at {base_img_path}\n")
         return None
 
     # Read user nickname from USER.md
-    nickname = "小犀牛"
+    nickname = "\u5c0f\u7280\u725b"
     user_md = Path(workspace_dir) / "USER.md"
     if user_md.exists():
-        content = user_md.read_text(encoding="utf-8")
-        for line in content.splitlines():
-            if "nickname" in line.lower() or "昵称" in line:
-                parts = line.split(":", 1) if ":" in line else line.split("：", 1)
+        file_content = user_md.read_text(encoding="utf-8")
+        for line in file_content.splitlines():
+            if "nickname" in line.lower() or "\u6635\u79f0" in line or ("**name" in line.lower() and ":" in line):
+                parts = line.split(":", 1) if ":" in line else line.split("\uff1a", 1)
                 if len(parts) == 2:
-                    nickname = parts[1].strip() or nickname
-                    break
+                    val = parts[1].strip().strip("*").strip()
+                    if val:
+                        nickname = val
+                        break
 
-    # Format date
-    date_formatted = today.replace("-", ".")
-
-    data = {
-        "tagline": "稳定的每一步，都算数",
-        "badge_name": new_badge["name"],
-        "data_pill": f"{current_count}天达标 · 热量合理",
-        "subtitle": "认真照顾自己",
-        "username": nickname,
-        "date": date_formatted,
-    }
-
-    output_path = f"/tmp/badge-{Path(workspace_dir).name}-{today}.png"
-
-    try:
-        result = subprocess.run(
-            ["node", str(generate_js), "--data", json.dumps(data, ensure_ascii=False), "--output", output_path],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            cwd=str(script_dir.parent),  # reward-engine dir (where node_modules lives)
-        )
-        if result.returncode == 0 and os.path.exists(output_path):
-            return output_path
+    # Calculate percentile for line2
+    if badges is None:
+        badges = load_badges(workspace_dir)
+    ct = badges.get("calorie_target", {})
+    unlocked_at = ct.get("unlocked_at", {})
+    prev_level = level - 1
+    if prev_level > 0 and str(prev_level) in unlocked_at:
+        prev_date = datetime.strptime(unlocked_at[str(prev_level)], "%Y-%m-%d")
+        current_date = datetime.strptime(today, "%Y-%m-%d")
+        elapsed_days = (current_date - prev_date).days
+    else:
+        qualified_dates = ct.get("qualified_dates", [])
+        if qualified_dates:
+            first_date = datetime.strptime(qualified_dates[0], "%Y-%m-%d")
+            current_date = datetime.strptime(today, "%Y-%m-%d")
+            elapsed_days = (current_date - first_date).days
         else:
-            sys.stderr.write(f"generate-badge.js failed: {result.stderr[:200]}\n")
+            elapsed_days = level * 7
+
+    percentile = calc_percentile(level, elapsed_days)
+    line2_base = PERCENTILE_LINE2.get(percentile, "\u5df2\u7ecf\u8dd1\u8d62\u4e86\u4e00\u534a\u7684\u4eba")
+    line2_text = f"\u201c{nickname}\uff0c{line2_base}\u201d"
+
+    # Render with Pillow
+    try:
+        img = Image.open(base_img_path)
+        draw = ImageDraw.Draw(img)
+
+        # Font: Noto Sans SC Regular, design spec 16px on 480x720 -> 32px on 960x1440
+        font_size = 32
+        font_candidates = [
+            Path.home() / ".local/share/fonts/NotoSansSC/NotoSansCJKsc-Regular.otf",
+            Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+            Path("/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc"),
+        ]
+        font_path = None
+        for fp in font_candidates:
+            if fp.exists():
+                font_path = fp
+                break
+
+        if font_path is None:
+            sys.stderr.write("Noto Sans SC font not found, badge image generation skipped\n")
             return None
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        sys.stderr.write(f"generate-badge.js error: {e}\n")
+
+        font = ImageFont.truetype(str(font_path), font_size)
+
+        # Position: y=448 on 480x720 design -> y=896 on 960x1440; horizontally centered
+        img_width = img.size[0]
+        y = 896
+
+        # Measure text width; shrink font if too wide (keep single line)
+        bbox = font.getbbox(line2_text)
+        text_width = bbox[2] - bbox[0]
+        min_font_size = 20
+        while text_width > img_width - 80 and font_size > min_font_size:
+            font_size -= 1
+            font = ImageFont.truetype(str(font_path), font_size)
+            bbox = font.getbbox(line2_text)
+            text_width = bbox[2] - bbox[0]
+
+        x = (img_width - text_width) // 2
+
+        # Color: #8F5929
+        text_color = (143, 89, 41, 255)
+        draw.text((x, y), line2_text, font=font, fill=text_color)
+
+        # Save
+        filename = f"badge-{Path(workspace_dir).name}-{today}.png"
+        output_path = f"/tmp/{filename}"
+        img.save(output_path, "PNG")
+        return output_path
+
+    except Exception as e:
+        sys.stderr.write(f"Badge image generation error: {e}\n")
         return None
 
 
@@ -519,7 +616,7 @@ def check(workspace_dir: str, tz_offset: int):
 
             # Generate badge image
             badge_image = generate_badge_image(
-                workspace_dir, today, new_badge, ct["current_count"]
+                workspace_dir, today, new_badge, ct["current_count"], badges
             )
         else:
             ct["next_level_target"] = get_next_level_target(ct["current_level"])
