@@ -412,9 +412,9 @@ def main():
         "previous_weight": previous_weight,
         "weight_change": weight_change,
         "macros": {
-            "protein_g": [macros['protein']['min'], macros['protein']['max']],
-            "fat_g": [macros['fat']['min'], macros['fat']['max']],
-            "carbs_g": [macros['carb']['min'], macros['carb']['max']],
+            "protein_g": [round(macros['protein']['min']), round(macros['protein']['max'])],
+            "fat_g": [round(macros['fat']['min']), round(macros['fat']['max'])],
+            "carbs_g": [round(macros['carb']['min']), round(macros['carb']['max'])],
         },
         "floor_clamped": new_calc.get('floor_clamped', False),
         "message_for_user": f"Congratulations! You've lost {abs(weight_change):.1f} kg! Your new plan: {new_calories:,} kcal/day (from {old_calories:,}). TDEE: {new_tdee:,} (from {old_tdee:,})."
