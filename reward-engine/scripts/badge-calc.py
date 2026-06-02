@@ -71,6 +71,17 @@ PERCENTILE_LINE2 = {
 }
 
 
+
+# Level -> text color (RGBA) for line2
+LEVEL_TEXT_COLOR = {
+    1: (143, 89, 41, 255),    # #8F5929
+    2: (148, 84, 88, 255),    # #945458
+    3: (217, 123, 82, 255),   # #D97B52
+    4: (56, 92, 43, 255),     # #385C2B
+    5: (94, 134, 170, 255),   # #5E86AA
+}
+DEFAULT_TEXT_COLOR = (143, 89, 41, 255)  # fallback to Level 1 color
+
 def calc_percentile(level: int, elapsed_days: int) -> str:
     """Calculate percentile ranking based on level and elapsed calendar days."""
     table = PERCENTILE_TABLE.get(level, PERCENTILE_TABLE.get(5))
@@ -486,8 +497,8 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
 
         x = (img_width - text_width) // 2
 
-        # Color: #8F5929
-        text_color = (143, 89, 41, 255)
+        # Color per level
+        text_color = LEVEL_TEXT_COLOR.get(level, DEFAULT_TEXT_COLOR)
         draw.text((x, y), line2_text, font=font, fill=text_color)
 
         # Save
