@@ -95,15 +95,7 @@ python3 {baseDir}/scripts/badge-calc.py check \
 | 7 | 60 | ⭐×7 长期主义玩家 | 60天。不需要鸡汤，数据说明一切。 |
 | 8 | 90 | ⭐×8 不可撼动 | 90天。多数人的计划活不过两周，你走完了全程。这不是关于减肥了，这是你证明了自己能长期做好一件事。 |
 
-## Milk Tea Conversion
 
-```
-milk_tea_cups = (daily_deficit × current_count) ÷ 500
-```
-
-- `daily_deficit` from PLAN.md (`Daily Calorie Deficit` field)
-- If not found, default to 300 kcal
-- 500 kcal = one standard full-sugar milk tea
 
 ## Badge Image Generation
 
@@ -154,8 +146,8 @@ Called by `diet-tracking-analysis` after `meal_checkin` returns with `action: "c
 2. If level_up == true AND badge_image exists:
    → Append badge celebration text after normal reply
    → Send badge image via MEDIA: directive
-3. If level_up == true AND badge_image is null (no template yet):
-   → Append text-only celebration (use new_badge.message)
+3. If level_up == true AND badge_image is null/empty:
+   → Say nothing (silent skip — do NOT fall back to text)
 4. If qualified_today == true but no level_up:
    → Say nothing (silent accumulation)
 5. If qualified_today == false:

@@ -116,15 +116,15 @@ def parse_plan(workspace_dir: str) -> dict:
 
     # Parse Daily Calorie Range (e.g., "Daily Calorie Range: 1200-1400" or "1,200 ~ 1,400")
     range_patterns = [
-        r"Daily Calorie Range[:\s]*(\d[,\d]*)\s*[-~]\s*(\d[,\d]*)",
-        r"每日热量范围[:\s：]*(\d[,\d]*)\s*[-~]\s*(\d[,\d]*)",
+        r"Daily Calorie Range[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~]\s*(\d[,，\d]*)",
+        r"每日热量范围[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~]\s*(\d[,，\d]*)",
     ]
 
     for pattern in range_patterns:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
-            low = int(match.group(1).replace(",", ""))
-            high = int(match.group(2).replace(",", ""))
+            low = int(match.group(1).replace(",", "").replace("，", ""))
+            high = int(match.group(2).replace(",", "").replace("，", ""))
             result["cal_range"] = (low, high)
             result["calorie_target"] = (low + high) // 2
             break
@@ -132,14 +132,14 @@ def parse_plan(workspace_dir: str) -> dict:
     # Fallback: single target value
     if result["calorie_target"] is None:
         target_patterns = [
-            r"每日热量目标[:\s：]*(\d[,\d]*)",
-            r"Daily Calories?[:\s]*~?(\d[,\d]*)",
-            r"Daily Calorie Budget[:\s]*(\d[,\d]*)",
+            r"每日热量目标[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:大卡|kcal|千卡)?",
+            r"Daily Calories?[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
+            r"Daily Calorie Budget[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
         ]
         for pattern in target_patterns:
             match = re.search(pattern, content, re.IGNORECASE)
             if match:
-                val = int(match.group(1).replace(",", ""))
+                val = int(match.group(1).replace(",", "").replace("，", ""))
                 if 800 <= val <= 3000:
                     result["calorie_target"] = val
                 break
@@ -151,13 +151,13 @@ def parse_plan(workspace_dir: str) -> dict:
 
     # Parse daily deficit
     deficit_patterns = [
-        r"Daily (?:Calorie )?Deficit[:\s]*~?(\d[,\d]*)",
-        r"每日[热量]*缺口[:\s：]*~?(\d[,\d]*)",
+        r"Daily (?:Calorie )?Deficit[:\s]*(?:~|约|大约|≈)?\s*(\d[,\d]*)",
+        r"每日[热量]*缺口[:\s：]*(?:~|约|大约|≈)?\s*(\d[,\d]*)",
     ]
     for pattern in deficit_patterns:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
-            result["daily_deficit"] = int(match.group(1).replace(",", ""))
+            result["daily_deficit"] = int(match.group(1).replace(",", "").replace("，", ""))
             break
 
     # Check for intermittent fasting / 2-meal pattern
@@ -359,47 +359,94 @@ def qualify_day(workspace_dir: str, date_str: str, cal_range: tuple, bmr, expect
 
 
 def backfill(workspace_dir: str, cal_range: tuple, bmr, expected_meals: int, daily_deficit: int) -> dict:
-    """Scan all historical meal files and build badges from scratch.
-    Returns the populated calorie_target dict."""
-    meals_dir = Path(workspace_dir) / "data" / "meals"
-    qualified_dates = []
+    """Initialize badges for first run — start from zero, do not replay history.
 
-    if meals_dir.exists():
-        # Get all meal files sorted by date
-        meal_files = sorted(meals_dir.glob("*.json"))
-        for meal_file in meal_files:
-            date_str = meal_file.stem[:10]  # YYYY-MM-DD
-            # Validate date format
-            try:
-                datetime.strptime(date_str, "%Y-%m-%d")
-            except ValueError:
-                continue
-
-            if qualify_day(workspace_dir, date_str, cal_range, bmr, expected_meals):
-                qualified_dates.append(date_str)
-
-    count = len(qualified_dates)
-    level = get_level_for_count(count)
-
-    # Build unlocked_at by replaying level transitions
-    unlocked_at = {}
-    running_count = 0
-    for date_str in qualified_dates:
-        running_count += 1
-        new_level = get_level_for_count(running_count)
-        if str(new_level) not in unlocked_at and new_level > 0:
-            unlocked_at[str(new_level)] = date_str
-
+    Rationale: historical meals were logged under potentially different PLAN
+    calorie ranges, so retroactive qualification would be inaccurate.
+    Users accumulate from today onward.
+    """
     return {
-        "current_level": level,
-        "current_count": count,
-        "next_level_target": get_next_level_target(level),
-        "qualified_dates": qualified_dates,
-        "unlocked_at": unlocked_at,
+        "current_level": 0,
+        "current_count": 0,
+        "next_level_target": LEVELS[0]["days"],
+        "qualified_dates": [],
+        "unlocked_at": {},
         "daily_deficit": daily_deficit,
-        "last_calculated": qualified_dates[-1] if qualified_dates else None,
+        "last_calculated": None,
         "backfilled": True,
     }
+
+
+# Agent registry paths to search for nickname
+_AGENT_REGISTRY_CANDIDATES = [
+    Path("/home/admin/.openclaw/extensions/wechat/agent-registry.json"),
+]
+
+
+def _resolve_nickname(workspace_dir: str) -> str:
+    """
+    Resolve user nickname with fallback chain:
+    1. agent-registry.json (match by account ID from workspace path)
+    2. USER.md in workspace (improved regex)
+    3. Fallback: "小犀牛"
+    """
+    fallback = "小犀牛"
+
+    # --- Try 1: agent-registry.json ---
+    try:
+        # Extract account-like IDs from workspace_dir path
+        # Path patterns: .openclaw-gateway/workspace-wechat-dm-{peerAccId}_{selfAccId}/
+        # or .openclaw-user-service/workspaces/{agentId}/ where agentId = peerAccId_selfAccId
+        ws_name = Path(workspace_dir).name
+        # Account IDs look like: acc8bOJDErKkNOUvDXxZx7I or accYcdSNiv4Jk6lYrnEH3uf
+        import re as _re
+        acc_ids = _re.findall(r'acc[A-Za-z0-9_-]+', ws_name)
+
+        if acc_ids:
+            for registry_path in _AGENT_REGISTRY_CANDIDATES:
+                if not registry_path.exists():
+                    continue
+                registry = json.loads(registry_path.read_text(encoding="utf-8"))
+                agents = registry.get("agents", registry)  # handle both root-level and nested
+                for acc_id in acc_ids:
+                    # Try exact and lowercase lookup
+                    for key_variant in [acc_id, acc_id.lower()]:
+                        agent_entry = agents.get(key_variant)
+                        if agent_entry:
+                            profile_name = None
+                            if isinstance(agent_entry, dict):
+                                profile_name = (
+                                    agent_entry.get("profile", {}).get("name")
+                                    or agent_entry.get("name")
+                                )
+                            if profile_name and profile_name.strip():
+                                return profile_name.strip()
+    except Exception:
+        pass  # Non-fatal, continue to next method
+
+    # --- Try 2: USER.md ---
+    try:
+        user_md = Path(workspace_dir) / "USER.md"
+        if user_md.exists():
+            file_content = user_md.read_text(encoding="utf-8")
+            # Match patterns like:
+            # - **Name:** xxx / - **Nickname:** xxx / 昵称：xxx / 称呼：xxx
+            # - What to call them: xxx / Name: xxx
+            nickname_patterns = [
+                r'\*{0,2}(?:Name|Nickname|昵称|称呼|名字|What to call them)\*{0,2}\s*[:：]\s*(.+)',
+            ]
+            for line in file_content.splitlines():
+                for pattern in nickname_patterns:
+                    m = _re.search(pattern, line, _re.IGNORECASE)
+                    if m:
+                        val = m.group(1).strip().strip("*").strip()
+                        if val and val != "（待采集）" and val != "（自动填充）":
+                            return val
+    except Exception:
+        pass  # Non-fatal
+
+    return fallback
+
 
 
 def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, current_count: int, badges: dict = None) -> str:
@@ -420,19 +467,9 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
         sys.stderr.write(f"No base badge image found at {base_img_path}\n")
         return None
 
-    # Read user nickname from USER.md
-    nickname = "\u5c0f\u7280\u725b"
-    user_md = Path(workspace_dir) / "USER.md"
-    if user_md.exists():
-        file_content = user_md.read_text(encoding="utf-8")
-        for line in file_content.splitlines():
-            if "nickname" in line.lower() or "\u6635\u79f0" in line or ("**name" in line.lower() and ":" in line):
-                parts = line.split(":", 1) if ":" in line else line.split("\uff1a", 1)
-                if len(parts) == 2:
-                    val = parts[1].strip().strip("*").strip()
-                    if val:
-                        nickname = val
-                        break
+    # Resolve user nickname (try agent registry first, then USER.md, then fallback)
+    nickname = _resolve_nickname(workspace_dir)
+
 
     # Calculate percentile for line2
     if badges is None:
@@ -465,6 +502,7 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
         # Font: Noto Sans SC Regular, design spec 16px on 480x720 -> 32px on 960x1440
         font_size = 32
         font_candidates = [
+            Path(__file__).parent.parent / "assets/fonts/NotoSansSC-Regular.otf",
             Path.home() / ".local/share/fonts/NotoSansSC/NotoSansCJKsc-Regular.otf",
             Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
             Path("/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc"),
@@ -503,7 +541,10 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
 
         # Save
         filename = f"badge-{Path(workspace_dir).name}-{today}.png"
-        output_path = f"/tmp/{filename}"
+        # Save to workspace badges dir (persistent) instead of /tmp
+        badges_dir = Path(workspace_dir) / "data" / "badges"
+        badges_dir.mkdir(parents=True, exist_ok=True)
+        output_path = str(badges_dir / filename)
         img.save(output_path, "PNG")
         return output_path
 

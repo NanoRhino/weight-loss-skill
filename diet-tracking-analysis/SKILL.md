@@ -151,6 +151,7 @@ Use `meal_checkin` results to compose your reply. No more tool calls needed — 
 > - Compose natural Chinese text following the ①②③ schema
 > - Handle `needs_clarification` as a casual hint
 > - Add `missing_meals` note if non-empty (tell user these were estimated)
+> - **🏅 Run badge-calc** (see Badge Check below) — EVERY successful meal, not just last meal
 >
 > Do not re-explain WHY the budget is what it is. Do not recompute numbers. Just use them.
 > Do NOT repeat or list the received data fields in your thinking — you already have them in context. Go straight to decisions: what tone, what suggestion, what to say.
@@ -320,15 +321,9 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 
 ---
 
-## Badge Check (Post-Response)
+## 🏅 Badge Check (MANDATORY after every successful meal)
 
-**After composing your full reply (①②③ + suggestion tag), run the badge check.**
-
-Only trigger when ALL of these are true:
-1. `meal_checkin` returned `action: "create"` or `action: "append"` (successful meal log)
-2. This is the user's **last expected meal of the day** (check `evaluation.meals_logged_today >= expected_meals` from their plan — typically 3, but 2 for intermittent fasting users)
-
-This avoids running the script when qualification is still impossible (not enough meals yet).
+**⚠️ DO NOT SKIP THIS STEP.** After composing your ①②③ reply, ALWAYS run badge-calc when `meal_checkin` returned `action: "create"` or `action: "append"`. Run it every time — the script is fast (< 100ms) and handles all conditions internally.
 
 ### How to run
 
@@ -342,39 +337,19 @@ python3 {reward-engine:baseDir}/scripts/badge-calc.py check \
 
 | Result | Action |
 |--------|--------|
-| `level_up == true` AND `badge_image` exists | Append badge celebration + send image via `MEDIA: {badge_image}` |
-| `level_up == true` AND `badge_image` is null | Append text celebration (see format below) |
+| `level_up == true` AND `badge_image` exists | Send image via `MEDIA:{badge_image}` with enthusiastic celebration (2-3 sentences, hype them up! 疯狂夸夸！NO calorie/milk-tea math. IMPORTANT: days are CUMULATIVE not consecutive — say "累计X天" never "连续X天" or time-period like "两周/一个月", because 14 qualifying days might span months) |
+| `level_up == true` AND `badge_image` is null/empty | Say nothing about badges (silent — do NOT fall back to text) |
 | `qualified_today == true`, no level-up | Say nothing (silent accumulation) |
 | `qualified_today == false` | Say nothing about badges |
 | `already_counted == true` | Say nothing (today already counted) |
 | `error` field present | Say nothing (e.g., no PLAN.md yet) |
 
-### Text celebration format (when no badge image)
+### Badge image (when level_up == true)
 
-```
-🏅 恭喜解锁新徽章！
+Use the `badge_image` path returned by badge-calc.py directly:
+`MEDIA:{badge_image}`
 
-【热量在握】{new_badge.name}
-
-📊 累计 {current_count} 天热量达标
-🧋 相当于拒绝了 {new_badge.milk_tea_cups} 杯全糖奶茶
-
-{new_badge.progress_bar}
-```
-
-### Badge image generation (when level_up == true)
-
-Generate the badge card image before sending celebration:
-
-```bash
-node {reward-engine:baseDir}/scripts/generate-badge.js \
-  --data '{"tagline":"稳定的每一步，都算数","badge_name":"{new_badge.name}","data_pill":"{current_count}天达标 · 热量合理","subtitle":"认真照顾自己","username":"{nickname}","date":"{today_formatted}"}' \
-  --output /tmp/badge-{username}-{today}.png
-```
-
-Then send: `MEDIA:/tmp/badge-{username}-{today}.png`
-
-If generate-badge.js fails (e.g., Chrome unavailable), fall back to text-only celebration.
+If `badge_image` is null or empty, do NOT send any badge-related content. Silent skip.
 
 ### Placement
 
