@@ -342,7 +342,7 @@ python3 {reward-engine:baseDir}/scripts/badge-calc.py check \
 
 | Result | Action |
 |--------|--------|
-| `level_up == true` AND `badge_image` exists | Send image via `MEDIA:{badge_image}` with enthusiastic celebration (2-3 sentences, hype them up! 疯狂夸夸！NO calorie/milk-tea math, just pure excitement and acknowledgment of their consistency) |
+| `level_up == true` AND `badge_image` exists | Send image via `MEDIA:{badge_image}` with enthusiastic celebration (2-3 sentences, hype them up! 疯狂夸夸！NO calorie/milk-tea math. IMPORTANT: days are CUMULATIVE not consecutive — say "累计X天" never "连续X天" or time-period like "两周/一个月", because 14 qualifying days might span months) |
 | `level_up == true` AND `badge_image` is null/empty | Say nothing about badges (silent — do NOT fall back to text) |
 | `qualified_today == true`, no level-up | Say nothing (silent accumulation) |
 | `qualified_today == false` | Say nothing about badges |
