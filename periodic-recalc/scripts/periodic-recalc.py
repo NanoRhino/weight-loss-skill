@@ -426,6 +426,16 @@ def main():
             "calories": old_calories,
             "tdee": old_tdee,
             "rate": plan_data.get('weekly_rate', None),
+            "next_cycle": {
+                "calories": new_calories,
+                "tdee": new_tdee,
+                "rate": new_calc['rate_kg_per_week'],
+                "macros": {
+                    "protein_g": [round(macros['protein']['min']), round(macros['protein']['max'])],
+                    "carbs_g": [round(macros['carb']['min']), round(macros['carb']['max'])],
+                    "fat_g": [round(macros['fat']['min']), round(macros['fat']['max'])],
+                }
+            }
         })
 
         with open(history_path, 'w', encoding='utf-8') as f:
