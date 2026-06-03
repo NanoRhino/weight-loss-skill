@@ -23,6 +23,31 @@ from datetime import datetime, date, timedelta
 from pathlib import Path
 
 
+DIET_MODE_FAT = {
+    "usda": (20, 35), "balanced": (25, 35), "high_protein": (25, 35),
+    "low_carb": (40, 50), "keto": (65, 75), "mediterranean": (25, 35),
+    "plant_based": (20, 30), "if_16_8": (25, 35), "if_5_2": (25, 35),
+}
+
+
+def calc_macros(weight_kg: float, daily_cal: int, diet_mode: str) -> dict:
+    """Calculate macro ranges (same formula as planner-calc.py)."""
+    fat_lo_pct, fat_hi_pct = DIET_MODE_FAT.get(diet_mode, (25, 35))
+    protein_lo = round(weight_kg * 1.2)
+    protein_hi = round(weight_kg * 1.6)
+    fat_lo = round(daily_cal * fat_lo_pct / 100 / 9)
+    fat_hi = round(daily_cal * fat_hi_pct / 100 / 9)
+    carb_max = round((daily_cal - protein_lo * 4 - fat_lo * 9) / 4)
+    carb_min = round((daily_cal - protein_hi * 4 - fat_hi * 9) / 4)
+    if carb_min < 0:
+        carb_min = 0
+    return {
+        "protein_g": [protein_lo, protein_hi],
+        "carbs_g": [carb_min, carb_max],
+        "fat_g": [fat_lo, fat_hi],
+    }
+
+
 def read_json(path: Path) -> dict:
     """Read and parse JSON file."""
     if not path.exists():
@@ -417,6 +442,7 @@ def main():
                 history = []
 
         cycle_number = len(history) + 1
+        old_macros = calc_macros(previous_weight, old_calories, plan_data.get('diet_mode', 'balanced'))
         history.append({
             "cycle": cycle_number,
             "start_date": plan_data.get('updated', plan_data.get('created', '')),
@@ -426,6 +452,7 @@ def main():
             "calories": old_calories,
             "tdee": old_tdee,
             "rate": plan_data.get('weekly_rate', None),
+            "macros": old_macros,
             "next_cycle": {
                 "calories": new_calories,
                 "tdee": new_tdee,
