@@ -151,6 +151,7 @@ Use `meal_checkin` results to compose your reply. No more tool calls needed — 
 > - Compose natural Chinese text following the ①②③ schema
 > - Handle `needs_clarification` as a casual hint
 > - Add `missing_meals` note if non-empty (tell user these were estimated)
+> - **🏅 Run badge-calc** (see Badge Check below) — EVERY successful meal, not just last meal
 >
 > Do not re-explain WHY the budget is what it is. Do not recompute numbers. Just use them.
 > Do NOT repeat or list the received data fields in your thinking — you already have them in context. Go straight to decisions: what tone, what suggestion, what to say.
@@ -320,15 +321,9 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 
 ---
 
-## Badge Check (Post-Response)
+## 🏅 Badge Check (MANDATORY after every successful meal)
 
-**After composing your full reply (①②③ + suggestion tag), run the badge check.**
-
-Only trigger when ALL of these are true:
-1. `meal_checkin` returned `action: "create"` or `action: "append"` (successful meal log)
-2. This is the user's **last expected meal of the day** (check `evaluation.meals_logged_today >= expected_meals` from their plan — typically 3, but 2 for intermittent fasting users)
-
-This avoids running the script when qualification is still impossible (not enough meals yet).
+**⚠️ DO NOT SKIP THIS STEP.** After composing your ①②③ reply, ALWAYS run badge-calc when `meal_checkin` returned `action: "create"` or `action: "append"`. Run it every time — the script is fast (< 100ms) and handles all conditions internally.
 
 ### How to run
 
