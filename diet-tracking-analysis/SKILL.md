@@ -342,7 +342,7 @@ python3 {reward-engine:baseDir}/scripts/badge-calc.py check \
 
 | Result | Action |
 |--------|--------|
-| `level_up == true` AND `badge_image` exists | Append badge celebration + send image via `MEDIA:{badge_image}` |
+| `level_up == true` AND `badge_image` exists | Send image via `MEDIA:{badge_image}` with a short congrats (1 sentence max, NO calorie/milk-tea math) |
 | `level_up == true` AND `badge_image` is null/empty | Say nothing about badges (silent — do NOT fall back to text) |
 | `qualified_today == true`, no level-up | Say nothing (silent accumulation) |
 | `qualified_today == false` | Say nothing about badges |
