@@ -359,45 +359,20 @@ def qualify_day(workspace_dir: str, date_str: str, cal_range: tuple, bmr, expect
 
 
 def backfill(workspace_dir: str, cal_range: tuple, bmr, expected_meals: int, daily_deficit: int) -> dict:
-    """Scan all historical meal files and build badges from scratch.
-    Returns the populated calorie_target dict."""
-    meals_dir = Path(workspace_dir) / "data" / "meals"
-    qualified_dates = []
+    """Initialize badges for first run — start from zero, do not replay history.
 
-    if meals_dir.exists():
-        # Get all meal files sorted by date
-        meal_files = sorted(meals_dir.glob("*.json"))
-        for meal_file in meal_files:
-            date_str = meal_file.stem[:10]  # YYYY-MM-DD
-            # Validate date format
-            try:
-                datetime.strptime(date_str, "%Y-%m-%d")
-            except ValueError:
-                continue
-
-            if qualify_day(workspace_dir, date_str, cal_range, bmr, expected_meals):
-                qualified_dates.append(date_str)
-
-    count = len(qualified_dates)
-    level = get_level_for_count(count)
-
-    # Build unlocked_at by replaying level transitions
-    unlocked_at = {}
-    running_count = 0
-    for date_str in qualified_dates:
-        running_count += 1
-        new_level = get_level_for_count(running_count)
-        if str(new_level) not in unlocked_at and new_level > 0:
-            unlocked_at[str(new_level)] = date_str
-
+    Rationale: historical meals were logged under potentially different PLAN
+    calorie ranges, so retroactive qualification would be inaccurate.
+    Users accumulate from today onward.
+    """
     return {
-        "current_level": level,
-        "current_count": count,
-        "next_level_target": get_next_level_target(level),
-        "qualified_dates": qualified_dates,
-        "unlocked_at": unlocked_at,
+        "current_level": 0,
+        "current_count": 0,
+        "next_level_target": LEVELS[0]["days"],
+        "qualified_dates": [],
+        "unlocked_at": {},
         "daily_deficit": daily_deficit,
-        "last_calculated": qualified_dates[-1] if qualified_dates else None,
+        "last_calculated": None,
         "backfilled": True,
     }
 
