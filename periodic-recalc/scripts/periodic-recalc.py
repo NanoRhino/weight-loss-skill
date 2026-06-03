@@ -408,6 +408,8 @@ def main():
         "new_calories": new_calories,
         "old_tdee": old_tdee,
         "new_tdee": new_tdee,
+        "old_rate": plan_data.get('weekly_rate', None),
+        "new_rate": new_calc['rate_kg_per_week'],
         "current_weight": current_weight,
         "previous_weight": previous_weight,
         "weight_change": weight_change,
@@ -417,7 +419,6 @@ def main():
             "carbs_g": [round(macros['carb']['min']), round(macros['carb']['max'])],
         },
         "floor_clamped": new_calc.get('floor_clamped', False),
-        "message_for_user": f"Congratulations! You've lost {abs(weight_change):.1f} kg! Your new plan: {new_calories:,} kcal/day (from {old_calories:,}). TDEE: {new_tdee:,} (from {old_tdee:,})."
     }
 
     if args.dry_run:
