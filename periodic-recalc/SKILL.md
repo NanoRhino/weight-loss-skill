@@ -47,10 +47,28 @@ The plan has been updated. Compose a "周期复盘 + 开启新周期" message fo
 
 **确认机制：** 消息末尾需要和用户确认新计划。用户不回复 = 默认同意，正常按新计划执行。用户回复有异议 → 根据用户诉求调整后重新更新 PLAN.md。
 
+**上下文传递：** cron 执行完成后，必须将本次复盘摘要写入 `{workspace}/data/last-recalc-summary.json`，格式：
+```json
+{
+  "date": "2026-06-02",
+  "cycle_number": 2,
+  "weight_from": 60.0,
+  "weight_to": 57.9,
+  "old_calories": 1290,
+  "new_calories": 1359,
+  "old_rate": 0.44,
+  "new_rate": 0.35,
+  "awaiting_confirmation": true,
+  "message_sent": "（发给用户的完整消息文本）"
+}
+```
+这样用户回复时，main session 的 agent 能读到这个文件理解上下文（如用户说"保持之前的速度"→ agent 知道是指 old_rate 0.44）。用户确认或 3 天无回复后，将 `awaiting_confirmation` 设为 `false`。
+
 **核心原则：**
 - 相信热量守恒，不盲信打卡数据。进度不对 = 实际摄入有偏差，但表达要有人情味
 - 前周期总结和新周期安排要有明确区分，让用户感觉到翻篇进入新阶段
 - 像朋友聊天，不像发通知。少用"因此""所以""根据"，多用口语化表达
+- **语言：用中文回复**（读 USER.md 确认用户语言）
 
 **Tone:** 像一个懂你的私人教练在跟你聊阶段复盘——开心的事大声说，需要改进的地方轻轻提，整体让人有动力继续。
 
@@ -137,3 +155,12 @@ Output: "It's time for your 4-week plan recalculation! Please weigh yourself whe
 (pending-recalc.json is written)
 
 Two days later, user logs weight → check-pending-recalc detects flag → full recalc runs → pending-recalc.json is deleted.
+
+## User Reply Handling (Main Session)
+
+When user replies to the periodic-recalc message (in main session), check `data/last-recalc-summary.json`:
+
+If `awaiting_confirmation: true`:
+- User says OK/没问题/可以 → set `awaiting_confirmation: false`, confirm plan is active
+- User wants adjustment (e.g., "保持之前的速度", "热量再低一点", "我想快点减") → read the summary to understand context, use `planner-calc.py` to recalculate with adjusted params, update PLAN.md, update `last-recalc-summary.json`, confirm to user
+- User doesn't reply for 3 days → treat as confirmed, set `awaiting_confirmation: false` (handled by next cron check or heartbeat)
