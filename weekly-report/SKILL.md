@@ -162,8 +162,6 @@ For style examples: `read references/hook-examples.md`
 
 Username auto-resolved from workspace path. Do NOT pass `--username` manually.
 
-⚠️ Do NOT use `jdcloud-oss-upload` skill. Use `generate-report-html.py` internal upload.
-
 ---
 
 ## Writes

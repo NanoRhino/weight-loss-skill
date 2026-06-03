@@ -2,11 +2,10 @@
 #
 # generate-and-send.sh — Convert Markdown to styled HTML and upload to cloud storage
 #
-# Generates HTML, uploads to S3/OSS, writes plan-url.json, outputs public URL.
+# Generates HTML, uploads to S3, writes plan-url.json, outputs public URL.
 # The agent is responsible for sending the URL to the user via the message tool.
 #
-# --bucket is optional: upload-to-s3.sh defaults to nanorhino-im-plans (AWS)
-# or JD_OSS_BUCKET env var (JD Cloud OSS).
+# --bucket is optional: upload-to-s3.sh defaults to nanorhino-im-plans.
 #
 # Usage:
 #   # Weight loss plan (default template):

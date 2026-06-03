@@ -36,23 +36,14 @@ When called by another skill, **always check channel first**. If the channel doe
 
 ## Primary Mode: HTML + Cloud Storage Presigned URL
 
-### Storage Backend (Auto-Detected)
+### Storage Backend (AWS S3)
 
-The upload script automatically detects the storage backend:
+Uploads go to AWS S3 only.
 
-1. **`PLAN_STORAGE_BACKEND`** env var (`aws` or `jdoss`) — force a specific backend
-2. **`JD_OSS_ACCESS_KEY`** is set → JD Cloud OSS
-3. **`aws sts get-caller-identity`** succeeds → AWS S3
-4. None detected → error
-
-**AWS S3 prerequisites:**
+**Prerequisites:**
 - S3 bucket with 30-day lifecycle rule (auto-deletion)
-- AWS CLI credentials with `s3:PutObject` + `s3:GetObject` permission
+- AWS CLI credentials via standard mechanisms (IAM role, env vars `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, or `~/.aws/credentials`) with `s3:PutObject` + `s3:GetObject` permission
 - Default bucket: `nanorhino-im-plans` (us-west-1)
-
-**JD Cloud OSS prerequisites:**
-- Environment variables: `JD_OSS_ACCESS_KEY`, `JD_OSS_SECRET_KEY`, `JD_OSS_ENDPOINT`
-- Default bucket: `JD_OSS_BUCKET` env var, or override with `--bucket`
 
 ### How to Use
 
@@ -83,7 +74,7 @@ URL=$(bash {baseDir}/scripts/generate-and-send.sh \
 Parameters:
 - `--agent` (required): Your agent ID (e.g., `007-zhuoran`)
 - `--input` (required): Path to the Markdown file
-- `--bucket` (required for HTML mode): Storage bucket name. For JD OSS, falls back to `JD_OSS_BUCKET` env var if omitted. For AWS, defaults to `nanorhino-im-plans`.
+- `--bucket` (optional): Storage bucket name. Defaults to `nanorhino-im-plans`.
 - `--workspace` (required): Agent workspace path. Used to write `plan-url.json` and to **auto-resolve the username** for the S3 key path (workspace dir → agentId → `agent-registry.json` shortId). No need to pass `--username` manually.
 - `--template` (optional): `meal-plan` for meal plan HTML. Omit for default (weight loss plan).
 - `--key` (required for HTML mode): Document key, used in both S3 path and `plan-url.json` (e.g., `weight-loss-plan`, `meal-plan`)
