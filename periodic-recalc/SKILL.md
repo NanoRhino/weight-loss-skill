@@ -161,7 +161,7 @@ Two days later, user logs weight → check-pending-recalc detects flag → full 
 When user replies to the periodic-recalc message (in main session), check `data/last-recalc-summary.json`:
 
 If `awaiting_confirmation: true`:
-- User says OK/没问题/可以 → set `awaiting_confirmation: false`, confirm plan is active
+- User says OK/没问题/可以/按这个来 → **只需要**将 `last-recalc-summary.json` 中 `awaiting_confirmation` 设为 `false`，不需要改 PLAN.md（cron 执行时已经写好了）
 - User wants adjustment → read the summary to understand context, recalculate, update PLAN.md, confirm to user
 - User doesn't reply for 3 days → treat as confirmed, set `awaiting_confirmation: false`
 
