@@ -154,8 +154,8 @@ Called by `diet-tracking-analysis` after `meal_checkin` returns with `action: "c
 2. If level_up == true AND badge_image exists:
    → Append badge celebration text after normal reply
    → Send badge image via MEDIA: directive
-3. If level_up == true AND badge_image is null (no template yet):
-   → Append text-only celebration (use new_badge.message)
+3. If level_up == true AND badge_image is null/empty:
+   → Say nothing (silent skip — do NOT fall back to text)
 4. If qualified_today == true but no level_up:
    → Say nothing (silent accumulation)
 5. If qualified_today == false:
