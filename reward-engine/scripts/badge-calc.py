@@ -402,6 +402,78 @@ def backfill(workspace_dir: str, cal_range: tuple, bmr, expected_meals: int, dai
     }
 
 
+# Agent registry paths to search for nickname
+_AGENT_REGISTRY_CANDIDATES = [
+    Path("/home/admin/.openclaw/extensions/wechat/agent-registry.json"),
+]
+
+
+def _resolve_nickname(workspace_dir: str) -> str:
+    """
+    Resolve user nickname with fallback chain:
+    1. agent-registry.json (match by account ID from workspace path)
+    2. USER.md in workspace (improved regex)
+    3. Fallback: "小犀牛"
+    """
+    fallback = "小犀牛"
+
+    # --- Try 1: agent-registry.json ---
+    try:
+        # Extract account-like IDs from workspace_dir path
+        # Path patterns: .openclaw-gateway/workspace-wechat-dm-{peerAccId}_{selfAccId}/
+        # or .openclaw-user-service/workspaces/{agentId}/ where agentId = peerAccId_selfAccId
+        ws_name = Path(workspace_dir).name
+        # Account IDs look like: acc8bOJDErKkNOUvDXxZx7I or accYcdSNiv4Jk6lYrnEH3uf
+        import re as _re
+        acc_ids = _re.findall(r'acc[A-Za-z0-9_-]+', ws_name)
+
+        if acc_ids:
+            for registry_path in _AGENT_REGISTRY_CANDIDATES:
+                if not registry_path.exists():
+                    continue
+                registry = json.loads(registry_path.read_text(encoding="utf-8"))
+                agents = registry.get("agents", registry)  # handle both root-level and nested
+                for acc_id in acc_ids:
+                    # Try exact and lowercase lookup
+                    for key_variant in [acc_id, acc_id.lower()]:
+                        agent_entry = agents.get(key_variant)
+                        if agent_entry:
+                            profile_name = None
+                            if isinstance(agent_entry, dict):
+                                profile_name = (
+                                    agent_entry.get("profile", {}).get("name")
+                                    or agent_entry.get("name")
+                                )
+                            if profile_name and profile_name.strip():
+                                return profile_name.strip()
+    except Exception:
+        pass  # Non-fatal, continue to next method
+
+    # --- Try 2: USER.md ---
+    try:
+        user_md = Path(workspace_dir) / "USER.md"
+        if user_md.exists():
+            file_content = user_md.read_text(encoding="utf-8")
+            # Match patterns like:
+            # - **Name:** xxx / - **Nickname:** xxx / 昵称：xxx / 称呼：xxx
+            # - What to call them: xxx / Name: xxx
+            nickname_patterns = [
+                r'\*{0,2}(?:Name|Nickname|昵称|称呼|名字|What to call them)\*{0,2}\s*[:：]\s*(.+)',
+            ]
+            for line in file_content.splitlines():
+                for pattern in nickname_patterns:
+                    m = _re.search(pattern, line, _re.IGNORECASE)
+                    if m:
+                        val = m.group(1).strip().strip("*").strip()
+                        if val and val != "（待采集）" and val != "（自动填充）":
+                            return val
+    except Exception:
+        pass  # Non-fatal
+
+    return fallback
+
+
+
 def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, current_count: int, badges: dict = None) -> str:
     """
     Generate badge card PNG using Pillow.
@@ -420,19 +492,9 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
         sys.stderr.write(f"No base badge image found at {base_img_path}\n")
         return None
 
-    # Read user nickname from USER.md
-    nickname = "\u5c0f\u7280\u725b"
-    user_md = Path(workspace_dir) / "USER.md"
-    if user_md.exists():
-        file_content = user_md.read_text(encoding="utf-8")
-        for line in file_content.splitlines():
-            if "nickname" in line.lower() or "\u6635\u79f0" in line or ("**name" in line.lower() and ":" in line):
-                parts = line.split(":", 1) if ":" in line else line.split("\uff1a", 1)
-                if len(parts) == 2:
-                    val = parts[1].strip().strip("*").strip()
-                    if val:
-                        nickname = val
-                        break
+    # Resolve user nickname (try agent registry first, then USER.md, then fallback)
+    nickname = _resolve_nickname(workspace_dir)
+
 
     # Calculate percentile for line2
     if badges is None:

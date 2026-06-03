@@ -362,19 +362,12 @@ python3 {reward-engine:baseDir}/scripts/badge-calc.py check \
 {new_badge.progress_bar}
 ```
 
-### Badge image generation (when level_up == true)
+### Badge image (when level_up == true)
 
-Generate the badge card image before sending celebration:
+Use the `badge_image` path returned by badge-calc.py directly:
+`MEDIA:{badge_image}`
 
-```bash
-node {reward-engine:baseDir}/scripts/generate-badge.js \
-  --data '{"tagline":"稳定的每一步，都算数","badge_name":"{new_badge.name}","data_pill":"{current_count}天达标 · 热量合理","subtitle":"认真照顾自己","username":"{nickname}","date":"{today_formatted}"}' \
-  --output /tmp/badge-{username}-{today}.png
-```
-
-Then send: `MEDIA:/tmp/badge-{username}-{today}.png`
-
-If generate-badge.js fails (e.g., Chrome unavailable), fall back to text-only celebration.
+If `badge_image` is null or empty, fall back to text-only celebration above.
 
 ### Placement
 
