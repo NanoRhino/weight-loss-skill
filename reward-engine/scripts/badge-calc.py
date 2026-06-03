@@ -151,8 +151,8 @@ def parse_plan(workspace_dir: str) -> dict:
 
     # Parse daily deficit
     deficit_patterns = [
-        r"Daily (?:Calorie )?Deficit[:\s]*~?(\d[,\d]*)",
-        r"每日[热量]*缺口[:\s：]*~?(\d[,\d]*)",
+        r"Daily (?:Calorie )?Deficit[:\s]*(?:~|约|大约|≈)?\s*(\d[,\d]*)",
+        r"每日[热量]*缺口[:\s：]*(?:~|约|大约|≈)?\s*(\d[,\d]*)",
     ]
     for pattern in deficit_patterns:
         match = re.search(pattern, content, re.IGNORECASE)
