@@ -162,5 +162,13 @@ When user replies to the periodic-recalc message (in main session), check `data/
 
 If `awaiting_confirmation: true`:
 - User says OK/没问题/可以 → set `awaiting_confirmation: false`, confirm plan is active
-- User wants adjustment (e.g., "保持之前的速度", "热量再低一点", "我想快点减") → read the summary to understand context, use `planner-calc.py` to recalculate with adjusted params, update PLAN.md, update `last-recalc-summary.json`, confirm to user
-- User doesn't reply for 3 days → treat as confirmed, set `awaiting_confirmation: false` (handled by next cron check or heartbeat)
+- User wants adjustment → read the summary to understand context, recalculate, update PLAN.md, confirm to user
+- User doesn't reply for 3 days → treat as confirmed, set `awaiting_confirmation: false`
+
+**⚠️ 关键语义映射：**
+- "之前的速度/之前的热量/上一周期的" → 指 `old_rate`、`old_calories`（即调整前、上一周期执行的方案）
+- "现在的/新的/这个方案" → 指 `new_rate`、`new_calories`（即刚提出的新方案）
+- "保持之前的速度" = 用户想沿用上一周期的减脂速度（old_rate），不接受减速。此时应按 old_rate 重算热量目标（会比 new_calories 低）
+- "保持现在的" = 用户同意新方案
+
+举例：summary 中 old_rate=0.44, new_rate=0.35。用户说"保持之前的速度" → 意思是继续每周 0.44kg，不要降到 0.35。此时用 planner-calc 以 rate=0.44 重新计算热量。
