@@ -487,6 +487,22 @@ Snack:
 >
 > 💡 建议把咱们的对话置顶，打卡的时候不用翻找～
 
+### 长输出投递规则（强制）
+
+Step 5 的食谱模板 + 每日打卡流程 + 重点提醒拼起来通常 ≥1000 字。**这种长内容必须用 message tool 主动发**，不能靠 final answer 自动投递。
+
+**原因**：OpenClaw outbound dispatcher 在单 turn 多段 final assistant text 时只发最后一段——前面长段会被丢弃（用户根本看不到食谱模板）。
+
+**做法**：
+1. 食谱模板 + 打卡流程组装成完整中文段
+2. 用 `message(action=send, target=<user>, message=<完整内容>)` 主动发
+3. 然后再调 mark-onboarding-done.py 脚本
+4. 最终 final answer 留 NO_REPLY 或一句简短确认（不重复 message tool 已发的内容）
+
+**不要**把食谱模板放在 final answer 里然后再调 tool——dispatcher 会丢前面那段，用户什么都收不到。
+
+---
+
 ### 静默标记完成
 
 呈现饮食模板和每日打卡流程后：
