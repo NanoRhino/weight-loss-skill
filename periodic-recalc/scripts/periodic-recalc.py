@@ -131,6 +131,15 @@ def parse_plan_md(plan_path: Path) -> dict:
         'bmi_standard': r'\*\*BMI Standard:\*\*\s*(\w+)',
     }
 
+    # Extract dates
+    for date_key, date_pattern in [
+        ('created', r'\*\*Created:\*\*\s*(\d{4}-\d{2}-\d{2})'),
+        ('updated', r'\*\*Updated:\*\*\s*(\d{4}-\d{2}-\d{2})'),
+    ]:
+        match = re.search(date_pattern, content)
+        if match:
+            result[date_key] = match.group(1)
+
     for key, pattern in patterns.items():
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
@@ -397,6 +406,31 @@ def main():
     }
 
     if not args.dry_run:
+        # Step 7a: Archive current cycle to plan-history.json before overwriting
+        history_path = Path(args.workspace) / 'data' / 'plan-history.json'
+        history = []
+        if history_path.exists():
+            try:
+                with open(history_path, 'r', encoding='utf-8') as f:
+                    history = json.load(f)
+            except (json.JSONDecodeError, IOError):
+                history = []
+
+        cycle_number = len(history) + 1
+        history.append({
+            "cycle": cycle_number,
+            "start_date": plan_data.get('updated', plan_data.get('created', '')),
+            "end_date": date.today().isoformat(),
+            "weight_start": previous_weight,
+            "weight_end": current_weight,
+            "calories": old_calories,
+            "tdee": old_tdee,
+            "rate": plan_data.get('weekly_rate', None),
+        })
+
+        with open(history_path, 'w', encoding='utf-8') as f:
+            json.dump(history, f, indent=2, ensure_ascii=False)
+
         update_plan_md(plan_md, plan_data, update_values, dry_run=False)
         # Delete pending-recalc.json if it exists
         delete_file(pending_json)
