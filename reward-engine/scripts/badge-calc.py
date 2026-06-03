@@ -116,15 +116,15 @@ def parse_plan(workspace_dir: str) -> dict:
 
     # Parse Daily Calorie Range (e.g., "Daily Calorie Range: 1200-1400" or "1,200 ~ 1,400")
     range_patterns = [
-        r"Daily Calorie Range[:\s]*(\d[,\d]*)\s*[-~]\s*(\d[,\d]*)",
-        r"每日热量范围[:\s：]*(\d[,\d]*)\s*[-~]\s*(\d[,\d]*)",
+        r"Daily Calorie Range[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~]\s*(\d[,，\d]*)",
+        r"每日热量范围[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~]\s*(\d[,，\d]*)",
     ]
 
     for pattern in range_patterns:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
-            low = int(match.group(1).replace(",", ""))
-            high = int(match.group(2).replace(",", ""))
+            low = int(match.group(1).replace(",", "").replace("，", ""))
+            high = int(match.group(2).replace(",", "").replace("，", ""))
             result["cal_range"] = (low, high)
             result["calorie_target"] = (low + high) // 2
             break
@@ -132,14 +132,14 @@ def parse_plan(workspace_dir: str) -> dict:
     # Fallback: single target value
     if result["calorie_target"] is None:
         target_patterns = [
-            r"每日热量目标[:\s：]*(\d[,\d]*)",
-            r"Daily Calories?[:\s]*~?(\d[,\d]*)",
-            r"Daily Calorie Budget[:\s]*(\d[,\d]*)",
+            r"每日热量目标[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:大卡|kcal|千卡)?",
+            r"Daily Calories?[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
+            r"Daily Calorie Budget[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
         ]
         for pattern in target_patterns:
             match = re.search(pattern, content, re.IGNORECASE)
             if match:
-                val = int(match.group(1).replace(",", ""))
+                val = int(match.group(1).replace(",", "").replace("，", ""))
                 if 800 <= val <= 3000:
                     result["calorie_target"] = val
                 break
@@ -157,7 +157,7 @@ def parse_plan(workspace_dir: str) -> dict:
     for pattern in deficit_patterns:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
-            result["daily_deficit"] = int(match.group(1).replace(",", ""))
+            result["daily_deficit"] = int(match.group(1).replace(",", "").replace("，", ""))
             break
 
     # Check for intermittent fasting / 2-meal pattern
