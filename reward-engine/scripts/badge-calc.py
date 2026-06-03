@@ -502,6 +502,7 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
         # Font: Noto Sans SC Regular, design spec 16px on 480x720 -> 32px on 960x1440
         font_size = 32
         font_candidates = [
+            Path(__file__).parent.parent / "assets/fonts/NotoSansSC-Regular.otf",
             Path.home() / ".local/share/fonts/NotoSansSC/NotoSansCJKsc-Regular.otf",
             Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
             Path("/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc"),
