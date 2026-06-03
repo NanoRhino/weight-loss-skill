@@ -342,32 +342,19 @@ python3 {reward-engine:baseDir}/scripts/badge-calc.py check \
 
 | Result | Action |
 |--------|--------|
-| `level_up == true` AND `badge_image` exists | Append badge celebration + send image via `MEDIA: {badge_image}` |
-| `level_up == true` AND `badge_image` is null | Append text celebration (see format below) |
+| `level_up == true` AND `badge_image` exists | Append badge celebration + send image via `MEDIA:{badge_image}` |
+| `level_up == true` AND `badge_image` is null/empty | Say nothing about badges (silent — do NOT fall back to text) |
 | `qualified_today == true`, no level-up | Say nothing (silent accumulation) |
 | `qualified_today == false` | Say nothing about badges |
 | `already_counted == true` | Say nothing (today already counted) |
 | `error` field present | Say nothing (e.g., no PLAN.md yet) |
-
-### Text celebration format (when no badge image)
-
-```
-🏅 恭喜解锁新徽章！
-
-【热量在握】{new_badge.name}
-
-📊 累计 {current_count} 天热量达标
-🧋 相当于拒绝了 {new_badge.milk_tea_cups} 杯全糖奶茶
-
-{new_badge.progress_bar}
-```
 
 ### Badge image (when level_up == true)
 
 Use the `badge_image` path returned by badge-calc.py directly:
 `MEDIA:{badge_image}`
 
-If `badge_image` is null or empty, fall back to text-only celebration above.
+If `badge_image` is null or empty, do NOT send any badge-related content. Silent skip.
 
 ### Placement
 
