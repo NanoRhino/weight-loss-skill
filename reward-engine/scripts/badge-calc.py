@@ -541,7 +541,10 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
 
         # Save
         filename = f"badge-{Path(workspace_dir).name}-{today}.png"
-        output_path = f"/tmp/{filename}"
+        # Save to workspace badges dir (persistent) instead of /tmp
+        badges_dir = Path(workspace_dir) / "data" / "badges"
+        badges_dir.mkdir(parents=True, exist_ok=True)
+        output_path = str(badges_dir / filename)
         img.save(output_path, "PNG")
         return output_path
 
