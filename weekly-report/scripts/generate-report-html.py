@@ -149,6 +149,9 @@ def main():
             log(f"  Raw input: {args.suggestions[:200]}")
 
     # Validate: warn if commentary/highlights/suggestions are empty
+    if not isinstance(commentary, dict):
+        log(f"WARNING: commentary is not a dict (got {type(commentary).__name__}), resetting to empty")
+        commentary = {}
     if not commentary or not any(commentary.values()):
         log("WARNING: commentary is empty — report will show without section analysis")
     if not highlights:
