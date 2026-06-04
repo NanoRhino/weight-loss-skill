@@ -30,7 +30,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 
 ## Balanced / Flexible Dieting (IIFYM)
 
-**Macro Split:** 25–35% protein / 35–45% carbs / 25–35% fat (default: 30/40/30)
+**Macro Split:** 25–35% protein / 35–45% carbs / 20–35% fat (default: 30/40/27.5)
 **Philosophy:** No food restrictions. Hit your calorie and macro targets, and the rest is up to you.
 **Best for:** Most users, especially beginners. Lowest barrier to adherence.
 
@@ -51,11 +51,11 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 
 ## High-Protein
 
-**Macro Split:** 35–45% protein / 25–35% carbs / 25–35% fat (default: 40/30/30)
+**Macro Split:** 35–45% protein / 25–35% carbs / 20–35% fat (default: 40/30/27.5)
 **Philosophy:** Prioritize protein to preserve muscle during a calorie deficit, increase satiety, and boost thermic effect of food.
 **Best for:** People who lift weights, active individuals, anyone who finds protein keeps them fuller longer.
 
-**Daily protein target:** 0.8–1.0g per lb of body weight. For a 200-lb person = 160–200g protein/day.
+**Daily protein target:** 1.4–1.8 g/kg of target weight (higher than other modes). For a 70 kg target = 98–126g protein/day.
 
 **Practical protein targets per meal:**
 | Calories/day | Protein/day | Per meal (3 meals) | Per meal (4 meals) |
@@ -140,7 +140,7 @@ Detailed specifications for each supported diet mode. The SKILL.md overview tabl
 
 ## Mediterranean
 
-**Macro Split:** 20–30% protein / 40–50% carbs / 25–35% fat (default: 25/45/30)
+**Macro Split:** 20–30% protein / 40–50% carbs / 20–35% fat (default: 25/45/27.5)
 **Philosophy:** Whole foods, healthy fats (olive oil), lean proteins (fish, poultry), abundant vegetables, whole grains. Inspired by traditional eating patterns of Mediterranean cultures.
 **Best for:** Users focused on heart health, those who enjoy cooking, people who want a "lifestyle" rather than a "diet."
 
