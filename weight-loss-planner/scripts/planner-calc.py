@@ -65,14 +65,14 @@ ACTIVITY_MULTIPLIERS = {
 # Diet mode → fat percentage range (low%, high%)
 DIET_MODE_FAT = {
     "usda":          (20, 35),
-    "balanced":      (25, 35),
-    "high_protein":  (25, 35),
+    "balanced":      (20, 35),
+    "high_protein":  (20, 35),
     "low_carb":      (40, 50),
     "keto":          (65, 75),
-    "mediterranean": (25, 35),
+    "mediterranean": (20, 35),
     "plant_based":   (20, 30),
-    "if_16_8":       (25, 35),  # defaults to balanced macro split
-    "if_5_2":        (25, 35),  # defaults to balanced macro split
+    "if_16_8":       (20, 35),  # defaults to balanced macro split
+    "if_5_2":        (20, 35),  # defaults to balanced macro split
 }
 
 # Rate recommendation table: (min_kg, max_kg) → (rate_low, rate_high, default)
@@ -186,15 +186,24 @@ def calc_calorie_target(tdee: int, rate_kg_per_week: float) -> dict:
 
 
 def calc_macro_targets(weight_kg: float, daily_cal: int,
-                       mode: str = "balanced", meals: int = 3) -> dict:
+                       mode: str = "balanced", meals: int = 3,
+                       target_weight_kg: float = None) -> dict:
     """Compute protein / fat / carb ranges for a given diet mode."""
     fat_lo_pct, fat_hi_pct = DIET_MODE_FAT.get(mode, (25, 35))
     fat_mid_pct = (fat_lo_pct + fat_hi_pct) / 2
 
-    # Protein: always body-weight-based
-    protein_lo = round(weight_kg * 1.2, 1)
-    protein_hi = round(weight_kg * 1.6, 1)
-    protein_mid = round(weight_kg * 1.4, 1)
+    # Protein: use target weight if provided, otherwise current weight
+    protein_weight = target_weight_kg if target_weight_kg is not None else weight_kg
+
+    # Mode-specific protein multipliers
+    if mode == "high_protein":
+        p_lo, p_mid, p_hi = 1.4, 1.6, 1.8
+    else:
+        p_lo, p_mid, p_hi = 1.2, 1.4, 1.6
+
+    protein_lo = round(protein_weight * p_lo, 1)
+    protein_hi = round(protein_weight * p_hi, 1)
+    protein_mid = round(protein_weight * p_mid, 1)
 
     # Fat
     fat_lo = round(daily_cal * fat_lo_pct / 100 / 9, 1)
@@ -269,7 +278,7 @@ def forward_calc(weight_kg: float, height_cm: float, age: int, sex: str,
     bmi_current = calc_bmi(weight_kg, height_cm)
     bmi_target = calc_bmi(target_weight_kg, height_cm)
 
-    macros = calc_macro_targets(weight_kg, daily_cal, mode, meals)
+    macros = calc_macro_targets(weight_kg, daily_cal, mode, meals, target_weight_kg)
 
     # Maintenance TDEE at goal weight
     maint_bmr = calc_bmr_mifflin(target_weight_kg, height_cm, age + math.ceil(weeks / 52), sex)
@@ -338,7 +347,7 @@ def reverse_calc(weight_kg: float, height_cm: float, age: int, sex: str,
     bmi_current = calc_bmi(weight_kg, height_cm)
     bmi_target = calc_bmi(target_weight_kg, height_cm)
 
-    macros = calc_macro_targets(weight_kg, max(daily_cal, floor), mode, meals)
+    macros = calc_macro_targets(weight_kg, max(daily_cal, floor), mode, meals, target_weight_kg)
 
     return {
         "bmi_current": bmi_current,
@@ -454,6 +463,7 @@ def main():
     p.add_argument("--mode", default="balanced",
                    choices=list(DIET_MODE_FAT.keys()))
     p.add_argument("--meals", type=int, default=3, choices=[2, 3])
+    p.add_argument("--target-weight", type=float, default=None, help="Target weight kg (for protein calc)")
 
     # --- safety-floor ---
     p = sub.add_parser("safety-floor", help="Compute calorie floor")
@@ -548,7 +558,8 @@ def main():
         result = calc_calorie_target(args.tdee, args.rate_kg)
 
     elif args.cmd == "macro-targets":
-        result = calc_macro_targets(args.weight, args.cal, args.mode, args.meals)
+        target_weight = getattr(args, 'target_weight', None)
+        result = calc_macro_targets(args.weight, args.cal, args.mode, args.meals, target_weight)
 
     elif args.cmd == "safety-floor":
         floor = calc_safety_floor(args.bmr)
