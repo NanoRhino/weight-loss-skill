@@ -237,6 +237,24 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 21 * * 0"
 ```
 
+### Periodic recalc (every 4 weeks Sunday, after weekly report)
+
+Every 4 weeks, recalculates the user's daily calorie target based on current weight and reviews diet mode fit. Fires after the weekly report (Sunday 21:30).
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Periodic recalc (4-week)" \
+  --message "Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated." \
+  --cron "30 21 * * 0" \
+  --exact
+```
+
+**Scheduling note:** Use `--exact` to ensure it fires at 21:30 (after weekly report at 21:00). The `0 */4` week cycle is NOT achievable in standard cron — instead, the script itself tracks the last recalc date in `pending-recalc.json` or `PLAN.md > Updated` field and skips execution if less than 25 days since last recalc.
+
+**Created at onboarding** (alongside meal/weight/weekly-report reminders).
+
+---
+
 ### Diet pattern detection (self-destructing, onboarding + 3 days)
 
 One-time diet pattern analysis. Created at onboarding, starts running 3 days after `Onboarding Completed` date (from `health-profile.md > Automation`). Cron time = dinner + 3h.
