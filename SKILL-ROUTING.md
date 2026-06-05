@@ -46,6 +46,49 @@ make the user repeat themselves.
 
 ---
 
+## Pause/Leave Execution (Global — ALL Skills)
+
+**After Welcome Back Check, before routing to any skill**, detect whether the user is expressing a pause/leave/vacation intent.
+
+### Trigger phrases (inclusive, not exhaustive)
+
+Direct: "暂停提醒"、"停一周"、"放假不打卡"、"pause reminders"
+Implicit: "退下吧"、"先不弄了"、"别烦我"、"过段时间再说"、"两周后再来"、"最近不想减肥"、"不用管我了"、"让我休息一阵"
+
+**Any message where the user clearly intends to stop receiving proactive contact for a period — regardless of whether they use the word "提醒" — triggers this rule.**
+
+### Required action
+
+When pause/leave intent is detected, you **MUST** call `leave-manager.py set` to write `data/leave.json`. Writing only to memory/short-term.json is **insufficient** — cron pre-send-check only reads `data/leave.json`.
+
+```bash
+python3 {notification-composer:baseDir}/scripts/leave-manager.py set \
+  --data-dir {workspaceDir}/data --tz-offset {tz_offset} \
+  --start YYYY-MM-DD --end YYYY-MM-DD --reason "用户原话摘要"
+```
+
+- `--start`: today
+- `--end`: user-specified return date (or today + stated duration). If ambiguous (e.g. "过段时间"), default to 14 days and tell user you'll check back then.
+- `--reason`: brief summary of user's words
+
+### Workflow
+
+1. Detect pause intent → read notification-manager SKILL if needed for exact command format
+2. Call `leave-manager.py set` with appropriate dates
+3. Confirm leave.json was created (check command exit code)
+4. Reply to user: 告知具体恢复日期 + "想提前恢复随时跟我说"
+5. Optionally also write to memory/short-term.json for LLM context (but this is secondary — system state in leave.json is what matters)
+
+⚠️ 写 memory ≠ 暂停提醒。**只有 leave-manager.py set 才能阻止 cron。**
+
+### What NOT to do
+
+- ❌ Only write to memory/short-term.json without calling leave-manager.py
+- ❌ Treat implicit pause requests differently from explicit ones — both require the same system operation
+- ❌ Skip this check because the user didn't say "提醒" or "暂停"
+
+---
+
 ## Priority Tiers
 
 Skills are organized into priority tiers. Higher-tier skills take precedence
