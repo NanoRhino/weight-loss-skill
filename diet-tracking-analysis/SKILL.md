@@ -151,7 +151,6 @@ Use `meal_checkin` results to compose your reply. No more tool calls needed — 
 > - Compose natural Chinese text following the ①②③ schema
 > - Handle `needs_clarification` as a casual hint
 > - Add `missing_meals` note if non-empty (tell user these were estimated)
-> - **🏅 Run badge-calc** (see Badge Check below) — EVERY successful meal, not just last meal
 >
 > Do not re-explain WHY the budget is what it is. Do not recompute numbers. Just use them.
 > Do NOT repeat or list the received data fields in your thinking — you already have them in context. Go straight to decisions: what tone, what suggestion, what to say.
@@ -318,40 +317,3 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 ### Photo Reference Object
 
 **`has_reference_object`** (returned by `meal_checkin`): `true` if photo contains a recognizable size reference (chopsticks, spoon, fork, fist, etc.), `false` if not, `null` if no photo was provided. Stored in meal log for downstream use by notification-composer.
-
----
-
-## 🏅 Badge Check (MANDATORY after every successful meal)
-
-**⚠️ DO NOT SKIP THIS STEP.** After composing your ①②③ reply, ALWAYS run badge-calc when `meal_checkin` returned `action: "create"` or `action: "append"`. Run it every time — the script is fast (< 100ms) and handles all conditions internally.
-
-### How to run
-
-```bash
-python3 {reward-engine:baseDir}/scripts/badge-calc.py check \
-  --workspace-dir {workspaceDir} \
-  --tz-offset {tz_offset}
-```
-
-### How to use the result
-
-| Result | Action |
-|--------|--------|
-| `level_up == true` AND `badge_image` exists | Send image via `MEDIA:{badge_image}` with enthusiastic celebration (2-3 sentences, hype them up! 疯狂夸夸！NO calorie/milk-tea math. IMPORTANT: days are CUMULATIVE not consecutive — say "累计X天" never "连续X天" or time-period like "两周/一个月", because 14 qualifying days might span months) |
-| `level_up == true` AND `badge_image` is null/empty | Say nothing about badges (silent — do NOT fall back to text) |
-| `qualified_today == true`, no level-up | Say nothing (silent accumulation) |
-| `qualified_today == false` | Say nothing about badges |
-| `already_counted == true` | Say nothing (today already counted) |
-| `error` field present | Say nothing (e.g., no PLAN.md yet) |
-
-### Badge image (when level_up == true)
-
-Use the `badge_image` path returned by badge-calc.py directly:
-`MEDIA:{badge_image}`
-
-If `badge_image` is null or empty, do NOT send any badge-related content. Silent skip.
-
-### Placement
-
-- Badge celebration goes AFTER your normal ①②③ reply, separated by a blank line
-- The `<!--diet_suggestion-->` tag still goes at the very end (after badge text)
