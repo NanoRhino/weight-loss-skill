@@ -68,7 +68,7 @@ python3 {notification-composer:baseDir}/scripts/leave-manager.py set \
 ```
 
 - `--start`: today
-- `--end`: user-specified return date (or today + stated duration). If ambiguous (e.g. "过段时间"), default to 14 days and tell user you'll check back then.
+- `--end`: user-specified return date (or today + stated duration). If ambiguous (e.g. "过段时间"), ask user: "要帮你先暂停一周提醒吗？" — wait for confirmation before calling leave-manager.py.
 - `--reason`: brief summary of user's words
 
 ### Workflow

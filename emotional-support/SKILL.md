@@ -303,7 +303,7 @@ python3 {notification-composer:baseDir}/scripts/leave-manager.py set \
 ```
 
 - `--start`: today
-- `--end`: user-specified return date, or today + 7 days if ambiguous
+- `--end`: user-specified return date. If ambiguous, ask user: "要帮你先暂停一周提醒吗？" — wait for confirmation before calling leave-manager.py
 - `--reason`: brief summary of user's words
 
 ### How to respond
