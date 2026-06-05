@@ -284,6 +284,43 @@ done poorly it feels hollow or patronizing.
 
 ---
 
+## Pause/Leave Detection (BEFORE emotional support)
+
+**Category 3 messages ("算了"、"不减了"、"不想弄了") may be emotional OR a genuine request to pause reminders.** Before starting emotional support, check:
+
+**If the user's message expresses a clear intent to stop receiving proactive contact for a period** — phrases like "退下吧"、"先不弄了"、"别烦我"、"过段时间再说"、"两周后再来"、"最近不想减肥"、"不用管我了"、"让我休息一阵"、"暂停提醒"、"停一周" — **you MUST call leave-manager.py set BEFORE or alongside your emotional response.**
+
+### Why this matters
+
+Writing to memory/short-term.json does NOT stop cron reminders. Only `data/leave.json` stops them. If you skip this, the user will keep getting reminders after saying they want to be left alone.
+
+### Required action
+
+```bash
+python3 {notification-composer:baseDir}/scripts/leave-manager.py set \
+  --data-dir {workspaceDir}/data --tz-offset {tz_offset} \
+  --start YYYY-MM-DD --end YYYY-MM-DD --reason "用户原话摘要"
+```
+
+- `--start`: today
+- `--end`: user-specified return date, or today + 7 days if ambiguous
+- `--reason`: brief summary of user's words
+
+### How to respond
+
+1. Call `leave-manager.py set` (system operation)
+2. Give a warm, brief emotional response (not full Category 3 deep-dive)
+3. Tell user the specific date you'll come back: "先帮你暂停一周，6月12号我再来找你"
+4. Add: "想提前恢复随时跟我说"
+
+### When NOT to trigger
+
+- User is venting but clearly wants to keep going ("算了……好吧明天继续")
+- User is in emotional distress and needs support, not system changes (crying, self-harm signals)
+- User already has active leave (check `leave-manager.py info` first if unsure)
+
+---
+
 ## Conversation Flow
 
 The flow below is not a rigid sequence. Real conversations loop, stall,
