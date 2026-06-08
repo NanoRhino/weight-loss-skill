@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Type:** Cron-triggered background task  
+**Type:** Inline post-weekly-report task  
 **Trigger:** Every 4 weeks on Sunday (after weekly-report)  
 **Owner:** periodic-recalc skill  
 **Dependencies:** weight-loss-planner, weight-tracking
@@ -11,7 +11,7 @@ Recalculates the user's daily calorie target based on their current weight every
 
 ## Trigger Conditions
 
-1. **Primary trigger:** Cron job (every 4 weeks Sunday, after weekly-report completes)
+1. **Primary trigger:** Called inline by weekly-report skill after sending the weekly report (Sunday)
 2. **Secondary trigger:** When weight-tracking logs a new weight AND `pending-recalc.json` exists with `reason="awaiting_weight"`
 
 ## When Cron Fires

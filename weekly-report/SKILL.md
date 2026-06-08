@@ -185,3 +185,23 @@ Exercise-tracking does NOT produce separate weekly summary when this skill gener
 - Single message, no back-and-forth
 - Chat message: scannable in under 10 seconds
 - Commentary per section: 2-4 sentences max
+
+---
+
+## Post-report: Periodic Recalc Check
+
+After successfully sending the weekly report (cron trigger only, not manual), run the periodic recalculation check:
+
+```bash
+python3 {periodic-recalc:baseDir}/scripts/periodic-recalc.py \
+  --workspace {workspaceDir} \
+  --planner-calc {weight-loss-planner:baseDir}/scripts/planner-calc.py
+```
+
+Based on output `action` field:
+- **`"skipped"`** — Less than 25 days since last recalc. Do nothing, end session.
+- **`"recalculated"`** — Plan updated. Follow the full message flow in `periodic-recalc/SKILL.md` "When Cron Fires → action: recalculated" section.
+- **`"awaiting_weight"`** — Follow `periodic-recalc/SKILL.md` "action: awaiting_weight" section.
+- **`"on_leave"`** — Follow `periodic-recalc/SKILL.md` "action: on_leave" section.
+
+This replaces a separate cron job — periodic-recalc runs inline after weekly-report to guarantee ordering.

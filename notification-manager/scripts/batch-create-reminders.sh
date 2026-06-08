@@ -256,6 +256,7 @@ if should_create_type "tips"; then
   queue_job "Weekly insight" "Run notification-composer for weekly-insight." "0 21 * * 4" tips
 fi
 
+
 TOTAL=${#QUEUED_NAMES[@]}
 if [[ $TOTAL -eq 0 ]]; then
   echo "No jobs to create."
