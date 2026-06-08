@@ -193,7 +193,7 @@ Exercise-tracking does NOT produce separate weekly summary when this skill gener
 After successfully sending the weekly report (cron trigger only, not manual), run the periodic recalculation check:
 
 ```bash
-python3 {periodic-recalc:baseDir}/scripts/periodic-recalc.py \
+python3 {baseDir}/../periodic-recalc/scripts/periodic-recalc.py \
   --workspace {workspaceDir} \
   --planner-calc {weight-loss-planner:baseDir}/scripts/planner-calc.py
 ```
