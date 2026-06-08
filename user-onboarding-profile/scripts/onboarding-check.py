@@ -48,9 +48,28 @@ def parse_md_field(content, field_name):
     return None
 
 
+def load_handoff(workspace_dir):
+    """Load handoff.json if present. Returns (structured_dict, source_str) or (None, None)."""
+    handoff_path = os.path.join(workspace_dir, "handoff.json")
+    if not os.path.isfile(handoff_path):
+        return None, None
+    try:
+        with open(handoff_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("structured", {}), data.get("source", "unknown")
+    except (json.JSONDecodeError, OSError):
+        return None, None
+
+
 def check_workspace(workspace_dir):
     user_md = read_file(os.path.join(workspace_dir, "USER.md"))
     health_md = read_file(os.path.join(workspace_dir, "health-profile.md"))
+
+    # Handoff detection — if health-profile.md is missing but handoff.json
+    # exists, use structured data from handoff as a fallback data source.
+    handoff_structured, handoff_source = load_handoff(workspace_dir)
+    handoff_detected = handoff_structured is not None
+    use_handoff_fallback = handoff_detected and not health_md
 
     # Onboarding Completed lives in health-profile.md > Automation
     onboarding_completed_val = parse_md_field(health_md, "Onboarding Completed")
@@ -76,6 +95,17 @@ def check_workspace(workspace_dir):
     target_weight = parse_md_field(health_md, "Target Weight")
     motivation = parse_md_field(health_md, "Core Motivation")
     activity_level = parse_md_field(health_md, "Activity Level")
+
+    # Handoff fallback: fill gaps from handoff.json structured data
+    if use_handoff_fallback and handoff_structured:
+        if not age and handoff_structured.get("age_years") is not None:
+            age = str(handoff_structured["age_years"])
+        if not sex and handoff_structured.get("sex") is not None:
+            sex = str(handoff_structured["sex"])
+        if not has_weight_data and handoff_structured.get("weight_kg") is not None:
+            has_weight_data = True  # weight exists in handoff data
+        if not activity_level and handoff_structured.get("activity_level") is not None:
+            activity_level = str(handoff_structured["activity_level"])
 
     # --- Post-profile states ---
     plan_md_path = os.path.join(workspace_dir, "PLAN.md")
@@ -156,13 +186,19 @@ def check_workspace(workspace_dir):
             filled_profile, len(profile_fields), ", ".join(missing_fields), next_round
         )
 
-    return {
+    result = {
         "onboarding_completed": False,
         "fields": fields,
         "skip_rounds": skip_rounds,
         "next_round": next_round,
         "summary": summary,
     }
+
+    if handoff_detected:
+        result["handoff_detected"] = True
+        result["handoff_source"] = handoff_source
+
+    return result
 
 
 if __name__ == "__main__":
