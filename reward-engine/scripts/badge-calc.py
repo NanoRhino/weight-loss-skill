@@ -70,6 +70,22 @@ PERCENTILE_LINE2 = {
     "10%": "迈出第一步就已经赢了，超过了10%的人",
 }
 
+PERCENTILE_LINE2_EN = {
+    "99%": "Incredible — faster than 99% of everyone!",
+    "95%": "Amazing pace — ahead of 95% of people",
+    "90%": "Flying ahead of 90% of people",
+    "85%": "Steady rhythm — ahead of 85%",
+    "80%": "Faster here than 80% of people",
+    "75%": "Quietly ahead of 75% already",
+    "70%": "Solid and steady — ahead of 70%",
+    "60%": "Your consistency beats 60% of people",
+    "50%": "Already ahead of half the pack",
+    "40%": "Moving forward daily — ahead of 40%",
+    "30%": "On your way — ahead of 30%",
+    "20%": "Slow start is fine — already past 20%",
+    "10%": "First step already wins — ahead of 10%",
+}
+
 
 
 # Level -> text color (RGBA) for line2
@@ -448,6 +464,21 @@ def _resolve_nickname(workspace_dir: str) -> str:
     return fallback
 
 
+def _resolve_locale(workspace_dir: str) -> str:
+    """Read Language from USER.md '## Locale & Timezone'. Return 'zh' or 'en'."""
+    try:
+        user_md = Path(workspace_dir) / "USER.md"
+        if user_md.exists():
+            content = user_md.read_text(encoding="utf-8")
+            import re as _re
+            m = _re.search(r'Language[:：]\s*\**\s*([A-Za-z\-]+)', content)
+            if m:
+                lang = m.group(1).lower()
+                return "zh" if lang.startswith("zh") else "en"
+    except Exception:
+        pass
+    return "zh"  # default Chinese
+
 
 def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, current_count: int, badges: dict = None) -> str:
     """
@@ -458,11 +489,15 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
     script_dir = Path(__file__).parent
     assets_dir = script_dir.parent / "assets"
 
-    # Determine base image (level-specific or fallback to level1)
+    # Determine base image (locale + level-specific, with fallbacks)
     level = new_badge.get("level", 1)
-    base_img_path = assets_dir / f"badge-base-level{level}.png"
+    locale = _resolve_locale(workspace_dir)
+    suffix = "-en" if locale == "en" else ""
+    base_img_path = assets_dir / f"badge-base-level{level}{suffix}.png"
     if not base_img_path.exists():
-        base_img_path = assets_dir / "badge-base-level1.png"
+        base_img_path = assets_dir / f"badge-base-level1{suffix}.png"
+    if not base_img_path.exists():
+        base_img_path = assets_dir / "badge-base-level1.png"  # final fallback: Chinese
     if not base_img_path.exists():
         sys.stderr.write(f"No base badge image found at {base_img_path}\n")
         return None
@@ -491,8 +526,12 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
             elapsed_days = level * 7
 
     percentile = calc_percentile(level, elapsed_days)
-    line2_base = PERCENTILE_LINE2.get(percentile, "\u5df2\u7ecf\u8dd1\u8d62\u4e86\u4e00\u534a\u7684\u4eba")
-    line2_text = f"\u201c{nickname}\uff0c{line2_base}\u201d"
+    if locale == "en":
+        line2_base = PERCENTILE_LINE2_EN.get(percentile, "Already ahead of half the pack")
+        line2_text = f'"{nickname}, {line2_base}"'
+    else:
+        line2_base = PERCENTILE_LINE2.get(percentile, "\u5df2\u7ecf\u8dd1\u8d62\u4e86\u4e00\u534a\u7684\u4eba")
+        line2_text = f"\u201c{nickname}\uff0c{line2_base}\u201d"
 
     # Render with Pillow
     try:
@@ -521,7 +560,7 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
 
         # Position: y=448 on 480x720 design -> y=896 on 960x1440; horizontally centered
         img_width = img.size[0]
-        y = 896
+        y = 955 if locale == "en" else 896
 
         # Measure text width; shrink font if too wide (keep single line)
         bbox = font.getbbox(line2_text)
