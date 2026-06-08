@@ -26,7 +26,7 @@ Daily cron job. Start date: `Onboarding Completed` + 3 days (from `health-profil
      --data-dir {workspaceDir}/data/meals \
      --current-mode <from health-profile.md > Diet Config > Diet Mode>
    ```
-   If result has `reason: "insufficient_data"` (< 3 days) → no output, cron preserved, retry tomorrow.
+   If result has `reason: "insufficient_data"` (< 3 days) → reply exactly `NO_REPLY` (suppresses delivery; do NOT emit a free-text explanation). Cron preserved, retry tomorrow.
 
 3. **Handle result**:
    - `has_pattern: true` → read `references/diet-pattern-response.md`, compose and send message to user. If user agrees to switch → update `health-profile.md > Diet Config > Diet Mode` and recalculate targets.
