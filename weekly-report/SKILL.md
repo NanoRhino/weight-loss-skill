@@ -190,7 +190,9 @@ Exercise-tracking does NOT produce separate weekly summary when this skill gener
 
 ## Post-report: Periodic Recalc Check
 
-After successfully sending the weekly report (cron trigger only, not manual), run the periodic recalculation check:
+After successfully sending the weekly report (cron trigger only, not manual), run the periodic recalculation check.
+
+**⚠️ 周报和周期复盘必须作为两条独立消息发送，不要合并成一条。** 先用 message tool 发送周报，确认发送成功后，再执行 periodic-recalc 并用 message tool 单独发送复盘消息。
 
 ```bash
 python3 {baseDir}/../periodic-recalc/scripts/periodic-recalc.py \
