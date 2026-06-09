@@ -543,7 +543,7 @@ def backfill(workspace_dir: str, cal_range: tuple, bmr, expected_meals: int, dai
 
 # Agent registry paths to search for nickname
 _AGENT_REGISTRY_CANDIDATES = [
-    Path("/home/admin/.openclaw/extensions/wechat/agent-registry.json"),
+    Path("/home/nanorhino/backend-service/.openclaw-gateway/extensions/wechat/agent-registry.json"),
 ]
 
 
