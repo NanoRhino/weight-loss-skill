@@ -175,7 +175,7 @@ def _llm_extract_targets(plan_content: str) -> dict:
     try:
         import boto3
     except ImportError:
-        log("WARNING: boto3 not available, falling back to regex")
+        print("[badge-calc] WARNING: boto3 not available, falling back to regex")
         return _regex_fallback(plan_content)
 
     prompt = """Extract the following nutritional targets from this health plan document. Return ONLY a JSON object with these fields (use null if not found):
@@ -221,7 +221,7 @@ Document:
                 result["expected_meals"] = data["expected_meals"]
             return result
     except Exception as e:
-        log(f"LLM extraction failed: {e}, falling back to regex")
+        print(f"[badge-calc] LLM extraction failed: {e}, falling back to regex")
 
     return _regex_fallback(plan_content)
 
@@ -464,18 +464,77 @@ def qualify_day(workspace_dir: str, date_str: str, cal_range: tuple, bmr, expect
 
 
 def backfill(workspace_dir: str, cal_range: tuple, bmr, expected_meals: int, daily_deficit: int) -> dict:
-    """Initialize badges for first run — start from zero, do not replay history.
+    """Backfill historical qualified days on first run.
 
-    Rationale: historical meals were logged under potentially different PLAN
-    calorie ranges, so retroactive qualification would be inaccurate.
-    Users accumulate from today onward.
+    Scans all past meals and counts days that meet badge criteria
+    (enough main meals + calories in range + above safety floor).
+    Sets current_level based on count but does NOT trigger celebration
+    messages — backfill is silent (补算不补发).
     """
+    import glob as _glob
+
+    meals_dir = Path(workspace_dir) / "data" / "meals"
+    qualified_dates = []
+
+    if meals_dir.exists():
+        cal_low, cal_high = cal_range
+        safety_floor = (bmr * 0.8) if bmr else 0
+
+        for meal_file in sorted(_glob.glob(str(meals_dir / "*.json"))):
+            date_str = Path(meal_file).stem  # e.g. "2026-06-04"
+            try:
+                data = json.loads(Path(meal_file).read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+
+            meals = data if isinstance(data, list) else data.get("meals", [])
+            if not meals:
+                continue
+
+            main_meal_names = {"breakfast", "lunch", "dinner", "meal_1", "meal_2", "meal_3"}
+            seen_meals = set()
+            total_cal = 0
+
+            for meal in meals:
+                if not isinstance(meal, dict):
+                    continue
+                meal_name = (meal.get("meal_type") or meal.get("meal_name")
+                             or meal.get("name") or meal.get("type", ""))
+                meal_name = meal_name.lower().strip() if meal_name else ""
+                calories = meal.get("calories", 0) or 0
+                if meal_name in main_meal_names:
+                    seen_meals.add(meal_name)
+                total_cal += calories
+
+            if len(seen_meals) < expected_meals:
+                continue
+            if not (cal_low <= total_cal <= cal_high):
+                continue
+            if safety_floor and total_cal < safety_floor:
+                continue
+
+            qualified_dates.append(date_str)
+
+    current_count = len(qualified_dates)
+    current_level = get_level_for_count(current_count)
+
+    # Set unlocked_at for each level achieved (use earliest possible date)
+    unlocked_at = {}
+    for lv in LEVELS:
+        if current_count >= lv["days"] and qualified_dates:
+            # The date when user reached this level = the Nth qualified date
+            idx = lv["days"] - 1
+            if idx < len(qualified_dates):
+                unlocked_at[str(lv["level"])] = qualified_dates[idx]
+
+    print(f"[badge-calc] backfill complete: {current_count} qualified days, level {current_level}")
+
     return {
-        "current_level": 0,
-        "current_count": 0,
-        "next_level_target": LEVELS[0]["days"],
-        "qualified_dates": [],
-        "unlocked_at": {},
+        "current_level": current_level,
+        "current_count": current_count,
+        "next_level_target": get_next_level_target(current_level),
+        "qualified_dates": qualified_dates,
+        "unlocked_at": unlocked_at,
         "daily_deficit": daily_deficit,
         "last_calculated": None,
         "backfilled": True,
