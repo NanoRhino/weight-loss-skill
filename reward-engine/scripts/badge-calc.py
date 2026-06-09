@@ -115,54 +115,144 @@ def get_local_date(tz_offset_minutes: int) -> str:
 
 
 def parse_plan(workspace_dir: str) -> dict:
-    """Parse PLAN.md for calorie target, BMR, deficit, and meal count."""
+    """Extract calorie target from PLAN.md using LLM with mtime-based caching."""
     plan_path = Path(workspace_dir) / "PLAN.md"
+    cache_path = Path(workspace_dir) / "data" / "targets-cache.json"
     result = {
         "calorie_target": None,
-        "cal_range": None,  # (low, high) from Daily Calorie Range
+        "cal_range": None,
         "bmr": None,
-        "daily_deficit": 300,  # default
-        "expected_meals": 3,   # default
+        "daily_deficit": 300,
+        "expected_meals": 3,
     }
 
     if not plan_path.exists():
         return result
 
+    plan_mtime = os.path.getmtime(plan_path)
+
+    # Check cache: if PLAN.md hasn't changed, use cached values
+    if cache_path.exists():
+        try:
+            cache = json.loads(cache_path.read_text(encoding="utf-8"))
+            if cache.get("plan_mtime") == plan_mtime:
+                result["calorie_target"] = cache.get("calorie_target")
+                result["cal_range"] = tuple(cache["cal_range"]) if cache.get("cal_range") else None
+                result["bmr"] = cache.get("bmr")
+                result["daily_deficit"] = cache.get("daily_deficit", 300)
+                result["expected_meals"] = cache.get("expected_meals", 3)
+                return result
+        except (json.JSONDecodeError, KeyError, TypeError):
+            pass  # cache corrupt, re-extract
+
+    # Cache miss or stale: call LLM to extract targets
     content = plan_path.read_text(encoding="utf-8")
-    # Strip markdown formatting (bold/italic) to normalize pattern matching
+    extracted = _llm_extract_targets(content)
+
+    if extracted:
+        result.update({k: v for k, v in extracted.items() if v is not None})
+
+    # Write cache
+    try:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_data = {
+            "plan_mtime": plan_mtime,
+            "calorie_target": result["calorie_target"],
+            "cal_range": list(result["cal_range"]) if result["cal_range"] else None,
+            "bmr": result["bmr"],
+            "daily_deficit": result["daily_deficit"],
+            "expected_meals": result["expected_meals"],
+        }
+        cache_path.write_text(json.dumps(cache_data, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass  # non-fatal
+
+    return result
+
+
+def _llm_extract_targets(plan_content: str) -> dict:
+    """Call Claude Haiku via Bedrock to extract calorie targets from PLAN.md text."""
+    try:
+        import boto3
+    except ImportError:
+        log("WARNING: boto3 not available, falling back to regex")
+        return _regex_fallback(plan_content)
+
+    prompt = """Extract the following nutritional targets from this health plan document. Return ONLY a JSON object with these fields (use null if not found):
+
+{
+  "calorie_range": [low, high] or null,
+  "calorie_target": single_number or null (use midpoint of range if range exists),
+  "bmr": number or null,
+  "daily_deficit": number or null,
+  "expected_meals": 2 or 3 (2 if intermittent fasting/16:8/两餐, otherwise 3)
+}
+
+Document:
+""" + plan_content[:3000]  # truncate to avoid token limits
+
+    try:
+        client = boto3.client("bedrock-runtime", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+        response = client.converse(
+            modelId="us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            messages=[{"role": "user", "content": [{"text": prompt}]}],
+            inferenceConfig={"maxTokens": 200, "temperature": 0},
+        )
+        text = response["output"]["message"]["content"][0]["text"]
+        # Extract JSON from response
+        json_match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+        if json_match:
+            data = json.loads(json_match.group())
+            result = {}
+            if data.get("calorie_range") and len(data["calorie_range"]) == 2:
+                low, high = int(data["calorie_range"][0]), int(data["calorie_range"][1])
+                if 800 <= low <= 3000 and 800 <= high <= 3000:
+                    result["cal_range"] = (low, high)
+                    result["calorie_target"] = (low + high) // 2
+            if data.get("calorie_target") and not result.get("calorie_target"):
+                val = int(data["calorie_target"])
+                if 800 <= val <= 3000:
+                    result["calorie_target"] = val
+            if data.get("bmr"):
+                result["bmr"] = int(data["bmr"])
+            if data.get("daily_deficit"):
+                result["daily_deficit"] = int(data["daily_deficit"])
+            if data.get("expected_meals") in (2, 3):
+                result["expected_meals"] = data["expected_meals"]
+            return result
+    except Exception as e:
+        log(f"LLM extraction failed: {e}, falling back to regex")
+
+    return _regex_fallback(plan_content)
+
+
+def _regex_fallback(content: str) -> dict:
+    """Fallback regex extraction when LLM is unavailable."""
     content = re.sub(r"\*{1,2}([^*]+)\*{1,2}", r"\1", content)
     content = content.replace("\u2013", "-").replace("\u2014", "-")
+    result = {}
 
-
-    # Parse Daily Calorie Range (e.g., "Daily Calorie Range: 1200-1400" or "1,200 ~ 1,400")
-    range_patterns = [
+    # Range patterns
+    for pattern in [
         r"Daily Calorie Range[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~]\s*(\d[,，\d]*)",
         r"每日热量范围[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~]\s*(\d[,，\d]*)",
         r"Calorie Range[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~–—]\s*(\d[,，\d]*)",
-        r"Range[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~–—]\s*(\d[,，\d]*)\s*(?:kcal|大卡)?",
-    ]
-
-    for pattern in range_patterns:
+    ]:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
             low = int(match.group(1).replace(",", "").replace("，", ""))
             high = int(match.group(2).replace(",", "").replace("，", ""))
-            result["cal_range"] = (low, high)
-            result["calorie_target"] = (low + high) // 2
+            if 800 <= low <= 3000 and 800 <= high <= 3000:
+                result["cal_range"] = (low, high)
+                result["calorie_target"] = (low + high) // 2
             break
 
-    # Fallback: single target value
-    if result["calorie_target"] is None:
-        target_patterns = [
+    # Single target
+    if not result.get("calorie_target"):
+        for pattern in [
             r"每日热量目标[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:大卡|kcal|千卡)?",
-            r"Daily Calories?[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
-            r"Daily Calorie Budget[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
-            r"Daily Calorie Target[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
-            r"Calories[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:kcal|大卡|千卡)",
-            r"Target[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:kcal|大卡|千卡)",
-            r"每日热量[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:大卡|kcal|千卡)?",
-        ]
-        for pattern in target_patterns:
+            r"Daily Calorie[s ]?(?:Target)?[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
+        ]:
             match = re.search(pattern, content, re.IGNORECASE)
             if match:
                 val = int(match.group(1).replace(",", "").replace("，", ""))
@@ -170,23 +260,12 @@ def parse_plan(workspace_dir: str) -> dict:
                     result["calorie_target"] = val
                 break
 
-    # Parse BMR
-    bmr_match = re.search(r"BMR[:\s]*(\d[,\d]*)", content, re.IGNORECASE)
+    # BMR
+    bmr_match = re.search(r"BMR[:\s]*(?:约|大约)?\s*(\d[,\d]*)", content, re.IGNORECASE)
     if bmr_match:
         result["bmr"] = int(bmr_match.group(1).replace(",", ""))
 
-    # Parse daily deficit
-    deficit_patterns = [
-        r"Daily (?:Calorie )?Deficit[:\s]*(?:~|约|大约|≈)?\s*(\d[,\d]*)",
-        r"每日[热量]*缺口[:\s：]*(?:~|约|大约|≈)?\s*(\d[,\d]*)",
-    ]
-    for pattern in deficit_patterns:
-        match = re.search(pattern, content, re.IGNORECASE)
-        if match:
-            result["daily_deficit"] = int(match.group(1).replace(",", "").replace("，", ""))
-            break
-
-    # Check for intermittent fasting / 2-meal pattern
+    # Expected meals
     if re.search(r"(16[:/]8|间歇断食|intermittent fasting|两餐|2\s*餐)", content, re.IGNORECASE):
         result["expected_meals"] = 2
 
