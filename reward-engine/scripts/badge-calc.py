@@ -129,11 +129,17 @@ def parse_plan(workspace_dir: str) -> dict:
         return result
 
     content = plan_path.read_text(encoding="utf-8")
+    # Strip markdown formatting (bold/italic) to normalize pattern matching
+    content = re.sub(r"\*{1,2}([^*]+)\*{1,2}", r"\1", content)
+    content = content.replace("\u2013", "-").replace("\u2014", "-")
+
 
     # Parse Daily Calorie Range (e.g., "Daily Calorie Range: 1200-1400" or "1,200 ~ 1,400")
     range_patterns = [
         r"Daily Calorie Range[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~]\s*(\d[,，\d]*)",
         r"每日热量范围[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~]\s*(\d[,，\d]*)",
+        r"Calorie Range[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~–—]\s*(\d[,，\d]*)",
+        r"Range[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*[-~–—]\s*(\d[,，\d]*)\s*(?:kcal|大卡)?",
     ]
 
     for pattern in range_patterns:
@@ -151,6 +157,10 @@ def parse_plan(workspace_dir: str) -> dict:
             r"每日热量目标[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:大卡|kcal|千卡)?",
             r"Daily Calories?[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
             r"Daily Calorie Budget[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
+            r"Daily Calorie Target[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)",
+            r"Calories[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:kcal|大卡|千卡)",
+            r"Target[:\s]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:kcal|大卡|千卡)",
+            r"每日热量[:\s：]*(?:~|约|大约|≈)?\s*(\d[,，\d]*)\s*(?:大卡|kcal|千卡)?",
         ]
         for pattern in target_patterns:
             match = re.search(pattern, content, re.IGNORECASE)
