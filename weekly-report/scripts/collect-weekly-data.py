@@ -20,7 +20,11 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timedelta, timezone
+
+import boto3
+from botocore.config import Config
 
 
 def log(msg):
@@ -231,7 +235,140 @@ def collect_habits(workspace_dir, start_date, end_date):
     return {"active": active, "daily_log": filtered_log, "graduated": data.get("graduated", [])}
 
 
+NUTRITION_TOOL_SCHEMA = {
+    "name": "nutrition_targets",
+    "description": "Extract nutrition targets from user health plan files",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "calories": {"type": "integer", "description": "Daily calorie target (single value)"},
+            "calories_max": {"type": "integer", "description": "Upper end of calorie range if explicitly stated as a range"},
+            "bmr": {"type": "integer", "description": "Basal metabolic rate"},
+            "protein_min": {"type": "number", "description": "Min daily protein in grams"},
+            "protein_max": {"type": "number", "description": "Max daily protein in grams"},
+            "carbs_min": {"type": "number", "description": "Min daily carbs in grams"},
+            "carbs_max": {"type": "number", "description": "Max daily carbs in grams"},
+            "fat_min": {"type": "number", "description": "Min daily fat in grams"},
+            "fat_max": {"type": "number", "description": "Max daily fat in grams"},
+            "target_weight": {"type": "number", "description": "Target weight in kg"},
+            "start_weight": {"type": "number", "description": "Starting weight in kg"},
+        },
+        "required": ["calories"]
+    }
+}
+
+
 def read_plan(workspace_dir):
+    """Extract nutrition targets from PLAN.md / health-profile.md using Claude Haiku.
+
+    Falls back to the regex-based extraction (_read_plan_regex) if the Bedrock call fails."""
+    plan_path = os.path.join(workspace_dir, "PLAN.md")
+    profile_path = os.path.join(workspace_dir, "health-profile.md")
+
+    plan_content = ""
+    if os.path.exists(plan_path):
+        try:
+            with open(plan_path) as f:
+                plan_content = f.read()
+        except IOError:
+            plan_content = ""
+
+    profile_content = ""
+    if os.path.exists(profile_path):
+        try:
+            with open(profile_path) as f:
+                profile_content = f.read()
+        except IOError:
+            profile_content = ""
+
+    # Nothing to extract from
+    if not plan_content and not profile_content:
+        return _read_plan_regex(workspace_dir)
+
+    try:
+        client = boto3.client(
+            "bedrock-runtime",
+            region_name="us-east-1",
+            config=Config(connect_timeout=10, read_timeout=10, retries={"max_attempts": 1}),
+        )
+
+        user_message = f"=== PLAN.md ===\n{plan_content}\n\n=== health-profile.md ===\n{profile_content}"
+
+        start_ms = time.time()
+        response = client.invoke_model(
+            modelId="us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            body=json.dumps({
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 1024,
+                "temperature": 0,
+                "system": "Extract nutrition targets from the user's health plan files. Use the tool to return results. For any field not found, omit it. Do not guess or fabricate values.",
+                "tools": [NUTRITION_TOOL_SCHEMA],
+                "tool_choice": {"type": "any"},
+                "messages": [{"role": "user", "content": user_message}],
+            }),
+        )
+        latency_ms = round((time.time() - start_ms) * 1000)
+
+        body = json.loads(response["body"].read())
+        tool_input = None
+        for block in body.get("content", []):
+            if block.get("type") == "tool_use":
+                tool_input = block.get("input", {})
+                break
+
+        if tool_input is None:
+            raise ValueError("No tool_use block in Haiku response")
+
+        plan = _haiku_to_plan(tool_input)
+        log(f"Haiku nutrition extraction: calories={tool_input.get('calories')}, "
+            f"cal_min={plan.get('cal_min')}, latency={latency_ms}ms")
+
+        plan = _fill_macro_defaults(workspace_dir, plan)
+        return plan if plan else None
+    except Exception as e:
+        log(f"WARNING: Haiku nutrition extraction failed: {e}, falling back to regex")
+        return _read_plan_regex(workspace_dir)
+
+
+def _haiku_to_plan(t):
+    """Convert Haiku tool_use output to the internal `plan` dict format."""
+    plan = {}
+
+    calories = t.get("calories")
+    calories_max = t.get("calories_max")
+    if calories is not None:
+        calories = int(calories)
+        if calories_max is not None:
+            plan["cal_min"] = [calories, int(calories_max)]
+        else:
+            plan["cal_min"] = [round(calories * 0.9), round(calories * 1.1)]
+
+    protein_min = t.get("protein_min")
+    protein_max = t.get("protein_max")
+    if protein_min is not None and protein_max is not None:
+        plan["protein_range"] = [round(protein_min), round(protein_max)]
+
+    fat_min = t.get("fat_min")
+    fat_max = t.get("fat_max")
+    if fat_min is not None and fat_max is not None:
+        plan["fat_range"] = [round(fat_min), round(fat_max)]
+
+    carbs_min = t.get("carbs_min")
+    carbs_max = t.get("carbs_max")
+    if carbs_min is not None and carbs_max is not None:
+        plan["carb_range"] = [round(carbs_min), round(carbs_max)]
+
+    if t.get("bmr") is not None:
+        plan["bmr"] = int(t["bmr"])
+    if t.get("target_weight") is not None:
+        plan["target_weight"] = float(t["target_weight"])
+    if t.get("start_weight") is not None:
+        plan["start_weight"] = float(t["start_weight"])
+
+    return plan
+
+
+def _read_plan_regex(workspace_dir):
     """Read PLAN.md and extract key fields. Falls back to health-profile.md for reasonable defaults."""
     plan_path = os.path.join(workspace_dir, "PLAN.md")
     plan = None
