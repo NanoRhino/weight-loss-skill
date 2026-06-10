@@ -145,6 +145,9 @@ STRINGS = {
                   "dinner": "Dinner", "meal_1": "Meal 1", "meal_2": "Meal 2"},
         "of_day": "{pct}% of your day",
         "sec_sample": "Sample Day",
+        "meal_col": "Meal",
+        "recommend_col": "Suggested",
+        "protein_col": "Protein",
         "snack_label": "Snacks",
         "sample_breakfast": [
             "Greek yogurt + berries + granola — ~30g protein",
@@ -257,6 +260,9 @@ STRINGS = {
                   "dinner": "晚餐", "meal_1": "第一餐", "meal_2": "第二餐"},
         "of_day": "占全天 {pct}%",
         "sec_sample": "一日三餐示例",
+        "meal_col": "餐次",
+        "recommend_col": "推荐搭配",
+        "protein_col": "蛋白质",
         "snack_label": "加餐",
         "sample_breakfast": [
             "鸡蛋 2 个 + 无糖豆浆 + 全麦面包——约 25g 蛋白质",
