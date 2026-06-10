@@ -4,18 +4,19 @@
 
   Rendered by plan-card/scripts/plan-to-image.py via Python string.Template
   (dollar-prefixed placeholders). WeasyPrint converts it to a single
-  fixed-size PDF page (1080 x 2520 CSS px), which is then rasterized to PNG.
+  fixed-size PDF page (1080 x 2760 CSS px), which is then rasterized to PNG.
 
   Card content (approved layout, in order):
     1. Brand header + date
     2. Title + profile stats line
     3. Hero: SINGLE daily calorie target
     4. Plan tiles: daily deficit + weekly pace
-    5. Daily macros: protein (emphasized, with floor) / fat / carbs
+    5. Daily macros as RANGES: protein (emphasized, with floor) / fat / carbs
     6. Daily rhythm: per-meal calorie split (30/40/30 via planner-calc)
-    7. Focus this week: rule-based personalized recommendations
+    7. Sample day: concrete meal examples per slot + plate formula
+       (derived from references/meal-templates.md, rule-based selection)
     8. Timeline: goal month tile, or goal-weight unlock box
-    9. Week 1 checkpoints: SMS coaching cadence preview
+    9. Your first week: merged SMS cadence checkpoints + personalized items
    10. Footer
 
   Note: the macros/rhythm/focus/checkpoints blocks are CARD-ONLY richness
@@ -37,7 +38,7 @@
 <meta charset="utf-8">
 <style>
 @page {
-    size: 1080px 2520px;
+    size: 1080px 2760px;
     margin: 0;
 }
 
@@ -49,7 +50,7 @@
 
 html, body {
     width: 1080px;
-    height: 2520px;
+    height: 2760px;
 }
 
 body {
@@ -63,7 +64,7 @@ body {
 
 .card {
     width: 1080px;
-    height: 2520px;
+    height: 2760px;
     padding: 48px 72px 44px 72px;
 }
 
@@ -235,7 +236,7 @@ body {
 
 .macro-value {
     margin-top: 10px;
-    font-size: 52px;
+    font-size: 42px;
     font-weight: 800;
     color: #ffffff;
 }
@@ -291,27 +292,44 @@ body {
     color: #8b97b3;
 }
 
-/* ── Focus this week ── */
-.focus {
+/* ── Sample day ── */
+.sample {
     margin-top: 16px;
     background: rgba(52, 211, 153, 0.07);
     border: 2px solid rgba(52, 211, 153, 0.30);
     border-radius: 24px;
-    padding: 24px 36px;
+    padding: 26px 36px 22px 36px;
 }
 
-.focus-item {
-    padding-left: 52px;
-    text-indent: -52px;
-    font-size: 29px;
+.meal-line {
+    padding-left: 168px;
+    text-indent: -168px;
+    font-size: 26px;
     font-weight: 600;
     color: #e7ecf7;
-    line-height: 1.65;
+    line-height: 1.75;
 }
 
-.focus-item .arrow {
+.meal-tag {
+    display: inline-block;
+    width: 148px;
+    margin-right: 20px;
+    text-indent: 0;
+    font-size: 23px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
     color: #34d399;
-    font-weight: 800;
+}
+
+.sample-formula {
+    margin-top: 14px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(52, 211, 153, 0.25);
+    font-size: 25px;
+    font-style: italic;
+    color: #9fb0cc;
+    line-height: 1.5;
 }
 
 /* ── Timeline: goal date tile or unlock box ── */
@@ -367,7 +385,7 @@ body {
     color: #e5d5a8;
 }
 
-/* ── Week 1 checkpoints ── */
+/* ── Your first week ── */
 .checkpoints {
     margin-top: 16px;
     background: rgba(255, 255, 255, 0.04);
@@ -387,6 +405,11 @@ body {
 
 .checkpoint .icon {
     font-size: 30px;
+}
+
+.checkpoint .icon.arrow,
+.checkpoint span.icon:empty {
+    color: #34d399;
 }
 
 /* ── Footer ── */
@@ -488,17 +511,17 @@ body {
         </tr>
     </table>
 
-    <div class="section-label">$sec_focus</div>
-    <div class="focus">
-        $focus_html
+    <div class="section-label">$sec_sample</div>
+    <div class="sample">
+        $sample_html
     </div>
 
     <div class="section-label">$timeline_section_label</div>
     $timeline_html
 
-    <div class="section-label">$sec_checkpoints</div>
+    <div class="section-label">$sec_first_week</div>
     <div class="checkpoints">
-        $checkpoints_html
+        $first_week_html
     </div>
 
     <div class="footer">

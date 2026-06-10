@@ -113,10 +113,9 @@ STRINGS = {
         "sec_plan": "Your Plan",
         "sec_macros": "Daily Macros",
         "sec_rhythm": "Daily Rhythm",
-        "sec_focus": "Focus This Week",
         "sec_timeline": "Your Timeline",
         "sec_focus_alt": "Your Focus",
-        "sec_checkpoints": "Week 1 Checkpoints",
+        "sec_first_week": "Your First Week",
         "tile_approx": "~{v} {cu}",
         "deficit": "Daily Deficit",
         "below_burn": "Below what you burn",
@@ -140,9 +139,21 @@ STRINGS = {
         "fat": "Fat",
         "carbs": "Carbs",
         "floor": "floor {g}g",
+        "target_note": "target ~{g}g",
         "meals": {"breakfast": "Breakfast", "lunch": "Lunch",
                   "dinner": "Dinner", "meal_1": "Meal 1", "meal_2": "Meal 2"},
         "of_day": "{pct}% of your day",
+        "sec_sample": "Sample Day",
+        "snack_label": "Snacks",
+        "sample_breakfast": [
+            "Greek yogurt + berries + granola — ~30g protein",
+            "3 eggs + turkey sausage + toast — ~35g protein",
+            "Whey smoothie with banana + oats — ~40g protein",
+        ],
+        "sample_lunch": "Chicken breast + rice + broccoli — ~40g protein",
+        "sample_dinner": "Salmon or lean beef + sweet potato — ~35g protein",
+        "sample_snacks": "Greek yogurt (20g) · cottage cheese (14g) · egg (6g)",
+        "sample_formula": "The pattern: protein (6 oz) + complex carb (1 cup) + vegetables (unlimited) + fat (1 tbsp)",
         "goal_reached": "Goal Reached",
         "weeks_from": "~{w} weeks from today",
         "unlock_title": "Reply with your goal weight<br>to unlock your completion date",
@@ -152,7 +163,6 @@ STRINGS = {
         "focus_walk": "Add a 10-minute walk after lunch and dinner",
         "focus_strength": "Add 2 short strength sessions — muscle protects your burn",
         "focus_sleep": "Protect your sleep — 7+ hours makes results come easier",
-        "focus_protein": "A palm-sized portion of protein at every meal",
         "focus_water": "Water first: 2 liters a day — thirst often reads as hunger",
         "cp_photo": "Log every meal — just text me a photo",
         "cp_weigh": "Weigh in Wednesday & Saturday morning",
@@ -215,10 +225,9 @@ STRINGS = {
         "sec_plan": "你的计划",
         "sec_macros": "每日宏量营养",
         "sec_rhythm": "三餐节奏",
-        "sec_focus": "本周重点",
         "sec_timeline": "你的时间线",
         "sec_focus_alt": "你的重点",
-        "sec_checkpoints": "第 1 周打卡任务",
+        "sec_first_week": "你的第一周",
         "tile_approx": "约 {v} {cu}",
         "deficit": "每日热量缺口",
         "below_burn": "低于你每天的消耗",
@@ -242,9 +251,20 @@ STRINGS = {
         "fat": "脂肪",
         "carbs": "碳水",
         "floor": "下限 {g}g",
+        "target_note": "目标约 {g}g",
         "meals": {"breakfast": "早餐", "lunch": "午餐",
                   "dinner": "晚餐", "meal_1": "第一餐", "meal_2": "第二餐"},
         "of_day": "占全天 {pct}%",
+        "sec_sample": "一日三餐示例",
+        "snack_label": "加餐",
+        "sample_breakfast": [
+            "鸡蛋 2 个 + 无糖豆浆 + 全麦面包——约 25g 蛋白质",
+            "鸡蛋 3 个 + 牛奶 + 燕麦——约 30g 蛋白质",
+        ],
+        "sample_lunch": "鸡胸肉 150g + 米饭 1 碗 + 西兰花——约 40g 蛋白质",
+        "sample_dinner": "清蒸鱼或瘦牛肉 150g + 红薯 + 时蔬——约 35g 蛋白质",
+        "sample_snacks": "希腊酸奶（15–20g 蛋白质）· 茶叶蛋（每个约 6g）",
+        "sample_formula": "搭配公式：蛋白质 150g + 主食 1 碗 + 蔬菜不限量 + 油脂 1 勺",
         "goal_reached": "达成目标",
         "weeks_from": "距今约 {w} 周",
         "unlock_title": "回复你的目标体重<br>解锁预计完成日期",
@@ -254,7 +274,6 @@ STRINGS = {
         "focus_walk": "午餐和晚餐后各走 10 分钟",
         "focus_strength": "每周加 2 次简短力量训练——肌肉护住你的代谢",
         "focus_sleep": "睡够 7 小时以上——恢复好，效果来得更快",
-        "focus_protein": "每餐先吃一掌心大小的蛋白质",
         "focus_water": "先喝水：每天 2 升——口渴常被误以为是饿",
         "cp_photo": "记录每一餐——拍张照发给我就行",
         "cp_weigh": "周三、周六早晨称体重",
@@ -296,10 +315,9 @@ STRINGS = {
     },
 }
 
-# Week-1 checkpoint icons (texts come from STRINGS cp_* keys).
-# NOTE: emoji need a color emoji font on the render host (Apple Color Emoji
-# on macOS; install google-noto-emoji-color-fonts on EC2/Amazon Linux).
-CHECKPOINT_ICONS_KEYS = [("📸", "cp_photo"), ("⚖️", "cp_weigh"), ("🍗", "cp_protein")]
+# NOTE: the first-week emoji icons (📸 ⚖️ 🍗 in first_week_items) need a
+# color emoji font on the render host (Apple Color Emoji on macOS; install
+# google-noto-emoji-color-fonts on EC2/Amazon Linux).
 
 
 def resolve_lang(language_tag: str) -> str:
@@ -562,26 +580,28 @@ def finalize_plan(plan: dict, profile: dict, lang: str) -> dict:
         if goal is not None and plan["intent"] != "maintain":
             args += ["--target-weight", goal]
         plan["macros"] = run_planner(*args)
-    s = STRINGS[lang]
-    plan["focus"] = [s[key] for key in focus_keys(profile, plan["activity"])]
-    plan["checkpoints"] = [s[key] for _, key in CHECKPOINT_ICONS_KEYS]
+    plan["first_week"] = [text for _, text in
+                          first_week_items(profile, plan["activity"], lang)]
+    plan["sample_day"] = sample_day(plan, lang)
     return plan
 
 
-def focus_keys(profile: dict, activity: str) -> list:
-    """Deterministic, rule-based 'Focus this week' recommendation keys.
+def first_week_items(profile: dict, activity: str, lang: str) -> list:
+    """Merged 'Your First Week' block: SMS cadence checkpoints + the
+    rule-based personalized items, deduplicated, capped at 5.
 
-    Rules (first match for the movement slot, then fixed anchors — no LLM):
-      1. daily_steps < 5,000 OR resolved activity sedentary
-           → add a 10-minute walk after lunch and dinner (focus_walk)
-         resolved activity lightly/moderately active (steps OK, little
-         structured training)
-           → two short strength sessions (focus_strength)
-         very/extremely active
-           → protect sleep so recovery keeps up (focus_sleep)
-      2. Always: palm-sized protein portion every meal (focus_protein)
-      3. Hydration: water first, 2L a day (focus_water)
+    Items (icon, text), no LLM:
+      1. 📸 log every meal (text a photo)        — cadence
+      2. ⚖️ weigh in Wed & Sat morning           — cadence
+      3. 🍗 protein target at every meal          — cadence (this absorbs
+         the old 'palm-sized protein' focus anchor; deduplicated)
+      4. → movement slot (first match):
+           daily_steps < 5,000 OR sedentary → 10-min walks
+           lightly/moderately active        → 2 strength sessions
+           very/extremely active            → protect sleep
+      5. → hydration: water first, 2L a day
     """
+    s = STRINGS[lang]
     steps = profile.get("daily_steps")
     if (steps is not None and float(steps) < 5000) or activity == "sedentary":
         movement = "focus_walk"
@@ -589,7 +609,45 @@ def focus_keys(profile: dict, activity: str) -> list:
         movement = "focus_strength"
     else:
         movement = "focus_sleep"
-    return [movement, "focus_protein", "focus_water"]
+    return [
+        ("📸", s["cp_photo"]),
+        ("⚖️", s["cp_weigh"]),
+        ("🍗", s["cp_protein"]),
+        ("→", s[movement]),
+        ("→", s["focus_water"]),
+    ]
+
+
+def sample_day(plan: dict, lang: str) -> dict:
+    """Deterministic SAMPLE DAY selection from references/meal-templates.md.
+
+    Breakfast is picked by per-meal protein need (protein target ÷ 3,
+    per the reference's 25–40g-per-meal guidance); lunch/dinner/snacks
+    and the plate formula are the reference's best defaults. zh uses
+    Chinese-food equivalents with the same protein-forward structure
+    (metric portions, no literal translation of American items).
+
+      need < 32g  → option 0 (lighter breakfast)
+      32–37g      → option 1
+      ≥ 38g       → option 2 (highest-protein option; zh table has two
+                    tiers, so it clamps to the last option)
+    """
+    s = STRINGS[lang]
+    need = plan["macros"]["protein"]["target"] / 3
+    if need >= 38:
+        idx = 2
+    elif need >= 32:
+        idx = 1
+    else:
+        idx = 0
+    opts = s["sample_breakfast"]
+    return {
+        "breakfast": opts[min(idx, len(opts) - 1)],
+        "lunch": s["sample_lunch"],
+        "dinner": s["sample_dinner"],
+        "snacks": s["sample_snacks"],
+        "formula": s["sample_formula"],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -718,11 +776,18 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
     while len(rhythm) < 3:  # 2-meal plans: keep the grid balanced
         rhythm.append(("—", "—", "—"))
 
-    # Focus this week (already localized in plan["focus"]).
-    focus_html = "".join(
-        f'<div class="focus-item"><span class="arrow">→</span>&nbsp;&nbsp;{item}</div>'
-        for item in plan["focus"]
-    )
+    # Sample day (deterministic selection from references/meal-templates.md).
+    sd = plan["sample_day"]
+    meal_tags = [
+        (s["meals"]["breakfast"], sd["breakfast"]),
+        (s["meals"]["lunch"], sd["lunch"]),
+        (s["meals"]["dinner"], sd["dinner"]),
+        (s["snack_label"], sd["snacks"]),
+    ]
+    sample_html = "".join(
+        f'<div class="meal-line"><span class="meal-tag">{tag}</span>{text}</div>'
+        for tag, text in meal_tags
+    ) + f'<div class="sample-formula">{sd["formula"]}</div>' 
 
     # Timeline: single completion month, or the unlock prompt.
     if plan.get("estimated_completion"):
@@ -752,9 +817,12 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
             "</div>"
         )
 
-    checkpoints_html = "".join(
-        f'<div class="checkpoint"><span class="icon">{icon}</span>&nbsp;&nbsp;{s[key]}</div>'
-        for icon, key in CHECKPOINT_ICONS_KEYS
+    # Merged first-week block (cadence checkpoints + personalized items).
+    first_week_html = "".join(
+        f'<div class="checkpoint">'
+        f'<span class="icon{" arrow" if icon == "→" else ""}">{icon}</span>'
+        f'&nbsp;&nbsp;{text}</div>'
+        for icon, text in first_week_items(profile, plan["activity"], lang)
     )
 
     return {
@@ -767,8 +835,8 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
         "sec_plan": s["sec_plan"],
         "sec_macros": s["sec_macros"],
         "sec_rhythm": s["sec_rhythm"],
-        "sec_focus": s["sec_focus"],
-        "sec_checkpoints": s["sec_checkpoints"],
+        "sec_sample": s["sec_sample"],
+        "sec_first_week": s["sec_first_week"],
         "tile1_label": tiles[0][0],
         "tile1_value": tiles[0][1],
         "tile1_note": tiles[0][2],
@@ -776,21 +844,21 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
         "tile2_value": tiles[1][1],
         "tile2_note": tiles[1][2],
         "protein_label": s["protein"],
-        "protein_value": f"{round(protein['target'])}g",
+        "protein_value": f"{round(protein['min'])}–{round(protein['max'])}g",
         "protein_note": s["floor"].format(g=round(protein["min"])),
         "fat_label": s["fat"],
-        "fat_value": f"{round(fat['target'])}g",
-        "fat_note": f"{round(fat['min'])}–{round(fat['max'])}g",
+        "fat_value": f"{round(fat['min'])}–{round(fat['max'])}g",
+        "fat_note": s["target_note"].format(g=round(fat["target"])),
         "carb_label": s["carbs"],
-        "carb_value": f"{round(carb['target'])}g",
-        "carb_note": f"{round(carb['min'])}–{round(carb['max'])}g",
+        "carb_value": f"{round(carb['min'])}–{round(carb['max'])}g",
+        "carb_note": s["target_note"].format(g=round(carb["target"])),
         "meal1_name": rhythm[0][0], "meal1_value": rhythm[0][1], "meal1_note": rhythm[0][2],
         "meal2_name": rhythm[1][0], "meal2_value": rhythm[1][1], "meal2_note": rhythm[1][2],
         "meal3_name": rhythm[2][0], "meal3_value": rhythm[2][1], "meal3_note": rhythm[2][2],
-        "focus_html": focus_html,
+        "sample_html": sample_html,
         "timeline_section_label": timeline_label,
         "timeline_html": timeline_html,
-        "checkpoints_html": checkpoints_html,
+        "first_week_html": first_week_html,
         "footer_main": s["footer"],
     }
 
