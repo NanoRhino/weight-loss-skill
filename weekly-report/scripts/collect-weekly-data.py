@@ -608,9 +608,26 @@ def compute_summary(days, plan, weight_data):
     }
 
     # Step 2: for each logged day, estimate full-day intake by filling missing meals
-    # "Missing meal" = a standard meal type (breakfast/lunch/dinner) not present in the day's records
-    # or present but with 0 calories (meaning skipped/not logged)
-    standard_meals = {"breakfast", "lunch", "dinner"}
+    # Determine standard meals from user's actual pattern (not hardcoded 3 meals)
+    meals_per_day = plan.get("meals", 3) if plan else 3
+
+    # Count how many days each meal type appears
+    meal_type_frequency = {}  # {meal_type: number_of_days_it_appears}
+    for d in logged_days:
+        seen_types = set()
+        for meal in d.get("meals", []):
+            mt = meal.get("meal_type", "unknown")
+            if meal.get("cal", 0) > 0 and mt not in seen_types:
+                seen_types.add(mt)
+                meal_type_frequency[mt] = meal_type_frequency.get(mt, 0) + 1
+
+    # Take the top N meal types by frequency (N = meals_per_day), requiring >= 2 days
+    sorted_types = sorted(meal_type_frequency.items(), key=lambda x: -x[1])
+    standard_meals = {t for t, count in sorted_types[:meals_per_day] if count >= 2}
+
+    log(f"Meal estimation: meals_per_day={meals_per_day}, "
+        f"frequency={dict(sorted_types)}, standard_meals={standard_meals}")
+
     estimated_daily = []  # list of {protein, fat, carb, cal} per day
 
     for d in logged_days:
