@@ -59,6 +59,7 @@ color emoji font (google-noto-emoji-color-fonts) for the checkpoint icons.
 
 import argparse
 import json
+import re
 import string
 import subprocess
 import sys
@@ -765,29 +766,75 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
     macros = plan["macros"]
     protein, fat, carb = macros["protein"], macros["fat"], macros["carb"]
 
-    # Daily rhythm from planner-calc's canonical 30/40/30 allocation.
+    # Daily rhythm: solid color bars (inline-block for WeasyPrint compat).
     alloc = macros["allocation"]
+    bar_colors = ['#dc2353', '#f7b0c9', '#fbe7ec']
+    text_colors = ['#ffffff', '#ffffff', '#D73C63']
+    meal_names = {k: s["meals"].get(k, k) for k in ["breakfast", "lunch", "dinner"]}
+    rhythm_html = '<div class="rhythm-bar-wrap">'
+    for i, meal in enumerate(alloc[:3]):
+        pct, cal = meal['pct'], meal['cal']
+        name = meal_names.get(meal['meal'], meal['meal'])
+        width = int(pct * 7.5)
+        rhythm_html += (
+            f'<div class="rhythm-bar-item">'
+            f'<div class="rhythm-bar" style="width:{width}px; background:{bar_colors[i]}">'
+            f'<span style="color:{text_colors[i]}; font-size:28px; font-weight:800">{pct}%</span>'
+            f'</div>'
+            f'<div class="rhythm-bar-name">{name} · {cal} kcal</div>'
+            f'</div>'
+        )
+    rhythm_html += '</div>'
+
+    # Keep legacy vars for backward compat (unused by current template).
     rhythm = [
-        (s["meals"].get(a["meal"], a["meal"]),
+        (meal_names.get(a["meal"], a["meal"]),
          f"~{fmt_num(a['cal'])}",
          s["of_day"].format(pct=a["pct"]))
         for a in alloc
     ]
-    while len(rhythm) < 3:  # 2-meal plans: keep the grid balanced
+    while len(rhythm) < 3:
         rhythm.append(("—", "—", "—"))
 
-    # Sample day (deterministic selection from references/meal-templates.md).
+    # Sample day: table with protein column split out.
     sd = plan["sample_day"]
-    meal_tags = [
-        (s["meals"]["breakfast"], sd["breakfast"]),
-        (s["meals"]["lunch"], sd["lunch"]),
-        (s["meals"]["dinner"], sd["dinner"]),
-        (s["snack_label"], sd["snacks"]),
+    meal_config = [
+        ("breakfast", s["meals"]["breakfast"], True),
+        ("lunch", s["meals"]["lunch"], False),
+        ("dinner", s["meals"]["dinner"], True),
+        ("snacks", s["snack_label"], False),
     ]
-    sample_html = "".join(
-        f'<div class="meal-line"><span class="meal-tag">{tag}</span>{text}</div>'
-        for tag, text in meal_tags
-    ) + f'<div class="sample-formula">{sd["formula"]}</div>' 
+    header_cols = (s.get("meal_col", "餐次"), s.get("recommend_col", "推荐搭配"),
+                   s.get("protein_col", s["protein"]))
+    rows = ''
+    for key, name, is_pink in meal_config:
+        if key in sd:
+            text = sd[key]
+            # Split protein info from content
+            prot_text = ''
+            content_text = text
+            pm = re.search(r'[———-]+\s*(约?\s*\d+g?\s*蛋白质)', text)
+            if pm:
+                prot_text = pm.group(1)
+                content_text = text[:pm.start()].rstrip('——— -')
+            else:
+                pm2 = re.search(r'[（(]([^)）]*蛋白质[^)）]*)[)）]', text)
+                if pm2:
+                    prot_text = pm2.group(1)
+                    content_text = text[:pm2.start()].rstrip()
+            row_class = ' class="row-pink"' if is_pink else ''
+            rows += (
+                f'<tr{row_class}>'
+                f'<td class="meal-td-tag">{name}</td>'
+                f'<td class="meal-td-content">{content_text}</td>'
+                f'<td class="meal-td-protein">{prot_text}</td>'
+                f'</tr>'
+            )
+    sample_html = (
+        f'<table class="sample-table">'
+        f'<thead><tr><td>{header_cols[0]}</td><td>{header_cols[1]}</td><td>{header_cols[2]}</td></tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+    )
 
     # Timeline: single completion month, or the unlock prompt.
     if plan.get("estimated_completion"):
@@ -855,6 +902,7 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
         "meal1_name": rhythm[0][0], "meal1_value": rhythm[0][1], "meal1_note": rhythm[0][2],
         "meal2_name": rhythm[1][0], "meal2_value": rhythm[1][1], "meal2_note": rhythm[1][2],
         "meal3_name": rhythm[2][0], "meal3_value": rhythm[2][1], "meal3_note": rhythm[2][2],
+        "rhythm_html": rhythm_html,
         "sample_html": sample_html,
         "timeline_section_label": timeline_label,
         "timeline_html": timeline_html,
