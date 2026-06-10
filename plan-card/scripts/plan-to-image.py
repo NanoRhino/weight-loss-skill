@@ -15,9 +15,19 @@ user-onboarding-profile/SKILL.md ("Step 3：生成并确认减脂方案"):
   - a SINGLE daily calorie target (no band),
   - daily calorie deficit (~XXX),
   - weekly loss rate,
-  - a single completion month + year,
-  - NO macro split at the plan stage (macros come later, at diet-mode
-    selection).
+  - a single completion month + year.
+
+The CARD additionally shows daily macros, the per-meal calorie rhythm
+(30/40/30 via planner-calc's allocation), rule-based "Focus this week"
+recommendations, and Week-1 checkpoints — an explicitly approved override
+of the Step-3 "no macros at plan stage" rule, for the CARD ONLY.
+PLAN.md (plan_markdown) stays Step-3 compliant: no macros there.
+
+LANGUAGE: all user-facing strings (card + plan_markdown) are localized via
+the STRINGS table below. `locale.language` in the input JSON selects the
+language ("en"/"zh"; unknown/absent → "en"). The upstream authority is
+USER.md > Language — the openclaw-infra Twilio extension reads it and
+passes it through; this script does NO language inference of its own.
 
 All math comes from weight-loss-planner/scripts/planner-calc.py invoked as a
 SUBPROCESS — `forward-calc --mode balanced` is the canonical calculation
@@ -36,6 +46,8 @@ On failure: non-zero exit, {"ok": false, "error": "..."} on stdout, details on s
 System dependencies: WeasyPrint needs pango/cairo/gdk-pixbuf system libraries
 (on EC2/Amazon Linux: `sudo dnf install pango cairo gdk-pixbuf2`;
 on Ubuntu: `sudo apt-get install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0`).
+For zh rendering install a CJK font (e.g. google-noto-sans-cjk-fonts), and a
+color emoji font (google-noto-emoji-color-fonts) for the checkpoint icons.
 """
 
 import argparse
@@ -69,6 +81,224 @@ ASIAN_BMI_COUNTRIES = {"CN", "TW", "HK", "MO", "SG", "JP", "KR"}
 ASIAN_BMI_LANGUAGES = {"zh", "ja", "ko"}
 
 MIN_RENDER_WIDTH = 480  # don't shrink the PNG below this when fitting max-bytes
+
+
+# ---------------------------------------------------------------------------
+# Localized strings (card + PLAN.md). USER.md > Language is the upstream
+# authority; the Twilio extension passes it through as locale.language.
+# Adding a language = adding a table entry (keys must match "en").
+# ---------------------------------------------------------------------------
+
+STRINGS = {
+    "en": {
+        "title_card": {"lose": "Your Weight Loss Plan",
+                       "maintain": "Your Maintenance Plan",
+                       "recomp": "Your Recomposition Plan",
+                       "gain": "Your Lean Gain Plan"},
+        "title_md": {"lose": "Weight Loss Plan",
+                     "maintain": "Maintenance Plan",
+                     "recomp": "Recomposition Plan",
+                     "gain": "Lean Gain Plan"},
+        "age": "Age {age}",
+        "hero_target": "Daily Calorie Target",
+        "hero_maint": "Daily Maintenance Target",
+        "per_day": "{cu} per day",
+        "sec_plan": "Your Plan",
+        "sec_macros": "Daily Macros",
+        "sec_rhythm": "Daily Rhythm",
+        "sec_focus": "Focus This Week",
+        "sec_timeline": "Your Timeline",
+        "sec_focus_alt": "Your Focus",
+        "sec_checkpoints": "Week 1 Checkpoints",
+        "tile_approx": "~{v} {cu}",
+        "deficit": "Daily Deficit",
+        "below_burn": "Below what you burn",
+        "pace": "Weekly Pace",
+        "steady": "Steady and sustainable",
+        "surplus": "Daily Surplus",
+        "above_maint": "Above maintenance",
+        "weekly_gain": "Weekly Gain",
+        "lean_steady": "Lean and steady",
+        "goal_lbl": "Goal",
+        "hold_steady": "Hold steady",
+        "keep_level": "Keep eating at this level",
+        "checkin": "Check-in",
+        "weekly": "Weekly",
+        "weekly_note": "One weigh-in a week keeps drift visible",
+        "slight_deficit": "Slight deficit, heavy protein",
+        "watch": "Watch",
+        "mirror": "The mirror",
+        "mirror_note": "Scale moves slowly — strength won't",
+        "protein": "Protein",
+        "fat": "Fat",
+        "carbs": "Carbs",
+        "floor": "floor {g}g",
+        "meals": {"breakfast": "Breakfast", "lunch": "Lunch",
+                  "dinner": "Dinner", "meal_1": "Meal 1", "meal_2": "Meal 2"},
+        "of_day": "{pct}% of your day",
+        "goal_reached": "Goal Reached",
+        "weeks_from": "~{w} weeks from today",
+        "unlock_title": "Reply with your goal weight<br>to unlock your completion date",
+        "remember": "Remember",
+        "maintain_focus": "Consistency beats perfection — show up daily",
+        "recomp_focus": "Give it 8–12 weeks before judging the scale",
+        "focus_walk": "Add a 10-minute walk after lunch and dinner",
+        "focus_strength": "Add 2 short strength sessions — muscle protects your burn",
+        "focus_sleep": "Protect your sleep — 7+ hours makes results come easier",
+        "focus_protein": "A palm-sized portion of protein at every meal",
+        "focus_water": "Water first: 2 liters a day — thirst often reads as hunger",
+        "cp_photo": "Log every meal — just text me a photo",
+        "cp_weigh": "Weigh in Wednesday & Saturday morning",
+        "cp_protein": "Hit your protein target at every meal",
+        "footer": "Text me anytime — your AI nutrition coach",
+        # PLAN.md
+        "generated": "Generated {date} · NanoRhino AI Nutrition Coach",
+        "md_info": "Your Info",
+        "md_plan": "Your Plan",
+        "md_height": "Height: {v}",
+        "md_weight": "Current weight: {v}",
+        "md_goal": "Goal weight: {v}",
+        "md_age_sex": "Age: {age} · Sex: {sex}",
+        "sex": {"male": "Male", "female": "Female"},
+        "md_activity": "Activity: {v}",
+        "assumed": " (assumed — tell me your routine to fine-tune)",
+        "md_target": "Daily calorie target: {v} {cu}",
+        "md_deficit": "Daily calorie deficit: ~{v} {cu}",
+        "md_surplus": "Daily calorie surplus: ~{v} {cu}",
+        "md_rate_loss": "Weekly loss rate: ~{v}",
+        "md_rate_gain": "Weekly gain rate: ~{v}",
+        "md_completion": "Estimated completion: {v}",
+        "md_unlock": "Estimated completion: reply with your goal weight "
+                     "to unlock your completion date",
+        "expl_lose": "This pace keeps your energy up while the scale keeps "
+                     "moving — steady enough to stick with.",
+        "expl_lose_sedentary": " Adding a bit more daily movement would "
+                               "speed things up.",
+        "expl_maintain": "Eat around this level and your weight holds steady "
+                         "— a weekly weigh-in catches any drift early.",
+        "expl_recomp": "A small deficit with plenty of protein lets you build "
+                       "strength while trimming fat — judge progress by the "
+                       "mirror, not the scale.",
+        "expl_gain": "A modest surplus keeps the gains lean — slow on the "
+                     "scale, visible in the gym.",
+        "floor_note": "> Note: your daily target was raised to your safety "
+                      "floor and the pace adjusted accordingly — eating less "
+                      "than this would work against you.",
+        "act_desc": {
+            "sedentary": "mostly sitting during the day",
+            "lightly_active": "on your feet part of the day, light exercise",
+            "moderately_active": "regular exercise most weeks",
+            "very_active": "hard exercise most days",
+            "extremely_active": "very hard daily training",
+        },
+    },
+    "zh": {
+        "title_card": {"lose": "你的减脂计划",
+                       "maintain": "你的体重维持计划",
+                       "recomp": "你的塑形计划",
+                       "gain": "你的增肌计划"},
+        "title_md": {"lose": "减脂计划",
+                     "maintain": "体重维持计划",
+                     "recomp": "塑形计划",
+                     "gain": "增肌计划"},
+        "age": "{age} 岁",
+        "hero_target": "每日热量目标",
+        "hero_maint": "每日维持热量",
+        "per_day": "{cu} / 天",
+        "sec_plan": "你的计划",
+        "sec_macros": "每日宏量营养",
+        "sec_rhythm": "三餐节奏",
+        "sec_focus": "本周重点",
+        "sec_timeline": "你的时间线",
+        "sec_focus_alt": "你的重点",
+        "sec_checkpoints": "第 1 周打卡任务",
+        "tile_approx": "约 {v} {cu}",
+        "deficit": "每日热量缺口",
+        "below_burn": "低于你每天的消耗",
+        "pace": "每周减脂速度",
+        "steady": "稳健、可持续",
+        "surplus": "每日热量盈余",
+        "above_maint": "高于维持热量",
+        "weekly_gain": "每周增重",
+        "lean_steady": "干净增肌、稳步推进",
+        "goal_lbl": "目标",
+        "hold_steady": "保持稳定",
+        "keep_level": "按这个量吃就好",
+        "checkin": "检查节奏",
+        "weekly": "每周一次",
+        "weekly_note": "每周称重一次，及时发现波动",
+        "slight_deficit": "小缺口 + 高蛋白",
+        "watch": "关注",
+        "mirror": "镜子里的变化",
+        "mirror_note": "体重变化慢——线条不会骗人",
+        "protein": "蛋白质",
+        "fat": "脂肪",
+        "carbs": "碳水",
+        "floor": "下限 {g}g",
+        "meals": {"breakfast": "早餐", "lunch": "午餐",
+                  "dinner": "晚餐", "meal_1": "第一餐", "meal_2": "第二餐"},
+        "of_day": "占全天 {pct}%",
+        "goal_reached": "达成目标",
+        "weeks_from": "距今约 {w} 周",
+        "unlock_title": "回复你的目标体重<br>解锁预计完成日期",
+        "remember": "记住",
+        "maintain_focus": "持续比完美更重要——每天坚持就好",
+        "recomp_focus": "给自己 8–12 周，再看体重秤的变化",
+        "focus_walk": "午餐和晚餐后各走 10 分钟",
+        "focus_strength": "每周加 2 次简短力量训练——肌肉护住你的代谢",
+        "focus_sleep": "睡够 7 小时以上——恢复好，效果来得更快",
+        "focus_protein": "每餐先吃一掌心大小的蛋白质",
+        "focus_water": "先喝水：每天 2 升——口渴常被误以为是饿",
+        "cp_photo": "记录每一餐——拍张照发给我就行",
+        "cp_weigh": "周三、周六早晨称体重",
+        "cp_protein": "每餐吃够你的蛋白质目标",
+        "footer": "有问题随时发消息——你的 AI 营养师",
+        # PLAN.md
+        "generated": "生成于 {date} · NanoRhino AI 营养师",
+        "md_info": "你的信息",
+        "md_plan": "你的计划",
+        "md_height": "身高：{v}",
+        "md_weight": "当前体重：{v}",
+        "md_goal": "目标体重：{v}",
+        "md_age_sex": "年龄：{age} · 性别：{sex}",
+        "sex": {"male": "男", "female": "女"},
+        "md_activity": "活动情况：{v}",
+        "assumed": "（估算值——告诉我你的日常作息可以更精确）",
+        "md_target": "每日热量目标：{v} {cu}",
+        "md_deficit": "每日热量缺口：约 {v} {cu}",
+        "md_surplus": "每日热量盈余：约 {v} {cu}",
+        "md_rate_loss": "每周减脂速度：约 {v}",
+        "md_rate_gain": "每周增重速度：约 {v}",
+        "md_completion": "预计完成：{v}",
+        "md_unlock": "预计完成：回复你的目标体重，解锁预计完成日期",
+        "expl_lose": "这个节奏既能让体重稳步下降，又不至于饿得没精神——"
+                     "坚持得下去才是关键。",
+        "expl_lose_sedentary": "平时多走动一些，进度还会更快。",
+        "expl_maintain": "按这个量吃，体重会保持稳定——每周称一次，及时发现波动。",
+        "expl_recomp": "小热量缺口配足量蛋白质，边减脂边涨力量——看镜子，别只盯着秤。",
+        "expl_gain": "适度盈余让增重更干净——秤上慢一点，训练房里看得见。",
+        "floor_note": "> 注：你的每日目标已上调至安全下限，节奏也相应调整——"
+                      "吃得更少反而会拖慢进度。",
+        "act_desc": {
+            "sedentary": "平时大部分时间坐着",
+            "lightly_active": "日常有一定走动，轻量运动",
+            "moderately_active": "每周有规律运动",
+            "very_active": "几乎每天高强度运动",
+            "extremely_active": "日常高强度训练",
+        },
+    },
+}
+
+# Week-1 checkpoint icons (texts come from STRINGS cp_* keys).
+# NOTE: emoji need a color emoji font on the render host (Apple Color Emoji
+# on macOS; install google-noto-emoji-color-fonts on EC2/Amazon Linux).
+CHECKPOINT_ICONS_KEYS = [("📸", "cp_photo"), ("⚖️", "cp_weigh"), ("🍗", "cp_protein")]
+
+
+def resolve_lang(language_tag: str) -> str:
+    """Map a BCP-47-ish tag to a STRINGS table key. Unknown → 'en'."""
+    primary = (language_tag or "").lower().split("-")[0]
+    return primary if primary in STRINGS else "en"
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +367,12 @@ def validate_input(data: dict) -> dict:
     if units not in ("imperial", "metric"):
         raise ValueError("locale.units must be 'imperial' or 'metric'")
     language = (locale.get("language") or "").lower()
-    data["locale"] = {"country": country, "units": units, "language": language}
+    data["locale"] = {
+        "country": country,
+        "units": units,
+        "language": language,
+        "lang": resolve_lang(language),  # STRINGS table key
+    }
     return data
 
 
@@ -182,6 +417,7 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
     intent = profile["intent"]
     activity, activity_assumed = resolve_activity(profile)
     bmi_std = bmi_standard_for(locale)
+    lang = locale["lang"]
 
     plan = {
         "intent": intent,
@@ -190,6 +426,7 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
         "activity": activity,
         "activity_assumed": activity_assumed,
         "bmi_standard": bmi_std,
+        "language": lang,
         "rate_kg_per_week": None,
         "daily_deficit": None,
         "weeks": None,
@@ -227,8 +464,9 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
             "bmi_target": fc["bmi_target"],
             "bmi_target_class": fc["bmi_target_class"],
             "maintenance_tdee": fc["maintenance_tdee"],
+            "macros": fc["macros"],
         })
-        return plan
+        return finalize_plan(plan, profile, lang)
 
     # The remaining paths can't use forward-calc (it requires a target
     # weight), so they anchor on the handoff TDEE/BMR; the safety floor
@@ -292,11 +530,55 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
         else:
             plan["timeline_locked"] = True
 
+    return finalize_plan(plan, profile, lang)
+
+
+def finalize_plan(plan: dict, profile: dict, lang: str) -> dict:
+    """Attach card-only richness: macros, focus rules, week-1 checkpoints.
+    (Approved override — card only; PLAN.md stays Step-3 compliant and
+    never includes these.)"""
+    if "macros" not in plan:
+        # Paths that didn't run forward-calc: compute macros from the
+        # resolved daily target via planner-calc (canonical math).
+        mode = "high_protein" if plan["intent"] in ("recomp", "gain") else "balanced"
+        args = ["macro-targets", "--weight", plan["weight_kg"],
+                "--cal", round(plan["daily_cal"]), "--mode", mode]
+        goal = plan.get("goal_weight_kg")
+        if goal is not None and plan["intent"] != "maintain":
+            args += ["--target-weight", goal]
+        plan["macros"] = run_planner(*args)
+    s = STRINGS[lang]
+    plan["focus"] = [s[key] for key in focus_keys(profile, plan["activity"])]
+    plan["checkpoints"] = [s[key] for _, key in CHECKPOINT_ICONS_KEYS]
     return plan
 
 
+def focus_keys(profile: dict, activity: str) -> list:
+    """Deterministic, rule-based 'Focus this week' recommendation keys.
+
+    Rules (first match for the movement slot, then fixed anchors — no LLM):
+      1. daily_steps < 5,000 OR resolved activity sedentary
+           → add a 10-minute walk after lunch and dinner (focus_walk)
+         resolved activity lightly/moderately active (steps OK, little
+         structured training)
+           → two short strength sessions (focus_strength)
+         very/extremely active
+           → protect sleep so recovery keeps up (focus_sleep)
+      2. Always: palm-sized protein portion every meal (focus_protein)
+      3. Hydration: water first, 2L a day (focus_water)
+    """
+    steps = profile.get("daily_steps")
+    if (steps is not None and float(steps) < 5000) or activity == "sedentary":
+        movement = "focus_walk"
+    elif activity in ("lightly_active", "moderately_active"):
+        movement = "focus_strength"
+    else:
+        movement = "focus_sleep"
+    return [movement, "focus_protein", "focus_water"]
+
+
 # ---------------------------------------------------------------------------
-# Formatting helpers
+# Formatting helpers (language/unit aware)
 # ---------------------------------------------------------------------------
 
 def fmt_weight(kg: float, units: str) -> str:
@@ -316,13 +598,29 @@ def fmt_height(cm: float, units: str) -> str:
     return f"{round(cm):d} cm"
 
 
-def fmt_rate(rate_kg: float, units: str) -> str:
+def fmt_rate(rate_kg: float, units: str, lang: str) -> str:
+    """Compact weekly rate for the card tile."""
     if units == "imperial":
-        return f"{round(rate_kg * 2.205, 1):g} lb/wk"
-    return f"{round(rate_kg, 2):g} kg/wk"
+        value = f"{round(rate_kg * 2.205, 1):g}"
+        return f"{value} 磅/周" if lang == "zh" else f"{value} lb/wk"
+    value = f"{round(rate_kg, 2):g}"
+    return f"{value} kg/周" if lang == "zh" else f"{value} kg/wk"
 
 
-def cal_unit(country: str) -> str:
+def fmt_rate_md(rate_kg: float, units: str, lang: str) -> str:
+    """Weekly rate for PLAN.md. zh metric uses the Step-3 'kg / 斤' style."""
+    if lang == "zh" and units == "metric":
+        jin = round(rate_kg * 2, 1)
+        return f"{round(rate_kg, 2):g} kg / {jin:g} 斤"
+    if units == "imperial":
+        unit = "磅/周" if lang == "zh" else "lb/week"
+        return f"{round(rate_kg * 2.205, 1):g} {unit}"
+    return f"{round(rate_kg, 2):g} kg/week"
+
+
+def cal_unit(country: str, lang: str) -> str:
+    if lang == "zh":
+        return "大卡"
     return "Cal" if country == "US" else "kcal"
 
 
@@ -330,51 +628,17 @@ def fmt_num(n) -> str:
     return f"{round(n):,}"
 
 
-def fmt_month_year(iso_date: str) -> str:
-    return date.fromisoformat(iso_date).strftime("%B %Y")
+def fmt_month_year(iso_date: str, lang: str, short: bool = False) -> str:
+    d = date.fromisoformat(iso_date)
+    if lang == "zh":
+        return f"{d.year}年{d.month}月"
+    return d.strftime("%b %Y" if short else "%B %Y")
 
 
-def fmt_month_year_short(iso_date: str) -> str:
-    return date.fromisoformat(iso_date).strftime("%b %Y")
-
-
-PLAN_TITLES = {
-    "lose": "Your Weight Loss Plan",
-    "maintain": "Your Maintenance Plan",
-    "recomp": "Your Recomposition Plan",
-    "gain": "Your Lean Gain Plan",
-}
-
-ACTIVITY_DESCRIPTIONS = {
-    "sedentary": "mostly sitting during the day",
-    "lightly_active": "on your feet part of the day, light exercise",
-    "moderately_active": "regular exercise most weeks",
-    "very_active": "hard exercise most days",
-    "extremely_active": "very hard daily training",
-}
-
-HABITS = {
-    "lose": [
-        "Protein at every meal",
-        "Log it before you eat it",
-        "10-minute walk after dinner",
-    ],
-    "maintain": [
-        "Weigh in once a week, same time",
-        "Protein at every meal",
-        "Keep the walks — they're working",
-    ],
-    "recomp": [
-        "Lift 3x a week — progress the weights",
-        "Protein at every meal",
-        "Sleep 7+ hours; muscle is built at night",
-    ],
-    "gain": [
-        "Eat on a schedule — don't skip meals",
-        "Protein at every meal",
-        "Lift 3x a week — progress the weights",
-    ],
-}
+def fmt_date_label(d: date, lang: str) -> str:
+    if lang == "zh":
+        return f"{d.year}年{d.month}月{d.day}日"
+    return d.strftime("%B %d, %Y").upper()
 
 
 # ---------------------------------------------------------------------------
@@ -383,98 +647,136 @@ HABITS = {
 
 def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
     units = locale["units"]
-    cu = cal_unit(locale["country"])
+    lang = locale["lang"]
+    s = STRINGS[lang]
+    cu = cal_unit(locale["country"], lang)
     intent = plan["intent"]
 
     stats_bits = [fmt_weight(profile["weight_kg"], units)]
     if plan.get("goal_weight_kg") is not None and intent != "maintain":
         stats_bits[0] += f"  →  {fmt_weight(plan['goal_weight_kg'], units)}"
     stats_bits.append(fmt_height(profile["height_cm"], units))
-    stats_bits.append(f"Age {profile['age_years']}")
+    stats_bits.append(s["age"].format(age=profile["age_years"]))
     stats_line = "   ·   ".join(stats_bits)
 
-    hero_label = ("Daily Maintenance Target" if intent == "maintain"
-                  else "Daily Calorie Target")
+    hero_label = s["hero_maint"] if intent == "maintain" else s["hero_target"]
 
     # Plan tiles: deficit + pace (Step-3 elements 2 and 3).
     if intent == "maintain":
         tiles = (
-            ("Goal", "Hold steady", "Keep eating at this level"),
-            ("Check-in", "Weekly", "One weigh-in a week keeps drift visible"),
+            (s["goal_lbl"], s["hold_steady"], s["keep_level"]),
+            (s["checkin"], s["weekly"], s["weekly_note"]),
         )
     elif intent == "recomp":
         tiles = (
-            ("Daily Deficit", f"~{fmt_num(plan['daily_deficit'])} {cu}",
-             "Slight deficit, heavy protein"),
-            ("Watch", "The mirror", "Scale moves slowly — strength won't"),
+            (s["deficit"], s["tile_approx"].format(v=fmt_num(plan["daily_deficit"]), cu=cu),
+             s["slight_deficit"]),
+            (s["watch"], s["mirror"], s["mirror_note"]),
         )
     elif intent == "gain":
         tiles = (
-            ("Daily Surplus", f"~{fmt_num(-plan['daily_deficit'])} {cu}",
-             "Above maintenance"),
-            ("Weekly Gain", fmt_rate(plan["rate_kg_per_week"], units),
-             "Lean and steady"),
+            (s["surplus"], s["tile_approx"].format(v=fmt_num(-plan["daily_deficit"]), cu=cu),
+             s["above_maint"]),
+            (s["weekly_gain"], fmt_rate(plan["rate_kg_per_week"], units, lang),
+             s["lean_steady"]),
         )
     else:  # lose
         tiles = (
-            ("Daily Deficit", f"~{fmt_num(plan['daily_deficit'])} {cu}",
-             "Below what you burn"),
-            ("Weekly Pace", fmt_rate(plan["rate_kg_per_week"], units),
-             "Steady and sustainable"),
+            (s["deficit"], s["tile_approx"].format(v=fmt_num(plan["daily_deficit"]), cu=cu),
+             s["below_burn"]),
+            (s["pace"], fmt_rate(plan["rate_kg_per_week"], units, lang),
+             s["steady"]),
         )
+
+    # Macros (protein emphasized with its floor).
+    macros = plan["macros"]
+    protein, fat, carb = macros["protein"], macros["fat"], macros["carb"]
+
+    # Daily rhythm from planner-calc's canonical 30/40/30 allocation.
+    alloc = macros["allocation"]
+    rhythm = [
+        (s["meals"].get(a["meal"], a["meal"]),
+         f"~{fmt_num(a['cal'])}",
+         s["of_day"].format(pct=a["pct"]))
+        for a in alloc
+    ]
+    while len(rhythm) < 3:  # 2-meal plans: keep the grid balanced
+        rhythm.append(("—", "—", "—"))
+
+    # Focus this week (already localized in plan["focus"]).
+    focus_html = "".join(
+        f'<div class="focus-item"><span class="arrow">→</span>&nbsp;&nbsp;{item}</div>'
+        for item in plan["focus"]
+    )
 
     # Timeline: single completion month, or the unlock prompt.
     if plan.get("estimated_completion"):
-        timeline_label = "Your Timeline"
+        timeline_label = s["sec_timeline"]
         timeline_html = (
             '<div class="goal-tile">'
-            '<div class="goal-label">Goal Reached</div>'
-            f'<div class="goal-value">{fmt_month_year_short(plan["estimated_completion"])}</div>'
-            f'<div class="goal-note">~{round(plan["weeks"])} weeks from today</div>'
+            f'<div class="goal-label">{s["goal_reached"]}</div>'
+            f'<div class="goal-value">{fmt_month_year(plan["estimated_completion"], lang, short=True)}</div>'
+            f'<div class="goal-note">{s["weeks_from"].format(w=round(plan["weeks"]))}</div>'
             "</div>"
         )
     elif plan.get("timeline_locked"):
-        timeline_label = "Your Timeline"
+        timeline_label = s["sec_timeline"]
         timeline_html = (
             '<div class="unlock">'
-            '<div class="unlock-title">Reply with your goal weight'
-            "<br>to unlock your completion date</div>"
+            f'<div class="unlock-title">{s["unlock_title"]}</div>'
             "</div>"
         )
     else:  # maintain / recomp — no timeline concept
-        timeline_label = "Your Focus"
-        focus = ("Consistency beats perfection — show up daily"
-                 if intent == "maintain"
-                 else "Give it 8–12 weeks before judging the scale")
+        timeline_label = s["sec_focus_alt"]
+        focus_line = s["maintain_focus"] if intent == "maintain" else s["recomp_focus"]
         timeline_html = (
             '<div class="goal-tile">'
-            '<div class="goal-label">Remember</div>'
+            f'<div class="goal-label">{s["remember"]}</div>'
             f'<div class="goal-note" style="margin-top:16px; font-size:33px; '
-            f'color:#ffffff; font-weight:700;">{focus}</div>'
+            f'color:#ffffff; font-weight:700;">{focus_line}</div>'
             "</div>"
         )
 
-    habits_html = "".join(
-        f'<div class="habit"><span class="tick">✓</span>&nbsp;&nbsp;{h}</div>'
-        for h in HABITS[intent]
+    checkpoints_html = "".join(
+        f'<div class="checkpoint"><span class="icon">{icon}</span>&nbsp;&nbsp;{s[key]}</div>'
+        for icon, key in CHECKPOINT_ICONS_KEYS
     )
 
     return {
-        "date_label": date.today().strftime("%B %d, %Y").upper(),
-        "plan_title": PLAN_TITLES[intent],
+        "date_label": fmt_date_label(date.today(), lang),
+        "plan_title": s["title_card"][intent],
         "stats_line": stats_line,
         "hero_label": hero_label,
         "hero_value": fmt_num(plan["daily_cal"]),
-        "hero_unit": f"{cu} per day",
+        "hero_unit": s["per_day"].format(cu=cu),
+        "sec_plan": s["sec_plan"],
+        "sec_macros": s["sec_macros"],
+        "sec_rhythm": s["sec_rhythm"],
+        "sec_focus": s["sec_focus"],
+        "sec_checkpoints": s["sec_checkpoints"],
         "tile1_label": tiles[0][0],
         "tile1_value": tiles[0][1],
         "tile1_note": tiles[0][2],
         "tile2_label": tiles[1][0],
         "tile2_value": tiles[1][1],
         "tile2_note": tiles[1][2],
+        "protein_label": s["protein"],
+        "protein_value": f"{round(protein['target'])}g",
+        "protein_note": s["floor"].format(g=round(protein["min"])),
+        "fat_label": s["fat"],
+        "fat_value": f"{round(fat['target'])}g",
+        "fat_note": f"{round(fat['min'])}–{round(fat['max'])}g",
+        "carb_label": s["carbs"],
+        "carb_value": f"{round(carb['target'])}g",
+        "carb_note": f"{round(carb['min'])}–{round(carb['max'])}g",
+        "meal1_name": rhythm[0][0], "meal1_value": rhythm[0][1], "meal1_note": rhythm[0][2],
+        "meal2_name": rhythm[1][0], "meal2_value": rhythm[1][1], "meal2_note": rhythm[1][2],
+        "meal3_name": rhythm[2][0], "meal3_value": rhythm[2][1], "meal3_note": rhythm[2][2],
+        "focus_html": focus_html,
         "timeline_section_label": timeline_label,
         "timeline_html": timeline_html,
-        "habits_html": habits_html,
+        "checkpoints_html": checkpoints_html,
+        "footer_main": s["footer"],
     }
 
 
@@ -523,75 +825,74 @@ def html_to_png(html: str, out_path: Path, width: int, max_bytes: int) -> int:
 # ---------------------------------------------------------------------------
 # PLAN.md generation — mirrors the Step-3 presentation
 # (user-onboarding-profile/SKILL.md): user info block + the four plan
-# elements + short pace explanation. NO macro split. The "Daily calorie
-# target:" line is what downstream skills (meal-planner) look for.
+# elements + short pace explanation. NO macro split (Step-3 compliant —
+# the card-only macro override does NOT apply here). Localized via STRINGS.
+# The calorie-target line stays parseable in both languages (weekly-report
+# matches `每日热量目标|Daily Calorie Target`); a machine-readable HTML
+# comment anchor is also emitted for robust downstream parsing.
 # ---------------------------------------------------------------------------
 
 def build_plan_markdown(plan: dict, profile: dict, locale: dict) -> str:
     units = locale["units"]
-    cu = cal_unit(locale["country"])
+    lang = locale["lang"]
+    s = STRINGS[lang]
+    cu = cal_unit(locale["country"], lang)
     intent = plan["intent"]
 
-    activity_desc = ACTIVITY_DESCRIPTIONS[plan["activity"]]
+    activity_desc = s["act_desc"][plan["activity"]]
     if plan["activity_assumed"]:
-        activity_desc += " (assumed — tell me your routine to fine-tune)"
+        activity_desc += s["assumed"]
 
     lines = []
-    lines.append(f"# {PLAN_TITLES[intent].replace('Your ', '')}")
+    lines.append(f"# {s['title_md'][intent]}")
     lines.append("")
-    lines.append(f"*Generated {date.today().isoformat()} · NanoRhino AI Nutrition Coach*")
+    lines.append(f"*{s['generated'].format(date=date.today().isoformat())}*")
     lines.append("")
-    lines.append("## Your Info")
+    # Machine-readable anchor (language-independent) for downstream parsers.
+    lines.append(f"<!-- daily-calorie-target-kcal: {round(plan['daily_cal'])} -->")
     lines.append("")
-    lines.append(f"• Height: {fmt_height(profile['height_cm'], units)}")
-    lines.append(f"• Current weight: {fmt_weight(profile['weight_kg'], units)}")
+    lines.append(f"## {s['md_info']}")
+    lines.append("")
+    lines.append(f"• {s['md_height'].format(v=fmt_height(profile['height_cm'], units))}")
+    lines.append(f"• {s['md_weight'].format(v=fmt_weight(profile['weight_kg'], units))}")
     if plan.get("goal_weight_kg") is not None:
-        lines.append(f"• Goal weight: {fmt_weight(plan['goal_weight_kg'], units)}")
-    lines.append(f"• Age: {profile['age_years']} · Sex: {profile['sex'].capitalize()}")
-    lines.append(f"• Activity: {activity_desc}")
+        lines.append(f"• {s['md_goal'].format(v=fmt_weight(plan['goal_weight_kg'], units))}")
+    lines.append(f"• {s['md_age_sex'].format(age=profile['age_years'], sex=s['sex'][profile['sex']])}")
+    lines.append(f"• {s['md_activity'].format(v=activity_desc)}")
     lines.append("")
-    lines.append("## Your Plan")
+    lines.append(f"## {s['md_plan']}")
     lines.append("")
-    lines.append(f"• Daily calorie target: {fmt_num(plan['daily_cal'])} {cu}")
+    lines.append(f"• {s['md_target'].format(v=fmt_num(plan['daily_cal']), cu=cu)}")
     deficit = plan.get("daily_deficit")
     if deficit:
         if deficit > 0:
-            lines.append(f"• Daily calorie deficit: ~{fmt_num(deficit)} {cu}")
+            lines.append(f"• {s['md_deficit'].format(v=fmt_num(deficit), cu=cu)}")
         else:
-            lines.append(f"• Daily calorie surplus: ~{fmt_num(-deficit)} {cu}")
+            lines.append(f"• {s['md_surplus'].format(v=fmt_num(-deficit), cu=cu)}")
     if plan.get("rate_kg_per_week") and intent != "maintain":
-        word = "gain" if intent == "gain" else "loss"
-        lines.append(f"• Weekly {word} rate: ~{fmt_rate(plan['rate_kg_per_week'], units)}")
+        key = "md_rate_gain" if intent == "gain" else "md_rate_loss"
+        lines.append(f"• {s[key].format(v=fmt_rate_md(plan['rate_kg_per_week'], units, lang))}")
     if plan.get("estimated_completion"):
-        lines.append(f"• Estimated completion: {fmt_month_year(plan['estimated_completion'])}")
+        lines.append(f"• {s['md_completion'].format(v=fmt_month_year(plan['estimated_completion'], lang))}")
     elif plan.get("timeline_locked"):
-        lines.append("• Estimated completion: reply with your goal weight "
-                     "to unlock your completion date")
+        lines.append(f"• {s['md_unlock']}")
     lines.append("")
 
     # Short pace explanation, user-perspective, no TDEE/BMR jargon.
     if intent == "lose":
-        explanation = ("This pace keeps your energy up while the scale keeps "
-                       "moving — steady enough to stick with.")
+        explanation = s["expl_lose"]
         if plan["activity"] == "sedentary":
-            explanation += (" Adding a bit more daily movement would "
-                            "speed things up.")
+            explanation += s["expl_lose_sedentary"]
     elif intent == "maintain":
-        explanation = ("Eat around this level and your weight holds steady — "
-                       "a weekly weigh-in catches any drift early.")
+        explanation = s["expl_maintain"]
     elif intent == "recomp":
-        explanation = ("A small deficit with plenty of protein lets you build "
-                       "strength while trimming fat — judge progress by the "
-                       "mirror, not the scale.")
+        explanation = s["expl_recomp"]
     else:
-        explanation = ("A modest surplus keeps the gains lean — slow on the "
-                       "scale, visible in the gym.")
+        explanation = s["expl_gain"]
     lines.append(f"*{explanation}*")
     lines.append("")
     if plan.get("floor_clamped"):
-        lines.append("> Note: your daily target was raised to your safety "
-                     "floor and the pace adjusted accordingly — eating less "
-                     "than this would work against you.")
+        lines.append(s["floor_note"])
         lines.append("")
     return "\n".join(lines)
 

@@ -32,12 +32,20 @@ python3 {baseDir}/scripts/plan-to-image.py \
                "daily_steps": N|null,
                "activity_level": "sedentary|lightly_active|moderately_active|very_active|null" },
   "tdee":    { "recommended": N, "low": N, "high": N, "bmr": N },
-  "locale":  { "country": "US", "units": "imperial|metric" }
+  "locale":  { "country": "US", "units": "imperial|metric",
+               "language": "en|zh|..." }
 }
 ```
 
-See `examples/sample-input-with-goalweight.json` and
-`examples/sample-input-without-goalweight.json`.
+`locale.language` (optional, BCP-47-ish lowercase, e.g. `en`, `zh`,
+`zh-tw`) selects the output language; absent/unknown → `en`. The upstream
+authority is **`USER.md > Language`** — the Twilio extension reads it and
+passes it through. This script does NO language inference of its own
+(consistent with `docs/CONVENTIONS.md` §10).
+
+See `examples/sample-input-with-goalweight.json`,
+`examples/sample-input-without-goalweight.json`, and
+`examples/sample-input-zh.json`.
 
 **stdout on success (single JSON line):**
 `{"ok": true, "png": "<abs path>", "bytes": N, "plan": {...}, "plan_markdown": "..."}`
@@ -57,9 +65,13 @@ Plan **content** follows `user-onboarding-profile/SKILL.md > Step 3：生成并
 - Daily calorie deficit (~XXX).
 - Weekly loss rate.
 - A **single** completion month + year.
-- **No macro split** at the plan stage — macros belong to Step 4
-  (diet-mode selection, later in SMS coaching). The card and PLAN.md
-  contain no protein/fat/carb numbers.
+
+**Card-only macro override (approved):** the Step-3 "no macros at plan
+stage" rule is explicitly overridden for the CARD — it additionally shows
+daily macros, the per-meal rhythm, focus recommendations, and week-1
+checkpoints (see Card content below). **PLAN.md stays Step-3 compliant:
+no macros, no meal split there** — macros still belong to Step 4
+(diet-mode selection) for everything downstream.
 
 Plan **math** comes from `weight-loss-planner/scripts/planner-calc.py`
 invoked as a subprocess (its interface is unchanged):
@@ -95,23 +107,67 @@ invoked as a subprocess (its interface is unchanged):
   (<5000 sedentary, <8000 lightly, <12000 moderately, else very active),
   else defaults to `lightly_active` (the weight-loss-planner default).
 
+## Card content (in order)
+
+1. **Header** — NanoRhino wordmark (CamelCase, single color — no accent
+   split) + date.
+2. **Title + profile line** — weight (→ goal), height, age.
+3. **Hero** — the single daily calorie target.
+4. **Plan tiles** — daily deficit + weekly pace.
+5. **Daily macros** — protein (visually emphasized, with its floor) /
+   fat / carbs, from planner-calc's macro output (`forward-calc` macros
+   on the canonical path; `macro-targets` on fallback paths — mode
+   `balanced`, or `high_protein` for recomp/gain).
+6. **Daily rhythm** — per-meal calorie split from planner-calc's
+   canonical 30/40/30 allocation (breakfast/lunch/dinner with ~Cal each).
+7. **Focus this week** — 3 personalized, rule-based recommendations
+   (table below; pure rules, no LLM).
+8. **Timeline** — completion month tile, or the goal-weight unlock box.
+9. **Week 1 checkpoints** — SMS coaching cadence preview:
+   📸 log every meal (text a photo) / ⚖️ weigh in Wed & Sat morning /
+   🍗 hit the protein target every meal.
+10. **Footer** — "Text me anytime" coach line.
+
+### Focus-this-week rules (deterministic)
+
+| Slot | Condition (first match) | Recommendation |
+|---|---|---|
+| Movement | `daily_steps` < 5,000 OR resolved activity `sedentary` | 10-minute walk after lunch and dinner |
+| Movement | resolved activity `lightly_active`/`moderately_active` | 2 short strength sessions |
+| Movement | `very_active`/`extremely_active` | protect sleep (7+ hours) |
+| Anchor | always | palm-sized protein portion every meal |
+| Hydration | always | water first — 2 liters a day |
+
+### Localization
+
+Every user-facing string on the card and in `plan_markdown` comes from the
+`STRINGS` table in `scripts/plan-to-image.py` (full `en` + `zh` today;
+adding a language = adding a table entry). Language-aware conventions:
+zh uses 大卡, `kg/周` pace, `kg / 斤` in PLAN.md, and `YYYY年M月` dates.
+
 ## Rendering
 
-`templates/plan-card.html` (1080×1620 portrait, inline CSS only, no
+`templates/plan-card.html` (1080×2520 portrait, inline CSS only, no
 external assets) → WeasyPrint HTML→PDF → PyMuPDF PDF→PNG at `--width`,
-downscaled until it fits `--max-bytes` (default 600 KB MMS budget).
-
-Card blocks: NanoRhino wordmark (CamelCase, single color — no accent
-split), hero single daily calorie target, daily deficit + weekly pace
-tiles, completion month (or unlock box), starter habits, coach footer.
+downscaled until it fits `--max-bytes` (default 600 KB MMS budget;
+full-size renders are ~240–260 KB).
 
 ## PLAN.md structure (plan_markdown)
 
 Mirrors the Step-3 presentation so downstream skills work unchanged:
 user info block (height / weight / goal weight / age / sex / colloquial
-activity) → "Your Plan" with the four elements (the
-`Daily calorie target: X` line is what meal-planner looks up) → 1–2
-sentence pace explanation (no TDEE/BMR jargon). No macros, no meal split.
+activity) → "Your Plan"/"你的计划" with the four elements → 1–2 sentence
+pace explanation (no TDEE/BMR jargon). **No macros, no meal split** —
+the card-only macro override does not apply to PLAN.md.
+
+Localized (en/zh) like the card. The calorie-target line stays parseable
+in both languages (`Daily calorie target:` / `每日热量目标：` — matched by
+weekly-report's existing regex), and a language-independent machine anchor
+is always emitted near the top:
+
+```
+<!-- daily-calorie-target-kcal: 1805 -->
+```
 
 ## Dependencies
 
@@ -119,6 +175,11 @@ sentence pace explanation (no TDEE/BMR jargon). No macros, no meal split.
 WeasyPrint also needs pango/cairo/gdk-pixbuf **system libraries** — on EC2
 (Amazon Linux): `sudo dnf install -y pango cairo gdk-pixbuf2`; on Ubuntu:
 `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0`.
+
+For zh cards the host also needs a CJK font (e.g.
+`google-noto-sans-cjk-fonts`), and the week-1 checkpoint emoji need a
+color emoji font (`google-noto-emoji-color-fonts`); without them CJK/emoji
+glyphs render as boxes.
 
 ## Data dependencies
 

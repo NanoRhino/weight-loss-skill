@@ -4,17 +4,31 @@
 
   Rendered by plan-card/scripts/plan-to-image.py via Python string.Template
   (dollar-prefixed placeholders). WeasyPrint converts it to a single
-  fixed-size PDF page (1080 x 1620 CSS px), which is then rasterized to PNG.
+  fixed-size PDF page (1080 x 2520 CSS px), which is then rasterized to PNG.
 
-  Content follows the canonical plan spec
-  (user-onboarding-profile/SKILL.md > Step 3): a SINGLE daily calorie
-  target, daily deficit, weekly pace, and a single completion month —
-  no macro split at the plan stage.
+  Card content (approved layout, in order):
+    1. Brand header + date
+    2. Title + profile stats line
+    3. Hero: SINGLE daily calorie target
+    4. Plan tiles: daily deficit + weekly pace
+    5. Daily macros: protein (emphasized, with floor) / fat / carbs
+    6. Daily rhythm: per-meal calorie split (30/40/30 via planner-calc)
+    7. Focus this week: rule-based personalized recommendations
+    8. Timeline: goal month tile, or goal-weight unlock box
+    9. Week 1 checkpoints: SMS coaching cadence preview
+   10. Footer
+
+  Note: the macros/rhythm/focus/checkpoints blocks are CARD-ONLY richness
+  (explicitly approved override of the Step-3 "no macros" rule for the
+  card); PLAN.md stays Step-3 compliant — no macros there.
 
   Design rules:
   - Inline CSS only (WeasyPrint renders it; no JS, no external assets).
   - No webfont imports — system/Pango font stack keeps rendering
-    deterministic and offline-safe on EC2.
+    deterministic and offline-safe on EC2. (Checkpoint emoji need a color
+    emoji font on the host, e.g. Apple Color Emoji / Noto Color Emoji.)
+  - All visible strings arrive pre-localized from the STRINGS table in
+    plan-to-image.py (en/zh; USER.md > Language is the upstream authority).
   - Brand wordmark: "NanoRhino" in CamelCase, single color, no accent split.
   - High contrast + large type so it stays legible after MMS compression.
 -->
@@ -23,7 +37,7 @@
 <meta charset="utf-8">
 <style>
 @page {
-    size: 1080px 1620px;
+    size: 1080px 2520px;
     margin: 0;
 }
 
@@ -35,20 +49,22 @@
 
 html, body {
     width: 1080px;
-    height: 1620px;
+    height: 2520px;
 }
 
 body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif;
+    font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC',
+        'Hiragino Sans GB', 'Noto Sans CJK SC', 'Noto Sans SC',
+        'Microsoft YaHei', 'DejaVu Sans', sans-serif;
     background: #0c1222;
-    background: linear-gradient(160deg, #0e1630 0%, #0c1222 55%, #0a1c2e 100%);
+    background: linear-gradient(165deg, #0e1630 0%, #0c1222 50%, #0a1c2e 100%);
     color: #f3f6fc;
 }
 
 .card {
     width: 1080px;
-    height: 1620px;
-    padding: 44px 72px 40px 72px;
+    height: 2520px;
+    padding: 48px 72px 44px 72px;
 }
 
 /* ── Brand header ── */
@@ -80,12 +96,12 @@ body {
     height: 3px;
     background: linear-gradient(90deg, #34d399 0%, #2dd4bf 40%, rgba(45,212,191,0) 100%);
     border-radius: 2px;
-    margin: 20px 0 32px 0;
+    margin: 22px 0 34px 0;
 }
 
 /* ── Title block ── */
 .plan-title {
-    font-size: 60px;
+    font-size: 62px;
     font-weight: 800;
     line-height: 1.08;
     color: #ffffff;
@@ -101,7 +117,7 @@ body {
 
 /* ── Hero: single daily calorie target ── */
 .hero {
-    margin-top: 34px;
+    margin-top: 36px;
     background: rgba(52, 211, 153, 0.10);
     border: 3px solid rgba(52, 211, 153, 0.55);
     border-radius: 28px;
@@ -119,7 +135,7 @@ body {
 
 .hero-value {
     margin-top: 12px;
-    font-size: 140px;
+    font-size: 138px;
     font-weight: 800;
     line-height: 1.0;
     color: #ffffff;
@@ -133,9 +149,9 @@ body {
     color: #9fe8cd;
 }
 
-/* ── Plan tiles (deficit + pace, or maintain variants) ── */
+/* ── Section labels ── */
 .section-label {
-    margin-top: 34px;
+    margin-top: 38px;
     font-size: 26px;
     font-weight: 700;
     letter-spacing: 4px;
@@ -143,6 +159,7 @@ body {
     text-transform: uppercase;
 }
 
+/* ── Plan tiles (deficit + pace) ── */
 .tile-row {
     width: 100%;
     margin-top: 16px;
@@ -155,13 +172,13 @@ body {
     background: rgba(255, 255, 255, 0.05);
     border: 2px solid rgba(255, 255, 255, 0.10);
     border-radius: 24px;
-    padding: 28px 24px 30px 24px;
+    padding: 26px 24px 28px 24px;
     text-align: center;
     vertical-align: top;
 }
 
 .tile-label {
-    font-size: 26px;
+    font-size: 25px;
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
@@ -176,9 +193,125 @@ body {
 }
 
 .tile-note {
-    margin-top: 10px;
-    font-size: 26px;
+    margin-top: 8px;
+    font-size: 25px;
     color: #8b97b3;
+}
+
+/* ── Macro row ── */
+.macro-row {
+    width: 100%;
+    margin-top: 16px;
+    border-collapse: separate;
+    border-spacing: 16px 0;
+}
+
+.macro-row td {
+    width: 33.3%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.10);
+    border-radius: 22px;
+    padding: 24px 16px 26px 16px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.macro-row td.protein {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.45);
+}
+
+.macro-name {
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #aab6d0;
+}
+
+.protein .macro-name {
+    color: #93c5fd;
+}
+
+.macro-value {
+    margin-top: 10px;
+    font-size: 52px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.macro-note {
+    margin-top: 8px;
+    font-size: 24px;
+    font-weight: 500;
+    color: #8b97b3;
+}
+
+.protein .macro-note {
+    color: #bfdbfe;
+}
+
+/* ── Daily rhythm (per-meal calorie split) ── */
+.rhythm-row {
+    width: 100%;
+    margin-top: 16px;
+    border-collapse: separate;
+    border-spacing: 16px 0;
+}
+
+.rhythm-row td {
+    width: 33.3%;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.09);
+    border-radius: 22px;
+    padding: 22px 16px 24px 16px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.rhythm-name {
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #aab6d0;
+}
+
+.rhythm-value {
+    margin-top: 10px;
+    font-size: 46px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.rhythm-note {
+    margin-top: 8px;
+    font-size: 23px;
+    font-weight: 500;
+    color: #8b97b3;
+}
+
+/* ── Focus this week ── */
+.focus {
+    margin-top: 16px;
+    background: rgba(52, 211, 153, 0.07);
+    border: 2px solid rgba(52, 211, 153, 0.30);
+    border-radius: 24px;
+    padding: 24px 36px;
+}
+
+.focus-item {
+    padding-left: 52px;
+    text-indent: -52px;
+    font-size: 29px;
+    font-weight: 600;
+    color: #e7ecf7;
+    line-height: 1.65;
+}
+
+.focus-item .arrow {
+    color: #34d399;
+    font-weight: 800;
 }
 
 /* ── Timeline: goal date tile or unlock box ── */
@@ -187,12 +320,12 @@ body {
     background: rgba(96, 165, 250, 0.12);
     border: 2px solid rgba(96, 165, 250, 0.45);
     border-radius: 24px;
-    padding: 30px 32px 32px 32px;
+    padding: 26px 32px 28px 32px;
     text-align: center;
 }
 
 .goal-label {
-    font-size: 26px;
+    font-size: 25px;
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
@@ -201,14 +334,14 @@ body {
 
 .goal-value {
     margin-top: 12px;
-    font-size: 64px;
+    font-size: 60px;
     font-weight: 800;
     color: #ffffff;
 }
 
 .goal-note {
-    margin-top: 10px;
-    font-size: 27px;
+    margin-top: 8px;
+    font-size: 26px;
     color: #bfdbfe;
 }
 
@@ -217,12 +350,12 @@ body {
     background: rgba(251, 191, 36, 0.10);
     border: 2px dashed rgba(251, 191, 36, 0.6);
     border-radius: 24px;
-    padding: 34px 40px;
+    padding: 30px 40px;
     text-align: center;
 }
 
 .unlock-title {
-    font-size: 37px;
+    font-size: 36px;
     font-weight: 800;
     line-height: 1.35;
     color: #fbbf24;
@@ -234,30 +367,31 @@ body {
     color: #e5d5a8;
 }
 
-/* ── Habits ── */
-.habits {
+/* ── Week 1 checkpoints ── */
+.checkpoints {
     margin-top: 16px;
     background: rgba(255, 255, 255, 0.04);
     border: 2px solid rgba(255, 255, 255, 0.09);
     border-radius: 24px;
-    padding: 22px 40px;
+    padding: 24px 36px;
 }
 
-.habit {
+.checkpoint {
+    padding-left: 56px;
+    text-indent: -56px;
     font-size: 29px;
     font-weight: 600;
     color: #e7ecf7;
-    line-height: 1.6;
+    line-height: 1.7;
 }
 
-.habit .tick {
-    color: #34d399;
-    font-weight: 800;
+.checkpoint .icon {
+    font-size: 30px;
 }
 
 /* ── Footer ── */
 .footer {
-    margin-top: 30px;
+    margin-top: 32px;
     text-align: center;
 }
 
@@ -296,7 +430,7 @@ body {
         <div class="hero-unit">$hero_unit</div>
     </div>
 
-    <div class="section-label">Your Plan</div>
+    <div class="section-label">$sec_plan</div>
     <table class="tile-row">
         <tr>
             <td>
@@ -312,16 +446,63 @@ body {
         </tr>
     </table>
 
+    <div class="section-label">$sec_macros</div>
+    <table class="macro-row">
+        <tr>
+            <td class="protein">
+                <div class="macro-name">$protein_label</div>
+                <div class="macro-value">$protein_value</div>
+                <div class="macro-note">$protein_note</div>
+            </td>
+            <td>
+                <div class="macro-name">$fat_label</div>
+                <div class="macro-value">$fat_value</div>
+                <div class="macro-note">$fat_note</div>
+            </td>
+            <td>
+                <div class="macro-name">$carb_label</div>
+                <div class="macro-value">$carb_value</div>
+                <div class="macro-note">$carb_note</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-label">$sec_rhythm</div>
+    <table class="rhythm-row">
+        <tr>
+            <td>
+                <div class="rhythm-name">$meal1_name</div>
+                <div class="rhythm-value">$meal1_value</div>
+                <div class="rhythm-note">$meal1_note</div>
+            </td>
+            <td>
+                <div class="rhythm-name">$meal2_name</div>
+                <div class="rhythm-value">$meal2_value</div>
+                <div class="rhythm-note">$meal2_note</div>
+            </td>
+            <td>
+                <div class="rhythm-name">$meal3_name</div>
+                <div class="rhythm-value">$meal3_value</div>
+                <div class="rhythm-note">$meal3_note</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-label">$sec_focus</div>
+    <div class="focus">
+        $focus_html
+    </div>
+
     <div class="section-label">$timeline_section_label</div>
     $timeline_html
 
-    <div class="section-label">Start Here</div>
-    <div class="habits">
-        $habits_html
+    <div class="section-label">$sec_checkpoints</div>
+    <div class="checkpoints">
+        $checkpoints_html
     </div>
 
     <div class="footer">
-        <div class="footer-main">Text me anytime — your AI nutrition coach</div>
+        <div class="footer-main">$footer_main</div>
         <div class="footer-sub">NanoRhino &middot; nanorhino.com</div>
     </div>
 
