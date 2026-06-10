@@ -122,13 +122,17 @@ Outputs are written to `dist/`.
 
 Most skills are pure Markdown + stdlib Python and need no extra setup.
 
-**`plan-export` (HTML/PDF export and the SMS/MMS plan-card pipeline)** has
-Python dependencies declared in `plan-export/requirements.txt`
+**`plan-card` (SMS/MMS plan-card pipeline) and `plan-export` (HTML/PDF
+export)** share Python dependencies declared in `plan-card/requirements.txt`
 (`weasyprint`, `pymupdf`, `markdown`):
 
 ```bash
-pip3 install -r plan-export/requirements.txt
+pip3 install -r plan-card/requirements.txt
 ```
+
+The openclaw-infra Twilio extension invokes the plan-card pipeline directly
+— its deploy config (`planImage.scriptPath`) must point to
+`plan-card/scripts/plan-to-image.py`.
 
 WeasyPrint additionally requires **pango/cairo/gdk-pixbuf system libraries**
 — pip alone is not enough. On an EC2 host:

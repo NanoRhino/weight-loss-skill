@@ -10,12 +10,23 @@ Turns handoff profile data (JSON) into:
   (a) a branded NanoRhino plan card PNG suitable for MMS, and
   (b) PLAN.md markdown content (returned in stdout JSON, not written to disk).
 
-No LLM involved. All numbers come from weight-loss-planner/scripts/planner-calc.py
-(imported as a module — its CLI/interface is not modified).
+No LLM involved. Plan CONTENT follows the canonical Step-3 spec in
+user-onboarding-profile/SKILL.md ("Step 3：生成并确认减脂方案"):
+  - a SINGLE daily calorie target (no band),
+  - daily calorie deficit (~XXX),
+  - weekly loss rate,
+  - a single completion month + year,
+  - NO macro split at the plan stage (macros come later, at diet-mode
+    selection).
 
-CLI contract (invoked by the openclaw-infra Twilio extension — do not change):
+All math comes from weight-loss-planner/scripts/planner-calc.py invoked as a
+SUBPROCESS — `forward-calc --mode balanced` is the canonical calculation
+(pace table, safety floor max(BMR, 1000), floor clamping, completion date).
+Its interface is not modified.
 
-  python3 plan-export/scripts/plan-to-image.py \
+CLI contract (invoked by the openclaw-infra Twilio extension — frozen):
+
+  python3 plan-card/scripts/plan-to-image.py \
       --input <input.json> --output <out.png> [--width 1080] [--max-bytes 614400]
 
 stdout on success (single JSON line):
@@ -28,9 +39,9 @@ on Ubuntu: `sudo apt-get install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbu
 """
 
 import argparse
-import importlib.util
 import json
 import string
+import subprocess
 import sys
 import traceback
 from datetime import date, timedelta
@@ -41,32 +52,39 @@ REPO_ROOT = SCRIPT_DIR.parent.parent
 PLANNER_CALC = REPO_ROOT / "weight-loss-planner" / "scripts" / "planner-calc.py"
 TEMPLATE = SCRIPT_DIR.parent / "templates" / "plan-card.html"
 
-KG_PER_LB = 1 / 2.205
-
-# Intent-based fallback when goal_weight_kg is null and intent == "lose":
-# 0.75% of bodyweight per week.
-NO_GOAL_LOSE_RATE_PCT = 0.0075
-# Mild deterministic adjustments for the intents planner-calc doesn't model.
+# Fallback when goal_weight_kg is null and intent == "lose": assume the most
+# conservative pace-table default (0.35 kg/week → ≈385 kcal/day deficit) and
+# show the target without a completion date ("unlock" prompt instead).
+NO_GOAL_RATE_KG = 0.35
+# Mild deterministic adjustments for the intents the Step-3 spec doesn't model.
 RECOMP_DEFICIT_KCAL = 200
-GAIN_RATE_KG_PER_WEEK = 0.25  # lean gain default
+GAIN_RATE_KG_PER_WEEK = 0.25  # lean gain default → ≈275 kcal/day surplus
 
 VALID_SEX = {"male", "female"}
 VALID_INTENT = {"lose", "maintain", "recomp", "gain"}
+
+# Regions using the Asian BMI classification (per Step-3 spec: zh/ja/ko
+# regions or languages → asian, else WHO).
+ASIAN_BMI_COUNTRIES = {"CN", "TW", "HK", "MO", "SG", "JP", "KR"}
+ASIAN_BMI_LANGUAGES = {"zh", "ja", "ko"}
 
 MIN_RENDER_WIDTH = 480  # don't shrink the PNG below this when fitting max-bytes
 
 
 # ---------------------------------------------------------------------------
-# planner-calc import (filename contains a hyphen, so use importlib)
+# planner-calc subprocess wrapper
 # ---------------------------------------------------------------------------
 
-def load_planner_calc():
-    spec = importlib.util.spec_from_file_location("planner_calc", PLANNER_CALC)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Cannot load planner-calc.py at {PLANNER_CALC}")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+def run_planner(*args) -> dict:
+    """Invoke planner-calc.py as a subprocess and parse its JSON output."""
+    cmd = [sys.executable, str(PLANNER_CALC), *[str(a) for a in args]]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"planner-calc {args[0]} failed (exit {proc.returncode}): "
+            f"{proc.stderr.strip() or proc.stdout.strip()}"
+        )
+    return json.loads(proc.stdout)
 
 
 # ---------------------------------------------------------------------------
@@ -118,142 +136,172 @@ def validate_input(data: dict) -> dict:
     units = locale.get("units") or ("imperial" if country == "US" else "metric")
     if units not in ("imperial", "metric"):
         raise ValueError("locale.units must be 'imperial' or 'metric'")
-    data["locale"] = {"country": country, "units": units}
+    language = (locale.get("language") or "").lower()
+    data["locale"] = {"country": country, "units": units, "language": language}
     return data
 
 
+def resolve_activity(profile: dict) -> tuple:
+    """Resolve the planner-calc activity level (and whether it was assumed).
+
+    Falls back to daily steps when activity_level is missing, then to
+    lightly_active (the weight-loss-planner default for unclear activity).
+    """
+    level = profile.get("activity_level")
+    if level in ("sedentary", "lightly_active", "moderately_active",
+                 "very_active", "extremely_active"):
+        return level, False
+    steps = profile.get("daily_steps")
+    if steps is not None:
+        steps = float(steps)
+        if steps < 5000:
+            return "sedentary", True
+        if steps < 8000:
+            return "lightly_active", True
+        if steps < 12000:
+            return "moderately_active", True
+        return "very_active", True
+    return "lightly_active", True
+
+
+def bmi_standard_for(locale: dict) -> str:
+    if locale["country"] in ASIAN_BMI_COUNTRIES:
+        return "asian"
+    if locale["language"][:2] in ASIAN_BMI_LANGUAGES:
+        return "asian"
+    return "who"
+
+
 # ---------------------------------------------------------------------------
-# Plan computation (reuses planner-calc functions; same flow as forward_calc,
-# but anchored on the handoff TDEE/BMR instead of recomputing them, so the
-# card matches the numbers the user was already shown)
+# Plan computation
 # ---------------------------------------------------------------------------
 
-def compute_plan(pc, profile: dict, tdee: dict) -> dict:
+def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
     weight = profile["weight_kg"]
     goal = profile.get("goal_weight_kg")
     intent = profile["intent"]
-    bmr = tdee["bmr"]
-    tdee_rec = tdee["recommended"]
-    floor = pc.calc_safety_floor(bmr)
-    today = date.today()
+    activity, activity_assumed = resolve_activity(profile)
+    bmi_std = bmi_standard_for(locale)
 
     plan = {
         "intent": intent,
-        "bmr": bmr,
-        "tdee": tdee_rec,
-        "calorie_floor": floor,
-        "floor_clamped": False,
-        "goal_weight_kg": goal,
         "weight_kg": weight,
-        "bmi_current": pc.calc_bmi(weight, profile["height_cm"]),
+        "goal_weight_kg": goal,
+        "activity": activity,
+        "activity_assumed": activity_assumed,
+        "bmi_standard": bmi_std,
         "rate_kg_per_week": None,
         "daily_deficit": None,
         "weeks": None,
         "estimated_completion": None,
         "timeline_locked": False,
-        "milestones": [],
+        "floor_clamped": False,
     }
 
     # Treat a goal at/above current weight under 'lose' as maintenance.
     if intent == "lose" and goal is not None and goal >= weight:
         intent = plan["intent"] = "maintain"
 
-    if intent == "maintain":
-        daily_cal = max(tdee_rec, floor)
-        plan["daily_cal"] = daily_cal
-        plan["daily_cal_range"] = {"min": tdee["low"], "max": tdee["high"]}
-        macros = pc.calc_macro_targets(weight, daily_cal, "balanced", 3, None)
+    if intent == "lose" and goal is not None:
+        # Canonical path: trust planner-calc forward-calc end to end.
+        fc = run_planner(
+            "forward-calc",
+            "--weight", weight, "--height", profile["height_cm"],
+            "--age", profile["age_years"], "--sex", profile["sex"],
+            "--activity", activity, "--target-weight", goal,
+            "--mode", "balanced", "--bmi-standard", bmi_std,
+        )
+        plan.update({
+            "bmr": fc["bmr"],
+            "tdee": fc["tdee"]["tdee"],
+            "calorie_floor": fc["calorie_floor"],
+            "floor_clamped": fc["floor_clamped"],
+            "to_lose_kg": fc["to_lose_kg"],
+            "rate_kg_per_week": fc["rate_kg_per_week"],
+            "daily_deficit": fc["daily_deficit"],
+            "daily_cal": fc["daily_cal"],
+            "weeks": fc["weeks"],
+            "estimated_completion": fc["estimated_completion"],
+            "bmi_current": fc["bmi_current"],
+            "bmi_current_class": fc["bmi_current_class"],
+            "bmi_target": fc["bmi_target"],
+            "bmi_target_class": fc["bmi_target_class"],
+            "maintenance_tdee": fc["maintenance_tdee"],
+        })
+        return plan
+
+    # The remaining paths can't use forward-calc (it requires a target
+    # weight), so they anchor on the handoff TDEE/BMR; the safety floor
+    # still comes from planner-calc.
+    bmr = tdee["bmr"]
+    tdee_rec = tdee["recommended"]
+    floor = run_planner("safety-floor", "--bmr", bmr)["calorie_floor"]
+    bmi = run_planner("bmi", "--weight", weight,
+                      "--height", profile["height_cm"], "--standard", bmi_std)
+    plan.update({
+        "bmr": bmr,
+        "tdee": tdee_rec,
+        "calorie_floor": floor,
+        "bmi_current": bmi["bmi"],
+        "bmi_current_class": bmi["classification"],
+    })
+
+    if intent == "lose":  # goal_weight_kg is null → unlock fallback
+        rate = NO_GOAL_RATE_KG
+        ct = run_planner("calorie-target", "--tdee", tdee_rec, "--rate-kg", rate)
+        daily_cal = ct["daily_cal"]
+        deficit = ct["daily_deficit"]
+        if daily_cal < floor:
+            # Same clamping rule planner-calc applies: floor wins, then
+            # back-calculate the max safe rate from the floor.
+            plan["floor_clamped"] = True
+            daily_cal = floor
+            deficit = tdee_rec - floor
+            rate = round(deficit / 1100, 2)
+        plan.update({
+            "daily_cal": daily_cal,
+            "daily_deficit": deficit,
+            "rate_kg_per_week": rate,
+            "timeline_locked": True,
+        })
+
+    elif intent == "maintain":
+        plan["daily_cal"] = max(tdee_rec, floor)
 
     elif intent == "recomp":
         daily_cal = max(tdee_rec - RECOMP_DEFICIT_KCAL, floor)
-        plan["daily_cal"] = daily_cal
-        plan["daily_cal_range"] = {"min": daily_cal - 100, "max": daily_cal + 100}
-        plan["daily_deficit"] = tdee_rec - daily_cal
-        macros = pc.calc_macro_targets(weight, daily_cal, "high_protein", 3, None)
+        plan.update({
+            "daily_cal": daily_cal,
+            "daily_deficit": tdee_rec - daily_cal,
+        })
 
-    elif intent == "gain":
+    else:  # gain
         rate = GAIN_RATE_KG_PER_WEEK
         surplus = round(rate * 1100)
-        daily_cal = tdee_rec + surplus
-        plan["daily_cal"] = daily_cal
-        plan["daily_cal_range"] = {"min": daily_cal - 100, "max": daily_cal + 100}
-        plan["rate_kg_per_week"] = rate
-        plan["daily_deficit"] = -surplus
+        plan.update({
+            "daily_cal": tdee_rec + surplus,
+            "daily_deficit": -surplus,
+            "rate_kg_per_week": rate,
+        })
         if goal is not None and goal > weight:
             weeks = round((goal - weight) / rate, 1)
             plan["weeks"] = weeks
-            plan["estimated_completion"] = (today + timedelta(days=round(weeks * 7))).isoformat()
-            plan["bmi_target"] = pc.calc_bmi(goal, profile["height_cm"])
-        else:
-            plan["timeline_locked"] = True
-        macros = pc.calc_macro_targets(weight, daily_cal, "high_protein", 3, goal)
-
-    else:  # lose
-        if goal is not None:
-            to_lose = round(weight - goal, 1)
-            rate = pc.recommend_rate(to_lose)["rate_default_kg"]
-        else:
-            to_lose = None
-            rate = round(weight * NO_GOAL_LOSE_RATE_PCT, 2)
-
-        cal_info = pc.calc_calorie_target(tdee_rec, rate)
-        daily_cal = cal_info["daily_cal"]
-        if daily_cal < floor:
-            # Same clamping logic as planner-calc forward_calc.
-            plan["floor_clamped"] = True
-            daily_cal = floor
-            rate = round((tdee_rec - floor) / 1100, 2)
-            cal_info = pc.calc_calorie_target(tdee_rec, rate)
-            cal_info["daily_cal"] = floor
-            cal_info["daily_cal_range"] = {"min": floor - 100, "max": floor + 100}
-
-        plan["daily_cal"] = daily_cal
-        plan["daily_cal_range"] = cal_info["daily_cal_range"]
-        plan["daily_deficit"] = cal_info["daily_deficit"]
-        plan["rate_kg_per_week"] = rate
-
-        if goal is not None and rate > 0:
-            weeks = round(to_lose / rate, 1)
-            plan["to_lose_kg"] = to_lose
-            plan["weeks"] = weeks
-            plan["estimated_completion"] = (today + timedelta(days=round(weeks * 7))).isoformat()
-            plan["bmi_target"] = pc.calc_bmi(goal, profile["height_cm"])
-            plan["milestones"] = build_milestones(weight, goal, rate, today)
+            plan["estimated_completion"] = (
+                date.today() + timedelta(days=round(weeks * 7))
+            ).isoformat()
         else:
             plan["timeline_locked"] = True
 
-        macros = pc.calc_macro_targets(weight, daily_cal, "balanced", 3, goal)
-
-    plan["macros"] = macros
     return plan
-
-
-def build_milestones(weight: float, goal: float, rate: float, start: date) -> list:
-    """Quarter-point milestones with projected dates (deterministic)."""
-    to_lose = weight - goal
-    milestones = []
-    for pct in (25, 50, 75, 100):
-        lost = to_lose * pct / 100
-        weeks = lost / rate if rate > 0 else 0
-        milestones.append({
-            "percent": pct,
-            "weight_kg": round(weight - lost, 1),
-            "date": (start + timedelta(days=round(weeks * 7))).isoformat(),
-        })
-    return milestones
 
 
 # ---------------------------------------------------------------------------
 # Formatting helpers
 # ---------------------------------------------------------------------------
 
-def kg_to_lb(kg: float) -> float:
-    return kg / KG_PER_LB
-
-
 def fmt_weight(kg: float, units: str) -> str:
     if units == "imperial":
-        return f"{round(kg_to_lb(kg))} lb"
+        return f"{round(kg * 2.205)} lb"
     return f"{round(kg, 1):g} kg"
 
 
@@ -283,8 +331,11 @@ def fmt_num(n) -> str:
 
 
 def fmt_month_year(iso_date: str) -> str:
-    d = date.fromisoformat(iso_date)
-    return d.strftime("%b %Y")
+    return date.fromisoformat(iso_date).strftime("%B %Y")
+
+
+def fmt_month_year_short(iso_date: str) -> str:
+    return date.fromisoformat(iso_date).strftime("%b %Y")
 
 
 PLAN_TITLES = {
@@ -292,6 +343,14 @@ PLAN_TITLES = {
     "maintain": "Your Maintenance Plan",
     "recomp": "Your Recomposition Plan",
     "gain": "Your Lean Gain Plan",
+}
+
+ACTIVITY_DESCRIPTIONS = {
+    "sedentary": "mostly sitting during the day",
+    "lightly_active": "on your feet part of the day, light exercise",
+    "moderately_active": "regular exercise most weeks",
+    "very_active": "hard exercise most days",
+    "extremely_active": "very hard daily training",
 }
 
 HABITS = {
@@ -307,12 +366,12 @@ HABITS = {
     ],
     "recomp": [
         "Lift 3x a week — progress the weights",
-        "Hit your protein floor daily",
+        "Protein at every meal",
         "Sleep 7+ hours; muscle is built at night",
     ],
     "gain": [
         "Eat on a schedule — don't skip meals",
-        "Hit your protein floor daily",
+        "Protein at every meal",
         "Lift 3x a week — progress the weights",
     ],
 }
@@ -326,10 +385,6 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
     units = locale["units"]
     cu = cal_unit(locale["country"])
     intent = plan["intent"]
-    band = plan["daily_cal_range"]
-    macros = plan["macros"]
-
-    hero_label = "Daily Maintenance Zone" if intent == "maintain" else "Daily Calorie Target"
 
     stats_bits = [fmt_weight(profile["weight_kg"], units)]
     if plan.get("goal_weight_kg") is not None and intent != "maintain":
@@ -338,65 +393,65 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
     stats_bits.append(f"Age {profile['age_years']}")
     stats_line = "   ·   ".join(stats_bits)
 
-    protein = macros["protein"]
-    fat = macros["fat"]
-    carb = macros["carb"]
+    hero_label = ("Daily Maintenance Target" if intent == "maintain"
+                  else "Daily Calorie Target")
 
-    # Timeline section
+    # Plan tiles: deficit + pace (Step-3 elements 2 and 3).
     if intent == "maintain":
-        timeline_label = "Your Pace"
+        tiles = (
+            ("Goal", "Hold steady", "Keep eating at this level"),
+            ("Check-in", "Weekly", "One weigh-in a week keeps drift visible"),
+        )
+    elif intent == "recomp":
+        tiles = (
+            ("Daily Deficit", f"~{fmt_num(plan['daily_deficit'])} {cu}",
+             "Slight deficit, heavy protein"),
+            ("Watch", "The mirror", "Scale moves slowly — strength won't"),
+        )
+    elif intent == "gain":
+        tiles = (
+            ("Daily Surplus", f"~{fmt_num(-plan['daily_deficit'])} {cu}",
+             "Above maintenance"),
+            ("Weekly Gain", fmt_rate(plan["rate_kg_per_week"], units),
+             "Lean and steady"),
+        )
+    else:  # lose
+        tiles = (
+            ("Daily Deficit", f"~{fmt_num(plan['daily_deficit'])} {cu}",
+             "Below what you burn"),
+            ("Weekly Pace", fmt_rate(plan["rate_kg_per_week"], units),
+             "Steady and sustainable"),
+        )
+
+    # Timeline: single completion month, or the unlock prompt.
+    if plan.get("estimated_completion"):
+        timeline_label = "Your Timeline"
         timeline_html = (
-            '<table class="pace-row"><tr>'
-            '<td><div class="pace-label">Goal</div>'
-            '<div class="pace-value">Hold steady</div>'
-            f'<div class="pace-note">Stay inside your {fmt_num(band["min"])}'
-            f'–{fmt_num(band["max"])} {cu} zone</div></td>'
-            '<td><div class="pace-label">Check-in</div>'
-            '<div class="pace-value">Weekly</div>'
-            '<div class="pace-note">One weigh-in a week keeps drift visible</div></td>'
-            "</tr></table>"
+            '<div class="goal-tile">'
+            '<div class="goal-label">Goal Reached</div>'
+            f'<div class="goal-value">{fmt_month_year_short(plan["estimated_completion"])}</div>'
+            f'<div class="goal-note">~{round(plan["weeks"])} weeks from today</div>'
+            "</div>"
         )
     elif plan.get("timeline_locked"):
         timeline_label = "Your Timeline"
-        verb = "gain" if intent == "gain" else "loss"
-        rate_html = ""
-        if plan.get("rate_kg_per_week"):
-            rate_html = (
-                f'<div class="unlock-sub">Current pace: ~{fmt_rate(plan["rate_kg_per_week"], units)} '
-                f"steady {verb}</div>"
-            )
         timeline_html = (
             '<div class="unlock">'
-            '<div class="unlock-title">Reply with your goal weight to unlock your timeline</div>'
-            f"{rate_html}"
+            '<div class="unlock-title">Reply with your goal weight'
+            "<br>to unlock your completion date</div>"
             "</div>"
         )
-    elif intent == "recomp":
-        timeline_label = "Your Pace"
+    else:  # maintain / recomp — no timeline concept
+        timeline_label = "Your Focus"
+        focus = ("Consistency beats perfection — show up daily"
+                 if intent == "maintain"
+                 else "Give it 8–12 weeks before judging the scale")
         timeline_html = (
-            '<table class="pace-row"><tr>'
-            '<td><div class="pace-label">Strategy</div>'
-            '<div class="pace-value">Recomp</div>'
-            '<div class="pace-note">Slight deficit + heavy protein</div></td>'
-            '<td><div class="pace-label">Watch</div>'
-            '<div class="pace-value">The mirror</div>'
-            '<div class="pace-note">Scale moves slowly — strength won’t</div></td>'
-            "</tr></table>"
-        )
-    else:
-        timeline_label = "Your Timeline"
-        rate_word = "Weekly gain" if intent == "gain" else "Weekly loss"
-        completion = fmt_month_year(plan["estimated_completion"])
-        weeks = plan["weeks"]
-        timeline_html = (
-            '<table class="pace-row"><tr>'
-            f'<td><div class="pace-label">{rate_word}</div>'
-            f'<div class="pace-value">{fmt_rate(plan["rate_kg_per_week"], units)}</div>'
-            '<div class="pace-note">Steady and sustainable</div></td>'
-            '<td><div class="pace-label">Goal Reached</div>'
-            f'<div class="pace-value">{completion}</div>'
-            f'<div class="pace-note">~{round(weeks)} weeks from today</div></td>'
-            "</tr></table>"
+            '<div class="goal-tile">'
+            '<div class="goal-label">Remember</div>'
+            f'<div class="goal-note" style="margin-top:16px; font-size:33px; '
+            f'color:#ffffff; font-weight:700;">{focus}</div>'
+            "</div>"
         )
 
     habits_html = "".join(
@@ -409,14 +464,14 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
         "plan_title": PLAN_TITLES[intent],
         "stats_line": stats_line,
         "hero_label": hero_label,
-        "hero_value": f'{fmt_num(band["min"])}–{fmt_num(band["max"])}',
+        "hero_value": fmt_num(plan["daily_cal"]),
         "hero_unit": f"{cu} per day",
-        "protein_value": f'{round(protein["target"])}g',
-        "protein_note": f'floor {round(protein["min"])}g',
-        "fat_value": f'{round(fat["target"])}g',
-        "fat_note": f'{round(fat["min"])}–{round(fat["max"])}g',
-        "carb_value": f'{round(carb["target"])}g',
-        "carb_note": f'{round(carb["min"])}–{round(carb["max"])}g',
+        "tile1_label": tiles[0][0],
+        "tile1_value": tiles[0][1],
+        "tile1_note": tiles[0][2],
+        "tile2_label": tiles[1][0],
+        "tile2_value": tiles[1][1],
+        "tile2_note": tiles[1][2],
         "timeline_section_label": timeline_label,
         "timeline_html": timeline_html,
         "habits_html": habits_html,
@@ -466,20 +521,21 @@ def html_to_png(html: str, out_path: Path, width: int, max_bytes: int) -> int:
 
 
 # ---------------------------------------------------------------------------
-# PLAN.md generation (matches the structure weight-loss-planner saves:
-# user info → plan details → macros → milestones → notes, so downstream
-# skills like meal-planner can find the calorie target)
+# PLAN.md generation — mirrors the Step-3 presentation
+# (user-onboarding-profile/SKILL.md): user info block + the four plan
+# elements + short pace explanation. NO macro split. The "Daily calorie
+# target:" line is what downstream skills (meal-planner) look for.
 # ---------------------------------------------------------------------------
 
 def build_plan_markdown(plan: dict, profile: dict, locale: dict) -> str:
     units = locale["units"]
     cu = cal_unit(locale["country"])
     intent = plan["intent"]
-    band = plan["daily_cal_range"]
-    macros = plan["macros"]
-    protein, fat, carb = macros["protein"], macros["fat"], macros["carb"]
 
-    sex_label = profile["sex"].capitalize()
+    activity_desc = ACTIVITY_DESCRIPTIONS[plan["activity"]]
+    if plan["activity_assumed"]:
+        activity_desc += " (assumed — tell me your routine to fine-tune)"
+
     lines = []
     lines.append(f"# {PLAN_TITLES[intent].replace('Your ', '')}")
     lines.append("")
@@ -491,23 +547,12 @@ def build_plan_markdown(plan: dict, profile: dict, locale: dict) -> str:
     lines.append(f"• Current weight: {fmt_weight(profile['weight_kg'], units)}")
     if plan.get("goal_weight_kg") is not None:
         lines.append(f"• Goal weight: {fmt_weight(plan['goal_weight_kg'], units)}")
-    lines.append(f"• Age: {profile['age_years']} · Sex: {sex_label}")
-    lines.append(f"• Current BMI: {plan['bmi_current']}")
-    if plan.get("bmi_target") is not None:
-        lines.append(f"• Target BMI: {plan['bmi_target']}")
+    lines.append(f"• Age: {profile['age_years']} · Sex: {profile['sex'].capitalize()}")
+    lines.append(f"• Activity: {activity_desc}")
     lines.append("")
     lines.append("## Your Plan")
     lines.append("")
-    if intent == "maintain":
-        lines.append(
-            f"• Daily calorie target: {fmt_num(plan['daily_cal'])} {cu} "
-            f"(maintenance zone {fmt_num(band['min'])}–{fmt_num(band['max'])} {cu})"
-        )
-    else:
-        lines.append(
-            f"• Daily calorie target: {fmt_num(plan['daily_cal'])} {cu} "
-            f"(range {fmt_num(band['min'])}–{fmt_num(band['max'])} {cu})"
-        )
+    lines.append(f"• Daily calorie target: {fmt_num(plan['daily_cal'])} {cu}")
     deficit = plan.get("daily_deficit")
     if deficit:
         if deficit > 0:
@@ -518,56 +563,36 @@ def build_plan_markdown(plan: dict, profile: dict, locale: dict) -> str:
         word = "gain" if intent == "gain" else "loss"
         lines.append(f"• Weekly {word} rate: ~{fmt_rate(plan['rate_kg_per_week'], units)}")
     if plan.get("estimated_completion"):
-        lines.append(
-            f"• Estimated completion: {fmt_month_year(plan['estimated_completion'])} "
-            f"({plan['estimated_completion']})"
-        )
+        lines.append(f"• Estimated completion: {fmt_month_year(plan['estimated_completion'])}")
     elif plan.get("timeline_locked"):
-        lines.append("• Timeline: reply with your goal weight to unlock your timeline")
+        lines.append("• Estimated completion: reply with your goal weight "
+                     "to unlock your completion date")
     lines.append("")
-    lines.append("## Macro Targets")
+
+    # Short pace explanation, user-perspective, no TDEE/BMR jargon.
+    if intent == "lose":
+        explanation = ("This pace keeps your energy up while the scale keeps "
+                       "moving — steady enough to stick with.")
+        if plan["activity"] == "sedentary":
+            explanation += (" Adding a bit more daily movement would "
+                            "speed things up.")
+    elif intent == "maintain":
+        explanation = ("Eat around this level and your weight holds steady — "
+                       "a weekly weigh-in catches any drift early.")
+    elif intent == "recomp":
+        explanation = ("A small deficit with plenty of protein lets you build "
+                       "strength while trimming fat — judge progress by the "
+                       "mirror, not the scale.")
+    else:
+        explanation = ("A modest surplus keeps the gains lean — slow on the "
+                       "scale, visible in the gym.")
+    lines.append(f"*{explanation}*")
     lines.append("")
-    lines.append(
-        f"• Protein: {round(protein['min'])}–{round(protein['max'])} g "
-        f"(target {round(protein['target'])} g — treat {round(protein['min'])} g as your daily floor)"
-    )
-    lines.append(f"• Fat: {round(fat['min'])}–{round(fat['max'])} g (target {round(fat['target'])} g)")
-    lines.append(f"• Carbs: {round(carb['min'])}–{round(carb['max'])} g (target {round(carb['target'])} g)")
-    alloc = " / ".join(
-        f"{a['meal']} {a['pct']}% (~{fmt_num(a['cal'])} {cu})" for a in macros["allocation"]
-    )
-    lines.append(f"• Per-meal split: {alloc}")
-    lines.append("")
-    if plan.get("milestones"):
-        lines.append("## Milestones")
-        lines.append("")
-        for m in plan["milestones"]:
-            lines.append(
-                f"• {m['percent']}% — {fmt_weight(m['weight_kg'], units)} "
-                f"by {fmt_month_year(m['date'])} ({m['date']})"
-            )
-        lines.append("")
-    lines.append("## Starter Habits")
-    lines.append("")
-    for h in HABITS[intent]:
-        lines.append(f"• {h}")
-    lines.append("")
-    lines.append("## Important Notes")
-    lines.append("")
-    lines.append(
-        f"• Never eat below your safety floor of {fmt_num(plan['calorie_floor'])} {cu}/day."
-    )
     if plan.get("floor_clamped"):
-        lines.append(
-            "• Your calorie target was raised to the safety floor; "
-            "the weekly rate was adjusted accordingly."
-        )
-    lines.append(
-        "• Targets are recalculated every 4 weeks (or after significant weight change)."
-    )
-    lines.append("• This plan is guidance, not medical advice — consult a "
-                 "healthcare provider for medical conditions.")
-    lines.append("")
+        lines.append("> Note: your daily target was raised to your safety "
+                     "floor and the pace adjusted accordingly — eating less "
+                     "than this would work against you.")
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -592,8 +617,7 @@ def main():
         data = validate_input(data)
         profile, tdee, locale = data["profile"], data["tdee"], data["locale"]
 
-        pc = load_planner_calc()
-        plan = compute_plan(pc, profile, tdee)
+        plan = compute_plan(profile, tdee, locale)
 
         template_vars = build_template_vars(plan, profile, locale)
         html = render_html(template_vars)
