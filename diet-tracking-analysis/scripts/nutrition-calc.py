@@ -177,14 +177,14 @@ def _get_2meal_names(schedule: dict = None) -> tuple:
 
 DIET_MODE_FAT = {
     "usda":          (20, 35),
-    "balanced":      (25, 35),
-    "high_protein":  (25, 35),
+    "balanced":      (20, 35),
+    "high_protein":  (20, 35),
     "low_carb":      (40, 50),
     "keto":          (65, 75),
-    "mediterranean": (25, 35),
+    "mediterranean": (20, 35),
     "plant_based":   (20, 30),
-    "if_16_8":       (25, 35),
-    "if_5_2":        (25, 35),
+    "if_16_8":       (20, 35),
+    "if_5_2":        (20, 35),
 }
 
 DIET_MODE_MACROS = {
@@ -295,10 +295,20 @@ def get_log_path(data_dir: str, day: str = None, tz_offset: int = None) -> str:
 # ---------------------------------------------------------------------------
 
 def calc_targets(weight: float, daily_cal: int, meals: int = 3,
-                 mode: str = "balanced", schedule: dict = None) -> dict:
-    protein = round(weight * 1.4, 1)
-    protein_lo = round(weight * 1.2, 1)
-    protein_hi = round(weight * 1.6, 1)
+                 mode: str = "balanced", schedule: dict = None,
+                 target_weight: float = None) -> dict:
+    # Protein: use target weight if provided, otherwise current weight
+    protein_weight = target_weight if target_weight is not None else weight
+
+    # Mode-specific protein multipliers
+    if mode == "high_protein":
+        p_lo, p_mid, p_hi = 1.4, 1.6, 1.8
+    else:
+        p_lo, p_mid, p_hi = 1.2, 1.4, 1.6
+
+    protein = round(protein_weight * p_mid, 1)
+    protein_lo = round(protein_weight * p_lo, 1)
+    protein_hi = round(protein_weight * p_hi, 1)
 
     fat_lo_pct, fat_hi_pct = DIET_MODE_FAT.get(mode, (25, 35))
     fat_mid_pct = (fat_lo_pct + fat_hi_pct) / 2
@@ -456,7 +466,8 @@ def evaluate(weight: float, daily_cal: int, meals: int,
              current_meal: str, log: list,
              assumed_meals: list = None,
              mode: str = "balanced",
-             schedule: dict = None) -> dict:
+             schedule: dict = None,
+             target_weight: float = None) -> dict:
     """Evaluate cumulative intake at the checkpoint for *current_meal*.
 
     Uses range-based evaluation:
@@ -468,7 +479,7 @@ def evaluate(weight: float, daily_cal: int, meals: int,
     if assumed_meals:
         assumed_meals = _migrate_meals(assumed_meals)
 
-    targets = calc_targets(weight, daily_cal, meals, mode, schedule)
+    targets = calc_targets(weight, daily_cal, meals, mode, schedule, target_weight)
     blocks = get_meal_blocks(meals, schedule)
 
     block_idx = find_block_index(current_meal, meals, schedule)
@@ -786,7 +797,7 @@ def local_date_info(tz_offset: int) -> dict:
 def query_day(data_dir: str, tz_offset: int, weight: float,
               daily_cal: int, meals: int, day: str = None,
               mode: str = "balanced", region: str = None,
-              schedule: dict = None) -> dict:
+              schedule: dict = None, target_weight: float = None) -> dict:
     """Load a day's records and evaluate current status.
 
     Args:
@@ -829,7 +840,7 @@ def query_day(data_dir: str, tz_offset: int, weight: float,
         latest_meal = all_meals[-1].get("name", "breakfast")
 
     result["evaluation"] = evaluate(weight, daily_cal, meals,
-                                    latest_meal, all_meals, None, mode, schedule)
+                                    latest_meal, all_meals, None, mode, schedule, target_weight)
 
     # Add overshoot history (same as log-meal does)
     if result["evaluation"]:

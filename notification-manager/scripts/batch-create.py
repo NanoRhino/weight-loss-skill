@@ -146,9 +146,12 @@ def build_cron_cmd(agent, channel, to_target, name, message, cron_expr, tz):
         cmd = [
             "openclaw", "cron", "add",
             "--name", name,
-            "--session", "main",
+            "--session", "isolated",
             "--agent", agent,
-            "--system-event", message,
+            "--message", message,
+            "--announce",
+            "--channel", channel,
+            "--to", to_target,
             "--cron", cron_expr,
             "--tz", tz,
         ]

@@ -300,13 +300,13 @@ The diet-tracking-analysis skill reads daily targets directly from weight-loss-p
 | Diet Mode | Fat Range | Fat Midpoint |
 |---|---|---|
 | Healthy U.S.-Style (USDA) | 20–35% | 27.5% |
-| Balanced / Flexible | 25–35% | 30% |
-| High-Protein | 25–35% | 30% |
+| Balanced / Flexible | 20–35% | 27.5% |
+| High-Protein | 20–35% | 27.5% |
 | Low-Carb | 40–50% | 45% |
 | Keto | 65–75% | 70% |
-| Mediterranean | 25–35% | 30% |
+| Mediterranean | 20–35% | 27.5% |
 | Plant-Based | 20–30% | 25% |
-| IF (16:8 / 5:2) | Use the chosen macro split's fat range | — |
+| IF (16:8 / 5:2) | 20–35% (defaults to balanced) | 27.5% |
 
 If no diet mode is specified, default to **Balanced (fat 25–35%)**.
 
@@ -324,10 +324,15 @@ Calories:
   range    = totalCal - 100  to  totalCal + 100 kcal
   display  = totalCal (midpoint)
 
-Protein (always from body weight, not percentage):
-  range    = weight_kg × 1.2  to  weight_kg × 1.6 g
-  display  = weight_kg × 1.4 g (midpoint)
-  calories = protein_g × 4
+Protein (always from target weight, not percentage):
+  For high_protein mode:
+    range    = target_weight_kg × 1.4  to  target_weight_kg × 1.8 g
+    display  = target_weight_kg × 1.6 g (midpoint)
+    calories = protein_g × 4
+  For all other modes:
+    range    = target_weight_kg × 1.2  to  target_weight_kg × 1.6 g
+    display  = target_weight_kg × 1.4 g (midpoint)
+    calories = protein_g × 4
 
 Fat (from diet mode):
   range    = totalCal × fat_pct_low ÷ 9  to  totalCal × fat_pct_high ÷ 9 g

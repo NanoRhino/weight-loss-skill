@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# upload-to-s3.sh — Upload an HTML file to cloud storage (auto-detect AWS S3 or JD Cloud OSS)
+# upload-to-s3.sh — Upload an HTML file to AWS S3
 #
 # Usage: upload-to-s3.sh --file <path> --bucket <name> --username <name> --key <doc-key>
 #                        [--workspace <path>] [--base-url <url>]
@@ -18,20 +18,8 @@
 # --key (required): Document key (e.g., "weight-loss-plan", "meal-plan")
 # --base-url: Public URL base (default: https://nanorhino.ai)
 #
-# Storage backend auto-detection (in order):
-#   1. PLAN_STORAGE_BACKEND env var (aws|jdoss) — force a specific backend
-#   2. JD_OSS_ACCESS_KEY is set → JD Cloud OSS
-#   3. aws sts get-caller-identity succeeds → AWS S3
-#   4. None detected → error
-#
 # AWS S3 environment:
 #   Standard AWS CLI credentials (IAM role, env vars, or ~/.aws/credentials)
-#
-# JD Cloud OSS environment variables:
-#   JD_OSS_ACCESS_KEY   - JD Cloud access key (required)
-#   JD_OSS_SECRET_KEY   - JD Cloud secret key (required)
-#   JD_OSS_ENDPOINT     - OSS endpoint (required, e.g. https://s3.cn-north-1.jdcloud-oss.com)
-#   JD_OSS_BUCKET       - Default bucket (used if --bucket not provided)
 
 set -euo pipefail
 
@@ -66,12 +54,13 @@ if [[ -z "$USERNAME" ]]; then
   # Extract agentId from workspace dir name: workspace-wechat-dm-xxx → wechat-dm-xxx
   WS_BASENAME=$(basename "$WORKSPACE")
   AGENT_ID="${WS_BASENAME#workspace-}"
+  # Extract accountId from agentId (strip "wechat-dm-" prefix)
+  ACCOUNT_ID="${AGENT_ID#wechat-dm-}"
 
-  # Look up shortId from agent-registry.json
-  REGISTRY="${HOME}/.openclaw/extensions/wechat/agent-registry.json"
+  # Look up shortId from agent-registry.json (located in gateway extensions dir)
+  GATEWAY_DIR=$(dirname "$WORKSPACE")
+  REGISTRY="${GATEWAY_DIR}/extensions/wechat/agent-registry.json"
   if [[ -f "$REGISTRY" ]]; then
-    # Extract accountId from agentId (strip "wechat-dm-" prefix)
-    ACCOUNT_ID="${AGENT_ID#wechat-dm-}"
     USERNAME=$(python3 -c "
 import json, sys
 try:
@@ -105,23 +94,6 @@ fi
 S3_KEY="user/${USERNAME}/${KEY}.${FILE_EXT}"
 PUBLIC_URL="${BASE_URL}/user/${USERNAME}/${KEY}.${FILE_EXT}"
 
-# === Detect storage backend ===
-detect_backend() {
-  if [[ -n "${PLAN_STORAGE_BACKEND:-}" ]]; then
-    echo "$PLAN_STORAGE_BACKEND"
-  elif [[ -n "${JD_OSS_ACCESS_KEY:-}" ]]; then
-    echo "jdoss"
-  elif command -v aws &>/dev/null && aws sts get-caller-identity &>/dev/null; then
-    echo "aws"
-  else
-    echo "ERROR: No storage backend detected. Set PLAN_STORAGE_BACKEND, JD_OSS_* env vars, or configure AWS CLI." >&2
-    exit 1
-  fi
-}
-
-BACKEND=$(detect_backend)
-echo "Storage backend: $BACKEND" >&2
-
 # === Detect content type from extension and filename pattern ===
 detect_content_type() {
   # weekly-data-*.html files are actually JSON data
@@ -152,94 +124,10 @@ upload_aws() {
   echo "Uploaded successfully" >&2
 }
 
-# === JD Cloud OSS upload ===
-upload_jdoss() {
-  BUCKET="${BUCKET:-${JD_OSS_BUCKET:-}}"
-  if [[ -z "$BUCKET" ]]; then echo "ERROR: --bucket is required (or set JD_OSS_BUCKET)" >&2; exit 1; fi
-
-  UPLOADED_AT=$(uv run --quiet --script - "$FILE" "$BUCKET" "$S3_KEY" << 'PYTHON_SCRIPT'
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["boto3>=1.34"]
-# ///
-import sys
-import os
-import re
-from datetime import datetime, timezone
-from pathlib import Path
-
-import boto3
-from botocore.config import Config
-
-
-def get_env(name: str) -> str:
-    val = os.environ.get(name, "").strip()
-    if not val:
-        print(f"Error: {name} environment variable is not set", file=sys.stderr)
-        sys.exit(1)
-    return val
-
-
-def main():
-    file_path = sys.argv[1]
-    bucket = sys.argv[2]
-    s3_key = sys.argv[3]
-
-    access_key = get_env("JD_OSS_ACCESS_KEY")
-    secret_key = get_env("JD_OSS_SECRET_KEY")
-    endpoint = get_env("JD_OSS_ENDPOINT")
-
-    path = Path(file_path)
-    if not path.is_file():
-        print(f"Error: File not found: {file_path}", file=sys.stderr)
-        sys.exit(1)
-
-    region_match = re.search(r's3\.([^.]+)\.', endpoint)
-    region = region_match.group(1) if region_match else "cn-north-1"
-
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=endpoint,
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        region_name=region,
-        config=Config(
-            signature_version="s3v4",
-            s3={"addressing_style": "path"},
-            request_checksum_calculation="when_required",
-        ),
-    )
-
-    print(f"Uploading to {bucket}/{s3_key} ...", file=sys.stderr)
-
-    s3.upload_file(
-        str(path), bucket, s3_key,
-        ExtraArgs={
-            "ContentType": os.environ.get("UPLOAD_CONTENT_TYPE", "text/html; charset=utf-8"),
-            "CacheControl": "public, max-age=300",
-        },
-    )
-
-    now = datetime.now(timezone.utc)
-    uploaded_at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    print(f"Uploaded successfully", file=sys.stderr)
-    print(uploaded_at)
-
-
-if __name__ == "__main__":
-    main()
-PYTHON_SCRIPT
-)
-}
 
 # === Run upload ===
 export UPLOAD_CONTENT_TYPE="$CONTENT_TYPE"
-case "$BACKEND" in
-  aws)    upload_aws ;;
-  jdoss)  upload_jdoss ;;
-  *)      echo "ERROR: Unknown backend: $BACKEND" >&2; exit 1 ;;
-esac
+upload_aws
 
 # === Write plan-url.json ===
 if [[ -n "$WORKSPACE" ]]; then

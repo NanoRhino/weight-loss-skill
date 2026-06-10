@@ -158,7 +158,7 @@ bash {baseDir}/scripts/batch-create-reminders.sh \
   --skip-existing
 ```
 
-Use `--only meal,weight,report,review,pattern` to restrict which job types are created. The `--skip-existing` flag prevents duplicate creation during partial syncs.
+Use `--only meal,weight,report,pattern` to restrict which job types are created. The `--skip-existing` flag prevents duplicate creation during partial syncs.
 
 ---
 
@@ -236,6 +236,24 @@ bash {baseDir}/scripts/create-reminder.sh \
   --message "🚨 WEEKLY REPORT — MANDATORY SCRIPT EXECUTION\n\nGenerate this week's weekly report using the weekly-report skill.\n\nABSOLUTE RULES:\n1. Run collect-weekly-data.py to gather all nutrition/weight/exercise data\n2. Run generate-report-html.py with real commentary/highlights/suggestions — capture the URL from stdout\n3. The final message to user MUST contain the clickable report URL\n4. If any script fails, report the error — do NOT fall back to a text-only summary\n5. A delivery without a report URL = FAILED execution\n\n❌ FORBIDDEN: Writing a text summary without running the scripts\n❌ FORBIDDEN: Sending a message without a report link (https://nanorhino.ai/user/...)\n✅ REQUIRED: The message MUST contain the actual uploaded report URL\n\nSkill: weekly-report\nUser workspace: {workspaceDir}" \
   --cron "0 21 * * 0"
 ```
+
+### Periodic recalc (every 4 weeks Sunday, after weekly report)
+
+Every 4 weeks, recalculates the user's daily calorie target based on current weight and reviews diet mode fit. Fires after the weekly report (Sunday 21:30).
+
+```bash
+bash {baseDir}/scripts/create-reminder.sh \
+  --agent <your-agent-id> --channel <channel> --name "Periodic recalc (4-week)" \
+  --message "Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated." \
+  --cron "30 21 * * 0" \
+  --exact
+```
+
+**Scheduling note:** Use `--exact` to ensure it fires at 21:30 (after weekly report at 21:00). The `0 */4` week cycle is NOT achievable in standard cron — instead, the script itself tracks the last recalc date in `pending-recalc.json` or `PLAN.md > Updated` field and skips execution if less than 25 days since last recalc.
+
+**Created at onboarding** (alongside meal/weight/weekly-report reminders).
+
+---
 
 ### Diet pattern detection (self-destructing, onboarding + 3 days)
 

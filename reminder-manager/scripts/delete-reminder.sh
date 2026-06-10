@@ -21,8 +21,9 @@ done
 
 [[ -z "$AGENT_ID" || -z "$JOB_ID" ]] && usage
 
-# Verify ownership: fetch all jobs, check this job belongs to agent
-OWNER=$(openclaw cron list --json --all 2>/dev/null | python3 -c "
+# Verify ownership: fetch this agent's jobs (server-side filter avoids the
+# 200-result cap), check this job is in the list.
+OWNER=$(openclaw cron list --json --all --agent "$AGENT_ID" 2>/dev/null | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
 jobs = data if isinstance(data, list) else data.get('jobs', [])

@@ -22,7 +22,6 @@ Users who tried 小犀牛AI健康 (the WeChat miniprogram) go through a **lightw
 | Meal reminders (cron, ~15min before each meal) | Miniprogram has no cron | Create via `notification-manager` |
 | Weigh-in reminder (cron) | Same | Create via `notification-manager` |
 | Weekly review (cron) | Same | Create via `notification-manager` |
-| Daily review (cron) | Same | Create via `notification-manager` |
 | Diet pattern detection (cron) | Same | Create via `notification-manager` |
 | Daily check-in flow explanation | Not useful in miniprogram | **Explain once** here |
 
@@ -98,7 +97,6 @@ bash {notification-manager:baseDir}/scripts/batch-create-reminders.sh \
 This creates in one pass:
 - Pre-meal reminders (breakfast / lunch / dinner, ~15 min before each)
 - Daily weigh-in reminder
-- Daily review reminder (evening)
 - Weekly review reminder (Sunday)
 - Diet pattern detection (periodic)
 

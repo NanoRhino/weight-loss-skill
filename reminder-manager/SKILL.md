@@ -37,13 +37,13 @@ The `--message` is what you (the agent) will receive when the job fires. Write i
 **IMPORTANT: Always prepend a pre-send-check call to the message.** This ensures the reminder is suppressed when the user enters recall stages (Stage 2+). The check also auto-creates/updates `engagement.json`, so it works even if the file doesn't exist yet.
 
 ```
-先执行 python3 {notification-manager:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：[actual reminder instruction]
+先执行 python3 {notification-composer:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：[actual reminder instruction]
 ```
 
 Examples:
-- `--message "先执行 python3 {notification-manager:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：提醒用户该喝水了，简短自然"`
-- `--message "先执行 python3 {notification-manager:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：Ask the user if they've had lunch yet"`
-- `--message "先执行 python3 {notification-manager:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：提醒用户去称体重，鼓励一下"`
+- `--message "先执行 python3 {notification-composer:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：提醒用户该喝水了，简短自然"`
+- `--message "先执行 python3 {notification-composer:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：Ask the user if they've had lunch yet"`
+- `--message "先执行 python3 {notification-composer:baseDir}/scripts/pre-send-check.py --workspace-dir {workspaceDir} --meal-type custom --tz-offset {tz_offset}。如果输出 NO_REPLY，直接回复 NO_REPLY，不做任何事。如果输出 SEND，继续执行：提醒用户去称体重，鼓励一下"`
 
 ### List
 

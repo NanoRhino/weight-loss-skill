@@ -33,8 +33,9 @@ done
 [[ -z "$AGENT_ID" || -z "$JOB_ID" ]] && usage
 [[ ${#EDIT_ARGS[@]} -eq 0 ]] && { echo '{"ok":false,"error":"Nothing to edit. Provide at least one of: --name, --cron, --at, --in, --message, --enable, --disable"}'; exit 1; }
 
-# Verify ownership
-OWNER=$(openclaw cron list --json --all 2>/dev/null | python3 -c "
+# Verify ownership: fetch this agent's jobs (server-side filter avoids the
+# 200-result cap), check this job is in the list.
+OWNER=$(openclaw cron list --json --all --agent "$AGENT_ID" 2>/dev/null | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
 jobs = data if isinstance(data, list) else data.get('jobs', [])

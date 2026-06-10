@@ -20,7 +20,11 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timedelta, timezone
+
+import boto3
+from botocore.config import Config
 
 
 def log(msg):
@@ -231,7 +235,140 @@ def collect_habits(workspace_dir, start_date, end_date):
     return {"active": active, "daily_log": filtered_log, "graduated": data.get("graduated", [])}
 
 
+NUTRITION_TOOL_SCHEMA = {
+    "name": "nutrition_targets",
+    "description": "Extract nutrition targets from user health plan files",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "calories": {"type": "integer", "description": "Daily calorie target (single value)"},
+            "calories_max": {"type": "integer", "description": "Upper end of calorie range if explicitly stated as a range"},
+            "bmr": {"type": "integer", "description": "Basal metabolic rate"},
+            "protein_min": {"type": "number", "description": "Min daily protein in grams"},
+            "protein_max": {"type": "number", "description": "Max daily protein in grams"},
+            "carbs_min": {"type": "number", "description": "Min daily carbs in grams"},
+            "carbs_max": {"type": "number", "description": "Max daily carbs in grams"},
+            "fat_min": {"type": "number", "description": "Min daily fat in grams"},
+            "fat_max": {"type": "number", "description": "Max daily fat in grams"},
+            "target_weight": {"type": "number", "description": "Target weight in kg"},
+            "start_weight": {"type": "number", "description": "Starting weight in kg"},
+        },
+        "required": ["calories"]
+    }
+}
+
+
 def read_plan(workspace_dir):
+    """Extract nutrition targets from PLAN.md / health-profile.md using Claude Haiku.
+
+    Falls back to the regex-based extraction (_read_plan_regex) if the Bedrock call fails."""
+    plan_path = os.path.join(workspace_dir, "PLAN.md")
+    profile_path = os.path.join(workspace_dir, "health-profile.md")
+
+    plan_content = ""
+    if os.path.exists(plan_path):
+        try:
+            with open(plan_path) as f:
+                plan_content = f.read()
+        except IOError:
+            plan_content = ""
+
+    profile_content = ""
+    if os.path.exists(profile_path):
+        try:
+            with open(profile_path) as f:
+                profile_content = f.read()
+        except IOError:
+            profile_content = ""
+
+    # Nothing to extract from
+    if not plan_content and not profile_content:
+        return _read_plan_regex(workspace_dir)
+
+    try:
+        client = boto3.client(
+            "bedrock-runtime",
+            region_name="us-east-1",
+            config=Config(connect_timeout=10, read_timeout=10, retries={"max_attempts": 1}),
+        )
+
+        user_message = f"=== PLAN.md ===\n{plan_content}\n\n=== health-profile.md ===\n{profile_content}"
+
+        start_ms = time.time()
+        response = client.invoke_model(
+            modelId="us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            body=json.dumps({
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 1024,
+                "temperature": 0,
+                "system": "Extract nutrition targets from the user's health plan files. Use the tool to return results. For any field not found, omit it. Do not guess or fabricate values.",
+                "tools": [NUTRITION_TOOL_SCHEMA],
+                "tool_choice": {"type": "any"},
+                "messages": [{"role": "user", "content": user_message}],
+            }),
+        )
+        latency_ms = round((time.time() - start_ms) * 1000)
+
+        body = json.loads(response["body"].read())
+        tool_input = None
+        for block in body.get("content", []):
+            if block.get("type") == "tool_use":
+                tool_input = block.get("input", {})
+                break
+
+        if tool_input is None:
+            raise ValueError("No tool_use block in Haiku response")
+
+        plan = _haiku_to_plan(tool_input)
+        log(f"Haiku nutrition extraction: calories={tool_input.get('calories')}, "
+            f"cal_min={plan.get('cal_min')}, latency={latency_ms}ms")
+
+        plan = _fill_macro_defaults(workspace_dir, plan)
+        return plan if plan else None
+    except Exception as e:
+        log(f"WARNING: Haiku nutrition extraction failed: {e}, falling back to regex")
+        return _read_plan_regex(workspace_dir)
+
+
+def _haiku_to_plan(t):
+    """Convert Haiku tool_use output to the internal `plan` dict format."""
+    plan = {}
+
+    calories = t.get("calories")
+    calories_max = t.get("calories_max")
+    if calories is not None:
+        calories = int(calories)
+        if calories_max is not None:
+            plan["cal_min"] = [calories, int(calories_max)]
+        else:
+            plan["cal_min"] = [round(calories * 0.9), round(calories * 1.1)]
+
+    protein_min = t.get("protein_min")
+    protein_max = t.get("protein_max")
+    if protein_min is not None and protein_max is not None:
+        plan["protein_range"] = [round(protein_min), round(protein_max)]
+
+    fat_min = t.get("fat_min")
+    fat_max = t.get("fat_max")
+    if fat_min is not None and fat_max is not None:
+        plan["fat_range"] = [round(fat_min), round(fat_max)]
+
+    carbs_min = t.get("carbs_min")
+    carbs_max = t.get("carbs_max")
+    if carbs_min is not None and carbs_max is not None:
+        plan["carb_range"] = [round(carbs_min), round(carbs_max)]
+
+    if t.get("bmr") is not None:
+        plan["bmr"] = int(t["bmr"])
+    if t.get("target_weight") is not None:
+        plan["target_weight"] = float(t["target_weight"])
+    if t.get("start_weight") is not None:
+        plan["start_weight"] = float(t["start_weight"])
+
+    return plan
+
+
+def _read_plan_regex(workspace_dir):
     """Read PLAN.md and extract key fields. Falls back to health-profile.md for reasonable defaults."""
     plan_path = os.path.join(workspace_dir, "PLAN.md")
     plan = None
@@ -247,7 +384,7 @@ def read_plan(workspace_dir):
         import re
 
         patterns = {
-            "cal_min": r"Daily Calorie Range[:\s]*(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)",
+            "cal_min": r"(?:Daily Calorie Range|每日热量范围)[：:\s]*(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)",
             "cal_target_single": r"(?:每日热量目标|Daily Calorie Target|Calorie Target|热量目标)[：:\s]*(?:约|~|≈)?\s*([\d,]+)",
             "tdee": r"TDEE[:\s]*([\d,]+)",
             "bmr": r"BMR[:\s]*([\d,]+)",
@@ -255,7 +392,7 @@ def read_plan(workspace_dir):
             "protein_range": r"(?:Protein|蛋白质)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
             "fat_range": r"(?:Fat|脂肪)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
             "carb_range": r"(?:Carb|碳水)[：:\s]*(\d+)\s*[-–]\s*(\d+)\s*g",
-            "weight_loss_rate": r"(?:Weight Loss Rate|每周减重)[：:\s]*([\d.]+)",
+            "weight_loss_rate": r"(?:Weight Loss Rate|每周减重[速率]*)[：:\s]*([\d.]+)",
             "target_weight": r"(?:Target Weight|目标体重)[：:\s]*([\d.]+)",
             "start_weight": r"(?:Start|Initial|Starting|初始) ?(?:Weight|体重)[：:\s]*([\d.]+)",
         }
@@ -291,32 +428,54 @@ def read_plan(workspace_dir):
 
 
 def _fill_macro_defaults(workspace_dir, plan):
-    """Fill in missing macro targets from health-profile.md using standard formulas."""
-    hp_path = os.path.join(workspace_dir, "health-profile.md")
-    if not os.path.exists(hp_path):
-        return plan
-
-    try:
-        with open(hp_path) as f:
-            content = f.read()
-    except IOError:
-        return plan
-
+    """Fill missing macro targets using nutrition-calc.py's calc_targets() for consistency
+    with daily meal tracking feedback. Falls back to basic formulas if import fails."""
     import re
 
-    # Extract weight (current or target for calculation)
-    weight = None
-    weight_match = re.search(r"Weight to Lose[:\s]*([\d.]+)", content)
-    target_match = re.search(r"Target Weight[:\s]*([\d.]+)", content)
+    # --- Resolve daily_cal ---
+    daily_cal = None
+    if "cal_min" in plan:
+        daily_cal = round((plan["cal_min"][0] + plan["cal_min"][1]) / 2)
+    else:
+        # Try health-profile.json
+        hp_json_path = os.path.join(workspace_dir, "data", "health-profile.json")
+        if os.path.exists(hp_json_path):
+            try:
+                with open(hp_json_path) as f:
+                    hp_data = json.load(f)
+                cal_from_json = hp_data.get("calorie_target")
+                if cal_from_json and cal_from_json > 0:
+                    daily_cal = int(cal_from_json)
+            except (json.JSONDecodeError, IOError):
+                pass
 
-    # Try to get current weight from weight.json
+        # Try PLAN.md single value
+        if daily_cal is None:
+            plan_path = os.path.join(workspace_dir, "PLAN.md")
+            if os.path.exists(plan_path):
+                try:
+                    with open(plan_path) as f:
+                        plan_content = f.read()
+                    m = re.search(r"(?:每日热量目标|Daily Calorie Target|Calorie Target|热量目标)[：:\s]*(?:约|~|≈)?\s*([\d,]+)", plan_content, re.IGNORECASE)
+                    if m:
+                        daily_cal = int(m.group(1).replace(",", ""))
+                except IOError:
+                    pass
+
+        if daily_cal is None:
+            daily_cal = 1800  # safe fallback
+
+        # Set cal_min using ±100 (same as nutrition-calc.py)
+        plan["cal_min"] = [daily_cal - 100, daily_cal + 100]
+
+    # --- Resolve weight ---
+    weight = None
     weight_file = os.path.join(workspace_dir, "data", "weight.json")
     if os.path.exists(weight_file):
         try:
             with open(weight_file) as f:
                 wd = json.load(f)
             if isinstance(wd, dict):
-                # Get latest reading
                 readings = [(k, v) for k, v in wd.items() if isinstance(v, dict) and "value" in v]
                 if readings:
                     readings.sort(key=lambda x: x[0])
@@ -324,62 +483,81 @@ def _fill_macro_defaults(workspace_dir, plan):
         except (json.JSONDecodeError, IOError):
             pass
 
-    if weight is None and target_match:
-        weight = float(target_match.group(1))
+    if weight is None:
+        hp_path = os.path.join(workspace_dir, "health-profile.md")
+        if os.path.exists(hp_path):
+            try:
+                with open(hp_path) as f:
+                    content = f.read()
+                m = re.search(r"(?:Target Weight|目标体重)[：:\s]*([\d.]+)", content)
+                if m:
+                    weight = float(m.group(1))
+            except IOError:
+                pass
+
     if weight is None:
         weight = 65  # safe default
 
-    # Detect diet mode
+    # --- Resolve diet mode ---
     diet_mode = "balanced"
-    if "high_protein" in content.lower() or "高蛋白" in content:
-        diet_mode = "high_protein"
-    elif "low_carb" in content.lower() or "低碳" in content:
-        diet_mode = "low_carb"
+    hp_path = os.path.join(workspace_dir, "health-profile.md")
+    if os.path.exists(hp_path):
+        try:
+            with open(hp_path) as f:
+                content = f.read()
+            if "high_protein" in content.lower() or "高蛋白" in content:
+                diet_mode = "high_protein"
+            elif "low_carb" in content.lower() or "低碳" in content:
+                diet_mode = "low_carb"
+            elif "keto" in content.lower() or "生酮" in content:
+                diet_mode = "keto"
+        except IOError:
+            pass
 
-    # Default calorie range if missing
-    if "cal_min" not in plan:
-        # Try health-profile.json first
-        hp_json_path = os.path.join(workspace_dir, "data", "health-profile.json")
-        cal_from_json = None
-        if os.path.exists(hp_json_path):
-            try:
-                with open(hp_json_path) as f:
-                    hp_data = json.load(f)
-                cal_from_json = hp_data.get("calorie_target")
-            except (json.JSONDecodeError, IOError):
-                pass
+    # --- Use nutrition-calc's calc_targets for consistency with daily tracking ---
+    if "protein_range" not in plan or "fat_range" not in plan or "carb_range" not in plan:
+        try:
+            # Import calc_targets from nutrition-calc.py
+            skills_base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            nc_path = os.path.join(skills_base, "diet-tracking-analysis", "scripts", "nutrition-calc.py")
+            if os.path.exists(nc_path):
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("nutrition_calc", nc_path)
+                nc = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(nc)
+                targets = nc.calc_targets(weight, daily_cal, mode=diet_mode)
 
-        if cal_from_json and cal_from_json > 0:
-            # Use calorie_target as center, ±10% range
-            plan["cal_min"] = [round(cal_from_json * 0.9), round(cal_from_json * 1.1)]
-        else:
-            # Standard deficit: BMR~1400-1650 for most users, target 1600-2000
-            plan["cal_min"] = [1600, 2000]
+                if "protein_range" not in plan:
+                    plan["protein_range"] = [round(targets["protein"]["min"]), round(targets["protein"]["max"])]
+                if "fat_range" not in plan:
+                    plan["fat_range"] = [round(targets["fat"]["min"]), round(targets["fat"]["max"])]
+                if "carb_range" not in plan:
+                    plan["carb_range"] = [round(targets["carb"]["min"]), round(targets["carb"]["max"])]
+                # Also align cal_min with nutrition-calc's ±100 logic
+                if "cal_min" not in plan or plan["cal_min"] == [daily_cal - 100, daily_cal + 100]:
+                    plan["cal_min"] = [targets["calories_range"]["min"], targets["calories_range"]["max"]]
 
-    cal_mid = (plan["cal_min"][0] + plan["cal_min"][1]) / 2
+                log(f"Macro targets from nutrition-calc: protein={plan.get('protein_range')}, fat={plan.get('fat_range')}, carb={plan.get('carb_range')}")
+                return plan
+            else:
+                log(f"WARNING: nutrition-calc.py not found at {nc_path}, using fallback")
+        except Exception as e:
+            log(f"WARNING: Failed to import calc_targets: {e}, using fallback")
 
-    # Protein target (g)
-    # Weight loss: 1.2-1.6 g/kg (preserve muscle mass)
-    # High protein mode: 1.6-2.0 g/kg
-    if "protein_range" not in plan:
-        if diet_mode == "high_protein":
-            plan["protein_range"] = [round(weight * 1.6), round(weight * 2.0)]
-        else:
+        # --- Fallback: manual calculation (same formulas as before) ---
+        cal_mid = daily_cal
+        if "protein_range" not in plan:
             plan["protein_range"] = [round(weight * 1.2), round(weight * 1.6)]
-
-    # Fat target (g) — 20-30% of calories (lower end for weight loss)
-    if "fat_range" not in plan:
-        fat_low = round(cal_mid * 0.20 / 9)
-        fat_high = round(cal_mid * 0.30 / 9)
-        plan["fat_range"] = [fat_low, fat_high]
-
-    # Carb target (g) — remainder after protein and fat
-    if "carb_range" not in plan:
-        protein_mid = (plan["protein_range"][0] + plan["protein_range"][1]) / 2
-        fat_mid = (plan["fat_range"][0] + plan["fat_range"][1]) / 2
-        remaining_cal = cal_mid - (protein_mid * 4) - (fat_mid * 9)
-        carb_target = max(remaining_cal / 4, 100)  # at least 100g for brain function
-        plan["carb_range"] = [round(carb_target * 0.85), round(carb_target * 1.15)]
+        if "fat_range" not in plan:
+            fat_low = round(cal_mid * 0.25 / 9)
+            fat_high = round(cal_mid * 0.35 / 9)
+            plan["fat_range"] = [fat_low, fat_high]
+        if "carb_range" not in plan:
+            protein_mid = (plan["protein_range"][0] + plan["protein_range"][1]) / 2
+            fat_mid = (plan["fat_range"][0] + plan["fat_range"][1]) / 2
+            remaining_cal = cal_mid - (protein_mid * 4) - (fat_mid * 9)
+            carb_target = max(remaining_cal / 4, 100)
+            plan["carb_range"] = [round(carb_target * 0.85), round(carb_target * 1.15)]
 
     return plan
 
@@ -430,9 +608,26 @@ def compute_summary(days, plan, weight_data):
     }
 
     # Step 2: for each logged day, estimate full-day intake by filling missing meals
-    # "Missing meal" = a standard meal type (breakfast/lunch/dinner) not present in the day's records
-    # or present but with 0 calories (meaning skipped/not logged)
-    standard_meals = {"breakfast", "lunch", "dinner"}
+    # Determine standard meals from user's actual pattern (not hardcoded 3 meals)
+    meals_per_day = plan.get("meals", 3) if plan else 3
+
+    # Count how many days each meal type appears
+    meal_type_frequency = {}  # {meal_type: number_of_days_it_appears}
+    for d in logged_days:
+        seen_types = set()
+        for meal in d.get("meals", []):
+            mt = meal.get("meal_type", "unknown")
+            if meal.get("cal", 0) > 0 and mt not in seen_types:
+                seen_types.add(mt)
+                meal_type_frequency[mt] = meal_type_frequency.get(mt, 0) + 1
+
+    # Take the top N meal types by frequency (N = meals_per_day), requiring >= 2 days
+    sorted_types = sorted(meal_type_frequency.items(), key=lambda x: -x[1])
+    standard_meals = {t for t, count in sorted_types[:meals_per_day] if count >= 2}
+
+    log(f"Meal estimation: meals_per_day={meals_per_day}, "
+        f"frequency={dict(sorted_types)}, standard_meals={standard_meals}")
+
     estimated_daily = []  # list of {protein, fat, carb, cal} per day
 
     for d in logged_days:
@@ -511,6 +706,21 @@ def compute_summary(days, plan, weight_data):
     chart_max = max(cal_max, (plan["cal_min"][1] * 1.2 if plan and "cal_min" in plan else 0))
     summary["chart_max"] = round(chart_max)
 
+    # Low-calorie safety check (integrated from weekly-low-cal-check.py)
+    bmr = plan.get("bmr") if plan else None
+    if bmr and logged_days:
+        daily_cals = [d["totals"]["cal"] for d in logged_days if d["totals"]["cal"] > 0]
+        if daily_cals:
+            avg_for_safety = round(sum(daily_cals) / len(daily_cals))
+            days_below_bmr = [d["date"] for d in logged_days if 0 < d["totals"]["cal"] < bmr]
+            summary["safety"] = {
+                "below_floor": avg_for_safety < bmr,
+                "avg_cal": avg_for_safety,
+                "bmr": bmr,
+                "days_below": days_below_bmr,
+                "days_below_count": len(days_below_bmr),
+            }
+
     return summary
 
 
@@ -521,6 +731,12 @@ def main():
     parser.add_argument("--end-date", required=True, help="Sunday of the report week (YYYY-MM-DD)")
     parser.add_argument("--tz-offset", type=int, required=True)
     parser.add_argument("--display-unit", default="kg")
+    parser.add_argument("--targets", default=None,
+                        help="JSON string with plan targets from agent. "
+                             "Keys: cal_min (list[2]), protein_range (list[2]), "
+                             "fat_range (list[2]), carb_range (list[2]), tdee, bmr, "
+                             "weight_loss_rate, target_weight, start_weight. "
+                             "When provided, merges with (overrides) read_plan() fields.")
     args = parser.parse_args()
 
     workspace_dir = _normalize_path(args.workspace_dir)
@@ -541,7 +757,26 @@ def main():
     all_weight = collect_weight(weight_tracker, data_dir, "2000-01-01", args.end_date, args.display_unit)
     exercise = collect_exercise(exercise_calc, data_dir, args.start_date, args.end_date)
     habits = collect_habits(workspace_dir, args.start_date, args.end_date)
-    plan = read_plan(workspace_dir)
+
+    # Plan targets: always read PLAN.md as base, then merge agent-provided overrides
+    plan = read_plan(workspace_dir) or {}
+    log(f"Base plan from read_plan(): {list(plan.keys()) if plan else 'empty'}")
+
+    if args.targets:
+        try:
+            agent_targets = json.loads(args.targets)
+            if agent_targets:  # non-empty dict
+                # Merge: agent-provided fields override PLAN.md fields
+                plan.update(agent_targets)
+                log(f"Merged agent --targets overrides: {list(agent_targets.keys())}")
+            else:
+                log("--targets was empty '{}', using read_plan() only")
+        except (json.JSONDecodeError, ValueError) as e:
+            log(f"WARNING: --targets JSON parse failed: {e}, using read_plan() only")
+
+    # Always fill missing macro fields via nutrition-calc
+    plan = _fill_macro_defaults(workspace_dir, plan)
+
     summary = compute_summary(meals, plan, weight)
 
     # Week number calculation
@@ -590,6 +825,35 @@ def main():
     prev_exists = _report_exists(reports_dir, prev_start)
     next_exists = _report_exists(reports_dir, next_start)
 
+    # Phase detection
+    phase = "初始"
+    progress_pct = 0
+    progress_bar = ""
+    start_weight = None
+    current_weight = None
+    target_weight = plan.get("target_weight") if plan else None
+    plan_rate = plan.get("weight_loss_rate", 0.5) if plan else 0.5
+
+    # start_weight = first weight reading ever (from all weight data)
+    if all_weight.get("readings"):
+        start_weight = all_weight["readings"][0].get("value")
+        current_weight = all_weight["readings"][-1].get("value")
+
+    if start_weight and current_weight and target_weight and start_weight != target_weight:
+        progress_pct = round((start_weight - current_weight) / (start_weight - target_weight) * 100)
+        progress_pct = max(0, min(100, progress_pct))  # clamp 0-100
+
+    if report_count >= 4:
+        if progress_pct >= 80:
+            phase = "快完成"
+        else:
+            phase = "中段"
+
+    # Progress bar (12 chars) — only when there's actual progress
+    if phase in ("中段", "快完成") and progress_pct > 0:
+        filled = round(progress_pct / 100 * 12)
+        progress_bar = "▓" * filled + "░" * (12 - filled)
+
     output = {
         "meta": {
             "start_date": args.start_date,
@@ -597,6 +861,13 @@ def main():
             "week_number": week_number,
             "first_monday": first_monday,
             "report_count": report_count,
+            "phase": phase,
+            "progress_pct": progress_pct,
+            "progress_bar": progress_bar,
+            "start_weight": start_weight,
+            "current_weight": current_weight,
+            "target_weight": target_weight,
+            "plan_rate": plan_rate,
             "prev_start": prev_start,
             "prev_exists": prev_exists,
             "next_exists": next_exists,

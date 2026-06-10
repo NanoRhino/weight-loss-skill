@@ -151,29 +151,47 @@ Run once per day — either at the end of the day's last conversation, or at the
 start of the next day's first conversation. The flow:
 
 1. **Rotate short-term** — get removed days' data
-2. **Read medium-term** — load current topics
+2. **Read medium-term** — load current topics (for context)
 3. **For each conversation in the removed days:**
    - Determine which topic it belongs to (existing or new)
-   - Append key points to that topic's 「关键讨论」
-   - Update 「当前结论」if the new data changes the picture
-   - Add/update 「待跟进」items
-4. **Write medium-term** — save the updated file
-5. **Update the `Last consolidated` date** at the top
+   - Use atomic commands to update medium-term.md
+4. **Update the `Last consolidated` date**
 
 ```bash
 # Step 1: Rotate and get removed data
 python3 {baseDir}/scripts/memory-consolidator.py short-term-rotate \
   --memory-dir {workspaceDir}/memory
 
-# Step 2: Read current medium-term
+# Step 2: Read current medium-term (for context only)
 python3 {baseDir}/scripts/memory-consolidator.py medium-term-read \
   --memory-dir {workspaceDir}/memory
 
-# Steps 3-5: Agent reads the removed data + current medium-term,
-# then writes the updated medium-term.md directly using the edit/write tool.
-# The actual summarization and topic classification is done by the agent,
-# not the script.
+# Step 3: Update using atomic commands (examples):
+python3 {baseDir}/scripts/memory-consolidator.py medium-term-set-date \
+  --memory-dir {workspaceDir}/memory --date 2026-05-25
+
+python3 {baseDir}/scripts/memory-consolidator.py medium-term-append-discussions \
+  --memory-dir {workspaceDir}/memory \
+  --section "饮食记录习惯" \
+  --entries '[{"date":"05-25","text":"早+午餐打卡，晚餐未记录"}]'
+
+python3 {baseDir}/scripts/memory-consolidator.py medium-term-set-field \
+  --memory-dir {workspaceDir}/memory \
+  --section "饮食记录习惯" \
+  --field conclusion \
+  --value "早餐稳定，午晚餐打卡率波动"
+
+# For new topics:
+python3 {baseDir}/scripts/memory-consolidator.py medium-term-add-section \
+  --memory-dir {workspaceDir}/memory \
+  --section "新话题" \
+  --overview "概述" \
+  --discussions '[{"date":"05-25","text":"内容"}]' \
+  --conclusion "结论"
 ```
+
+⚠️ **NEVER use `edit` or `write` tool on medium-term.md.**
+Always use the atomic script commands above.
 
 ### How to Read
 
@@ -197,11 +215,20 @@ the soft limit (500 lines) is exceeded.
 
 ### Soft Limit: 500 lines
 
-When `over_limit` is true, the agent should:
-1. Remove 「关键讨论」entries older than 1 month
-2. Merge similar/overlapping observations
-3. Promote stable conclusions to long-term memory
-4. Remove resolved 「待跟进」items
+When `over_limit` is true, the agent should use atomic commands:
+
+```bash
+# Remove entries older than 1 month
+python3 {baseDir}/scripts/memory-consolidator.py medium-term-prune-discussions \
+  --memory-dir {workspaceDir}/memory \
+  --section "话题名" \
+  --before "04-01"
+```
+
+Additionally:
+1. Use `medium-term-set-field` to merge overlapping observations into updated conclusions
+2. Promote stable conclusions to long-term memory
+3. Remove resolved 「待跟进」items via `medium-term-set-field --field follow_ups`
 
 ---
 
@@ -243,22 +270,22 @@ events, and lessons learned across the entire coaching relationship. This is the
 
 Run once per week (can be combined with weekly-report). The flow:
 
-1. **Read medium-term** — review all topics
-2. **Identify stable conclusions** — patterns that appeared 2+ times and were
-   not contradicted
-3. **Promote to long-term** — add stable items to the appropriate section
-4. **Check for milestones** — any new achievements worth recording
-5. **Write long-term** — save updated file
-6. **Optionally clean medium-term** — mark promoted items or remove redundancy
+1. **Run `long-term-stats`** — note current `line_count`
+2. **`read`** the FULL `{workspaceDir}/memory/long-term.md` file
+3. **Read medium-term** (via `medium-term-read`) — identify stable conclusions
+4. **Compose** the COMPLETE updated long-term.md in context
+5. **`write`** the complete file to `{workspaceDir}/memory/long-term.md` (FULL REPLACEMENT)
+6. **Run `long-term-stats`** again — verify new `line_count` ≥ 80% of old
 
 ```bash
-# Check long-term stats first
+# Step 1 & 6: Check stats
 python3 {baseDir}/scripts/memory-consolidator.py long-term-stats \
   --memory-dir {workspaceDir}/memory
 ```
 
-The agent reads medium-term.md, identifies what's ready for promotion, and
-updates long-term.md directly using the edit/write tool.
+⚠️ **NEVER use `edit` tool on long-term.md — always full `read` → `write`.**
+⚠️ **Every existing section MUST appear in the written output. Do not truncate.**
+⚠️ **Update `**Last updated:** YYYY-MM-DD` in the written content.**
 
 ### Soft Limit: 300 lines
 
@@ -280,10 +307,10 @@ Agent reads the file directly: `{workspaceDir}/memory/long-term.md`
 Once per month, run a cleanup pass on medium-term.md:
 
 1. Run `medium-term-stats` to check line count and oldest entries
-2. Delete 「関键讨论」entries older than 1 month that haven't been promoted
-3. Update stale 「当前結論」based on recent data
-4. Remove resolved 「待跟進」items
-5. Ensure any valuable long-standing patterns are in long-term.md
+2. Use `medium-term-prune-discussions` to delete entries older than 1 month
+3. Use `medium-term-set-field` to update stale conclusions based on recent data
+4. Use `medium-term-set-field --field follow_ups` to clear resolved items
+5. Promote any valuable long-standing patterns to long-term.md (via `read` → `write`)
 
 ---
 
@@ -368,22 +395,28 @@ Using the extracted conversations from Step 1:
 
 #### `medium-term-consolidate`
 1. Run `short-term-rotate` to get removed days
-2. Run `medium-term-read` to get current topics
-3. For each removed conversation: classify into existing or new topic,
-   append to 「关键讨论」, update 「当前结论」, manage 「待跟进」
-4. Write updated medium-term.md with `Last consolidated: YYYY-MM-DD`
+2. Run `medium-term-read` to get current topics (for context — do NOT use for edit)
+3. For each removed conversation, determine target section and execute atomic updates:
+   - `medium-term-set-date --date YYYY-MM-DD`
+   - `medium-term-append-discussions --section "..." --entries '[...]'`
+   - `medium-term-set-field --section "..." --field conclusion --value "..."`
+   - For new topics: `medium-term-add-section --section "..." ...`
+4. ⚠️ Do NOT use `edit` or `write` on medium-term.md — use ONLY atomic script commands
 
 #### `medium-term-cleanup`
 1. Run `medium-term-stats` to check state
-2. Remove 「关键讨论」entries older than 1 month
-3. Merge overlapping observations
-4. Remove resolved 「待跟进」
+2. Use `medium-term-prune-discussions --section "..." --before "MM-DD"` for entries >1 month old
+3. Use `medium-term-set-field` to merge overlapping observations
+4. Use `medium-term-set-field --field follow_ups` to clear resolved items
 
 #### `long-term-promote`
-1. Read medium-term.md and long-term.md
-2. Identify stable conclusions (appeared 2+ times, not contradicted)
-3. Promote to appropriate long-term sections
-4. Update `**Last updated:** YYYY-MM-DD` in long-term.md
+1. Run `long-term-stats` — note current `line_count`
+2. `read` the FULL long-term.md file
+3. Run `medium-term-read` for promotion candidates
+4. Compose the COMPLETE updated long-term.md (all sections, all content, nothing truncated)
+5. `write` the complete file to long-term.md
+6. Run `long-term-stats` — verify new `line_count` ≥ 80% of old
+7. ⚠️ NEVER use `edit` on long-term.md — always full `read` → `write`
 
 ### Rules
 - **SILENT operation.** No narration.

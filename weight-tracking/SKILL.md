@@ -111,14 +111,16 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
    - 体重每天自然波动 ±0.5-1kg（水分、钠、排便），单日偏离在这个范围内大概率是噪音，不需要反应。需要多天数据才能确认趋势是真实的。
    - **与目标一致（如目标减重，体重在降）**→ 鼓励，给到正面情绪价值
    - **日常噪音**（1-2 天小幅波动，幅度在正常范围内）→ 正常确认，不追问
-   - **大概率真实偏离**（连续多天与目标反方向、从低点明显回升超出波动范围、长期停滞）→ 安抚情绪 + 提一句问用户要不要一起看看。不替用户决定"这没事"，把选择权交出去
-   - **判断倾向：只在你有 80% 以上信心认为偏离是真实的时候才提。** 不必要的询问也是打扰
+   - **大概率真实偏离**（连续多天与目标反方向、从低点明显回升超出波动范围）→ 安抚情绪 + 提一句问用户要不要一起看看。不替用户决定"这没事"，把选择权交出去
+   - **体重停滞**（看 14 天数据，体重在一个狭窄范围内来回波动，没有向目标方向推进）→ **必须**温和询问用户"最近体重好像没什么变化，要不要一起看看原因？"。不要自己分析原因或给建议，先问用户愿不愿意。用户说好 → 走 cause-check-flow
+   - **判断倾向：只在你有 80% 以上信心认为偏离/停滞是真实的时候才提。** 不必要的询问也是打扰
    - 如果 `active_strategy.active: true`（已有进行中的策略），不重复干预，但可以结合 `consensus` 提醒策略还在跑。可以主动查看最近几天的餐食记录（`{workspaceDir}/data/meals/YYYY-MM-DD.json`），结合共识给具体反馈
-   - 如果 `last_intervention_date` 在 3 天内，不重复干预
-   - **诊断后记录**：只有进入 cause-check 诊断流程后，调一次：
+   - 如果 `last_intervention_date` 在 7 天内，不重复干预（包括停滞询问和偏离询问）
+   - **触发询问前先标记**：无论是停滞询问还是偏离询问，只要决定向用户提问，**必须先调用 mark-intervention，再输出询问文本**。顺序：tool call → text output。这确保即使用户不回复，intervention 也已被标记，不会在下次称重时重复触发。
      ```bash
      python3 {baseDir}/scripts/save-and-check.py --data-dir {workspaceDir}/data --tz-offset <tz> --mark-intervention
      ```
+     调用成功后，再输出询问文本（如"要不要一起看看原因？"）。
    - **用户视角优先**：不只看科学趋势，也想想用户看到这个数字会怎么想。涨了半斤用户会慌、平台期一周不动用户会焦虑、好不容易降下来又反弹用户会沮丧——回应他们的感受，不是冷冰冰确认一个数字
 
 ### User Asks for Trend / History
@@ -137,6 +139,27 @@ See `references/crud-operations.md`.
 - **Always display in preferred unit**, rounded to 1 decimal.
 - **Accept any common unit**: kg, lb, lbs, 斤 (=0.5 kg), 公斤.
 - **Fasting tag**: if user mentions empty stomach / morning weigh-in → note `fasting: true` in context.
+
+## Post-Save: Check Pending Recalc
+
+After every successful weight save (`save.action: "created"`), check if a periodic recalculation is pending:
+
+```bash
+python3 {skillsDir}/periodic-recalc/scripts/check-pending-recalc.py \
+  --workspace {workspaceDir}
+```
+
+If `should_trigger: true` → run the full periodic-recalc flow:
+
+```bash
+python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py \
+  --workspace {workspaceDir} \
+  --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py
+```
+
+Then compose the recalc results message per the `periodic-recalc` SKILL.md instructions.
+
+If `should_trigger: false` → do nothing (silent).
 
 ## References
 

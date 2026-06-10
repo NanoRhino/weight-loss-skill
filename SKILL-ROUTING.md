@@ -46,6 +46,49 @@ make the user repeat themselves.
 
 ---
 
+## Pause/Leave Execution (Global — ALL Skills)
+
+**After Welcome Back Check, before routing to any skill**, detect whether the user is expressing a pause/leave/vacation intent.
+
+### Trigger phrases (inclusive, not exhaustive)
+
+Direct: "暂停提醒"、"停一周"、"放假不打卡"、"pause reminders"
+Implicit: "退下吧"、"先不弄了"、"别烦我"、"过段时间再说"、"两周后再来"、"最近不想减肥"、"不用管我了"、"让我休息一阵"
+
+**Any message where the user clearly intends to stop receiving proactive contact for a period — regardless of whether they use the word "提醒" — triggers this rule.**
+
+### Required action
+
+When pause/leave intent is detected, you **MUST** call `leave-manager.py set` to write `data/leave.json`. Writing only to memory/short-term.json is **insufficient** — cron pre-send-check only reads `data/leave.json`.
+
+```bash
+python3 {notification-composer:baseDir}/scripts/leave-manager.py set \
+  --data-dir {workspaceDir}/data --tz-offset {tz_offset} \
+  --start YYYY-MM-DD --end YYYY-MM-DD --reason "用户原话摘要"
+```
+
+- `--start`: today
+- `--end`: user-specified return date (or today + stated duration). If ambiguous (e.g. "过段时间"), ask user: "要帮你先暂停一周提醒吗？" — wait for confirmation before calling leave-manager.py.
+- `--reason`: brief summary of user's words
+
+### Workflow
+
+1. Detect pause intent → read notification-manager SKILL if needed for exact command format
+2. Call `leave-manager.py set` with appropriate dates
+3. Confirm leave.json was created (check command exit code)
+4. Reply to user: 告知具体恢复日期 + "想提前恢复随时跟我说"
+5. Optionally also write to memory/short-term.json for LLM context (but this is secondary — system state in leave.json is what matters)
+
+⚠️ 写 memory ≠ 暂停提醒。**只有 leave-manager.py set 才能阻止 cron。**
+
+### What NOT to do
+
+- ❌ Only write to memory/short-term.json without calling leave-manager.py
+- ❌ Treat implicit pause requests differently from explicit ones — both require the same system operation
+- ❌ Skip this check because the user didn't say "提醒" or "暂停"
+
+---
+
 ## Priority Tiers
 
 Skills are organized into priority tiers. Higher-tier skills take precedence
@@ -57,7 +100,7 @@ when conflicts arise.
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
 | **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
 | **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder` | Designing programs and plans. |
-| **P4 — Reporting** | `weekly-report`, `daily-review`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
+| **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
 **Rule:** When two skills from different tiers conflict, the higher-priority
@@ -300,22 +343,6 @@ into their weekly meal plan.
 
 After the user selects a restaurant meal, `restaurant-meal-finder` hands off
 to `diet-tracking-analysis` for logging. No conflict — sequential handoff.
-
----
-
-### Pattern 9: Daily Review + Weekly Report (Same Tier — P4)
-
-**Trigger:** User asks for a daily review on the same day a weekly report is
-generated (e.g., Sunday evening or Monday).
-
-**Resolution: Weekly report takes precedence.**
-
-1. If `weekly-report` is generating for a period that includes today, skip
-   the daily review auto-trigger — the weekly report already covers this data
-2. If the user explicitly asks for a daily review, generate it even if a
-   weekly report was sent earlier (different granularity — per-meal vs per-week)
-3. `daily-review` auto-trigger after dinner appends to the
-   `diet-tracking-analysis` dinner response as a combined message
 
 ---
 

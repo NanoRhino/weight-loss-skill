@@ -80,7 +80,7 @@ def parse_args():
     disp_p.add_argument("--limit", type=int, default=0, help="Max jobs to create (0=unlimited)")
     disp_p.add_argument("--gap", type=int, default=30, help="Seconds between jobs")
     disp_p.add_argument("--start-offset", type=int, default=120, help="Seconds from now for first job")
-    disp_p.add_argument("--model", default="amazon-bedrock/arn:aws:bedrock:us-east-1:204726797833:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0")
+    disp_p.add_argument("--model", default="amazon-bedrock/arn:aws:bedrock:us-east-1:405912452115:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0")
     disp_p.add_argument("--verbose", action="store_true")
 
     return p.parse_args()
@@ -182,7 +182,7 @@ def analyze_short_term(memory_dir: str) -> dict:
         with open(st_path, "r") as f:
             data = json.load(f)
         result["exists"] = True
-        # Handle both formats: {"days": [...]} and bare [...]
+        # Handle formats: {"days": {...}}, {"days": [...]}, and bare [...]
         if isinstance(data, list):
             days = data
         else:
@@ -191,12 +191,23 @@ def analyze_short_term(memory_dir: str) -> dict:
             return result
 
         all_entries = []
-        for day in days:
-            date_str = day.get("date", "")
-            entries = day.get("conversations", day.get("entries", []))
-            if entries:
-                all_entries.append(date_str)
-                result["entry_count"] += len(entries)
+        # days can be a dict keyed by date, or a list of day objects
+        if isinstance(days, dict):
+            for date_str, day_obj in days.items():
+                entries = day_obj.get("conversations", day_obj.get("entries", [])) if isinstance(day_obj, dict) else []
+                if entries:
+                    all_entries.append(date_str)
+                    result["entry_count"] += len(entries)
+        else:
+            for day in days:
+                if isinstance(day, str):
+                    # Unexpected bare string in list, skip
+                    continue
+                date_str = day.get("date", "")
+                entries = day.get("conversations", day.get("entries", []))
+                if entries:
+                    all_entries.append(date_str)
+                    result["entry_count"] += len(entries)
 
         if all_entries:
             result["has_entries"] = True

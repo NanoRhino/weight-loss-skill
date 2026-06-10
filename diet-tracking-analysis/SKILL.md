@@ -201,6 +201,30 @@ meal_checkin({ text: "用户说的原话", workspace_dir: "{workspaceDir}" })
 
 Examples: "米饭其实只吃了半碗", "删掉午餐", "午餐还吃了个苹果"
 
+### Correction Alias (after correction succeeds)
+
+When `meal_checkin` returns `action: "correct"` with a `previous_foods` field, decide whether to save a correction alias to `health-preferences.md`:
+
+**Compare `previous_foods` (before) vs `dishes` (after).** Save an alias ONLY when:
+1. **Visual misidentification** — photo showed food X but it's actually Y (e.g. 鸡胸肉 → 山药, 白色块状物被认错)
+2. **User naming habit** — user consistently calls food X by name Y
+
+**Do NOT save alias when:**
+- Portion/weight change only (200g → 100g)
+- One-time substitution (user ate something different today, not a recurring pattern)
+- Adding/removing items (午餐还吃了个苹果)
+- Splitting/merging dishes
+
+**How to write:**
+Append to `## Correction Aliases` section in `{workspaceDir}/health-preferences.md`:
+```
+- {old_name} → {new_name} [replacement]
+```
+
+Multiple mappings from one correction = multiple lines. If an alias for the same `old_name` already exists, overwrite it.
+
+**Do this silently** — no need to tell the user you saved an alias.
+
 ---
 
 ## Skill Routing
@@ -252,6 +276,13 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 - Fruit low → suggest only at final meal of the day.
 
 1-sentence comment bridging to ③.
+
+**Text must match status (HARD RULE):** Your bridging comment and ③ suggestion text MUST faithfully reflect the status arrows above. Do NOT contradict them:
+- ⬆️ high → must say "偏高/超了/多了/过量". NEVER say "够了/达标/充足".
+- ⬇️ low → must say "偏少/不够/偏低". NEVER say "够了/达标/充足".
+- ✅ on_track → may say "达标/合适/刚好/够了".
+
+If fat is ⬆️, you cannot say "脂肪够了". If protein is ⬇️, you cannot say "蛋白质ok". Verify consistency before outputting.
 
 ### ③ Suggestion (by `suggestion_type`)
 

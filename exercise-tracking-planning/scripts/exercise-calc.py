@@ -581,7 +581,8 @@ def main():
     p.add_argument("--log", required=True, help="Updated exercise JSON object")
 
     args = parser.parse_args()
-    args.data_dir = _normalize_path(args.data_dir)
+    if hasattr(args, 'data_dir') and args.data_dir:
+        args.data_dir = _normalize_path(args.data_dir)
     if not args.cmd:
         parser.print_help()
         sys.exit(1)
