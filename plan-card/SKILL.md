@@ -73,31 +73,49 @@ checkpoints (see Card content below). **PLAN.md stays Step-3 compliant:
 no macros, no meal split there** — macros still belong to Step 4
 (diet-mode selection) for everything downstream.
 
-Plan **math** comes from `weight-loss-planner/scripts/planner-calc.py`
-invoked as a subprocess (its interface is unchanged):
+### Energy anchoring (product decision — Jason, 2026-06-10)
 
-- `forward-calc --mode balanced` is the canonical calculation when
-  `goal_weight_kg` is present and intent is `lose` — pace table
-  (<10 kg → 0.35 kg/wk default; 10–25 kg → 0.6; >25 kg → 0.7), safety
-  floor max(BMR, 1000) with rate back-calculation, completion date.
-  The handoff `tdee` block is NOT used on this path; forward-calc's own
-  BMR/TDEE is trusted.
-- `--bmi-standard asian` when the locale country/language is
-  Chinese/Japanese/Korean (CN/TW/HK/MO/SG/JP/KR or zh/ja/ko); `who`
+**The handoff `tdee.recommended` / `tdee.bmr` (the web TDEE decomposition
+the user already saw and trusts) is the energy authority for EVERY path** —
+以 tdee 的结果为准. This overrides the earlier trust-forward-calc
+instruction: forward-calc re-derives BMR/TDEE from the profile and can
+disagree with the web number (we saw a 2,032 Cal target against a web TDEE
+of 2,010 — a "target" above the user's shown burn reads as broken).
+`forward-calc` is therefore NOT called at all.
+
+`weight-loss-planner/scripts/planner-calc.py` (subprocess; interface
+unchanged) still provides the **methodology** on top of the anchored TDEE:
+
+- **Pace:** Step-3 pace table via `recommend-rate` when `goal_weight_kg`
+  is present (<10 kg → 0.35 kg/wk default; 10–25 kg → 0.6; >25 kg → 0.7);
+  0.35 kg/wk default without a goal.
+- **Target:** `calorie-target` → daily target = handoff
+  `tdee.recommended` − deficit.
+- **Floor:** `safety-floor` → max(handoff BMR, 1000). If the target falls
+  below the floor it is clamped to it, and the effective rate + completion
+  date are re-derived from the actual achievable deficit.
+- **Timeline:** weeks = total loss ÷ (possibly clamped) rate; completion
+  date recomputed from that.
+- **BMI:** `bmi` with `--standard asian` when the locale country/language
+  is Chinese/Japanese/Korean (CN/TW/HK/MO/SG/JP/KR or zh/ja/ko), `who`
   otherwise.
+- **Macros + rhythm:** `macro-targets` from the anchored daily target
+  (mode `balanced`; `high_protein` for recomp/gain), including the
+  canonical 30/40/30 allocation.
+- **Guarantee:** for `intent=lose` the daily target is always strictly
+  below the handoff TDEE — enforced in code (degenerate handoff data
+  where TDEE ≤ floor fails loudly with an error instead of rendering a
+  broken card).
 - The Step-3 "50 岁以上偏向下限" pace note is a conversational judgment
   call and is not part of planner-calc's deterministic math; this pipeline
-  trusts forward-calc's default rate.
+  uses the pace-table default rate.
 
-## Fallback rules (paths forward-calc cannot compute)
+## Intent handling
 
-- **`goal_weight_kg` null + intent `lose`:** daily target = handoff
-  `tdee.recommended` minus the deficit implied by the most conservative
-  pace-table default 0.35 kg/wk (≈385 kcal, via planner-calc
-  `calorie-target`), floored at max(BMR, 1000) (via planner-calc
-  `safety-floor`). The card and PLAN.md show "Reply with your goal weight
-  to unlock your completion date" instead of a date — still a single
-  target number.
+- **`lose` + goal:** full plan as above (pace table, timeline, goal BMI).
+- **`lose`, `goal_weight_kg` null:** 0.35 kg/wk default deficit (≈385
+  kcal); the card and PLAN.md show "Reply with your goal weight to unlock
+  your completion date" instead of a date — still a single target number.
 - **`maintain`:** target = handoff `tdee.recommended` (single number),
   no deficit, no timeline.
 - **`recomp`:** target = TDEE − 200, no timeline.
@@ -106,6 +124,8 @@ invoked as a subprocess (its interface is unchanged):
 - **Activity missing:** derived from `daily_steps`
   (<5000 sedentary, <8000 lightly, <12000 moderately, else very active),
   else defaults to `lightly_active` (the weight-loss-planner default).
+  (Activity only drives the focus rules and the PLAN.md description —
+  energy comes from the handoff TDEE, never from an activity multiplier.)
 
 ## Card content (in order)
 
@@ -115,9 +135,8 @@ invoked as a subprocess (its interface is unchanged):
 3. **Hero** — the single daily calorie target.
 4. **Plan tiles** — daily deficit + weekly pace.
 5. **Daily macros** — protein (visually emphasized, with its floor) /
-   fat / carbs, from planner-calc's macro output (`forward-calc` macros
-   on the canonical path; `macro-targets` on fallback paths — mode
-   `balanced`, or `high_protein` for recomp/gain).
+   fat / carbs, from planner-calc `macro-targets` computed on the anchored
+   daily target (mode `balanced`, or `high_protein` for recomp/gain).
 6. **Daily rhythm** — per-meal calorie split from planner-calc's
    canonical 30/40/30 allocation (breakfast/lunch/dinner with ~Cal each).
 7. **Focus this week** — 3 personalized, rule-based recommendations

@@ -29,10 +29,17 @@ language ("en"/"zh"; unknown/absent → "en"). The upstream authority is
 USER.md > Language — the openclaw-infra Twilio extension reads it and
 passes it through; this script does NO language inference of its own.
 
-All math comes from weight-loss-planner/scripts/planner-calc.py invoked as a
-SUBPROCESS — `forward-calc --mode balanced` is the canonical calculation
-(pace table, safety floor max(BMR, 1000), floor clamping, completion date).
-Its interface is not modified.
+ENERGY ANCHORING (product decision, Jason 2026-06-10, overriding the earlier
+trust-forward-calc approach): the handoff `tdee.recommended` / `tdee.bmr`
+from the input JSON — the TDEE decomposition the user already saw and
+trusts on the web — is the ENERGY AUTHORITY for every path. planner-calc
+(invoked as a SUBPROCESS; interface unmodified) supplies the methodology
+on top: pace table (recommend-rate), safety floor max(BMR, 1000)
+(safety-floor), calorie-target, BMI classification, and
+macro-targets/allocation. forward-calc is NOT called — its re-derived
+BMR/TDEE can disagree with the web number (e.g. produce a daily target
+above the burn the user was shown). Guarantee: for intent=lose the daily
+target is always strictly below the handoff TDEE (enforced in code).
 
 CLI contract (invoked by the openclaw-infra Twilio extension — frozen):
 
@@ -439,38 +446,11 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
     if intent == "lose" and goal is not None and goal >= weight:
         intent = plan["intent"] = "maintain"
 
-    if intent == "lose" and goal is not None:
-        # Canonical path: trust planner-calc forward-calc end to end.
-        fc = run_planner(
-            "forward-calc",
-            "--weight", weight, "--height", profile["height_cm"],
-            "--age", profile["age_years"], "--sex", profile["sex"],
-            "--activity", activity, "--target-weight", goal,
-            "--mode", "balanced", "--bmi-standard", bmi_std,
-        )
-        plan.update({
-            "bmr": fc["bmr"],
-            "tdee": fc["tdee"]["tdee"],
-            "calorie_floor": fc["calorie_floor"],
-            "floor_clamped": fc["floor_clamped"],
-            "to_lose_kg": fc["to_lose_kg"],
-            "rate_kg_per_week": fc["rate_kg_per_week"],
-            "daily_deficit": fc["daily_deficit"],
-            "daily_cal": fc["daily_cal"],
-            "weeks": fc["weeks"],
-            "estimated_completion": fc["estimated_completion"],
-            "bmi_current": fc["bmi_current"],
-            "bmi_current_class": fc["bmi_current_class"],
-            "bmi_target": fc["bmi_target"],
-            "bmi_target_class": fc["bmi_target_class"],
-            "maintenance_tdee": fc["maintenance_tdee"],
-            "macros": fc["macros"],
-        })
-        return finalize_plan(plan, profile, lang)
-
-    # The remaining paths can't use forward-calc (it requires a target
-    # weight), so they anchor on the handoff TDEE/BMR; the safety floor
-    # still comes from planner-calc.
+    # ENERGY ANCHOR (product decision, Jason 2026-06-10): the handoff
+    # tdee.recommended / tdee.bmr — the numbers the user already saw on the
+    # web — are the energy truth for EVERY path. planner-calc provides the
+    # methodology on top (pace table, safety floor, calorie target, BMI,
+    # macros); forward-calc's re-derived BMR/TDEE is never used.
     bmr = tdee["bmr"]
     tdee_rec = tdee["recommended"]
     floor = run_planner("safety-floor", "--bmr", bmr)["calorie_floor"]
@@ -484,24 +464,59 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
         "bmi_current_class": bmi["classification"],
     })
 
-    if intent == "lose":  # goal_weight_kg is null → unlock fallback
-        rate = NO_GOAL_RATE_KG
+    if intent == "lose":
+        if goal is not None:
+            # Step-3 pace table via planner-calc recommend-rate.
+            to_lose = round(weight - goal, 1)
+            rate = run_planner("recommend-rate",
+                               "--to-lose-kg", to_lose)["rate_default_kg"]
+        else:
+            # No goal yet: most conservative pace-table default.
+            to_lose = None
+            rate = NO_GOAL_RATE_KG
+
         ct = run_planner("calorie-target", "--tdee", tdee_rec, "--rate-kg", rate)
         daily_cal = ct["daily_cal"]
         deficit = ct["daily_deficit"]
         if daily_cal < floor:
             # Same clamping rule planner-calc applies: floor wins, then
-            # back-calculate the max safe rate from the floor.
+            # back-calculate the achievable rate from the actual deficit.
             plan["floor_clamped"] = True
             daily_cal = floor
             deficit = tdee_rec - floor
             rate = round(deficit / 1100, 2)
+
+        # Guarantee: a deficit plan must sit strictly below the burn the
+        # user was shown. Only violable with degenerate handoff data
+        # (TDEE at/below the safety floor) — fail loudly rather than send
+        # a card that reads as broken.
+        if not daily_cal < tdee_rec:
+            raise ValueError(
+                f"handoff TDEE ({tdee_rec}) is at/below the safety floor "
+                f"({floor}) — cannot build a deficit plan"
+            )
+
         plan.update({
+            "to_lose_kg": to_lose,
             "daily_cal": daily_cal,
             "daily_deficit": deficit,
             "rate_kg_per_week": rate,
-            "timeline_locked": True,
         })
+
+        if goal is not None and rate > 0:
+            # Timeline re-derived from the anchored (possibly clamped) rate.
+            weeks = round(to_lose / rate, 1)
+            plan["weeks"] = weeks
+            plan["estimated_completion"] = (
+                date.today() + timedelta(days=round(weeks * 7))
+            ).isoformat()
+            bmi_t = run_planner("bmi", "--weight", goal,
+                                "--height", profile["height_cm"],
+                                "--standard", bmi_std)
+            plan["bmi_target"] = bmi_t["bmi"]
+            plan["bmi_target_class"] = bmi_t["classification"]
+        else:
+            plan["timeline_locked"] = True
 
     elif intent == "maintain":
         plan["daily_cal"] = max(tdee_rec, floor)
@@ -538,8 +553,8 @@ def finalize_plan(plan: dict, profile: dict, lang: str) -> dict:
     (Approved override — card only; PLAN.md stays Step-3 compliant and
     never includes these.)"""
     if "macros" not in plan:
-        # Paths that didn't run forward-calc: compute macros from the
-        # resolved daily target via planner-calc (canonical math).
+        # Macros from the anchored daily target via planner-calc
+        # macro-targets (canonical methodology on top of the handoff TDEE).
         mode = "high_protein" if plan["intent"] in ("recomp", "gain") else "balanced"
         args = ["macro-targets", "--weight", plan["weight_kg"],
                 "--cal", round(plan["daily_cal"]), "--mode", mode]
