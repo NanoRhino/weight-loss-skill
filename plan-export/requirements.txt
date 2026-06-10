@@ -1,0 +1,15 @@
+# Python dependencies for plan-export scripts.
+#
+# plan-to-image.py (MMS plan card pipeline):
+weasyprint>=60
+pymupdf>=1.24
+#
+# generate-pdf.py / generate-html.py (Markdown → PDF/HTML):
+markdown>=3.4
+#
+# NOTE (deployment): WeasyPrint requires pango/cairo/gdk-pixbuf SYSTEM
+# libraries — pip alone is not enough.
+#   Amazon Linux / EC2:  sudo dnf install -y pango cairo gdk-pixbuf2
+#   Ubuntu/Debian:       sudo apt-get install -y libpango-1.0-0 \
+#                          libpangocairo-1.0-0 libgdk-pixbuf-2.0-0
+#   macOS:               brew install pango cairo gdk-pixbuf libffi

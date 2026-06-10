@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<!--
+  plan-card.html — NanoRhino MMS plan card template.
+
+  Rendered by plan-export/scripts/plan-to-image.py via Python string.Template
+  (dollar-prefixed placeholders). WeasyPrint converts it to a single fixed-size PDF
+  page (1080 x 1620 CSS px), which is then rasterized to PNG.
+
+  Design rules:
+  - Inline CSS only (WeasyPrint renders it; no JS, no external assets).
+  - No webfont imports — system/Pango font stack keeps rendering
+    deterministic and offline-safe on EC2.
+  - High contrast + large type so it stays legible after MMS compression.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+@page {
+    size: 1080px 1620px;
+    margin: 0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 1080px;
+    height: 1620px;
+}
+
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif;
+    background: #0c1222;
+    background: linear-gradient(160deg, #0e1630 0%, #0c1222 55%, #0a1c2e 100%);
+    color: #f3f6fc;
+}
+
+.card {
+    width: 1080px;
+    height: 1620px;
+    padding: 48px 72px 44px 72px;
+}
+
+/* ── Brand header ── */
+.brand-row {
+    width: 100%;
+}
+
+.brand-row td {
+    vertical-align: middle;
+}
+
+.brand {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: 5px;
+    color: #ffffff;
+    text-transform: uppercase;
+}
+
+.brand .dot {
+    color: #34d399;
+}
+
+.brand-tag {
+    text-align: right;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #8b97b3;
+    text-transform: uppercase;
+}
+
+.rule {
+    height: 3px;
+    background: linear-gradient(90deg, #34d399 0%, #2dd4bf 40%, rgba(45,212,191,0) 100%);
+    border-radius: 2px;
+    margin: 22px 0 34px 0;
+}
+
+/* ── Title block ── */
+.plan-title {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1.08;
+    color: #ffffff;
+}
+
+.stats-line {
+    margin-top: 18px;
+    font-size: 30px;
+    font-weight: 500;
+    color: #aab6d0;
+    letter-spacing: 0.5px;
+}
+
+/* ── Hero: daily calorie band ── */
+.hero {
+    margin-top: 36px;
+    background: rgba(52, 211, 153, 0.10);
+    border: 3px solid rgba(52, 211, 153, 0.55);
+    border-radius: 28px;
+    padding: 36px 44px 40px 44px;
+    text-align: center;
+}
+
+.hero-label {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: #34d399;
+    text-transform: uppercase;
+}
+
+.hero-value {
+    margin-top: 14px;
+    font-size: 118px;
+    font-weight: 800;
+    line-height: 1.0;
+    color: #ffffff;
+    letter-spacing: -2px;
+}
+
+.hero-unit {
+    margin-top: 12px;
+    font-size: 34px;
+    font-weight: 600;
+    color: #9fe8cd;
+}
+
+/* ── Macro row ── */
+.section-label {
+    margin-top: 38px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #8b97b3;
+    text-transform: uppercase;
+}
+
+.macro-row {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: separate;
+    border-spacing: 16px 0;
+}
+
+.macro-row td {
+    width: 33.3%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.10);
+    border-radius: 22px;
+    padding: 26px 18px 28px 18px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.macro-row td.protein {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.45);
+}
+
+.macro-name {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #aab6d0;
+}
+
+.protein .macro-name {
+    color: #93c5fd;
+}
+
+.macro-value {
+    margin-top: 12px;
+    font-size: 56px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.macro-note {
+    margin-top: 8px;
+    font-size: 24px;
+    font-weight: 500;
+    color: #8b97b3;
+}
+
+.protein .macro-note {
+    color: #bfdbfe;
+}
+
+/* ── Timeline / pace row ── */
+.pace-row {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: separate;
+    border-spacing: 16px 0;
+}
+
+.pace-row td {
+    width: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.10);
+    border-radius: 22px;
+    padding: 28px 24px 30px 24px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.pace-label {
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #8b97b3;
+}
+
+.pace-value {
+    margin-top: 12px;
+    font-size: 52px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.pace-note {
+    margin-top: 8px;
+    font-size: 24px;
+    color: #8b97b3;
+}
+
+.unlock {
+    margin-top: 20px;
+    background: rgba(251, 191, 36, 0.10);
+    border: 2px dashed rgba(251, 191, 36, 0.6);
+    border-radius: 22px;
+    padding: 30px 36px;
+    text-align: center;
+}
+
+.unlock-title {
+    font-size: 34px;
+    font-weight: 800;
+    color: #fbbf24;
+}
+
+.unlock-sub {
+    margin-top: 10px;
+    font-size: 27px;
+    color: #e5d5a8;
+}
+
+/* ── Habits ── */
+.habits {
+    margin-top: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.09);
+    border-radius: 22px;
+    padding: 24px 36px;
+}
+
+.habit {
+    font-size: 29px;
+    font-weight: 600;
+    color: #e7ecf7;
+    line-height: 1.6;
+}
+
+.habit .tick {
+    color: #34d399;
+    font-weight: 800;
+}
+
+/* ── Footer ── */
+.footer {
+    margin-top: 34px;
+    text-align: center;
+}
+
+.footer-main {
+    font-size: 31px;
+    font-weight: 700;
+    color: #34d399;
+}
+
+.footer-sub {
+    margin-top: 10px;
+    font-size: 24px;
+    font-weight: 500;
+    color: #6b7892;
+    letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+<div class="card">
+
+    <table class="brand-row">
+        <tr>
+            <td><span class="brand">Nano<span class="dot">Rhino</span></span></td>
+            <td class="brand-tag">$date_label</td>
+        </tr>
+    </table>
+    <div class="rule"></div>
+
+    <div class="plan-title">$plan_title</div>
+    <div class="stats-line">$stats_line</div>
+
+    <div class="hero">
+        <div class="hero-label">$hero_label</div>
+        <div class="hero-value">$hero_value</div>
+        <div class="hero-unit">$hero_unit</div>
+    </div>
+
+    <div class="section-label">Daily Macros</div>
+    <table class="macro-row">
+        <tr>
+            <td class="protein">
+                <div class="macro-name">Protein</div>
+                <div class="macro-value">$protein_value</div>
+                <div class="macro-note">$protein_note</div>
+            </td>
+            <td>
+                <div class="macro-name">Fat</div>
+                <div class="macro-value">$fat_value</div>
+                <div class="macro-note">$fat_note</div>
+            </td>
+            <td>
+                <div class="macro-name">Carbs</div>
+                <div class="macro-value">$carb_value</div>
+                <div class="macro-note">$carb_note</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-label">$timeline_section_label</div>
+    $timeline_html
+
+    <div class="section-label">Start Here</div>
+    <div class="habits">
+        $habits_html
+    </div>
+
+    <div class="footer">
+        <div class="footer-main">Text me anytime — your AI nutrition coach</div>
+        <div class="footer-sub">NANORHINO &middot; nanorhino.com</div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -115,6 +115,45 @@ Each key is updated independently — uploading a new meal plan doesn't affect t
 2. Send the existing `url` — URLs are permanent (no expiry)
 3. If the plan content has been updated since last upload, re-run the script to push the new version (URL stays the same)
 
+## SMS/MMS Plan Card (plan-to-image)
+
+Deterministic pipeline that turns handoff profile data into a branded plan
+card PNG (for MMS) plus PLAN.md markdown — no LLM involved. Invoked directly
+by the openclaw-infra Twilio extension; the CLI contract below is frozen.
+
+```bash
+python3 {baseDir}/scripts/plan-to-image.py \
+  --input <input.json> --output <out.png> [--width 1080] [--max-bytes 614400]
+```
+
+- **Input JSON:** `{ "profile": {...}, "tdee": {...}, "locale": {...} }` —
+  see `examples/sample-input-with-goalweight.json` and
+  `examples/sample-input-without-goalweight.json`.
+- **stdout (success, single JSON line):**
+  `{"ok": true, "png": "<abs path>", "bytes": N, "plan": {...}, "plan_markdown": "..."}`
+- **On failure:** non-zero exit, `{"ok": false, "error": "..."}` on stdout,
+  traceback on stderr.
+- **Numbers:** computed by reusing `weight-loss-planner/scripts/planner-calc.py`
+  (imported as a module — its interface is unchanged), anchored on the
+  handoff TDEE/BMR. `goal_weight_kg: null` + `intent: lose` falls back to a
+  0.75% bodyweight/week deficit and the card shows an "unlock your timeline"
+  prompt instead of a completion date. `maintain` shows the maintenance zone
+  with no timeline.
+- **Rendering:** `templates/plan-card.html` (inline CSS) → WeasyPrint
+  HTML→PDF → PyMuPDF PDF→PNG at `--width`, downscaled until it fits
+  `--max-bytes` (default 600 KB MMS budget).
+- **PLAN.md:** the `plan_markdown` field follows the weight-loss-planner
+  PLAN.md structure (user info → plan details with calorie target → macros →
+  milestones → notes) so downstream consumers (AGENTS.md gate, meal-planner
+  calorie-target lookup) work unchanged. The caller is responsible for
+  writing it to the workspace as `PLAN.md`.
+
+**Dependencies:** `pip install -r {baseDir}/requirements.txt`
+(`weasyprint`, `pymupdf`). WeasyPrint also needs pango/cairo/gdk-pixbuf
+**system libraries** — on EC2 (Amazon Linux): `sudo dnf install -y pango
+cairo gdk-pixbuf2`; on Ubuntu: `sudo apt-get install -y libpango-1.0-0
+libpangocairo-1.0-0 libgdk-pixbuf-2.0-0`.
+
 ## Individual Scripts (Advanced)
 
 ### Generate HTML only (weight loss plan)

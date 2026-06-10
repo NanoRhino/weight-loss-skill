@@ -118,6 +118,29 @@ Build distributable packages for Claude Code and OpenClaw/ClawHub:
 
 Outputs are written to `dist/`.
 
+## Deployment
+
+Most skills are pure Markdown + stdlib Python and need no extra setup.
+
+**`plan-export` (HTML/PDF export and the SMS/MMS plan-card pipeline)** has
+Python dependencies declared in `plan-export/requirements.txt`
+(`weasyprint`, `pymupdf`, `markdown`):
+
+```bash
+pip3 install -r plan-export/requirements.txt
+```
+
+WeasyPrint additionally requires **pango/cairo/gdk-pixbuf system libraries**
+— pip alone is not enough. On an EC2 host:
+
+```bash
+# Amazon Linux 2023
+sudo dnf install -y pango cairo gdk-pixbuf2
+
+# Ubuntu/Debian
+sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0
+```
+
 ## How It Works
 
 This skill gives Claude Code (or OpenClaw) the context to act as your personal weight loss assistant. It stores data locally in markdown/JSON files — no cloud, no accounts, fully private.
