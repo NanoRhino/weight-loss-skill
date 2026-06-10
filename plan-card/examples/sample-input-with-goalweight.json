@@ -1,0 +1,22 @@
+{
+  "profile": {
+    "sex": "male",
+    "age_years": 35,
+    "height_cm": 178,
+    "weight_kg": 85.0,
+    "goal_weight_kg": 75.0,
+    "intent": "lose",
+    "daily_steps": 6500,
+    "activity_level": "lightly_active"
+  },
+  "tdee": {
+    "recommended": 2456,
+    "low": 2356,
+    "high": 2556,
+    "bmr": 1786.5
+  },
+  "locale": {
+    "country": "US",
+    "units": "imperial"
+  }
+}

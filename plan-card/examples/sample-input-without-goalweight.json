@@ -1,0 +1,22 @@
+{
+  "profile": {
+    "sex": "female",
+    "age_years": 29,
+    "height_cm": 165,
+    "weight_kg": 72.0,
+    "goal_weight_kg": null,
+    "intent": "lose",
+    "daily_steps": null,
+    "activity_level": null
+  },
+  "tdee": {
+    "recommended": 1985,
+    "low": 1885,
+    "high": 2085,
+    "bmr": 1443.8
+  },
+  "locale": {
+    "country": "US",
+    "units": "imperial"
+  }
+}

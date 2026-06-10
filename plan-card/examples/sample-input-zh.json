@@ -1,0 +1,23 @@
+{
+  "profile": {
+    "sex": "female",
+    "age_years": 31,
+    "height_cm": 162,
+    "weight_kg": 68.0,
+    "goal_weight_kg": 56.0,
+    "intent": "lose",
+    "daily_steps": 4200,
+    "activity_level": null
+  },
+  "tdee": {
+    "recommended": 1693,
+    "low": 1593,
+    "high": 1793,
+    "bmr": 1410.5
+  },
+  "locale": {
+    "country": "CN",
+    "units": "metric",
+    "language": "zh"
+  }
+}

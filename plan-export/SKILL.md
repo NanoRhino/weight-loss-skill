@@ -115,6 +115,20 @@ Each key is updated independently — uploading a new meal plan doesn't affect t
 2. Send the existing `url` — URLs are permanent (no expiry)
 3. If the plan content has been updated since last upload, re-run the script to push the new version (URL stays the same)
 
+## SMS/MMS Plan Card → see the `plan-card` skill
+
+The deterministic MMS plan-card pipeline (handoff profile JSON → branded
+plan card PNG + PLAN.md markdown) lives in the dedicated **`plan-card`**
+skill: the script is `plan-card/scripts/plan-to-image.py` — this is the
+path the openclaw-infra Twilio extension must reference in its deploy
+config (`planImage.scriptPath`). Plan content follows the canonical Step-3
+spec in `user-onboarding-profile/SKILL.md` and all math comes from
+`weight-loss-planner/scripts/planner-calc.py forward-calc`. Dependencies
+are declared in `plan-card/requirements.txt`.
+
+This skill (plan-export) only converts already-written Markdown plans to
+HTML/PDF and delivers them.
+
 ## Individual Scripts (Advanced)
 
 ### Generate HTML only (weight loss plan)
