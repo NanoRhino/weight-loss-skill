@@ -18,12 +18,15 @@ Reason is printed to stderr for debugging.
 """
 
 import argparse
-import fcntl
 import json
 import os
-import subprocess
 import sys
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone, timedelta
+
+LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
+
 
 def _normalize_path(p):
     """Lowercase wechat-dm/wecom-dm segment to avoid case-mismatch directories."""
@@ -31,40 +34,55 @@ def _normalize_path(p):
     return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
 
 
-
 def log(msg):
     """Log to stderr (not visible to user, only for debugging)."""
     print(f"[pre-send-check] {msg}", file=sys.stderr)
 
 
-def _run_check_stage(workspace_dir, tz_offset):
-    """Auto-run check-stage.py to ensure engagement.json is current.
-    
-    This makes pre-send-check self-contained — it no longer depends on
-    the agent calling check-stage.py first. check-stage is idempotent:
-    running it multiple times in the same minute produces the same result.
-    """
-    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
-    script = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "..", "notification-manager", "scripts", "check-stage.py"
-    )
-    if not os.path.exists(script):
-        log(f"check-stage.py not found at {script}, skipping")
-        return
+def _account_id(workspace_dir):
+    """workspace-wechat-dm-<acc> → <acc>."""
+    base = os.path.basename(os.path.normpath(workspace_dir)).replace("workspace-", "")
+    for prefix in ("wechat-dm-", "wecom-dm-"):
+        if base.startswith(prefix):
+            return base[len(prefix):]
+    return base
+
+
+def lifecycle_state(account_id):
+    """GET /v1/lifecycle/state/<acc>. None on failure."""
     try:
-        result = subprocess.run(
-            [sys.executable, script,
-             "--workspace-dir", workspace_dir,
-             "--tz-offset", str(tz_offset)],
-            capture_output=True, text=True, timeout=10
-        )
-        if result.stdout.strip():
-            log(f"check-stage output: {result.stdout.strip()}")
-        if result.returncode != 0:
-            log(f"check-stage exited {result.returncode}: {result.stderr.strip()}")
-    except Exception as e:
-        log(f"check-stage failed: {e}")
+        with urllib.request.urlopen(f"{LIFECYCLE_API}/v1/lifecycle/state/{account_id}", timeout=3) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
+        return None
+
+
+def lifecycle_is_due(account_id):
+    """该用户今天是否该发召回(GET /due 已做 stage 判定+节奏+当天去重)。
+    返回 (is_due: bool, tier: str|None)。失败返回 (None, None) 让调用方降级。"""
+    try:
+        with urllib.request.urlopen(f"{LIFECYCLE_API}/v1/lifecycle/due?limit=1000", timeout=10) as r:
+            users = json.loads(r.read().decode("utf-8")).get("users", [])
+        for u in users:
+            if u.get("account_id") == account_id:
+                return True, u.get("tier")
+        return False, None
+    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
+        return None, None
+
+
+def lifecycle_mark_recall(account_id, tier):
+    """POST /recall-sent 认领今天的召回位(检查时认领,复刻旧 last_recall_date 语义)。"""
+    body = json.dumps({"account_id": account_id, "tier": tier}).encode("utf-8")
+    req = urllib.request.Request(f"{LIFECYCLE_API}/v1/lifecycle/recall-sent", data=body,
+                                 method="POST", headers={"content-type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            r.read()
+        return True
+    except (urllib.error.URLError, OSError) as e:
+        log(f"mark recall-sent failed for {account_id}: {e}")
+        return False
 
 
 def get_local_date(tz_offset):
@@ -87,20 +105,7 @@ def check_health_profile(workspace_dir):
     return True, None
 
 
-def _update_engagement_field(workspace_dir, updates):
-    """Read-modify-write specific fields in engagement.json."""
-    path = os.path.join(workspace_dir, "data", "engagement.json")
-    try:
-        with open(path) as f:
-            data = json.load(f)
-        data.update(updates)
-        with open(path, "w") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-    except (json.JSONDecodeError, IOError) as e:
-        log(f"Warning: could not update engagement.json: {e}")
-
-
-def check_engagement_stage(workspace_dir, meal_type, tz_offset):
+def check_engagement_stage(workspace_dir, meal_type, tz_offset, out=None):
     """Check 2: engagement stage gating.
 
     Stage 1 (ACTIVE):  SEND — normal reminder
@@ -112,116 +117,70 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset):
                         Weight reminders suppressed entirely.
     Stage 5 (SILENT):  NO_REPLY — suppress everything
 
-    Uses file locking to prevent concurrent crons from all passing the gate.
+    Stage from lifecycle API /state (single source of truth). Recall cadence +
+    same-day dedup from /due (event-sourced). On SEND-recall, claims the slot by
+    POST /recall-sent immediately (check-time claim, replaces old last_recall_date).
     """
-    path = os.path.join(workspace_dir, "data", "engagement.json")
-    if not os.path.exists(path):
+    account_id = _account_id(workspace_dir)
+    state = lifecycle_state(account_id)
+    if state is None:
+        # fail-open: API 不可达时按正常提醒发(Stage 1 行为),不漏发
+        log(f"/state unavailable for {account_id}, fail-open as stage 1")
         return True, None
 
-    # Acquire exclusive lock for the entire check-and-update operation.
-    # This prevents concurrent cron processes from all reading stale data.
-    lockfile = path + ".lock"
-    lock_fd = None
-    try:
-        lock_fd = open(lockfile, "w")
-        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+    stage = state.get("stage", 1)
+    days_silent_val = state.get("days_silent", 0)
+    # 记录"认领前"的 stage/days_silent 给输出用(认领+1 recall 可能改变 stage,
+    # 但这条召回的身份应是认领前的 stage)
+    if out is not None:
+        out["stage"] = stage
+        out["days_silent"] = days_silent_val
 
-        with open(path) as f:
-            data = json.load(f)
-        stage = data.get("notification_stage", 1)
-        if isinstance(stage, str):
-            stage_map = {"active": 1, "pause": 2, "recall": 3, "silent": 4}
-            stage = stage_map.get(stage.lower(), 1)
-        if stage >= 5:
-            return False, f"notification_stage={stage} — user is in silent mode"
+    if stage >= 5:
+        return False, f"stage={stage} — user is in silent mode"
 
-        # Stage 2-4: suppress weight reminders entirely
-        if stage in (2, 3, 4):
-            is_weight = meal_type in ("weight", "weight_morning_followup")
-            if is_weight:
-                return False, f"notification_stage={stage} — weight reminders suppressed during recall"
+    # Stage 2-4: suppress weight reminders entirely
+    if stage in (2, 3, 4):
+        if meal_type in ("weight", "weight_morning_followup"):
+            return False, f"stage={stage} — weight reminders suppressed during recall"
 
-        # Stage 2-4: suppress custom reminders, daily summaries
-        # Stage 3-4: also suppress weekly reports
-        if stage in (2, 3, 4):
-            is_non_recall = meal_type in ("custom", "daily_summary")
-            if is_non_recall:
-                return False, f"notification_stage={stage} — {meal_type} suppressed during recall"
-            if stage >= 3 and meal_type == "weekly_report":
-                return False, f"notification_stage={stage} — weekly_report suppressed at stage 3+"
+    # Stage 2-4: suppress custom reminders, daily summaries; Stage 3-4: also weekly reports
+    if stage in (2, 3, 4):
+        if meal_type in ("custom", "daily_summary"):
+            return False, f"stage={stage} — {meal_type} suppressed during recall"
+        if stage >= 3 and meal_type == "weekly_report":
+            return False, f"stage={stage} — weekly_report suppressed at stage 3+"
 
-        # Stage 2: only allow lunch slot, only on days_silent 3 or 5 (Day 3 and Day 5)
-        # Exception: weekly_report is allowed through at S2 (user has recent data)
-        if stage == 2 and meal_type not in ("weekly_report",):
-            is_lunch = meal_type in ("lunch", "meal_2")
-            if not is_lunch:
-                return False, f"notification_stage=2 — only lunch recall allowed, got {meal_type}"
-            days_silent_val = data.get("days_silent", 0)
-            if days_silent_val not in (3, 5):
-                return False, f"notification_stage=2 — days_silent={days_silent_val}, recall only on day 3 (ds=3) and day 5 (ds=5)"
+    # Stage 2: only lunch slot, only on days_silent 3 or 5 (Day 3 / Day 5)
+    # Exception: weekly_report allowed through at S2 (user has recent data)
+    if stage == 2 and meal_type not in ("weekly_report",):
+        if meal_type not in ("lunch", "meal_2"):
+            return False, f"stage=2 — only lunch recall allowed, got {meal_type}"
+        if days_silent_val not in (3, 5):
+            return False, f"stage=2 — days_silent={days_silent_val}, recall only on day 3/5"
 
-        # Stage 3-4: also only allow lunch slot for recall messages
-        if stage in (3, 4):
-            is_lunch = meal_type in ("lunch", "meal_2")
-            if not is_lunch:
-                return False, f"notification_stage={stage} — only lunch recall allowed, got {meal_type}"
+    # Stage 3-4: only lunch slot for recall messages
+    if stage in (3, 4):
+        if meal_type not in ("lunch", "meal_2"):
+            return False, f"stage={stage} — only lunch recall allowed, got {meal_type}"
 
-        local_date = get_local_date(tz_offset)
-
+    # Recall cadence + same-day dedup: ask /due (handles 7d/30d cadence + today-dedup).
+    # weekly_report at S2 is NOT a recall message — skip the due/claim gate.
+    if stage in (2, 3, 4) and meal_type not in ("weekly_report",):
+        is_due, tier = lifecycle_is_due(account_id)
+        if is_due is None:
+            # /due 不可达:降级放行(宁可发,不漏召回),不认领
+            log(f"/due unavailable for {account_id}, fail-open recall")
+            return True, (f"recall stage={stage} days_silent={days_silent_val}" if stage == 2 else None)
+        if not is_due:
+            return False, f"stage={stage} — not due for recall today (cadence/dedup)"
+        # 检查时认领:立即记 recall_sent,防同 slot 重触发重复发(复刻旧 last_recall_date 语义)
+        lifecycle_mark_recall(account_id, tier or ("weekly" if stage in (2, 3) else "monthly"))
         if stage == 2:
-            last_recall_date = data.get("last_recall_date", "")
-            if last_recall_date == local_date:
-                return False, f"notification_stage=2, recall already sent today ({local_date})"
-            # Atomically claim today's slot under lock
-            data["last_recall_date"] = local_date
-            with open(path, "w") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            days_silent_val = data.get("days_silent", 0)
             return True, f"recall stage=2 days_silent={days_silent_val}"
-
-        if stage == 3:
-            last_recall_date = data.get("last_recall_date", "")
-            if last_recall_date:
-                try:
-                    last = datetime.strptime(last_recall_date, "%Y-%m-%d").date()
-                    today = datetime.strptime(local_date, "%Y-%m-%d").date()
-                    if (today - last).days < 7:
-                        return False, f"notification_stage=3, weekly recall sent {last_recall_date} (<7 days)"
-                except ValueError:
-                    pass
-            # Atomically claim under lock
-            data["last_recall_date"] = local_date
-            with open(path, "w") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            return True, None
-
-        if stage == 4:
-            last_recall_date = data.get("last_recall_date", "")
-            if last_recall_date:
-                try:
-                    last = datetime.strptime(last_recall_date, "%Y-%m-%d").date()
-                    today = datetime.strptime(local_date, "%Y-%m-%d").date()
-                    if (today - last).days < 30:
-                        return False, f"notification_stage=4, monthly recall sent {last_recall_date} (<30 days)"
-                except ValueError:
-                    pass
-            # Atomically claim under lock
-            data["last_recall_date"] = local_date
-            with open(path, "w") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            return True, None
-
         return True, None
-    except (json.JSONDecodeError, IOError) as e:
-        log(f"Warning: could not read engagement.json: {e}")
-        return True, None  # fail-open: send if we can't read
-    finally:
-        if lock_fd:
-            try:
-                fcntl.flock(lock_fd, fcntl.LOCK_UN)
-                lock_fd.close()
-            except Exception:
-                pass
+
+    return True, None
 
 
 def check_meal_logged(workspace_dir, meal_type, tz_offset):
@@ -445,16 +404,15 @@ def main():
     args = parser.parse_args()
     args.workspace_dir = _normalize_path(args.workspace_dir)
 
-    # Auto-run check-stage.py BEFORE any checks to ensure engagement.json
-    # is up-to-date. This removes the dependency on the agent calling
-    # check-stage.py first — pre-send-check is now self-contained.
-    _run_check_stage(args.workspace_dir, args.tz_offset)
+    # Stage 由 lifecycle API 实时计算(check_engagement_stage 内部调 /state),
+    # 无需预热 engagement.json。
 
+    stage_info = {"stage": 1}
     checks = [
         ("leave", lambda: check_leave(args.workspace_dir, args.tz_offset, args.mock_date)),
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
         ("engagement_stage", lambda: check_engagement_stage(
-            args.workspace_dir, args.meal_type, args.tz_offset)),
+            args.workspace_dir, args.meal_type, args.tz_offset, out=stage_info)),
         ("health_flags", lambda: check_health_flags(args.workspace_dir, args.meal_type)),
         ("scheduling", lambda: check_scheduling_constraints(
             args.workspace_dir, args.meal_type, args.tz_offset)),
@@ -474,9 +432,6 @@ def main():
             args.workspace_dir, args.meal_type, args.tz_offset)))
 
     # Run all checks
-    # Track stage info from engagement_stage check for output
-    stage_info = {"stage": 1}
-
     for check_name, check_fn in checks:
         passed, reason = check_fn()
         if not passed:
@@ -484,22 +439,9 @@ def main():
             print("NO_REPLY")
             return
 
-    # Read stage for output enrichment
-    eng_path = os.path.join(args.workspace_dir, "data", "engagement.json")
-    if os.path.exists(eng_path):
-        try:
-            with open(eng_path) as f:
-                eng = json.load(f)
-            s = eng.get("notification_stage", 1)
-            if isinstance(s, str):
-                s = {"active": 1, "pause": 2, "recall": 3, "silent": 4}.get(s.lower(), 1)
-            stage_info["stage"] = s
-            stage_info["days_silent"] = eng.get("days_silent", 0)
-        except Exception:
-            pass
-
     log("All checks passed")
 
+    # stage_info 由 engagement_stage check 填入「认领前」的 stage/days_silent
     if stage_info["stage"] >= 2:
         print(f"SEND recall stage={stage_info['stage']} days_silent={stage_info.get('days_silent', 0)}")
     else:
