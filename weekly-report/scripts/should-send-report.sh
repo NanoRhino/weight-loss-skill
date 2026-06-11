@@ -29,20 +29,16 @@ if [[ ! -f "$WORKSPACE/health-profile.md" ]]; then
   exit 0
 fi
 
-# 2. Run check-stage to ensure engagement.json is current, then check stage
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CHECK_STAGE="$SCRIPT_DIR/../../notification-manager/scripts/check-stage.py"
-if [[ -f "$CHECK_STAGE" ]]; then
-  python3.11 "$CHECK_STAGE" --workspace-dir "$WORKSPACE" --tz-offset 28800 2>/dev/null || true
-fi
-
-ENG="$WORKSPACE/data/engagement.json"
-if [[ -f "$ENG" ]]; then
-  STAGE=$(python3.11 -c "import json; print(json.load(open('$ENG')).get('notification_stage', 1))" 2>/dev/null || echo "1")
-  if [[ "$STAGE" -ge 3 ]]; then
-    echo "no: stage=$STAGE (recall/inactive)"
-    exit 0
-  fi
+# 2. Check lifecycle stage from lifecycle API (single source of truth).
+#    Stage >= 3 (recall/inactive) → no weekly report. Fail-open to stage 1 on error.
+#    account_id derived from workspace dir name: workspace-wechat-dm-<acc> → <acc>
+LIFECYCLE_API="${LIFECYCLE_API_URL:-http://127.0.0.1:3100}"
+ACC=$(basename "$WORKSPACE" | sed -E 's/^workspace-//; s/^(wechat|wecom)-dm-//')
+STAGE=$(curl -s --max-time 3 "$LIFECYCLE_API/v1/lifecycle/state/$ACC" 2>/dev/null \
+  | python3.11 -c "import sys,json; print(json.load(sys.stdin).get('stage',1))" 2>/dev/null || echo "1")
+if [[ "$STAGE" -ge 3 ]]; then
+  echo "no: stage=$STAGE (recall/inactive)"
+  exit 0
 fi
 
 # 3. count days with food data this week (Mon-Sun)

@@ -35,15 +35,11 @@ metadata:
 
 如果 `--message` 引用了旧技能名（`daily-notification`、`scheduled-reminders`），视为 `notification-composer` 触发并继续。处理完毕后激活 `notification-manager` 执行 auto-sync。
 
-### 第二步：更新互动阶段
+### 第二步：（已合并进第三步）
 
-```bash
-python3 {notification-manager:baseDir}/scripts/check-stage.py \
-  --workspace-dir {workspaceDir} \
-  --tz-offset {tz_offset}
-```
-
-输出：`"{stage} {days_silent}"`（如 `"1 2"` = Stage 1，沉默 2 天）。解析两个值。
+互动阶段（stage）现由 lifecycle API 实时计算，无需单独调用脚本更新——
+第三步的 `pre-send-check.py` 内部会查询当前 stage 并在输出里带上
+（`SEND recall stage=N days_silent=X`）。直接进第三步即可。
 
 ### 第三步：前置检查
 
@@ -99,7 +95,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 #### Stage 3 → 每周召回
 
-**频率：** 每周一次（由 `pre-send-check.py` 通过 `last_recall_date` 自动控制间隔）。
+**频率：** 每周一次（由 `pre-send-check.py` 经 lifecycle API 自动控制间隔与去重）。
 
 **内容类型轮换（按顺序）：**
 1. 第1次：专业营养知识（结合节气、食材科学、用户数据）
@@ -108,23 +104,21 @@ python3 {baseDir}/scripts/pre-send-check.py \
 
 根据 `references/recall-messages.md` 中对应策略规则自行生成内容。
 
-发送后：
-1. 将主题摘要写入 `recall_topics`
-2. 将 `weekly_recall_count` +1
+发送后：将主题摘要写入 `recall_topics`（主题去重用）。
 
-持续 3 次后 check-stage 自动推进到 Stage 4。
+> 召回次数无需 agent 记录——`pre-send-check.py` 已在判定发送时调
+> `/recall-sent` 记账（事件溯源）。累计 3 次后 lifecycle API 自动推进到 Stage 4。
 
 #### Stage 4 → 每月召回
 
-**频率：** 每月一次（由 `pre-send-check.py` 通过 `last_recall_date` 自动控制间隔）。
+**频率：** 每月一次（由 `pre-send-check.py` 经 lifecycle API 自动控制间隔与去重）。
 
 **内容：** 优先从 `references/changelog.md` 取功能更新，无新内容则发近况问候。
 
-发送后：
-1. 将主题摘要写入 `recall_topics`
-2. 将 `monthly_recall_count` +1
+发送后：将主题摘要写入 `recall_topics`（主题去重用）。
 
-持续 3 次后 check-stage 自动推进到 Stage 5。
+> 召回次数无需 agent 记录——`pre-send-check.py` 已在判定发送时调
+> `/recall-sent` 记账。累计 3 次后 lifecycle API 自动推进到 Stage 5。
 
 #### Stage 5 → 永久沉默
 

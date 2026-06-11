@@ -311,25 +311,26 @@ Stage 5: SILENT — send nothing. Wait for user to return.
 
 Stage 4 users no longer consume personal cron resources. Instead:
 
-1. When a user enters S4, `check-stage.py` directly disables all their personal crons (`disabled_by=s4_auto`)
-2. A single central cron runs daily at lunch, executing `s4-central-dispatch.py`
-3. The script scans all workspaces, finds S4 users due for monthly recall (>=30 days since last)
-4. For each matched user, the main agent:
+1. A single central cron runs daily at lunch, executing `s4-central-dispatch.py`
+2. The script calls lifecycle API `GET /due`, which returns users due for recall
+   today (stage resolution + 30-day cadence + same-day dedup all handled by the API),
+   and filters to `tier=monthly` (Stage 4)
+3. For each matched user, the main agent:
    a. Reads user data from their workspace (meals, preferences, etc.)
    b. Generates a recall message following `recall-messages.md` S4 rules
    c. Sends via `message` tool with the `channel` and `target` from script output
-   d. Calls `s4-central-dispatch.py --mark-sent <workspace_dir>` to update engagement.json
-5. When a S4 user returns (sends any message), `check-stage.py` re-enables their personal crons (only those with `disabled_by=s4_auto`)
+   d. Calls `s4-central-dispatch.py --mark-sent <account_id|workspace_dir>`, which
+      records a `recall_sent` event via the lifecycle API (event-sourced; no file write)
 
 **Central dispatch usage:**
 ```bash
-# Scan for S4 users needing recall
+# Ask lifecycle API which S4 users need recall today
 python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
   --openclaw-dir /home/admin/.openclaw --tz-offset 28800
 
-# After sending message to a user, mark as sent
+# After sending message to a user, record the recall
 python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
-  --mark-sent <workspace_dir> --tz-offset 28800
+  --mark-sent <account_id|workspace_dir>
 ```
 
 **Suppression rules:**
@@ -338,36 +339,25 @@ python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
 - Stage 5: stop everything
 
 Recall replaces the lunch reminder slot — don't send at random hours.
-Write current stage to `data/engagement.json > notification_stage`.
+Stage is owned by the lifecycle API (DB), computed live from `last_interaction_at`
++ recall events — **never written to `engagement.json`**.
 
-**Template dedup:** All recall messages tracked in `engagement.json > recall_history[]`.
-Same template_id never reused for the same user across sessions.
+**Stage transition logic:** Stage is no longer computed by a script that scans meal
+files. The lifecycle API derives it in real time from the user's last **interaction**
+(any inbound message, written by chat-logger) and the count of `recall_sent` events:
+days_silent <3 → S1, <6 → S2, then weekly/monthly recall counts advance S3→S4→S5.
+A returning user (any inbound) refreshes `last_interaction_at`, which auto-resets the
+stage to 1 and discards prior recall events. `pre-send-check.py` queries `/state` and
+`/due` to decide whether to send a normal reminder, a recall, or nothing — the agent
+no longer runs any stage-update script before reminders.
 
-**Stage transition logic:** Before every reminder, `notification-composer` calls this skill's
-stage-check script to update the engagement stage:
-
-```bash
-python3 {baseDir}/scripts/check-stage.py \
-  --workspace-dir {workspaceDir} \
-  --tz-offset {tz_offset}
-```
-
-The script scans `data/meals/*.json` to find the most recent date with a logged
-meal — this is the "last interaction". No platform-level timestamp needed; meal
-records are the ground truth. It calculates calendar days since that date and
-advances `notification_stage` when thresholds are met. It also resets to Stage 1
-when a silent user returns (new meal logged today/yesterday but stage > 1).
-
-The `notification-composer` then reads the updated stage to decide whether to
-send a normal reminder, a recall message, or nothing at all.
-
-During Stage 2 (Day 4-6), `notification-composer` sends one recall per day
-(morning only) and writes `last_recall_date` to `data/engagement.json`.
-After the final recall (Stage 3), it writes `recall_2_sent: true`.
+During recall stages, `pre-send-check.py` claims the day's recall slot by posting a
+`recall_sent` event when it green-lights a send (same-day dedup lives in the API).
 
 **When a silent user returns:**
-Reset to Stage 1. Resume normal reminders. The warm welcome message itself
-is composed by `notification-composer`.
+Stage auto-resets to 1 (lifecycle API, on the returning inbound). Resume normal
+reminders. The warm welcome message itself is composed by `notification-composer`
+(triggered by SKILL-ROUTING's Welcome Back Check reading the injected `## User Lifecycle`).
 
 ---
 
@@ -491,7 +481,7 @@ If the user says "取消提醒" without specifying which one:
 
 | Path | How | When |
 |------|-----|------|
-| `data/engagement.json` | `notification_stage` — direct write | Stage transitions |
+| (stage) | lifecycle API (DB), computed live | Stage is NOT written to engagement.json anymore |
 | `data/engagement.json` | `reminder_config` — direct write | Adaptive timing changes, user setting changes |
 | `health-profile.md > Meal Schedule` | direct write | Adaptive timing updates, user-requested time changes |
 
@@ -510,7 +500,7 @@ If the user says "取消提醒" without specifying which one:
 1. 表达理解，主动提出暂停提醒
 2. 询问暂停多久（"大概要忙多久呀？"）
 3. 用户给了时间 → set leave 对应日期
-4. 用户没给时间 → 不设leave，直接让check-stage按days_silent推进到S3（7天后第1条每周召回）
+4. 用户没给时间 → 不设leave，让 lifecycle API 按 days_silent 自然推进到 S3（7天后第1条每周召回）
 5. 暂停期间所有主动消息停止
 6. 给了时间的：到期自动恢复 / 用户提前回来 → clear leave
 7. 没给时间的：按S3→S4→S5正常流转，用户随时回来重置到S1
