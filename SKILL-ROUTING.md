@@ -20,27 +20,22 @@ make the user repeat themselves.
 
 ## Welcome Back Check (Global — ALL Skills)
 
-**Before routing to any skill**, check `{workspaceDir}/data/engagement.json`:
+**Before routing to any skill**, check the **`## User Lifecycle`** section that
+is auto-injected into your system prompt by the lifecycle-stage plugin (no script
+to run, no file to read — it's already in your context):
 
-1. If `notification_stage` >= 2 **and** this is a user-initiated message (not cron):
-   ```bash
-   python3 {notification-manager:baseDir}/scripts/check-stage.py \
-     --workspace-dir {workspaceDir} --tz-offset {tz_offset} --user-active
-   ```
-2. Re-read `engagement.json`. If `welcome_back` is `true`:
-   - Add a warm, brief welcome (1 sentence) before your normal response
-   - Clear the flag:
-     ```bash
-     python3 -c "
-     import json
-     path = '{workspaceDir}/data/engagement.json'
-     with open(path) as f: d = json.load(f)
-     for k in ['welcome_back','welcome_back_from_stage','welcome_back_days_away']: d.pop(k, None)
-     with open(path, 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False)
-     "
-     ```
-   - Note: if user is returning from S4+, `check-stage.py --user-active` already re-enabled their personal crons automatically.
-3. If `notification_stage` == 1 and no `welcome_back` → proceed normally.
+1. If that section shows **`welcome_back: TRUE`**:
+   - Add a warm, brief welcome (1 sentence) before your normal response.
+   - **Do not** clear any flag or run any script — the lifecycle service clears
+     `welcome_back` automatically once your reply goes out (the outbound message
+     is what marks the welcome as delivered).
+   - If the section also shows `frozen: TRUE`, the user is on leave/pause — just
+     respond normally, don't nudge for check-ins.
+2. Otherwise → proceed normally.
+
+> The `## User Lifecycle` section is the single source of truth for stage /
+> welcome-back / frozen. Don't read `engagement.json` stage fields or run
+> `check-stage.py` for this — those are deprecated and being removed.
 
 **Welcome style:** Warm but brief. "好久不见！" / "欢迎回来～" — never mention how long they were gone.
 
