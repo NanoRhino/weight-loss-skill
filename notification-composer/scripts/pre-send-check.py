@@ -333,37 +333,43 @@ def check_scheduling_constraints(workspace_dir, meal_type, tz_offset):
 def check_leave(workspace_dir, tz_offset, mock_date=None):
     """Check if user is on leave. If so, suppress all reminders.
 
-    Simplified model:
-      - leave.json exists with start/end → on leave
-      - leave.json absent or empty/invalid → not on leave
-      - today > end → delete file (auto-expire) → allow send
-    No 'active' field needed — file existence = leave is set.
+    双源严格同步:请假状态有两个真源 —— leave.json(本地,存请假天数/原因业务细节)
+    与 DB silence_state='frozen'(lifecycle 权威,plugin 注入靠它)。二者必须一致。
+    **以 DB frozen 为权威**对账 leave.json,修正不一致(防漂移):
+      - DB frozen=true  → 请假中,拦截(NO_REPLY)。leave.json 缺失则不影响拦截。
+      - DB frozen=false 但 leave.json 仍在期内 → DB 已解冻(reactor 到期 / 用户回归 /
+        手动改),leave.json 滞后 → 删 leave.json,放行(以 DB 为准)。
+      - DB 不可达 → 降级回退到「只看 leave.json」的原逻辑(lifecycle 挂了请假仍按
+        leave.json 生效,不因 DB 故障误发提醒)。
     """
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
-    if not os.path.exists(leave_path):
-        return True, None
 
-    try:
-        with open(leave_path) as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, IOError):
-        # Corrupted file — treat as no leave, remove it
+    # 先查 DB frozen(权威)。account_id 从 workspace 路径取。
+    account_id = _account_id(workspace_dir)
+    state = lifecycle_state(account_id) if account_id else None
+    db_frozen = bool(state.get("frozen")) if isinstance(state, dict) else None
+
+    # 读 leave.json 本地态
+    leave_data = None
+    if os.path.exists(leave_path):
+        try:
+            with open(leave_path) as f:
+                leave_data = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            try:
+                os.remove(leave_path)  # 损坏文件清理
+            except OSError:
+                pass
+
+    start = (leave_data or {}).get("start", "")
+    end = (leave_data or {}).get("end", "")
+    if leave_data is not None and (not start or not end):
+        # 无效请假文件 → 清理
         try:
             os.remove(leave_path)
         except OSError:
             pass
-        return True, None
-
-    start = data.get("start", "")
-    end = data.get("end", "")
-
-    # No valid dates → not a real leave file, clean up
-    if not start or not end:
-        try:
-            os.remove(leave_path)
-        except OSError:
-            pass
-        return True, None
+        leave_data = None
 
     if mock_date:
         today = mock_date
@@ -371,19 +377,34 @@ def check_leave(workspace_dir, tz_offset, mock_date=None):
         tz = timezone(timedelta(seconds=tz_offset))
         today = datetime.now(tz).strftime("%Y-%m-%d")
 
-    if start <= today <= end:
-        return False, f"user on leave ({start} to {end})"
+    leave_active_local = leave_data is not None and start <= today <= end
 
-    # Auto-expire: leave ended → delete file
-    if today > end:
+    # ── DB 权威对账 ───────────────────────────────────────────────────────
+    if db_frozen is True:
+        # DB 说请假中 → 拦截(无论 leave.json 在不在)。
+        return False, f"user on leave (db frozen; leave.json {start}~{end})" if leave_data else "user on leave (db frozen)"
+
+    if db_frozen is False:
+        # DB 说没请假。leave.json 若仍在期内 = 滞后,删之同步(以 DB 为准)。
+        if leave_data is not None:
+            try:
+                os.remove(leave_path)
+                log(f"leave.json 与 DB 不一致(DB 已解冻),删 leave.json 同步")
+            except OSError:
+                pass
+        return True, None
+
+    # ── DB 不可达(db_frozen is None)→ 降级:只看 leave.json(原逻辑) ──────────
+    if leave_active_local:
+        return False, f"user on leave ({start} to {end}) [db unavailable, leave.json only]"
+    # 过期自动清理
+    if leave_data is not None and today > end:
         try:
             os.remove(leave_path)
         except FileNotFoundError:
-            pass  # concurrent cron already deleted it
+            pass
         except OSError as e:
             log(f"Warning: could not delete expired leave.json: {e}")
-            # Still allow send even if delete fails
-
     return True, None
 
 
