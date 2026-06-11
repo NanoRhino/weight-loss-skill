@@ -1,6 +1,6 @@
 ---
 name: diet-tracking-analysis
-version: 3.2.0
+version: 3.3.0
 description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user sends a photo, logs food, describes a meal, mentions what they're about to eat or drink, or sets a calorie target. Also trigger for past-tense reports ('I had...', 'I ate...'). Even casual mentions ('grabbing a coffee') should trigger. NOT for general behavioral patterns without specific food (e.g. 'I skip breakfast', '我喝水很少') — defer to habit-builder."
 metadata:
   openclaw:
@@ -140,8 +140,8 @@ Use `meal_checkin` results to compose your reply. No more tool calls needed — 
 > **What the plugin already computed (do NOT re-derive):**
 > - `daily_total`, `progress_pct`, `remaining` — final cumulative numbers
 > - `suggestion_type` — already decided based on meal timing, eaten status, and daily position
-> - `suggestion_budget.remaining` — the TRUE remaining budget, already accounting for `assumed_missing` meals
-> - `missing_meals` — which meals were not logged and what calories were assumed
+> - `suggestion_budget.remaining` — remaining budget IF unlogged meals were eaten at normal portions (use ONLY with estimation opt-in — see No-Assumption Policy)
+> - `missing_meals` — which meals have no record yet (unlogged = unknown, NOT "probably eaten" — see No-Assumption Policy)
 > - `status` (on_track/high/low) for each macro — already compared against targets
 > - `checkpoint` ranges — already calculated
 >
@@ -150,7 +150,7 @@ Use `meal_checkin` results to compose your reply. No more tool calls needed — 
 > - Write ONE concrete food suggestion addressing all gaps (use `recent_foods` + preferences)
 > - Compose natural Chinese text following the ①②③ schema
 > - Handle `needs_clarification` as a casual hint
-> - Add `missing_meals` note if non-empty (tell user these were estimated)
+> - Add `missing_meals` note if non-empty (per No-Assumption Policy — never claim they were estimated unless the user opted in)
 >
 > Do not re-explain WHY the budget is what it is. Do not recompute numbers. Just use them.
 > Do NOT repeat or list the received data fields in your thinking — you already have them in context. Go straight to decisions: what tone, what suggestion, what to say.
@@ -227,6 +227,36 @@ Multiple mappings from one correction = multiple lines. If an alias for the same
 
 ---
 
+## No-Assumption Policy (Unlogged Meals)
+
+**An unlogged meal is unknown — not "probably eaten at normal portions."** Never add, count, or describe calories the user did not report. This applies to replies, daily totals, budget advice, and any number you present.
+
+`meal_checkin` still returns `suggestion_budget` (with `assumed_missing`) computed under normal-portion assumptions. Whether you may USE those values is governed by `{workspaceDir}/health-preferences.md > ## Tracking Preferences` (last entry wins):
+
+| Preference state | Behavior |
+|------------------|----------|
+| No entry (default) | Do NOT use assumed values. Budget = `daily_total.remaining`. Present unlogged meals as "not logged / not counted". |
+| `Missing-meal estimation: never` | Same as default, permanently. Never mention estimates again. |
+| `Missing-meal estimation: enabled` | May use `suggestion_budget.remaining` — ALWAYS labeled "含 N 餐按常规分量估算". |
+
+`never` stays in force until the user explicitly asks to re-enable estimation.
+
+### Capturing the preference
+
+- User objects to assumptions ("别擅自添加", "别瞎猜", "stop assuming", "don't guess what I ate") → append to the `## Tracking Preferences` section of `health-preferences.md` (create the section if absent):
+  ```
+  - Missing-meal estimation: never — user asked not to assume unlogged meals
+  ```
+- User explicitly asks you to estimate unlogged meals → same section:
+  ```
+  - Missing-meal estimation: enabled — user asked for normal-portion estimates of unlogged meals
+  ```
+- Write the file silently; acknowledge in one short sentence ("好，没记录的餐我不会再自己估了"), no file mechanics. One entry per change of mind — don't duplicate.
+
+This skill owns the `## Tracking Preferences` section schema (like `## Correction Aliases`). Other skills (`weekly-report`, `weight-gain-strategy`) read it to gate their own estimation.
+
+---
+
 ## Skill Routing
 
 P2 (Data Logging) — defer to P0 (safety) and P1 (emotional support). See `SKILL-ROUTING.md`.
@@ -288,14 +318,17 @@ If fat is ⬆️, you cannot say "脂肪够了". If protein is ⬇️, you canno
 
 **Staying within calorie target is the #1 priority.** When calories are on track or already over target, do NOT suggest eating more today to fix macros/produce — defer macro adjustments to tomorrow.
 
-**Calorie budget for suggestions (CRITICAL):** Always use `suggestion_budget.remaining` for ③ advice. When missing meals exist, `daily_total.remaining` is inflated (doesn't account for assumed missing meals). If `suggestion_budget.remaining` ≤ 50, tell user today's budget is nearly used up and suggest only very light options or nothing extra. If `suggestion_budget.remaining` < 0, explicitly tell user the estimated budget is already exceeded.
+**Calorie budget for suggestions (CRITICAL):** Budget choice is governed by the No-Assumption Policy above.
+- **Default (no estimation opt-in):** use `daily_total.remaining` for ③ advice. Unlogged meals are unknown — never silently fold assumed calories into your numbers or advice. When `missing_meals` is non-empty, keep the suggestion conservative and pair it with the unlogged-meals note below.
+- **Estimation enabled (explicit opt-in only):** use `suggestion_budget.remaining`, and ALWAYS label it as an estimate that counts unlogged meals at normal portions. If `suggestion_budget.remaining` ≤ 50, tell user the estimated budget is nearly used up and suggest only very light options or nothing extra. If `suggestion_budget.remaining` < 0, explicitly tell user the estimated budget is already exceeded.
 
 Give ONE unified meal/food suggestion that addresses ALL gaps together — check every status field (protein, carbs, fat, vegetables, fruits) and synthesize a single concrete recommendation that covers all deficits at once. Do NOT list separate bullet points for each nutrient. Use `recent_foods` and user preferences for examples. No bare calorie numbers.
 
-**Missing meals (REQUIRED):** If `evaluation.missing_meals` is non-empty, append a note AFTER ③ suggestion:
+**Unlogged meals (REQUIRED):** If `evaluation.missing_meals` is non-empty, append ONE short note AFTER ③ suggestion:
 - List every meal in `missing_meals`
-- Tell user these meals were estimated at normal portions
-- Invite user to log what they actually ate for more accurate advice
+- State plainly that these meals are NOT counted in today's totals (unlogged = unknown)
+- Invite once, as a statement, not a question to chase (Single-Ask Rule): "吃了的话发我，我补上"
+- NEVER say these meals "were estimated", "assumed", or counted at normal portions — unless estimation is enabled (see No-Assumption Policy), in which case label explicitly: "含 N 餐按常规分量估算"
 
 | Type | Icon | Guidance |
 |------|------|----------|
