@@ -72,6 +72,52 @@ def _clear_holiday_asked(data_dir):
         pass
 
 
+# ─── lifecycle API 同步(stage 真源在 DB) ──────────────────────────────────
+# 请假的天数/原因等业务细节仍以 leave.json 为准(cron 提醒拦截读它);
+# 但 stage 的 frozen 状态必须同步进 lifecycle DB,这样 lifecycle-stage plugin
+# 才能注入 frozen=true 让 agent 在请假期不催打卡。双写过渡:leave.json + DB。
+
+LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
+
+
+def _account_id_from_data_dir(data_dir):
+    """从 workspace 路径提取 account_id。
+
+    data_dir 形如 .../workspace-wechat-dm-<acc>/data → <acc>。
+    取不到返回 None(同步静默跳过,不影响 leave.json 主流程)。
+    """
+    m = re.search(r"workspace-(?:wechat|wecom)-dm-([^/]+)", data_dir)
+    return m.group(1).lower() if m else None
+
+
+def _sync_silence(account_id, state, frozen_until=None):
+    """调 POST /v1/lifecycle/silence 同步 frozen/active 状态到 DB。
+
+    非关键:失败只告警,不阻塞 leave.json 主流程(lifecycle 不可用时
+    请假仍按 leave.json 生效,只是 plugin 注入不到 frozen,降级可接受)。
+    """
+    import urllib.request
+    import urllib.error
+
+    if not account_id:
+        return
+    body = {"account_id": account_id, "state": state}
+    if state == "frozen" and frozen_until:
+        body["frozen_until"] = frozen_until
+        body["reason"] = "leave"
+    try:
+        req = urllib.request.Request(
+            f"{LIFECYCLE_API}/v1/lifecycle/silence",
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3) as r:
+            r.read()
+    except Exception as e:  # noqa: BLE001 — 同步失败不致命
+        print(f"[leave-manager] /silence sync failed ({state}): {e}", file=sys.stderr)
+
+
 def cmd_check(args):
     """Check if today is within a leave period. Returns JSON.
 
@@ -147,6 +193,14 @@ def cmd_set(args):
     # Clear holiday_asked from engagement.json since user responded
     _clear_holiday_asked(args.data_dir)
 
+    # 同步 frozen 状态到 lifecycle DB。解冻日 = 请假结束次日(end 是最后一个
+    # 离开日,end+1 用户回归)。reactor 到期自动把 silence_state 改回 active。
+    try:
+        resume = (datetime.strptime(end, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+    except ValueError:
+        resume = end
+    _sync_silence(_account_id_from_data_dir(args.data_dir), "frozen", frozen_until=resume)
+
     print(json.dumps(data, ensure_ascii=False))
 
 
@@ -159,6 +213,8 @@ def cmd_clear(args):
             os.remove(path)
         except OSError:
             pass
+    # 用户提前回来 → 解冻 lifecycle(silence_state 改回 active)。
+    _sync_silence(_account_id_from_data_dir(args.data_dir), "active")
     print(json.dumps({"cleared": True, "existed": existed}))
 
 
