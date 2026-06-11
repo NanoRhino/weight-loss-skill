@@ -37,8 +37,10 @@
 <head>
 <meta charset="utf-8">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Irish+Grover&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
+
 @page {
-    size: 1080px 2760px;
+    size: 1080px 3200px;
     margin: 0;
 }
 
@@ -50,22 +52,20 @@
 
 html, body {
     width: 1080px;
-    height: 2760px;
+    min-height: 2760px;
 }
 
 body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC',
-        'Hiragino Sans GB', 'Noto Sans CJK SC', 'Noto Sans SC',
-        'Microsoft YaHei', 'DejaVu Sans', sans-serif;
-    background: #0c1222;
-    background: linear-gradient(165deg, #0e1630 0%, #0c1222 50%, #0a1c2e 100%);
-    color: #f3f6fc;
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB',
+        'Microsoft YaHei', sans-serif;
+    background: #FFF3F7;
+    color: #1a1a2e;
 }
 
 .card {
     width: 1080px;
-    height: 2760px;
-    padding: 48px 72px 44px 72px;
+    min-height: 2760px;
+    padding: 48px 56px 44px 56px;
 }
 
 /* ── Brand header ── */
@@ -78,357 +78,503 @@ body {
 }
 
 .brand {
-    font-size: 36px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    color: #ffffff;
+    font-family: 'Irish Grover', cursive;
+    font-size: 40px;
+    font-weight: 400;
+    color: #D73C63;
 }
 
 .brand-tag {
     text-align: right;
-    font-size: 24px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: #8b97b3;
-    text-transform: uppercase;
+    font-size: 22px;
+    font-weight: 500;
+    color: #999;
 }
 
 .rule {
-    height: 3px;
-    background: linear-gradient(90deg, #34d399 0%, #2dd4bf 40%, rgba(45,212,191,0) 100%);
+    height: 2px;
+    background: linear-gradient(90deg, #D73C63 0%, #f4a0b5 50%, rgba(215,60,99,0) 100%);
     border-radius: 2px;
-    margin: 22px 0 34px 0;
+    margin: 20px 0 30px 0;
 }
 
 /* ── Title block ── */
 .plan-title {
-    font-size: 62px;
+    text-align: center;
+    font-size: 64px;
     font-weight: 800;
-    line-height: 1.08;
-    color: #ffffff;
+    line-height: 1.1;
+    color: #1a1a2e;
 }
 
 .stats-line {
-    margin-top: 14px;
-    font-size: 30px;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 28px;
     font-weight: 500;
-    color: #aab6d0;
-    letter-spacing: 0.5px;
+    color: #666;
 }
 
-/* ── Hero: single daily calorie target ── */
+/* ── Hero: calorie target + weight arc ── */
 .hero {
-    margin-top: 36px;
-    background: rgba(52, 211, 153, 0.10);
-    border: 3px solid rgba(52, 211, 153, 0.55);
+    margin-top: 32px;
+    background: linear-gradient(135deg, #ffffff 0%, #FFF3F7 50%, #ffffff 100%);
     border-radius: 28px;
-    padding: 36px 44px 40px 44px;
+    padding: 40px 44px;
     text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
 }
 
 .hero-label {
-    font-size: 27px;
+    font-size: 24px;
     font-weight: 700;
-    letter-spacing: 5px;
-    color: #34d399;
+    letter-spacing: 4px;
+    color: #1a1a2e;
     text-transform: uppercase;
 }
 
 .hero-value {
     margin-top: 12px;
-    font-size: 138px;
+    font-size: 128px;
     font-weight: 800;
     line-height: 1.0;
-    color: #ffffff;
+    color: #D92C5E;
     letter-spacing: -3px;
 }
 
 .hero-unit {
-    margin-top: 12px;
-    font-size: 34px;
+    margin-top: 10px;
+    font-size: 30px;
     font-weight: 600;
-    color: #9fe8cd;
+    color: #bbb;
 }
 
-/* ── Section labels ── */
+.hero-divider {
+    width: 80%;
+    height: 1px;
+    background: #e8e8e8;
+    margin: 24px auto;
+}
+
+/* ── Section labels (inside cards) ── */
 .section-label {
-    margin-top: 38px;
-    font-size: 26px;
+    margin-top: 36px;
+    margin-bottom: 0;
+    font-size: 24px;
     font-weight: 700;
-    letter-spacing: 4px;
-    color: #8b97b3;
+    letter-spacing: 3px;
+    color: #999;
     text-transform: uppercase;
 }
 
 /* ── Plan tiles (deficit + pace) ── */
+.section-card {
+    margin-top: 14px;
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 28px 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03), 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.section-card-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 20px;
+    color: #D73C63;
+}
+
 .tile-row {
     width: 100%;
-    margin-top: 16px;
     border-collapse: separate;
-    border-spacing: 18px 0;
+    border-spacing: 16px 0;
 }
 
 .tile-row td {
     width: 50%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.10);
-    border-radius: 24px;
-    padding: 26px 24px 28px 24px;
+    background: #f9f9fb;
+    border-radius: 16px;
+    padding: 22px 20px 24px 20px;
     text-align: center;
     vertical-align: top;
 }
 
+
+
 .tile-label {
-    font-size: 25px;
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: #8b97b3;
+    color: #999;
 }
 
 .tile-value {
-    margin-top: 12px;
-    font-size: 54px;
+    margin-top: 10px;
+    font-size: 50px;
     font-weight: 800;
-    color: #ffffff;
+    color: #1a1a2e;
 }
 
 .tile-note {
-    margin-top: 8px;
-    font-size: 25px;
-    color: #8b97b3;
+    margin-top: 6px;
+    font-size: 22px;
+    color: #999;
 }
 
 /* ── Macro row ── */
 .macro-row {
     width: 100%;
-    margin-top: 16px;
+    margin-top: 14px;
     border-collapse: separate;
-    border-spacing: 16px 0;
+    border-spacing: 14px 0;
 }
 
 .macro-row td {
     width: 33.3%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.10);
-    border-radius: 22px;
-    padding: 24px 16px 26px 16px;
+    background: #f9f9fb;
+    border-radius: 16px;
+    padding: 20px 14px 22px 14px;
     text-align: center;
     vertical-align: top;
 }
 
 .macro-row td.protein {
-    background: rgba(96, 165, 250, 0.12);
-    border-color: rgba(96, 165, 250, 0.45);
+    background: #f9f9fb;
 }
 
 .macro-name {
-    font-size: 25px;
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: #aab6d0;
+    color: #999;
 }
 
-.protein .macro-name {
-    color: #93c5fd;
-}
 
 .macro-value {
     margin-top: 10px;
-    font-size: 42px;
+    font-size: 38px;
     font-weight: 800;
-    color: #ffffff;
+    color: #1a1a2e;
 }
 
 .macro-note {
-    margin-top: 8px;
-    font-size: 24px;
+    margin-top: 6px;
+    font-size: 21px;
     font-weight: 500;
-    color: #8b97b3;
+    color: #bbb;
 }
 
-.protein .macro-note {
-    color: #bfdbfe;
-}
 
 /* ── Daily rhythm (per-meal calorie split) ── */
 .rhythm-row {
     width: 100%;
-    margin-top: 16px;
+    margin-top: 14px;
     border-collapse: separate;
-    border-spacing: 16px 0;
+    border-spacing: 14px 0;
 }
 
 .rhythm-row td {
     width: 33.3%;
-    background: rgba(255, 255, 255, 0.04);
-    border: 2px solid rgba(255, 255, 255, 0.09);
-    border-radius: 22px;
-    padding: 22px 16px 24px 16px;
+    background: #f9f9fb;
+    border-radius: 16px;
+    padding: 20px 14px 22px 14px;
     text-align: center;
     vertical-align: top;
 }
 
 .rhythm-name {
-    font-size: 25px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #aab6d0;
+    color: #999;
+}
+
+.rhythm-bar-wrap {
+    text-align: center;
+    margin-top: 20px;
+    white-space: nowrap;
+}
+
+.rhythm-bar-item {
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+    margin: 0 10px;
+}
+
+.rhythm-bar-pct {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #fff;
+}
+
+.rhythm-bar {
+    border-radius: 14px;
+    padding: 28px 16px;
+    text-align: center;
+}
+
+.rhythm-bar-cal {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.rhythm-bar-unit {
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.8);
+    margin-top: 2px;
+}
+
+.rhythm-bar-name {
+    font-size: 22px;
+    font-weight: 600;
+    color: #666;
+    margin-top: 12px;
+}
+
+.rhythm-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 16px;
+}
+
+.rhythm-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 22px;
+    color: #444;
+}
+
+.rhythm-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.rhythm-legend-cal {
+    font-weight: 700;
+    color: #1a1a2e;
 }
 
 .rhythm-value {
     margin-top: 10px;
-    font-size: 46px;
+    font-size: 42px;
     font-weight: 800;
-    color: #ffffff;
+    color: #1a1a2e;
 }
 
 .rhythm-note {
-    margin-top: 8px;
-    font-size: 23px;
+    margin-top: 6px;
+    font-size: 21px;
     font-weight: 500;
-    color: #8b97b3;
+    color: #999;
 }
 
 /* ── Sample day ── */
 .sample {
-    margin-top: 16px;
-    background: rgba(52, 211, 153, 0.07);
-    border: 2px solid rgba(52, 211, 153, 0.30);
-    border-radius: 24px;
-    padding: 26px 36px 22px 36px;
+    padding: 0;
+}
+
+.sample-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.sample-table thead td {
+    padding: 16px 14px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #D73C63;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: center;
+    background: transparent;
+}
+
+.sample-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.sample-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.sample-table tbody tr.row-pink {
+    background: #FFF8FA;
+}
+
+.sample-table tbody td {
+    padding: 18px 14px;
+    vertical-align: middle;
+    font-size: 23px;
+    text-align: center;
+    border-right: 1px solid #f0f0f0;
+}
+
+.sample-table tbody td:last-child {
+    border-right: none;
+}
+
+.meal-td-tag {
+    width: 80px;
+    font-weight: 700;
+    color: #1a1a2e;
+    font-size: 22px;
+}
+
+.meal-td-content {
+    color: #444;
+    font-weight: 500;
+    text-align: left;
+}
+
+.meal-td-protein {
+    width: 130px;
+    color: #888;
+    font-weight: 500;
+    font-size: 21px;
+    white-space: nowrap;
 }
 
 .meal-line {
-    padding-left: 168px;
-    text-indent: -168px;
-    font-size: 26px;
-    font-weight: 600;
-    color: #e7ecf7;
-    line-height: 1.75;
+    padding-left: 148px;
+    text-indent: -148px;
+    font-size: 25px;
+    font-weight: 500;
+    color: #444;
+    line-height: 1.8;
 }
 
 .meal-tag {
     display: inline-block;
-    width: 148px;
+    width: 128px;
     margin-right: 20px;
     text-indent: 0;
-    font-size: 23px;
+    font-size: 21px;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #34d399;
+    color: #D73C63;
 }
 
 .sample-formula {
     margin-top: 14px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(52, 211, 153, 0.25);
-    font-size: 25px;
+    padding-top: 14px;
+    border-top: 1px solid #f0f0f0;
+    font-size: 23px;
     font-style: italic;
-    color: #9fb0cc;
+    color: #888;
     line-height: 1.5;
 }
 
 /* ── Timeline: goal date tile or unlock box ── */
 .goal-tile {
-    margin-top: 16px;
-    background: rgba(96, 165, 250, 0.12);
-    border: 2px solid rgba(96, 165, 250, 0.45);
-    border-radius: 24px;
-    padding: 26px 32px 28px 32px;
+    margin-top: 14px;
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 28px 32px;
     text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03), 0 4px 20px rgba(0,0,0,0.05);
 }
 
 .goal-label {
-    font-size: 25px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: #93c5fd;
+    color: #1a1a2e;
 }
 
 .goal-value {
-    margin-top: 12px;
-    font-size: 60px;
+    margin-top: 10px;
+    font-size: 56px;
     font-weight: 800;
-    color: #ffffff;
+    color: #D92C5E;
 }
 
 .goal-note {
     margin-top: 8px;
-    font-size: 26px;
-    color: #bfdbfe;
+    font-size: 24px;
+    color: #888;
 }
 
 .unlock {
-    margin-top: 16px;
-    background: rgba(251, 191, 36, 0.10);
-    border: 2px dashed rgba(251, 191, 36, 0.6);
-    border-radius: 24px;
-    padding: 30px 40px;
+    margin-top: 14px;
+    background: #ffffff;
+    border: 2px dashed #f5a623;
+    border-radius: 22px;
+    padding: 28px 36px;
     text-align: center;
+    box-shadow: 0 2px 8px rgba(245,166,35,0.08);
 }
 
 .unlock-title {
-    font-size: 36px;
+    font-size: 34px;
     font-weight: 800;
     line-height: 1.35;
-    color: #fbbf24;
+    color: #f5a623;
 }
 
 .unlock-sub {
-    margin-top: 12px;
-    font-size: 27px;
-    color: #e5d5a8;
+    margin-top: 10px;
+    font-size: 25px;
+    color: #8b7040;
 }
 
 /* ── Your first week ── */
 .checkpoints {
-    margin-top: 16px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 2px solid rgba(255, 255, 255, 0.09);
-    border-radius: 24px;
-    padding: 24px 36px;
+    padding: 0;
 }
 
 .checkpoint {
-    padding-left: 56px;
-    text-indent: -56px;
-    font-size: 29px;
-    font-weight: 600;
-    color: #e7ecf7;
+    padding-left: 52px;
+    text-indent: -52px;
+    font-size: 27px;
+    font-weight: 500;
+    color: #444;
     line-height: 1.7;
 }
 
 .checkpoint .icon {
-    font-size: 30px;
+    font-size: 28px;
 }
 
 .checkpoint .icon.arrow,
 .checkpoint span.icon:empty {
-    color: #34d399;
+    color: #D73C63;
 }
 
 /* ── Footer ── */
 .footer {
-    margin-top: 32px;
+    margin-top: 30px;
     text-align: center;
+    word-break: break-all;
+    padding: 0 40px;
 }
 
 .footer-main {
-    font-size: 32px;
-    font-weight: 700;
-    color: #34d399;
+    font-size: 28px;
+    font-weight: 600;
+    color: #666;
 }
 
 .footer-sub {
-    margin-top: 10px;
-    font-size: 24px;
+    margin-top: 8px;
+    font-size: 22px;
     font-weight: 500;
-    color: #6b7892;
+    color: #bbb;
     letter-spacing: 1px;
 }
 </style>
@@ -453,75 +599,69 @@ body {
         <div class="hero-unit">$hero_unit</div>
     </div>
 
-    <div class="section-label">$sec_plan</div>
-    <table class="tile-row">
-        <tr>
-            <td>
-                <div class="tile-label">$tile1_label</div>
-                <div class="tile-value">$tile1_value</div>
-                <div class="tile-note">$tile1_note</div>
-            </td>
-            <td>
-                <div class="tile-label">$tile2_label</div>
-                <div class="tile-value">$tile2_value</div>
-                <div class="tile-note">$tile2_note</div>
-            </td>
-        </tr>
-    </table>
-
-    <div class="section-label">$sec_macros</div>
-    <table class="macro-row">
-        <tr>
-            <td class="protein">
-                <div class="macro-name">$protein_label</div>
-                <div class="macro-value">$protein_value</div>
-                <div class="macro-note">$protein_note</div>
-            </td>
-            <td>
-                <div class="macro-name">$fat_label</div>
-                <div class="macro-value">$fat_value</div>
-                <div class="macro-note">$fat_note</div>
-            </td>
-            <td>
-                <div class="macro-name">$carb_label</div>
-                <div class="macro-value">$carb_value</div>
-                <div class="macro-note">$carb_note</div>
-            </td>
-        </tr>
-    </table>
-
-    <div class="section-label">$sec_rhythm</div>
-    <table class="rhythm-row">
-        <tr>
-            <td>
-                <div class="rhythm-name">$meal1_name</div>
-                <div class="rhythm-value">$meal1_value</div>
-                <div class="rhythm-note">$meal1_note</div>
-            </td>
-            <td>
-                <div class="rhythm-name">$meal2_name</div>
-                <div class="rhythm-value">$meal2_value</div>
-                <div class="rhythm-note">$meal2_note</div>
-            </td>
-            <td>
-                <div class="rhythm-name">$meal3_name</div>
-                <div class="rhythm-value">$meal3_value</div>
-                <div class="rhythm-note">$meal3_note</div>
-            </td>
-        </tr>
-    </table>
-
-    <div class="section-label">$sec_sample</div>
-    <div class="sample">
-        $sample_html
+    <div class="section-card">
+        <div class="section-card-title">$sec_plan</div>
+        <table class="tile-row">
+            <tr>
+                <td>
+                    <div class="tile-label">$tile1_label</div>
+                    <div class="tile-value">$tile1_value</div>
+                    <div class="tile-note">$tile1_note</div>
+                </td>
+                <td>
+                    <div class="tile-label">$tile2_label</div>
+                    <div class="tile-value">$tile2_value</div>
+                    <div class="tile-note">$tile2_note</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <div class="section-label">$timeline_section_label</div>
-    $timeline_html
+    <div class="section-card">
+        <div class="section-card-title">$sec_macros</div>
+        <table class="macro-row">
+            <tr>
+                <td class="protein">
+                    <div class="macro-name">$protein_label</div>
+                    <div class="macro-value">$protein_value</div>
+                    <div class="macro-note">$protein_note</div>
+                </td>
+                <td class="fat">
+                    <div class="macro-name">$fat_label</div>
+                    <div class="macro-value">$fat_value</div>
+                    <div class="macro-note">$fat_note</div>
+                </td>
+                <td class="carb">
+                    <div class="macro-name">$carb_label</div>
+                    <div class="macro-value">$carb_value</div>
+                    <div class="macro-note">$carb_note</div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    <div class="section-label">$sec_first_week</div>
-    <div class="checkpoints">
-        $first_week_html
+    <div class="section-card">
+        <div class="section-card-title">$sec_rhythm</div>
+        $rhythm_html
+    </div>
+
+    <div class="section-card">
+        <div class="section-card-title">$sec_sample</div>
+        <div class="sample">
+            $sample_html
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-card-title">$timeline_section_label</div>
+        $timeline_html
+    </div>
+
+    <div class="section-card">
+        <div class="section-card-title">$sec_first_week</div>
+        <div class="checkpoints">
+            $first_week_html
+        </div>
     </div>
 
     <div class="footer">
