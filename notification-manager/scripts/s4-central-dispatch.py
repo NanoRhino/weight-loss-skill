@@ -2,165 +2,109 @@
 """
 s4-central-dispatch.py — Central dispatcher for Stage 4 (monthly) recall messages.
 
-Instead of each S4 user's personal cron running daily and getting NO_REPLY,
-this single script runs once daily (lunch slot), scans all user workspaces,
-and outputs which users need a monthly recall message today.
+Runs once daily (lunch slot). Asks the lifecycle API which users need a recall
+today, filters to monthly (Stage 4), and outputs the routing info for each.
+
+Lifecycle API is the single source of truth: GET /v1/lifecycle/due already does
+stage resolution + 30-day cadence + same-day dedup, so this script no longer
+scans workspaces or reads engagement.json.
 
 Usage:
-  python3 s4-central-dispatch.py --openclaw-dir /home/admin/.openclaw --tz-offset 28800
+  python3 s4-central-dispatch.py --openclaw-dir <ignored> --tz-offset 28800
+  python3 s4-central-dispatch.py --mark-sent <workspace_dir|account_id>
 
-Output (stdout):
-  JSON array of objects, each with:
-    - workspace_dir: path to user workspace
-    - session_key: the session key for message routing
-    - stage: 4
-    - days_silent: int
-    - monthly_recall_count: int
-    - last_recall_date: str or null
+Output (stdout): JSON array, each object:
+    workspace_dir, session_key, channel, target, stage(=4), days_silent
 
-  If no users need recall today, outputs: []
+  If no users need monthly recall today, outputs: []
 """
 
 import argparse
-import glob
 import json
 import os
-import re
 import sys
-from datetime import datetime, timedelta, timezone
+import urllib.request
+import urllib.error
+
+LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
 
 
 def log(msg):
     print(f"[s4-dispatch] {msg}", file=sys.stderr)
 
 
-def scan_workspaces(openclaw_dir):
-    """Find all user workspace directories."""
-    pattern = os.path.join(openclaw_dir, "workspace-*")
-    return sorted(glob.glob(pattern))
+def _account_id(s):
+    """Accept a workspace dir, session key, or bare account id → return account id."""
+    base = os.path.basename(os.path.normpath(s)) if "/" in s else s
+    if base.startswith("workspace-"):
+        base = base[len("workspace-"):]
+    for prefix in ("wechat-dm-", "wecom-dm-"):
+        if base.startswith(prefix):
+            return base[len(prefix):]
+    return base
 
 
-def load_engagement(workspace_dir):
-    path = os.path.join(workspace_dir, "data", "engagement.json")
-    if not os.path.exists(path):
+def fetch_due(limit=1000):
+    """GET /v1/lifecycle/due → list of due users (any stage)."""
+    url = f"{LIFECYCLE_API}/v1/lifecycle/due?limit={limit}"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("users", [])
+    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError) as e:
+        log(f"ERROR fetching /due: {e}")
         return None
+
+
+def post_recall_sent(account_id, tier="monthly"):
+    """POST /v1/lifecycle/recall-sent — record a sent recall (event-sourced)."""
+    url = f"{LIFECYCLE_API}/v1/lifecycle/recall-sent"
+    body = json.dumps({"account_id": account_id, "tier": tier}).encode("utf-8")
+    req = urllib.request.Request(url, data=body, method="POST",
+                                 headers={"content-type": "application/json"})
     try:
-        with open(path) as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return None
-
-
-def extract_session_key(workspace_dir):
-    """Extract session key from workspace directory name.
-    
-    workspace-wecom-dm-username -> wecom-dm-username
-    workspace-wechat-dm-accXXX -> wechat-dm-accXXX
-    """
-    basename = os.path.basename(workspace_dir)
-    if basename.startswith("workspace-"):
-        return basename[len("workspace-"):]
-    return basename
-
-
-def parse_routing_info(session_key):
-    """Parse channel and target from session key.
-    
-    wecom-dm-username -> channel=wecom, target=username
-    wechat-dm-accXXX -> channel=wechat, target=accXXX
-    """
-    parts = session_key.split("-", 2)  # ['wecom', 'dm', 'username']
-    if len(parts) >= 3:
-        return {"channel": parts[0], "target": parts[2]}
-    return {"channel": None, "target": None}
-
-
-def mark_recall_sent(workspace_dir, tz_offset):
-    """Update engagement.json after a recall message is sent."""
-    tz = timezone(timedelta(seconds=tz_offset))
-    today_str = datetime.now(tz).strftime("%Y-%m-%d")
-    
-    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
-    try:
-        with open(eng_path) as f:
-            data = json.load(f)
-        
-        data["last_recall_date"] = today_str
-        data["monthly_recall_count"] = data.get("monthly_recall_count", 0) + 1
-        
-        with open(eng_path, "w") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        
-        log(f"  updated engagement: last_recall_date={today_str}, monthly_recall_count={data['monthly_recall_count']}")
-    except Exception as e:
-        log(f"  ERROR updating engagement for {workspace_dir}: {e}")
-
-
-    """Check if this S4 user needs a recall message today."""
-    stage = engagement.get("notification_stage", 1)
-    if isinstance(stage, str):
-        stage_map = {"active": 1, "pause": 2, "recall": 3, "silent": 4}
-        stage = stage_map.get(stage.lower(), 1)
-    
-    if stage != 4:
-        return False
-    
-    monthly_count = engagement.get("monthly_recall_count", 0)
-    if monthly_count >= 3:
-        return False  # All 3 monthly recalls sent, should be S5
-    
-    last_recall = engagement.get("last_recall_date", "")
-    if not last_recall:
-        return True  # Never sent a recall in this stage
-    
-    tz = timezone(timedelta(seconds=tz_offset))
-    today = datetime.now(tz).date()
-    
-    try:
-        last_date = datetime.strptime(last_recall, "%Y-%m-%d").date()
-        days_since = (today - last_date).days
-        return days_since >= 30
-    except ValueError:
-        return True  # Can't parse date, send anyway
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            json.loads(resp.read().decode("utf-8"))
+        log(f"  recall-sent recorded: {account_id} ({tier})")
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        log(f"  ERROR recall-sent for {account_id}: {e}")
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--openclaw-dir", default="/home/admin/.openclaw")
-    parser.add_argument("--tz-offset", type=int, default=28800)
-    parser.add_argument("--mark-sent", metavar="WORKSPACE_DIR",
-                        help="Mark a recall as sent for this workspace (call after message delivered)")
+    parser.add_argument("--openclaw-dir", default="/home/admin/.openclaw",
+                        help="(ignored, kept for backward-compat)")
+    parser.add_argument("--tz-offset", type=int, default=28800,
+                        help="(ignored, lifecycle API handles tz)")
+    parser.add_argument("--mark-sent", metavar="WORKSPACE_OR_ACCOUNT",
+                        help="Record a monthly recall as sent (call after message delivered)")
     args = parser.parse_args()
 
-    # --mark-sent mode: update engagement.json and exit
+    # --mark-sent mode: record recall_sent event and exit
     if args.mark_sent:
-        mark_recall_sent(args.mark_sent, args.tz_offset)
+        post_recall_sent(_account_id(args.mark_sent), tier="monthly")
         return
 
-    workspaces = scan_workspaces(args.openclaw_dir)
-    log(f"Found {len(workspaces)} user workspaces")
+    users = fetch_due()
+    if users is None:
+        print("[]")  # API failure → no dispatch (fail-safe, avoids wrong sends)
+        return
 
     results = []
-
-    for ws in workspaces:
-        eng = load_engagement(ws)
-        if eng is None:
-            continue
-
-        if needs_monthly_recall(eng, args.tz_offset):
-            session_key = extract_session_key(ws)
-            routing = parse_routing_info(session_key)
-            results.append({
-                "workspace_dir": ws,
-                "session_key": session_key,
-                "channel": routing["channel"],
-                "target": routing["target"],
-                "stage": 4,
-                "days_silent": eng.get("days_silent", 0),
-                "monthly_recall_count": eng.get("monthly_recall_count", 0),
-                "last_recall_date": eng.get("last_recall_date"),
-            })
-            log(f"  → {session_key}: needs monthly recall (count={eng.get('monthly_recall_count', 0)}, channel={routing['channel']}, target={routing['target']})")
+    for u in users:
+        if u.get("tier") != "monthly":
+            continue  # this dispatcher only handles Stage 4 monthly recall
+        acc = u["account_id"]
+        session_key = f"wechat-dm-{acc}"
+        results.append({
+            "workspace_dir": None,  # lifecycle API is source of truth; no longer workspace-based
+            "session_key": session_key,
+            "channel": "wechat",
+            "target": acc,
+            "stage": 4,
+            "days_silent": u.get("days_silent", 0),
+        })
+        log(f"  → {session_key}: needs monthly recall (days_silent={u.get('days_silent')})")
 
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
