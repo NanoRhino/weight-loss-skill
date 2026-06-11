@@ -20,12 +20,35 @@ import json
 import os
 import subprocess
 import sys
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HOLIDAYS_DIR = os.path.join(SCRIPT_DIR, "..", "references", "holidays")
 LOOKAHEAD_DAYS = 5
+
+# Lifecycle API —— stage 的唯一真源(替代旧 engagement.json/check-stage.py)。
+LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
+
+
+def _account_id_from_agent(agent_id):
+    """wechat-dm-<acc> / wecom-dm-<acc> → <acc>。"""
+    for prefix in ("wechat-dm-", "wecom-dm-"):
+        if agent_id.startswith(prefix):
+            return agent_id[len(prefix):]
+    return agent_id
+
+
+def fetch_lifecycle_state(account_id):
+    """GET /v1/lifecycle/state/<acc>。失败返回 None(调用方降级处理)。"""
+    url = f"{LIFECYCLE_API}/v1/lifecycle/state/{account_id}"
+    try:
+        with urllib.request.urlopen(url, timeout=3) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
+        return None
 
 
 def log(msg):
@@ -181,19 +204,17 @@ def get_breakfast_time(workspace_dir):
 
 
 def get_engagement_stage(workspace_dir):
-    """Read engagement stage. Default 1 (active)."""
-    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
-    if os.path.exists(eng_path):
-        try:
-            with open(eng_path) as f:
-                data = json.load(f)
-            raw = data.get("notification_stage", data.get("stage", 1))
-            try:
-                return int(raw)
-            except (ValueError, TypeError):
-                return 1
-        except (json.JSONDecodeError, IOError):
-            pass
+    """Get lifecycle stage from lifecycle API (single source of truth).
+
+    Replaces old engagement.json `notification_stage` read. account_id is
+    derived from the workspace dir name (workspace-wechat-dm-<acc> → <acc>).
+    Default 1 (active) on any failure — holidays then proceed (fail-open).
+    """
+    agent_id = os.path.basename(os.path.normpath(workspace_dir)).replace("workspace-", "")
+    account_id = _account_id_from_agent(agent_id)
+    state = fetch_lifecycle_state(account_id)
+    if state and isinstance(state.get("stage"), int):
+        return state["stage"]
     return 1
 
 
