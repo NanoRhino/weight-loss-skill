@@ -113,29 +113,15 @@ meal_checkin({ action: "evaluate", text: "用户原文", images: [...], workspac
 read PLAN.md, health-profile.md, health-preferences.md
 ```
 
-**Round 2:** Compose evaluate reply (schema below):
+**Round 2:** Compose reply — 自然口语，不用固定格式/图标。原则：
 
-④ **Evaluate Response Schema:**
-🔍 帮你看看 [食物名]：
-🍽 预计：{total_calories} kcal | 蛋白质 {protein}g | 碳水 {carbs}g | 脂肪 {fat}g
-· {dish} — {weight}g — {calories} kcal
+1. **说清食物本身**：热量大概多少、热量主要来自什么（油炸？糖？碳水？）
+2. **结合今日进度**：还剩多少空间，吃不吃得下，会不会超
+3. **给实用建议**：怎么选/怎么搭配/怎么减量能更合理
 
-💡 [1-2句怎么吃更健康的建议，结合当天已吃进度]
-- 如果热量会超标：说清楚会超多少，建议换什么/减份量
-- 如果热量还够：告诉用户剩余空间，怎么搭配更合理
-- 结合 `evaluation.daily_total` 给出上下文（"你今天已经吃了xxx kcal，加上这个就到xxx了"）
+语气像一个懂营养的朋友随口聊，长短随食物复杂度自然变化。不要模板感、不要报告感。不追问"要帮你记录吗"，说完即止。
 
-📝 要帮你记录吗？
-
-**Round 3 (user confirms):** User says "记吧"/"好"/"记录" → call `meal_checkin` with normal create (NO action param, let auto-detect handle):
-```
-meal_checkin({ text: "用户原文", images: [...], workspace_dir: "{workspaceDir}" })
-```
-Then compose normal ①②③ reply.
-
-User says "算了"/"不吃了"/"换一个" → acknowledge, do NOT log. No `<!--diet_suggestion-->` tag needed.
-
-**Key:** evaluate 和 create 用同一套营养分析管线，数字完全一致。
+**Key:** evaluate 和 create 用同一套营养分析管线，数字一致。用户后续真吃了再发消息时，正常走 create 记录。
 
 ---
 
