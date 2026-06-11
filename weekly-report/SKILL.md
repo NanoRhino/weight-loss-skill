@@ -55,8 +55,6 @@ will read it and convert to ±10% range automatically.
 
 Pass whatever you find verbatim; the script fills all missing fields from health-profile as fallback.
 
-**Missing-meal estimation gate (no-assumption policy):** Read `health-preferences.md > ## Tracking Preferences` (last entry wins). ONLY if it contains `Missing-meal estimation: enabled`, add `--estimate-missing-meals` to the command below. Default (no entry, or `never`): omit the flag — unlogged meals are unknown and stay uncounted; never present assumed intake as fact.
-
 ```bash
 python3 {baseDir}/scripts/collect-weekly-data.py \
   --workspace-dir {workspaceDir} \
@@ -72,7 +70,6 @@ Save to a temp file (use workspace username to avoid multi-user collision) — y
 
 - `USER.md` → name, health flags, language preference
 - `health-profile.md` → unit preference
-- `health-preferences.md` → `## Tracking Preferences` (estimation gate for Step 3; read once, reuse)
 - Previous report log: `data/logs/weekly-report-{prev_monday}.json` → check `next_week_focus`
 
 All calorie/macro targets, weight loss rate, phase, progress bar, and week number are already in the collect output (`meta.*` and `plan.*`). No need to read `PLAN.md` separately.

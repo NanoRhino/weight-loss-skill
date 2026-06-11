@@ -32,9 +32,7 @@ Show daily calorie intake vs target range with a vertical bar chart and grey tar
 - Average above range → `"略微超标，小调整就能回来。"`
 - Only 1-2 days of data → Show what's available but note limited data
 
-**Important (no-assumption policy):**
-- **Default (estimation NOT enabled):** `cal_avg_estimated` equals `cal_avg` — both reflect logged meals only. If `days_with_missing_meals > 0`, say records are incomplete and that averages cover logged meals only. Do NOT conclude the user under-ate from an average deflated by unlogged meals, and never imply unlogged meals were eaten.
-- **User opted in (`Missing-meal estimation: enabled` → `--estimate-missing-meals` passed):** use `cal_avg_estimated` for dietary assessment and label it explicitly, e.g. "含 {days_with_missing_meals} 天按本周均值估算的未记录餐".
+**Important:** Use `cal_avg_estimated` (meal-filled estimate) for dietary assessment, NOT `cal_avg` (deflated by missed-meal days). If `days_with_missing_meals > 0`, mention incomplete records.
 
 ---
 
@@ -87,11 +85,10 @@ Tone: informational, never guilt. Offer concrete suggestions.
 Show daily macro intake as three separate vertical bar charts (碳水/蛋白质/脂肪).
 
 **Data logic:**
-- Per-day macro values from logged meals. Meal-fill estimation (missing meals filled with weekly average) applies ONLY when the user opted in (`--estimate-missing-meals`)
+- Per-day macro values with meal-fill estimation (missing meals filled with weekly average)
 - For each macro, compare against target range:
   - Below min → 浅绿 / Within → 深绿 / Above max → 浅橙
-- If `macro_estimated: true`, show footnote about estimation AND say so in commentary ("含估算")
-- If `macro_estimated: false` and `days_with_missing_meals > 0`: averages reflect logged meals only — note the incomplete records; do NOT diagnose a macro deficiency from partial days
+- If `macro_estimated: true`, show footnote about estimation
 
 **Target range source:**
 1. Primary: `PLAN.md` macro ranges

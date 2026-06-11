@@ -1,6 +1,6 @@
 ---
 name: weight-gain-strategy
-version: 1.1.0
+version: 1.0.0
 description: "Detect and respond to upward weight trends after weigh-ins or when the user asks why their weight is increasing. Use for: (1) consecutive weight increases detected by post-weigh-in deviation checks, (2) explicit weight-gain questions like 'why am I gaining weight' or '体重怎么涨了'. Provides graduated support from reassurance to cause analysis to temporary adjustment strategies. Do not use when emotional distress needs higher-priority support or when weight-focus should be avoided (history_of_ed / avoid_weight_focus flags)."
 metadata:
   openclaw:
@@ -33,7 +33,6 @@ persistent the trend is.
 3. **Escalate gradually.** Response depth follows the streak. Never skip levels or jump to strategy on a first increase.
 4. **Collaborate, don't force.** The user can opt in or out at every step. Playful challenges are fine; pushing past a "no" is not.
 5. **Keep it light.** Witty friend, not stern doctor. Data rigorous, delivery fun.
-6. **No silent meal assumptions.** `analyze` may estimate unlogged meals internally to test plan consistency (`*_after_adjustment` fields). If your reply relies on those adjusted numbers, say so explicitly ("按常规分量估算了未记录的 N 餐"). If `health-preferences.md > ## Tracking Preferences` ends with `Missing-meal estimation: never`, do NOT present estimate-adjusted conclusions at all — cite logging coverage (`logging_stats`) and treat unlogged meals as unknown.
 
 ---
 
