@@ -253,6 +253,7 @@ Do NOT output the message as your reply. Instead, put your full message text int
     --session main
     --agent "$AGENT"
     --message "$WRAPPED_MESSAGE"
+    --model "anthropic/claude-sonnet-4-6"
     --no-deliver
     --json
   )
@@ -262,6 +263,7 @@ else
     --session isolated
     --agent "$AGENT"
     --message "$MESSAGE"
+    --model "anthropic/claude-sonnet-4-6"
     --announce
     --channel "$CHANNEL"
     --to "$TO"
