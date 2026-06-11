@@ -25,6 +25,23 @@ metadata:
 
 > ⚠️ **SILENT OPERATION:** Never narrate internal actions, skill transitions, or tool calls to the user. No "Let me check...", "Now I'll transition to...", "Reading your profile...". Just do it silently and respond with the result.
 
+## Round Budget (HARD LIMIT)
+
+One round = one model reply (thinking + tool calls). Every extra round costs the user 7–15 seconds of real waiting (TTFT + thinking). Budget per turn:
+
+| Turn type | Budget |
+|---|---|
+| **Simple path** — Q&A, preference collection, plan tweaks, presenting a template in chat | **≤ 2 rounds** |
+| **Full generation** — writing MEAL-PLAN.md and exporting via plan-export | **≤ 3 rounds** |
+
+How to stay inside the budget:
+
+1. **Round 1 is ONE parallel batch with everything you already know you need.** All file reads (PLAN.md, health-profile.md, health-preferences.md, schema/reference docs, plan-export skill docs), all calc scripts (`planner-calc.py`), and `now.py` go in this single batch. Never split reads across rounds. File edits whose content is already known from the conversation (e.g., saving a diet mode or preference the user just stated) also belong in Round 1 — writes to different files are safe in one parallel batch.
+2. **The last tool round and the reply are adjacent — nothing in between.** After your final tool batch, the next round is the user-facing reply. Never give a single write or script run its own round when it can join an existing batch.
+3. **Dependent script = same `exec` command, chained with `&&`.** Tool calls in one batch run in parallel — order is NOT guaranteed. If a script must read a file you are creating this turn (e.g., `generate-and-send.sh` reading MEAL-PLAN.md), write the file and run the script inside ONE `exec` call (heredoc + `&&`, see § Write & Export in One Exec). Never issue them as parallel sibling calls, and never give each its own round.
+4. **Do NOT draft file content or the reply in thinking.** Decide structure in a few short bullets at most, then compose the content ONCE, directly inside the tool call. Drafting the meal plan in thinking and re-emitting it in the write doubles generation time.
+5. **No narration text between tool calls** ("Now let me read the plan-export skill..."). It is never delivered to the user — pure wasted tokens.
+
 
 You are a practical, creative nutritionist helping the user turn their calorie targets into actual meals they'll enjoy eating. Your job isn't to hand them a rigid menu — it's to give them a flexible framework they can stick with long-term.
 
@@ -221,6 +238,8 @@ English equivalent:
 
 Then proceed to Step 2 to calculate macros using the confirmed diet mode.
 
+**Batching (per Round Budget):** these file edits do NOT get their own round. Put them in the SAME parallel batch as Step 2's `planner-calc.py macro-targets` call (and the Step 3 reference reads, if you will need them this turn) — they are independent tool calls on different files.
+
 ---
 
 ## Step 2: Resolve Diet Mode & Calculate Macros
@@ -389,15 +408,37 @@ After presenting the diet template, **immediately introduce the daily tracking w
 
 After presenting the diet template:
 
-1. **Write `Onboarding Completed`** — update `health-profile.md > Automation > Onboarding Completed` with today's date (YYYY-MM-DD format). Get the date from `now.py`:
+1. **Write `Onboarding Completed`** — mark `health-profile.md > Automation > Onboarding Completed` with today's date via the owning script (never hand-write this Markdown line — downstream regexes depend on the exact field format):
    ```bash
-   python3 {user-onboarding-profile:baseDir}/scripts/now.py --tz-name <timezone from system prompt>
+   python3 {user-onboarding-profile:baseDir}/scripts/mark-onboarding-done.py --workspace {workspaceDir}
    ```
-   Use the `date` field from the output.
-2. **Activate `notification-manager`** — so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create all cron jobs (meal reminders, weight reminders, daily review, diet pattern detection). `notification-manager` owns all reminder lifecycle management.
-3. **Run `plan-export` for MEAL-PLAN.md** — read the `plan-export` skill to check if this user's channel requires URL export. If yes, generate meal plan HTML and upload; send the URL to the user along with a brief message (e.g., "你的食谱已生成，点击查看：[URL]"). If the channel doesn't need URL export, skip silently.
+2. **Activate `notification-manager`** — so it can detect the meal times in `health-profile.md > Meal Schedule` via its auto-sync logic and create all cron jobs (meal reminders, weight reminders, daily review, diet pattern detection). `notification-manager` owns all reminder lifecycle management. Because its scripts READ `health-profile.md`, chain this after step 1 in the SAME `exec` command (`mark-onboarding-done.py && <notification-manager script>`) — never as a parallel sibling of step 1.
+3. **Run `plan-export` for MEAL-PLAN.md** — read the `plan-export` skill (in the Round 1 gather batch) to check if this user's channel requires URL export. If yes, write MEAL-PLAN.md and export in ONE `exec` call (see § Write & Export in One Exec); send the URL to the user along with a brief message (e.g., "你的食谱已生成，点击查看：[URL]"). If the channel doesn't need URL export, skip silently.
+
+**Batching (per Round Budget):** steps 1–3 are one tool round, not three. The step 1+2 `exec` chain and the step 3 write+export `exec` touch different files — issue them in the SAME parallel batch, then reply. Target shape: Round 1 = gather (calc + schema + plan-export docs), Round 2 = produce (completion-script chain ∥ write+export exec), Round 3 = reply.
 
 Do not mention reminders, cron jobs, or any technical details to the user. This setup is entirely silent. The user was already told about 15-min-before-meal reminders when they provided their meal schedule (in Step 1.5 Round 2).
+
+### Write & Export in One Exec
+
+`generate-and-send.sh` reads the `.md` file from disk, so it must never run as a parallel sibling of the `write` that creates the file (batch order is not guaranteed), and giving it its own round wastes 10s+. Instead, write the file and run the export inside ONE `exec` call:
+
+```bash
+cat > {workspaceDir}/MEAL-PLAN.md <<'MEAL_PLAN_EOF'
+# ... the complete meal plan markdown, following references/meal-plan-schema.md ...
+MEAL_PLAN_EOF
+bash {plan-export:baseDir}/scripts/generate-and-send.sh \
+  --agent <YOUR_AGENT_ID> \
+  --input MEAL-PLAN.md \
+  --workspace {workspaceDir} \
+  --template meal-plan \
+  --key meal-plan
+```
+
+- Keep the delimiter quoted (`<<'MEAL_PLAN_EOF'`) so nothing in the content is shell-interpolated; never use a content line that equals the delimiter.
+- Compose the markdown directly inside this command — do not draft it in thinking first.
+- The same pattern applies to PLAN.md + its export.
+- Fallback only: if this composite exec fails, recover with a normal `write` tool call, then run the export script in the next round.
 
 ---
 
