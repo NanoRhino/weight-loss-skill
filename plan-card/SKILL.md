@@ -33,9 +33,25 @@ python3 {baseDir}/scripts/plan-to-image.py \
                "activity_level": "sedentary|lightly_active|moderately_active|very_active|null" },
   "tdee":    { "recommended": N, "low": N, "high": N, "bmr": N },
   "locale":  { "country": "US", "units": "imperial|metric",
-               "language": "en|zh|..." }
+               "language": "en|zh|..." },
+  "qr":      { "kind": "sms_claim", "number": "+19152777888",
+               "body": "<handoff token>" }
 }
 ```
+
+`qr` (optional, additive — part of the cross-repo "email plan uses
+plan-card" feature): when present, the card renders a QR code in the
+timeline/"unlock" area encoding `SMSTO:<number>:<body>`. Scanning it opens
+the phone's SMS app with the claim token pre-filled — the same action as
+the web SMS CTA. `kind` must be `sms_claim`; `number`/`body` are required
+non-empty strings (the body is the TDEE handoff token, e.g. Crockford-8 or
+profile slug). The QR caption is localized via STRINGS like everything
+else. **When `qr` is absent, output is byte-identical to the pre-QR
+renderer** (the `qrcode` dependency is only imported on the QR path), and
+the page height stays 3200 px; with `qr` the page grows to 3540 px to fit
+the block. `SMSTO:` is used instead of the RFC 5724 `sms:?body=` URI
+because iOS Camera and Android scanners both pre-fill number AND body from
+`SMSTO`, while `sms:` body pre-fill is inconsistent across platforms.
 
 `locale.language` (optional, BCP-47-ish lowercase, e.g. `en`, `zh`,
 `zh-tw`) selects the output language; absent/unknown → `en`. The upstream
@@ -44,8 +60,9 @@ passes it through. This script does NO language inference of its own
 (consistent with `docs/CONVENTIONS.md` §10).
 
 See `examples/sample-input-with-goalweight.json`,
-`examples/sample-input-without-goalweight.json`, and
-`examples/sample-input-zh.json`.
+`examples/sample-input-without-goalweight.json`,
+`examples/sample-input-zh.json`, and
+`examples/sample-input-with-qr.json`.
 
 **stdout on success (single JSON line):**
 `{"ok": true, "png": "<abs path>", "bytes": N, "plan": {...}, "plan_markdown": "..."}`
@@ -146,6 +163,8 @@ unchanged) still provides the **methodology** on top of the anchored TDEE:
    footer, derived from `references/meal-templates.md` (selection rules
    below; pure rules, no LLM).
 8. **Timeline** — completion month tile, or the goal-weight unlock box.
+   When the input carries `qr`, the SMSTO QR claim block (QR + short
+   localized scan prompt) renders here, below the tile/box.
 9. **Your first week** — ONE merged block (replaces the former separate
    "Focus this week" + "Week 1 checkpoints"): the SMS cadence checkpoints
    plus the personalized rule-based items, deduplicated (the protein
@@ -192,10 +211,12 @@ zh uses 大卡, `kg/周` pace, `kg / 斤` in PLAN.md, and `YYYY年M月` dates.
 
 ## Rendering
 
-`templates/plan-card.html` (1080×2760 portrait, inline CSS only, no
-external assets) → WeasyPrint HTML→PDF → PyMuPDF PDF→PNG at `--width`,
+`templates/plan-card.html` (1080-wide portrait, page height 3200 px —
+3540 px when the `qr` block is present — inline CSS only, no external
+assets) → WeasyPrint HTML→PDF → PyMuPDF PDF→PNG at `--width`,
 downscaled until it fits `--max-bytes` (default 600 KB MMS budget;
-full-size renders are ~285–310 KB).
+full-size renders are ~225–310 KB). The QR SVG (pure-python `qrcode`
+SVG factory) is embedded as a data-URI image — no PIL, no binary deps.
 
 ## PLAN.md structure (plan_markdown)
 
@@ -216,7 +237,8 @@ is always emitted near the top:
 
 ## Dependencies
 
-`pip install -r {baseDir}/requirements.txt` (`weasyprint`, `pymupdf`).
+`pip install -r {baseDir}/requirements.txt` (`weasyprint`, `pymupdf`,
+`qrcode` — the latter pure python, used only when the input carries `qr`).
 WeasyPrint also needs pango/cairo/gdk-pixbuf **system libraries** — on EC2
 (Amazon Linux): `sudo dnf install -y pango cairo gdk-pixbuf2`; on Ubuntu:
 `sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0`.

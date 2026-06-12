@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["weasyprint", "pymupdf"]
+# dependencies = ["weasyprint", "pymupdf", "qrcode"]
 # ///
 """
 plan-to-image.py — Deterministic plan-card renderer for SMS/MMS delivery.
@@ -46,6 +46,19 @@ CLI contract (invoked by the openclaw-infra Twilio extension — frozen):
   python3 plan-card/scripts/plan-to-image.py \
       --input <input.json> --output <out.png> [--width 1080] [--max-bytes 614400]
 
+OPTIONAL QR CLAIM BLOCK (additive input field — part of the cross-repo
+"email plan uses plan-card" feature, contract confirmed by Jason): the input
+JSON may carry a top-level `qr` object:
+
+  "qr": {"kind": "sms_claim", "number": "+19152777888", "body": "<handoff token>"}
+
+When present, a QR code is rendered in the timeline ("unlock") area encoding
+`SMSTO:<number>:<body>` — scanning it opens the phone's SMS app with the
+claim token pre-filled (same action as the web SMS CTA). The page grows
+taller to make room; the QR caption is localized via STRINGS. When `qr` is
+ABSENT the output is byte-identical to the pre-QR renderer (the `qrcode`
+dependency is imported lazily and only on the QR path).
+
 stdout on success (single JSON line):
   {"ok": true, "png": "<abs path>", "bytes": N, "plan": {...}, "plan_markdown": "..."}
 On failure: non-zero exit, {"ok": false, "error": "..."} on stdout, details on stderr.
@@ -89,6 +102,17 @@ ASIAN_BMI_COUNTRIES = {"CN", "TW", "HK", "MO", "SG", "JP", "KR"}
 ASIAN_BMI_LANGUAGES = {"zh", "ja", "ko"}
 
 MIN_RENDER_WIDTH = 480  # don't shrink the PNG below this when fitting max-bytes
+
+# @page height (CSS px). The base value is the historical fixed page size;
+# byte-identical output without `qr` depends on it staying 3200. The QR
+# claim block adds ~340px, so the page grows when (and only when) `qr` is
+# present — otherwise the footer would overflow onto a second (unrendered)
+# PDF page.
+PAGE_HEIGHT_PX = 3200
+PAGE_HEIGHT_QR_PX = 3540
+
+# QR kinds accepted in the optional input `qr` object (additive contract).
+VALID_QR_KINDS = {"sms_claim"}
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +195,8 @@ STRINGS = {
         "cp_photo": "Log every meal — just text me a photo",
         "cp_weigh": "Weigh in Wednesday & Saturday morning",
         "cp_protein": "Hit your protein target at every meal",
+        "qr_title": "Scan to start",
+        "qr_note": "Opens a text to me with your claim code — just hit send.",
         "footer": "Text me anytime — your AI nutrition coach",
         # PLAN.md
         "generated": "Generated {date} · NanoRhino AI Nutrition Coach",
@@ -285,6 +311,8 @@ STRINGS = {
         "cp_photo": "记录每一餐——拍张照发给我就行",
         "cp_weigh": "周三、周六早晨称体重",
         "cp_protein": "每餐吃够你的蛋白质目标",
+        "qr_title": "扫码开始",
+        "qr_note": "自动打开短信并填好领取码——点发送就行。",
         "footer": "有问题随时发消息——你的 AI 营养师",
         # PLAN.md
         "generated": "生成于 {date} · NanoRhino AI 营养师",
@@ -392,6 +420,21 @@ def validate_input(data: dict) -> dict:
     tdee["bmr"] = float(tdee["bmr"])
     tdee["low"] = round(float(tdee.get("low") or tdee["recommended"] - 100))
     tdee["high"] = round(float(tdee.get("high") or tdee["recommended"] + 100))
+
+    # Optional QR claim block (additive field — absent input renders
+    # byte-identically to the pre-QR pipeline).
+    qr = data.get("qr")
+    if qr is not None:
+        if not isinstance(qr, dict):
+            raise ValueError("'qr' must be an object")
+        kind = qr.get("kind")
+        if kind not in VALID_QR_KINDS:
+            raise ValueError(f"qr.kind must be one of {sorted(VALID_QR_KINDS)}")
+        for field in ("number", "body"):
+            value = qr.get(field)
+            if not value or not isinstance(value, str):
+                raise ValueError(f"Missing required qr field: {field}")
+    data["qr"] = qr
 
     locale = data.get("locale") or {}
     country = (locale.get("country") or "US").upper()
@@ -725,7 +768,41 @@ def fmt_date_label(d: date, lang: str) -> str:
 # HTML rendering
 # ---------------------------------------------------------------------------
 
-def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
+def build_qr_svg_datauri(number: str, body: str) -> str:
+    """Build the SMSTO QR code as an SVG data URI for inline embedding.
+
+    Format choice — `SMSTO:<number>:<body>` (the ZXing "Barcode Contents"
+    de-facto standard) over the RFC 5724 `sms:` URI:
+      - iOS Camera and Android (Google Lens / ZXing-derived scanners) both
+        open the SMS app with number AND body pre-filled from SMSTO; with
+        `sms:num:body` iOS fills the number but drops the body, and the
+        RFC `sms:num?body=` form needs URL-encoding and historically fails
+        to pre-fill on some Android handsets.
+      - SMSTO takes the body as plain text, so handoff tokens (Crockford-8
+        or profile slugs) need no escaping.
+
+    Pure-python `qrcode` with its SVG factory — no PIL/system deps; imported
+    lazily so the no-QR path never needs the package.
+    """
+    import base64
+
+    import qrcode
+    import qrcode.image.svg
+
+    qr = qrcode.QRCode(
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        border=2,  # quiet zone (the white CSS background pads it further)
+        image_factory=qrcode.image.svg.SvgPathImage,
+    )
+    qr.add_data(f"SMSTO:{number}:{body}")
+    qr.make(fit=True)
+    svg = qr.make_image().to_string(encoding="unicode")
+    b64 = base64.b64encode(svg.encode("utf-8")).decode("ascii")
+    return f"data:image/svg+xml;base64,{b64}"
+
+
+def build_template_vars(plan: dict, profile: dict, locale: dict,
+                        qr: dict | None = None) -> dict:
     units = locale["units"]
     lang = locale["lang"]
     s = STRINGS[lang]
@@ -870,6 +947,25 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
             "</div>"
         )
 
+    # Optional QR claim block (rendered in the timeline/"unlock" area).
+    # Absent qr → empty substitution + the historical page height, keeping
+    # the no-QR render byte-identical.
+    if qr:
+        qr_datauri = build_qr_svg_datauri(qr["number"], qr["body"])
+        qr_html = (
+            '<div class="qr-block">'
+            '<table class="qr-row"><tr>'
+            f'<td class="qr-cell"><img class="qr-img" src="{qr_datauri}"/></td>'
+            '<td class="qr-text">'
+            f'<div class="qr-title">{s["qr_title"]}</div>'
+            f'<div class="qr-note">{s["qr_note"]}</div>'
+            "</td></tr></table></div>"
+        )
+        page_height = PAGE_HEIGHT_QR_PX
+    else:
+        qr_html = ""
+        page_height = PAGE_HEIGHT_PX
+
     # Merged first-week block (cadence checkpoints + personalized items).
     first_week_html = "".join(
         f'<div class="checkpoint">'
@@ -879,6 +975,8 @@ def build_template_vars(plan: dict, profile: dict, locale: dict) -> dict:
     )
 
     return {
+        "page_height": f"{page_height}px",
+        "qr_html": qr_html,
         "date_label": fmt_date_label(date.today(), lang),
         "plan_title": s["title_card"][intent],
         "stats_line": stats_line,
@@ -1057,7 +1155,8 @@ def main():
 
         plan = compute_plan(profile, tdee, locale)
 
-        template_vars = build_template_vars(plan, profile, locale)
+        template_vars = build_template_vars(plan, profile, locale,
+                                            qr=data.get("qr"))
         html = render_html(template_vars)
 
         out_path = Path(args.output).resolve()

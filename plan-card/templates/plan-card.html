@@ -16,6 +16,8 @@
     7. Sample day: concrete meal examples per slot + plate formula
        (derived from references/meal-templates.md, rule-based selection)
     8. Timeline: goal month tile, or goal-weight unlock box
+       (+ optional SMSTO QR claim block when the input carries `qr` —
+        the page grows taller via $page_height to make room)
     9. Your first week: merged SMS cadence checkpoints + personalized items
    10. Footer
 
@@ -40,7 +42,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Irish+Grover&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
 
 @page {
-    size: 1080px 3200px;
+    /* Substituted by plan-to-image.py: 3200px normally (historical fixed
+       size — keeps no-QR renders byte-identical), taller when the optional
+       QR claim block is present. */
+    size: 1080px $page_height;
     margin: 0;
 }
 
@@ -533,6 +538,52 @@ body {
     color: #8b7040;
 }
 
+/* ── QR claim block (rendered only when the input carries `qr`) ── */
+.qr-block {
+    margin-top: 16px;
+    background: #FFF8FA;
+    border-radius: 16px;
+    padding: 24px 28px;
+}
+
+.qr-row {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.qr-cell {
+    width: 280px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.qr-img {
+    width: 252px;
+    height: 252px;
+    background: #ffffff;
+    border-radius: 12px;
+}
+
+.qr-text {
+    vertical-align: middle;
+    padding-left: 28px;
+    text-align: left;
+}
+
+.qr-title {
+    font-size: 36px;
+    font-weight: 800;
+    color: #1a1a2e;
+}
+
+.qr-note {
+    margin-top: 10px;
+    font-size: 25px;
+    font-weight: 500;
+    color: #888;
+    line-height: 1.5;
+}
+
 /* ── Your first week ── */
 .checkpoints {
     padding: 0;
@@ -655,6 +706,7 @@ body {
     <div class="section-card">
         <div class="section-card-title">$timeline_section_label</div>
         $timeline_html
+        $qr_html
     </div>
 
     <div class="section-card">
