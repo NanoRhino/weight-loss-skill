@@ -4,6 +4,9 @@
 # plan-card/scripts/plan-to-image.py (MMS plan card pipeline):
 weasyprint>=60
 pymupdf>=1.24
+# Optional SMSTO QR claim block (pure python, SVG output only — no PIL or
+# binary system deps; imported lazily, only when the input JSON carries `qr`):
+qrcode>=7.4
 #
 # plan-export/scripts/generate-pdf.py / generate-html.py (Markdown → PDF/HTML):
 markdown>=3.4
