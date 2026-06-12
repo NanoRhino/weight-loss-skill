@@ -119,6 +119,17 @@ get_automation_field() {
   echo "—"
 }
 
+
+# Extract first HH:MM from text (handles "9:00", "18:00（注释）", "07:00-08:00", etc.)
+extract_time() {
+  local raw="$1"
+  if [[ "$raw" =~ ([0-9]{1,2}):([0-9]{2}) ]]; then
+    printf "%02d:%s" "$((10#${BASH_REMATCH[1]}))" "${BASH_REMATCH[2]}"
+  else
+    echo ""
+  fi
+}
+
 # Output: "MM HH" for cron
 calc_cron_time() {
   local time_str="$1" offset_min="$2"
@@ -196,8 +207,8 @@ queue_job() {
 BREAKFAST_TIME=""
 DINNER_TIME=""
 while IFS= read -r meal_line; do
-  [[ "$meal_line" =~ ^Breakfast\ (.+)$ ]] && BREAKFAST_TIME="${BASH_REMATCH[1]}"
-  [[ "$meal_line" =~ ^Dinner\ (.+)$ ]]    && DINNER_TIME="${BASH_REMATCH[1]}"
+  [[ "$meal_line" =~ ^Breakfast\ (.+)$ ]] && BREAKFAST_TIME=$(extract_time "${BASH_REMATCH[1]}")
+  [[ "$meal_line" =~ ^Dinner\ (.+)$ ]]    && DINNER_TIME=$(extract_time "${BASH_REMATCH[1]}")
 done <<< "$MEAL_SCHEDULE"
 
 # 1. Meal reminders
@@ -205,7 +216,9 @@ if should_create_type "meal"; then
   while IFS= read -r meal_line; do
     [[ -z "$meal_line" ]] && continue
     meal_name=$(echo "$meal_line" | awk '{print $1}')
-    meal_time=$(echo "$meal_line" | awk '{print $2}')
+    raw_time=$(echo "$meal_line" | cut -d' ' -f2-)
+    meal_time=$(extract_time "$raw_time")
+    [[ -z "$meal_time" ]] && echo "SKIP: $meal_name — no parseable time in '$raw_time'" && continue
     ct=$(calc_cron_time "$meal_time" -15)
     cm=$(echo "$ct" | awk '{print $1}')
     ch=$(echo "$ct" | awk '{print $2}')
@@ -221,7 +234,7 @@ if [[ -z "$EARLIEST_TIME" && -n "$MEAL_SCHEDULE" ]]; then
   EARLIEST_TIME=$(echo "$MEAL_SCHEDULE" | awk 'NR==1{print $2}')
 fi
 
-if should_create_type "weight" && [[ -n "$EARLIEST_TIME" && -n "$DINNER_TIME" ]]; then
+if should_create_type "weight" && [[ -n "$EARLIEST_TIME" ]]; then
   ct=$(calc_cron_time "$EARLIEST_TIME" -30)
   cm=$(echo "$ct" | awk '{print $1}'); ch=$(echo "$ct" | awk '{print $2}')
   queue_job "Weight check-in reminder"  "Run notification-composer for weight."                  "$cm $ch * * 3,6" weight

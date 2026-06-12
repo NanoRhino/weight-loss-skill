@@ -542,13 +542,7 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background
 
     h += '<div class="report-card"><div class="card-header">' + t('calorieHeader') + '</div><div class="card-body">';
     h += renderCalorieChart(days, calMin, calMaxTarget, chartMax);
-    var calAvgEst = summary.cal_avg_estimated || summary.cal_avg;
-    var missingDays = summary.days_with_missing_meals || 0;
-    if (missingDays > 0 && calAvgEst !== summary.cal_avg) {
-      h += '<div class="cal-average">' + t('avgCal', {avg: calAvgEst}) + ' <span class="sub">（' + t('avgCalTarget', {min: calMin, max: calMaxTarget}) + ' · ' + t('missingMeals', {n: missingDays}) + '）</span></div>';
-    } else {
-      h += '<div class="cal-average">' + t('avgCalSimple', {avg: summary.cal_avg}) + ' <span class="sub">（' + t('avgCalTarget', {min: calMin, max: calMaxTarget}) + '）</span></div>';
-    }
+    h += '<div class="cal-average">' + t('avgCalSimple', {avg: summary.cal_avg}) + ' <span class="sub">（' + t('avgCalTarget', {min: calMin, max: calMaxTarget}) + '）</span></div>';
     h += '</div>';
     if (commentary.calories) h += '<div class="card-commentary">' + esc(commentary.calories) + '</div>';
     h += '</div>';
