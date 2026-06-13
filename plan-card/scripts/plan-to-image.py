@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.10"
+# requires-python = ">=3.9"
 # dependencies = ["weasyprint", "pymupdf", "qrcode"]
 # ///
+# NOTE: production (EC2) invokes this script with bare /usr/bin/python3
+# (currently 3.9) via the openclaw-infra Twilio extension — the PEP-723
+# header above is NOT resolved at runtime. Keep the code 3.9-compatible:
+# no PEP 604 `X | Y` unions outside annotations, no match statements, and
+# keep the `from __future__ import annotations` import below.
 """
 plan-to-image.py — Deterministic plan-card renderer for SMS/MMS delivery.
 
@@ -69,6 +74,8 @@ on Ubuntu: `sudo apt-get install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbu
 For zh rendering install a CJK font (e.g. google-noto-sans-cjk-fonts), and a
 color emoji font (google-noto-emoji-color-fonts) for the checkpoint icons.
 """
+
+from __future__ import annotations
 
 import argparse
 import json
