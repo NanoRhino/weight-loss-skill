@@ -508,11 +508,14 @@ Step 5 的食谱模板 + 每日打卡流程 + 重点提醒拼起来通常 ≥100
 呈现饮食模板和每日打卡流程后：
 
 1. **激活 `notification-manager`** — 触发它运行 `batch-create-reminders.sh`，创建所有 cron 任务。传 `--skip-existing`，重跑安全。此步静默。
+   - 这一步也会创建**首餐激活提醒**（first-meal nudge）的两个一次性 cron：用户完成引导后若一直不打卡，会在下一个餐点温柔提醒最多 2 次，发满仍零记录则转入永久沉默。无需额外操作——它包含在默认 bootstrap 里。
 2. **写入完成标记 — 必须通过脚本，不要手写 Markdown：**
 
 ```bash
 python3 {baseDir}/scripts/mark-onboarding-done.py --workspace {workspaceDir}
 ```
+
+> `mark-onboarding-done.py` 还会防御性地把 `data/engagement.json > stage_changed_at` 设为完成时间（仅供旧读者；stage 真源已迁 lifecycle DB，首餐激活提醒的终止保证由 pre-send-check 的 cap gate 提供，不依赖此字段）。
 
 脚本会幂等地在 `health-profile.md > Automation` section 插入或更新
 `- **Onboarding Completed:** <date>` 字段，自动刷新 `**Updated:**` 时间戳，并清理

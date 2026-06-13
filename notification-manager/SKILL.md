@@ -273,6 +273,102 @@ bash {baseDir}/scripts/create-reminder.sh \
 
 ---
 
+### First-meal nudge (one-shot, activation flow)
+
+**Purpose:** Break the ice for users who completed onboarding (picked a plan,
+set meal reminders) but have **never logged a single meal**. The stall point is
+"now actually text me your food." This is a gentle, capped nudge — NOT a recall.
+
+**Created at onboarding completion** by `batch-create-reminders.sh` (included in
+the default `--only all` bootstrap; restrict with `--only firstmeal`). It
+creates **two one-shot** (`--at`) jobs:
+
+| Job name | Fires | Payload |
+|----------|-------|---------|
+| `First meal nudge` | ~3-4h after completion, at the next meal slot today (daytime-capped 08:00-20:00 local) — else first meal slot next day | `... pre-send-check.py --meal-type first_meal_nudge ...` then `notification-composer for first_meal_nudge (nudge=1)` |
+| `First meal nudge followup` | First meal slot the following day (softer) | same, `nudge=2` |
+
+**Timing uses the user's IANA timezone** (from `USER.md > Timezone`). The nudge
+fires **at** the meal slot, deliberately offset from the meal-reminder minutes
+(which fire at slot−15min), so the user never gets the nudge and a meal reminder
+minutes apart.
+
+**Detection (who gets it):** `health-profile.md` has a real
+`Onboarding Completed` date AND `data/meals/` has zero food entries AND
+`## Meal Schedule` is populated (so meal crons exist). The one-shot crons are
+created unconditionally at onboarding; the actual send is gated at fire time by
+`pre-send-check.py --meal-type first_meal_nudge`, which self-cancels if
+onboarding is NOT completed (wrong cohort — keeps it mutually exclusive with the
+activation nudge), the user logged any meal, is on leave, or the cap is reached.
+
+**Cap & terminal state:** Max **2** nudges (`activation.first_meal_nudges_sent`,
+a non-stage business counter in `data/engagement.json`). The moment the user logs
+ANY meal, both nudges self-cancel (pre-send-check). After 2 nudges, the
+pre-send-check **cap gate** (reads `activation.first_meal_nudges_sent >= 2`)
+permanently suppresses the nudge — this is the terminal anti-nag guarantee and is
+**lifecycle-independent** (it does not depend on the stage system). The intent is
+that a never-logged user never receives the engaged-recall content (S2-S4), which
+is generated from logged meals and would be hollow.
+
+> **Stage authority (post-lifecycle-migration):** `notification_stage` /
+> `stage_changed_at` are NO LONGER stored in `engagement.json` — stage lives in
+> the lifecycle DB (computed from `last_interaction_at`). The cap gate is what
+> enforces the "stop after 2" guarantee; it does not rely on writing a Silent
+> stage. `check-stage.py` is deprecated (still present but not in the live path);
+> `mark-onboarding-done.py` still seeds `stage_changed_at` defensively for any
+> legacy reader, but the activation flow does not depend on it. See the
+> cross-system flag in § Activation nudge below.
+
+---
+
+### Activation nudge (greeted but never replied)
+
+**Purpose:** Break the ice for users who came in via TDEE handoff, got the
+welcome message, but have **never replied at all**. Different cohort from the
+first-meal nudge (who replied + onboarded but never logged).
+
+**Cron created by openclaw-infra, NOT this repo.** The infra side schedules two
+one-shot crons at handoff time (T+24h `nudge=1`, T+72h `nudge=2`, user-local
+daytime). This skill only implements what they fire into. Fixed payload contract:
+
+```
+First run: python3 {notification-composer:baseDir}/scripts/pre-send-check.py \
+  --workspace-dir <WS> --meal-type activation --tz-offset <off>.
+If output is NO_REPLY, stop and output NO_REPLY.
+Otherwise run notification-composer for activation (nudge=1).
+```
+
+**Detection / defining gate** (`pre-send-check.py --meal-type activation`): the
+target user is a handoff case — `health-profile.md` exists with
+`Onboarding Completed: —` (NOT a date) and `channel-source.json > handoffAppliedAt`
+set. The **defining cancel signal** is `channel-source.json > lastInboundAt`
+(epoch ms, written by infra Phase-0 on every inbound): **if present at all, the
+user has replied → NO_REPLY (cancel)**. Also NO_REPLY if `channel-source.json`
+is missing/unreadable (**fail closed** — the target cohort always has the file;
+if we can't confirm no-reply we stay silent), onboarding completed, any meal
+logged, the authoritative lifecycle Silent stage (handled by the generic
+`check_engagement_stage` gate via the lifecycle API), on leave/pause, or
+`activation.nudges_sent >= 2`.
+
+**Cap & terminal state:** Max **2** nudges (`activation.nudges_sent`). The moment
+the user replies (or logs a meal), both nudges self-cancel. After 2 nudges, the
+pre-send-check **cap gate** (reads `activation.nudges_sent >= 2`) permanently
+suppresses the nudge — lifecycle-independent terminal guarantee, same as the
+first-meal nudge. The composer increments the counter via
+`activation-mark-sent.py --counter nudges_sent` after each successful send.
+
+> ⚠️ **Cross-system flag (lifecycle handoff):** The cap gate stops the *nudges*,
+> but it does NOT itself transition the user to lifecycle Silent — stage is owned
+> by the lifecycle DB (computed from `last_interaction_at`). For a never-engaged
+> user the lifecycle system will compute its own stage from the absence of
+> interactions; whether it has a dedicated "never-engaged → permanent Silent"
+> rule (mirroring this anti-nag intent) is owned by the lifecycle service, not
+> this repo. The weight-loss-skill guarantee here is narrowly: **these two nudge
+> types stop firing after 2 sends.** Any broader "move them to Silent so normal
+> recall content also stops" must be implemented lifecycle-side.
+
+---
+
 ## Lifecycle: Active → Recall → Silent
 
 ```
@@ -306,6 +402,22 @@ Stage 4: MONTHLY RECALL — 1x/month, central dispatch (not personal crons)
            │
 Stage 5: SILENT — send nothing. Wait for user to return.
 ```
+
+**Activation nudges (special case — never-engaged users):** Two cohorts get a
+capped one-shot nudge instead of (or before) the recall content above:
+1. **Never logged** — completed onboarding but logged zero meals (first-meal
+   nudge, `activation.first_meal_nudges_sent`).
+2. **Never replied** — handoff user who never sent any message (activation
+   nudge, `activation.nudges_sent`; cron created by openclaw-infra).
+
+Each nudge fires at most **2 times**, then the pre-send-check cap gate
+permanently suppresses it (lifecycle-independent). The intent is to avoid feeding
+these users the engaged-recall content (S2-S4), which is generated from logged
+meals / conversation and would be hollow. The moment they log a meal or reply,
+they rejoin the normal lifecycle. **Note:** the actual stage is owned by the
+lifecycle DB (post-migration); the cap gate only guarantees the *nudges* stop —
+moving a never-engaged user to lifecycle Silent is a lifecycle-side concern. See
+§ First-meal nudge and § Activation nudge (incl. the cross-system flag).
 
 ### S4 Central Dispatch
 
@@ -483,6 +595,8 @@ If the user says "取消提醒" without specifying which one:
 |------|-----|------|
 | (stage) | lifecycle API (DB), computed live | Stage is NOT written to engagement.json anymore |
 | `data/engagement.json` | `reminder_config` — direct write | Adaptive timing changes, user setting changes |
+| `data/engagement.json` | `activation.first_meal_nudges_sent` — incremented by `notification-composer` via `activation-mark-sent.py` | After each first-meal nudge send |
+| `data/engagement.json` | `activation.nudges_sent` — incremented by `notification-composer` via `activation-mark-sent.py` | After each activation (never-replied) nudge send |
 | `health-profile.md > Meal Schedule` | direct write | Adaptive timing updates, user-requested time changes |
 
 ---

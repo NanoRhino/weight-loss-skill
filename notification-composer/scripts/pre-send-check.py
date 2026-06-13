@@ -139,6 +139,15 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset, out=None):
     if stage >= 5:
         return False, f"stage={stage} — user is in silent mode"
 
+    # first_meal_nudge / activation: the authoritative lifecycle Silent gate
+    # (stage >= 5, above) still applies — never nudge a Silent user. Past that,
+    # the recall/lunch-only logic below is for the engaged recall stages and is
+    # irrelevant to these never-engaged cohorts, so bypass it. The nudge-specific
+    # gating (onboarding/already-logged/lastInboundAt/cap) lives in
+    # check_first_meal_nudge / check_activation_nudge, which run after this.
+    if meal_type in ("first_meal_nudge", "activation"):
+        return True, None
+
     # Stage 2-4: suppress weight reminders entirely
     if stage in (2, 3, 4):
         if meal_type in ("weight", "weight_morning_followup"):
@@ -261,6 +270,202 @@ def _weight_logged_on(workspace_dir, date_str):
         record_date = record.get("date", "")
         if record_date == date_str:
             return False, f"weight logged on {date_str}"
+
+    return True, None
+
+
+FIRST_MEAL_NUDGE_CAP = 2
+
+
+def _meal_has_food(meal):
+    """Mirror of check-stage.py's _meal_has_food: a meal entry counts as a
+    real food log if it has a non-empty items/foods list."""
+    if not isinstance(meal, dict):
+        return False
+    items = meal.get("items") or meal.get("foods")
+    return bool(items)
+
+
+def _any_meal_ever_logged(workspace_dir):
+    """Return True if any meal entry containing food data exists in
+    data/meals/*.json (any date). Used by the first-meal nudge: the moment
+    the user logs ANY meal, the nudge self-cancels."""
+    import glob as _glob
+    meals_dir = os.path.join(workspace_dir, "data", "meals")
+    if not os.path.isdir(meals_dir):
+        return False
+    for fp in _glob.glob(os.path.join(meals_dir, "*.json")):
+        try:
+            with open(fp) as f:
+                meals = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            continue
+        if isinstance(meals, list):
+            if any(_meal_has_food(m) for m in meals):
+                return True
+        elif isinstance(meals, dict):
+            if any(_meal_has_food(m) for m in meals.values()):
+                return True
+    return False
+
+
+def check_first_meal_nudge(workspace_dir, tz_offset):
+    """Gate for the one-shot first-meal nudge (meal_type=first_meal_nudge).
+
+    Suppress (NO_REPLY) when ANY of:
+      - onboarding NOT completed (wrong cohort — that's the activation nudge's
+        never-replied user; keeps the two cohorts mutually exclusive at the
+        gate level, not just at cron-creation time)
+      - the user has already logged a meal on any date (nudge self-cancels —
+        normal tracking takes over)
+      - the nudge cap (FIRST_MEAL_NUDGE_CAP) has already been reached — this is
+        the terminal anti-nag guarantee, and it is lifecycle-independent
+
+    Note: leave/pause AND the authoritative lifecycle Silent state (stage 5) are
+    handled by the generic check_leave + check_engagement_stage gates that run
+    BEFORE this one (check_engagement_stage reads stage from the lifecycle API).
+    Stage is NO LONGER read from engagement.json here — that field is deprecated
+    (stage lives in the lifecycle DB). Only `activation.*` (a non-stage business
+    counter, still owned in engagement.json) is read. This gate does NOT
+    increment the counter — notification-composer calls
+    activation-mark-sent.py --counter first_meal_nudges_sent after a successful
+    compose.
+    """
+    if not _onboarding_completed(workspace_dir):
+        return False, "first_meal_nudge — onboarding not completed (wrong cohort)"
+
+    if _any_meal_ever_logged(workspace_dir):
+        return False, "first_meal_nudge — user has already logged a meal, nudge no longer needed"
+
+    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
+    if not os.path.exists(eng_path):
+        return True, None
+    try:
+        with open(eng_path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return True, None  # fail-open
+
+    nudges_sent = (data.get("activation") or {}).get("first_meal_nudges_sent", 0)
+    if nudges_sent >= FIRST_MEAL_NUDGE_CAP:
+        return False, f"first_meal_nudge — cap reached ({nudges_sent}/{FIRST_MEAL_NUDGE_CAP})"
+
+    return True, None
+
+
+ACTIVATION_NUDGE_CAP = 2
+
+
+def _read_channel_source(workspace_dir):
+    """Load channel-source.json from the workspace root.
+
+    Returns (data_dict, readable):
+      - (dict, True)  when the file exists and parsed to a dict
+      - ({},  False)  when the file is missing OR unreadable/corrupt
+
+    The `readable` flag lets the activation gate fail CLOSED (NO_REPLY) when the
+    file is absent/unreadable — the target cohort always has this file (infra
+    writes it at registration), so a missing file is anomalous and the
+    conservative anti-nag choice is to not nudge when we can't read state.
+    """
+    path = os.path.join(workspace_dir, "channel-source.json")
+    if not os.path.exists(path):
+        return {}, False
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return data, True
+        return {}, False
+    except (json.JSONDecodeError, IOError):
+        return {}, False
+
+
+def _onboarding_completed(workspace_dir):
+    """True iff health-profile.md has a REAL Onboarding Completed date (not '—').
+
+    Mirrors the field-form regex used by mark-onboarding-done.py /
+    onboarding-check.py: `- **Onboarding Completed:** <value>` inside the
+    Automation section. A value of '—' (or '-', empty) means NOT completed.
+    """
+    import re as _re
+    path = os.path.join(workspace_dir, "health-profile.md")
+    if not os.path.exists(path):
+        return False
+    try:
+        with open(path) as f:
+            content = f.read()
+    except IOError:
+        return False
+    m = _re.search(
+        r"^\s*-\s*\*\*Onboarding\s+Completed:\*\*\s*(.+?)\s*$",
+        content, _re.IGNORECASE | _re.MULTILINE,
+    )
+    if not m:
+        return False
+    val = m.group(1).strip()
+    return bool(val) and val not in ("—", "-", "none", "None")
+
+
+def check_activation_nudge(workspace_dir, tz_offset):
+    """Gate for the activation nudge (meal_type=activation) — the Part-1
+    "greeted but never replied" cohort.
+
+    The DEFINING gate: read channel-source.json > lastInboundAt (epoch ms,
+    written by the infra-side Phase-0 instrumentation on every inbound message).
+    If lastInboundAt is present AT ALL, the user has replied at least once →
+    the nudge's whole reason to exist is gone → NO_REPLY (cancel).
+
+    Also suppress (NO_REPLY) when ANY of:
+      - channel-source.json is missing/unreadable (fail closed — can't confirm
+        the user hasn't replied, so stay silent)
+      - onboarding already completed (they're past the never-replied stall —
+        a different cohort, handled by the first-meal nudge)
+      - any meal ever logged (they engaged)
+      - engagement stage is Silent (5)
+      - the cap (ACTIVATION_NUDGE_CAP) has been reached
+
+    Leave/pause AND the authoritative lifecycle Silent state (stage 5) are
+    handled by the generic check_leave + check_engagement_stage gates that run
+    BEFORE this one (check_engagement_stage reads stage from the lifecycle API).
+    Stage is NOT read from engagement.json here — that field is deprecated.
+    Only `activation.nudges_sent` (a non-stage business counter, still owned in
+    engagement.json) is read; the cap is the terminal anti-nag guarantee and is
+    lifecycle-independent. This gate does NOT increment the counter —
+    notification-composer calls activation-mark-sent.py --counter nudges_sent
+    after a successful compose.
+    """
+    cs, cs_readable = _read_channel_source(workspace_dir)
+
+    # --- Fail closed: if we can't read channel-source.json at all, do NOT
+    # nudge. The target cohort always has this file; a missing/unreadable file
+    # is anomalous and the conservative anti-nag choice is silence. ---
+    if not cs_readable:
+        return False, "activation — channel-source.json missing/unreadable, failing closed (no nudge)"
+
+    # --- The defining check: any inbound at all means the user replied. ---
+    if cs.get("lastInboundAt") is not None:
+        return False, "activation — lastInboundAt present (user has replied), nudge cancelled"
+
+    # Target user must actually be a handoff/never-replied case: onboarding
+    # NOT completed. If onboarding is done, this is the wrong cohort.
+    if _onboarding_completed(workspace_dir):
+        return False, "activation — onboarding already completed (wrong cohort)"
+
+    # Any meal logged means they engaged (defensive — implies inbound too).
+    if _any_meal_ever_logged(workspace_dir):
+        return False, "activation — a meal has been logged (user engaged), nudge cancelled"
+
+    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
+    if os.path.exists(eng_path):
+        try:
+            with open(eng_path) as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            data = {}
+        nudges_sent = (data.get("activation") or {}).get("nudges_sent", 0)
+        if nudges_sent >= ACTIVATION_NUDGE_CAP:
+            return False, f"activation — cap reached ({nudges_sent}/{ACTIVATION_NUDGE_CAP})"
 
     return True, None
 
@@ -416,7 +621,8 @@ def main():
     parser.add_argument("--meal-type", required=True,
                         choices=["breakfast", "lunch", "dinner", "meal_1", "meal_2",
                                  "weight", "weight_morning_followup",
-                                 "custom", "weekly_report", "daily_summary"],
+                                 "custom", "weekly_report", "daily_summary",
+                                 "first_meal_nudge", "activation"],
                         help="Meal type to check")
     parser.add_argument("--tz-offset", required=True, type=int,
                         help="Timezone offset in seconds from UTC")
@@ -445,6 +651,12 @@ def main():
             args.workspace_dir, args.tz_offset)))
     elif args.meal_type == "weight_morning_followup":
         checks.append(("weight_logged_yesterday_or_today", lambda: check_weight_logged_yesterday_or_today(
+            args.workspace_dir, args.tz_offset)))
+    elif args.meal_type == "first_meal_nudge":
+        checks.append(("first_meal_nudge", lambda: check_first_meal_nudge(
+            args.workspace_dir, args.tz_offset)))
+    elif args.meal_type == "activation":
+        checks.append(("activation", lambda: check_activation_nudge(
             args.workspace_dir, args.tz_offset)))
     elif args.meal_type in ("custom", "weekly_report", "daily_summary"):
         pass  # Only stage check needed, no meal-logged check

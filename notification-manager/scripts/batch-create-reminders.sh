@@ -23,7 +23,8 @@ set -euo pipefail
 #   --dry-run                Print commands without executing (skips slot allocation)
 #   --skip-existing          Skip reminders that already exist (checked before queuing)
 #   --only <type>            Only create specific type: meal, weight, report,
-#                            pattern, tips, all (default: all). Comma-separated for multiple.
+#                            pattern, tips, firstmeal, all (default: all).
+#                            Comma-separated for multiple.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_DIR="${OPENCLAW_STATE_DIR:-$HOME/.openclaw-gateway}"
@@ -267,6 +268,135 @@ fi
 # 7. Weekly insight (Thursday, prefer 21:00 — slot allocator handles conflicts)
 if should_create_type "tips"; then
   queue_job "Weekly insight" "Run notification-composer for weekly-insight." "0 21 * * 4" tips
+fi
+
+# 8. First-meal nudge (one-shot, activation flow).
+# Created at onboarding completion for users who have a populated Meal Schedule
+# but have never logged a meal. Two one-shot jobs:
+#   - Day 1: fires ~3-4h after completion at the NEXT meal slot today (if a
+#            slot remains today and is in the daytime window), else the first
+#            meal slot tomorrow.
+#   - Day 2: fires at the first meal slot the following day (softer follow-up).
+# Each is a one-shot (--at) that auto-deletes after running. Both route through
+# pre-send-check.py --meal-type first_meal_nudge, which self-cancels the moment
+# any meal is logged or the cap is reached — so they are safe to over-schedule.
+# These are scheduled directly via create-reminder.sh (NOT the queue/slot
+# pipeline, which is for recurring crons); one-shots skip anti-burst anyway.
+# Timing is deliberately offset from meal-reminder minutes (meal reminders fire
+# at slot-15min; the nudge fires AT the meal slot) so the user never gets the
+# nudge and a meal reminder minutes apart.
+if should_create_type "firstmeal" && [[ -n "$MEAL_SCHEDULE" ]]; then
+  # Compute the two one-shot ISO timestamps in the user's timezone.
+  # Output: two lines, "DAY1 <iso>" and "DAY2 <iso>" (or nothing if skipped).
+  FIRST_MEAL_PLAN=$(MEAL_SCHEDULE="$MEAL_SCHEDULE" TIMEZONE="$TIMEZONE" python3 - <<'PYEOF'
+import os, sys
+from datetime import datetime, timedelta
+try:
+    from zoneinfo import ZoneInfo
+except Exception:
+    ZoneInfo = None
+
+tz_name = os.environ.get("TIMEZONE", "Asia/Shanghai")
+tz = None
+if ZoneInfo:
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = None
+
+now = datetime.now(tz) if tz else datetime.now()
+
+# Parse meal times from "Name <time>" lines, sorted ascending.
+# Mirror the shell extract_time(): take the FIRST HH:MM in the value, so
+# annotated times like "18:00（注释）" or "07:00-08:00" parse correctly
+# (the value is everything after the meal name, which may contain spaces).
+import re as _re
+slots = []
+for line in os.environ.get("MEAL_SCHEDULE", "").splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    parts = line.split(None, 1)
+    if len(parts) < 2:
+        continue
+    m = _re.search(r"([0-9]{1,2}):([0-9]{2})", parts[1])
+    if not m:
+        continue
+    hh, mm = int(m.group(1)), int(m.group(2))
+    if 0 <= hh < 24 and 0 <= mm < 60:
+        slots.append((hh, mm))
+if not slots:
+    sys.exit(0)
+slots.sort()
+
+# Daytime cap: never fire before 08:00 or after 20:00 local.
+DAY_START, DAY_END = 8, 20
+MIN_LEAD_HOURS = 3  # fire at least ~3h after onboarding completion
+
+def slot_dt(day, hh, mm):
+    return day.replace(hour=hh, minute=mm, second=0, microsecond=0)
+
+def clamp_daytime(dt):
+    """If dt falls outside the daytime window, push it to next day's DAY_START."""
+    if dt.hour < DAY_START:
+        return dt.replace(hour=DAY_START, minute=0, second=0, microsecond=0)
+    if dt.hour >= DAY_END:
+        nxt = dt + timedelta(days=1)
+        return nxt.replace(hour=DAY_START, minute=0, second=0, microsecond=0)
+    return dt
+
+# Day 1: next meal slot today that is >= now + MIN_LEAD_HOURS and within
+# daytime; else first slot tomorrow.
+earliest = now + timedelta(hours=MIN_LEAD_HOURS)
+day1 = None
+for hh, mm in slots:
+    cand = slot_dt(now, hh, mm)
+    if cand >= earliest and DAY_START <= hh < DAY_END:
+        day1 = cand
+        break
+if day1 is None:
+    tomorrow = now + timedelta(days=1)
+    hh, mm = slots[0]
+    day1 = clamp_daytime(slot_dt(tomorrow, hh, mm))
+
+# Day 2: first meal slot the day AFTER day1.
+day2_base = day1 + timedelta(days=1)
+hh, mm = slots[0]
+day2 = clamp_daytime(slot_dt(day2_base, hh, mm))
+
+def iso(dt):
+    return dt.strftime("%Y-%m-%dT%H:%M:%S%z") if dt.tzinfo else dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+print(f"DAY1 {iso(day1)}")
+print(f"DAY2 {iso(day2)}")
+PYEOF
+)
+  FM_DAY1=$(echo "$FIRST_MEAL_PLAN" | awk '/^DAY1/{print $2}')
+  FM_DAY2=$(echo "$FIRST_MEAL_PLAN" | awk '/^DAY2/{print $2}')
+
+  # Cron payload: task instruction only (per CONVENTIONS.md §11 — no
+  # self-delivery wrapper). nudge=1 / nudge=2 tells the composer which copy
+  # to use (day-1 vs softer follow-up).
+  FM_MSG_1="First run: python3 {notification-composer:baseDir}/scripts/pre-send-check.py --workspace-dir $WORKSPACE --meal-type first_meal_nudge --tz-offset {tz_offset}. If output is NO_REPLY, stop and output NO_REPLY. Otherwise run notification-composer for first_meal_nudge (nudge=1)."
+  FM_MSG_2="First run: python3 {notification-composer:baseDir}/scripts/pre-send-check.py --workspace-dir $WORKSPACE --meal-type first_meal_nudge --tz-offset {tz_offset}. If output is NO_REPLY, stop and output NO_REPLY. Otherwise run notification-composer for first_meal_nudge (nudge=2)."
+
+  if [[ -n "$FM_DAY1" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "[DRY-RUN] first-meal nudge 1 --at $FM_DAY1"
+      echo "[DRY-RUN] first-meal nudge 2 --at $FM_DAY2"
+    else
+      if ! echo "$EXISTING_JOBS" | grep -qxF "First meal nudge"; then
+        bash "$CREATE_REMINDER" --agent "$AGENT" --channel "$CHANNEL" \
+          --name "First meal nudge" --message "$FM_MSG_1" --at "$FM_DAY1" || \
+          echo "WARNING: failed to create first-meal nudge 1" >&2
+      fi
+      if [[ -n "$FM_DAY2" ]] && ! echo "$EXISTING_JOBS" | grep -qxF "First meal nudge followup"; then
+        bash "$CREATE_REMINDER" --agent "$AGENT" --channel "$CHANNEL" \
+          --name "First meal nudge followup" --message "$FM_MSG_2" --at "$FM_DAY2" || \
+          echo "WARNING: failed to create first-meal nudge followup" >&2
+      fi
+    fi
+  fi
 fi
 
 

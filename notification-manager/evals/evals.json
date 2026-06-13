@@ -27,6 +27,68 @@
         "Brief",
         "No judgment"
       ]
+    },
+    {
+      "id": 3,
+      "name": "first-meal-nudge-detection-scheduled-at-onboarding",
+      "prompt": "[SYSTEM: Onboarding just completed. health-profile.md has Onboarding Completed=today and a populated Meal Schedule (Breakfast 07:00, Lunch 12:00, Dinner 18:00). data/meals/ is empty (zero food entries). Timezone=America/New_York. Onboarding finished at 14:00 local. notification-manager runs batch-create-reminders.sh.]",
+      "expected_output": "Two one-shot first_meal_nudge crons are created (nudge=1 today's next slot, nudge=2 next day first slot), in the user's IANA timezone, daytime-capped, offset from meal-reminder minutes.",
+      "expectations": [
+        "Creates a 'First meal nudge' one-shot (--at) cron for the next meal slot today (dinner 18:00) since onboarding finished at 14:00",
+        "Creates a 'First meal nudge followup' one-shot for the first meal slot next day, clamped into the 08:00-20:00 daytime window",
+        "Both crons fire AT the meal slot, not at slot-15min (so they never collide with the regular meal reminders)",
+        "Cron payload routes through pre-send-check.py --meal-type first_meal_nudge before composing",
+        "Uses America/New_York timezone for the --at timestamps",
+        "Detection requires: real Onboarding Completed date AND zero logged meals AND populated Meal Schedule"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "first-meal-nudge-cadence-cap-stops-nudges",
+      "prompt": "[SYSTEM: User completed onboarding, never logged a meal. engagement.json activation.first_meal_nudges_sent=2, data/meals/ still empty. A 3rd first_meal_nudge cron fires → pre-send-check.py --meal-type first_meal_nudge runs.]",
+      "expected_output": "Cap gate: after 2 nudges, pre-send-check returns NO_REPLY permanently. Lifecycle-independent — no dependence on engagement.json stage.",
+      "expectations": [
+        "pre-send-check outputs NO_REPLY (cap gate: first_meal_nudges_sent >= 2)",
+        "The cap is exactly 2 nudges and the suppression is permanent for this cohort",
+        "Guarantee is lifecycle-independent: it reads activation.first_meal_nudges_sent (a non-stage business counter), NOT the deprecated engagement.json notification_stage",
+        "Intent: a never-logged user never receives S2-S4 engaged-recall content (which would be hollow); transitioning them to lifecycle Silent so normal recall also stops is a lifecycle-side concern"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "first-meal-nudge-self-cancels-on-first-log",
+      "prompt": "[SYSTEM: User completed onboarding. activation.first_meal_nudges_sent=1. User logs their first meal today (data/meals/<today>.json has a breakfast entry with items). The remaining first_meal_nudge cron fires → pre-send-check.py --meal-type first_meal_nudge runs.]",
+      "expected_output": "The pending nudge self-cancels the moment any meal is logged. Normal tracking (lifecycle) takes over.",
+      "expectations": [
+        "pre-send-check outputs NO_REPLY (any meal ever logged => self-cancel)",
+        "User rejoins the normal lifecycle (stage owned by lifecycle API from last_interaction_at)",
+        "Does NOT keep nudging"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "activation-nudge-cap-stops-nudges",
+      "prompt": "[SYSTEM: Handoff user, never replied, never logged. health-profile.md Onboarding Completed=—. engagement.json activation.nudges_sent=2. channel-source.json present, no lastInboundAt. A 3rd activation cron fires → pre-send-check.py --meal-type activation runs.]",
+      "expected_output": "Cap gate: after 2 nudges, pre-send-check returns NO_REPLY permanently. Lifecycle-independent.",
+      "expectations": [
+        "pre-send-check outputs NO_REPLY (cap gate: activation.nudges_sent >= 2)",
+        "The activation cap is exactly 2 nudges (activation.nudges_sent) and suppression is permanent",
+        "Guarantee reads activation.nudges_sent (non-stage business counter), NOT the deprecated engagement.json notification_stage",
+        "Intent: a never-replied user never receives S2-S4 recall content; moving them to lifecycle Silent so normal recall also stops is a lifecycle-side concern"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "activation-counter-increment-deterministic",
+      "prompt": "[SYSTEM: notification-composer just sent activation nudge 1 successfully. engagement.json has activation.nudges_sent=0 plus sibling fields (reminder_config, recall_topics, first_meal_nudges_sent). It runs: activation-mark-sent.py --workspace-dir <WS> --counter nudges_sent.]",
+      "expected_output": "activation.nudges_sent atomically incremented to 1; all sibling fields preserved; activation block created if absent.",
+      "expectations": [
+        "activation.nudges_sent becomes 1",
+        "All sibling fields (reminder_config, recall_topics, activation.first_meal_nudges_sent, and any others present) are untouched",
+        "Increment is deterministic (script-driven), NOT an LLM read-modify-write",
+        "If the activation block was absent it is created with just the incremented counter",
+        "Write is atomic (tmp file + replace under flock) so concurrent crons can't lose an increment"
+      ]
     }
   ]
 }

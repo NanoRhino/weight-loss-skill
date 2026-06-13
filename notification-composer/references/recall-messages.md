@@ -24,6 +24,79 @@
 
 ---
 
+## 激活提醒（Activation）— 加好友/握手后从未回复
+
+**触发：** cron message 含 `activation`（一次性 cron，由 **openclaw-infra** 在 handoff 时创建：T+24h 发 nudge 1、T+72h 发 nudge 2，用户本地白天）。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、未完成引导、不在请假/暂停、未达上限。
+
+**对象：** 通过 TDEE handoff 进来、收到第一条欢迎消息但**一条都没回**的用户。卡点是"开口说第一句话"。这条消息只为破冰、给一个零门槛的起点。
+
+> **决定性判据（整个 gate 的核心）：** 读 `channel-source.json > lastInboundAt`（epoch 毫秒，由 infra Phase-0 在每条入站消息时写入）。**只要 `lastInboundAt` 存在 → 用户已经回过 → 取消 nudge（NO_REPLY）。** 这是判断"是否回复过"的唯一权威信号——不要用对话历史或别的推断。
+>
+> **失败关闭（fail closed）：** 若 `channel-source.json` 整个文件缺失或读不出，pre-send-check 返回 NO_REPLY（不发）。目标人群一定有这个文件（infra 在注册时写入），读不到状态时保守不打扰。
+
+**上限：** 最多 2 条（T+24h + T+72h）。**用户回复任何消息 → 两条 nudge 自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 2 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 2`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
+
+**语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`，结尾 🦏。**点名暂停出口**（让用户知道可以说 "pause" 让你安静）。
+
+**Nudge 1（T+24h，cron payload 含 `nudge=1`）：**
+- 表达"方案这边都准备好了，第一步很简单"
+- 给具体例子：随口说上一餐吃了啥就行，不用拍照
+- 英文初稿（按语言改写，不照搬）："Hey [name] — your plan's all set on my end 🦏. Whenever you're ready, the easiest way to start is just tell me what you ate last — even 'eggs and toast' works. No photo needed."
+- 本地化示例：英文 "eggs and toast"；中文用当地常见餐（如"早上吃了个包子"）。`[name]` 来自 USER.md，缺失则不用名字。
+
+**Nudge 2（T+72h，最后一条，cron payload 含 `nudge=2`，更软）：**
+- 比 nudge 1 更轻，零压力，**明确给暂停出口**
+- 英文初稿："Still here whenever you want me 🦏. No pressure at all — if now's not the time, just ignore this. If you'd rather I check in less, say 'pause' and I'll go quiet."
+- 本地化：保留"现在不方便就忽略 + 想少打扰说一声 pause"两层意思。
+
+**长度：** 1-2 句，结尾带 🦏。**去重：** 发送后写入 `recall_topics`，nudge 2 避开 nudge 1 的角度/例子。
+
+**发送后（compose 成功后）：确定性地 +1 计数——走脚本，不要手写 JSON：**
+```bash
+python3 {notification-manager:baseDir}/scripts/activation-mark-sent.py \
+  --workspace-dir {workspaceDir} --counter nudges_sent
+```
+脚本原子地把 `activation.nudges_sent` +1（无块则新建，不动其它字段）。然后再 read-modify-write 追加 `recall_topics`。**只在确实发了消息后才调脚本**（NO_REPLY 时不调）。
+
+**禁止：** 数错过的天数 · "你还没回我" · 把回复框成义务 · 卡路里/宏量细节 · 鸡汤。
+
+---
+
+## 首餐激活提醒（First-Meal Nudge）— 完成引导但从未打卡
+
+**触发：** cron message 含 `first_meal_nudge`（一次性 cron，由 batch-create-reminders.sh 在引导完成时创建）。`pre-send-check.py --meal-type first_meal_nudge` 已确认：用户从未记录过任何一餐、不在请假/暂停、未达上限。
+
+**对象：** 完成引导（选了方案、设了餐次提醒）但一餐都没记的用户。卡点是"现在真的把吃的发给我"这一步——这条消息只为破冰。
+
+**上限：** 最多 2 条（day-1 + 第二天 1 条更软的跟进）。**用户记录任何一餐 → 两条 nudge 自动取消**（pre-send-check 自行拦截），正常打卡流程接管。发满 2 条仍零记录 → pre-send-check 的 cap gate（读 `activation.first_meal_nudges_sent >= 2`）永久拦截后续 first-meal nudge（与 stage 系统无关的终止保证），目的是**不让从未打卡的用户收到 S2-S4 召回内容**（那些内容基于用户记录生成，对从未打卡的用户是空的）。（stage 真源在 lifecycle DB。）
+
+**语气：** 温暖、不评判、不催促。给一个**具体的例子**降低门槛，不要框成任务。**示例要本地化**——按 `USER.md > Language` 选当地早餐/常见餐。不要硬编码英文例子。
+
+**Nudge 1（day-1，cron payload 含 `nudge=1`）：**
+- 表达"方案已就位，第一步很简单"
+- 给具体例子：随口报一餐 / 拍张照都行
+- 强调"我来算"——用户不用做数学
+- 英文初稿（按语言改写，不照搬）："Your plan's live — let's break it in 🦏. Next time you eat, just text me what's on the plate. Even 'oatmeal and coffee' works, or snap a photo. I'll handle the math."
+- 本地化示例：英文 "oatmeal and coffee"；中文可用"一碗粥配个鸡蛋"；其他语言用当地常见早餐。
+
+**Nudge 2（第二天，cron payload 含 `nudge=2`，更软）：**
+- 比 nudge 1 更轻、更短，零压力
+- 英文初稿："No rush on logging — whenever you eat next, a quick 'had a sandwich' is all I need to get started 🦏."
+- 本地化示例：英文 "had a sandwich"；中文 "随便说句'中午吃了碗面'就行"。
+
+**长度：** 1-2 句，结尾带 🦏。**去重：** 发送后写入 `recall_topics`，nudge 2 避开 nudge 1 的角度/例子。
+
+**发送后（compose 成功后）：确定性地 +1 计数——走脚本，不要手写 JSON：**
+```bash
+python3 {notification-manager:baseDir}/scripts/activation-mark-sent.py \
+  --workspace-dir {workspaceDir} --counter first_meal_nudges_sent
+```
+脚本原子地把 `activation.first_meal_nudges_sent` +1（无块则新建，不动其它字段）。然后再 read-modify-write 追加 `recall_topics` 主题摘要。**只在确实发了消息后才调脚本**（NO_REPLY 时不调）。计数走脚本是因为"满 2 条永久停发"的反唠叨保证由 pre-send-check 的 cap gate 依赖此计数精确执行，不能靠模型手算。
+
+**禁止：** 数错过的天数 · "你还没打卡" · 任何把回复框成可选/任务的措辞 · 卡路里/宏量细节 · 鸡汤。
+
+---
+
 ## S1 温柔提醒（Gentle Nudge）— Day 3 仅第一餐
 
 **触发：** Stage 1，days_silent = 2，当天第一个 meal cron

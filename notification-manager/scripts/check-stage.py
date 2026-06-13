@@ -2,6 +2,15 @@
 """
 check-stage.py — Update engagement stage based on user silence duration.
 
+⚠️ DEPRECATED (post-lifecycle-migration): stage is now owned by the lifecycle
+DB (computed live from last_interaction_at) and read via the lifecycle API.
+This script and the engagement.json `notification_stage` / `stage_changed_at`
+fields it writes are NOT in the live path anymore and are being removed. It is
+retained only for any legacy caller. The activation/first-meal anti-nag
+guarantee does NOT depend on this script — it is enforced by the pre-send-check
+cap gate (reads activation.first_meal_nudges_sent / activation.nudges_sent),
+which is lifecycle-independent.
+
 Derives last interaction from meal logging records (data/meals/*.json)
 rather than relying on a platform-written timestamp. A "logged day" is
 any date with at least one meal entry that contains food data.
@@ -61,6 +70,16 @@ ENGAGEMENT_DEFAULTS = {
     "recall_2_sent": False,
     "reminder_config": {},
 }
+
+# Activation (first-meal nudge) cap. After this many nudges with still-zero
+# logged meals, a never-logged user goes straight to Stage 5 (Silent) instead
+# of cycling through the recall-content stages (S2-S4), whose content is
+# generated from logged meals and would be hollow for a never-logged user.
+FIRST_MEAL_NUDGE_CAP = 2
+
+# Activation nudge cap (Part-1 "greeted but never replied" cohort). Same anti-nag
+# rule: after this many nudges with still no inbound/meal, go straight to Silent.
+ACTIVATION_NUDGE_CAP = 2
 
 
 def load_engagement(workspace_dir):
@@ -300,10 +319,17 @@ def main():
     last_logged = get_last_logged_date(args.workspace_dir, args.tz_offset)
 
     if last_logged is None:
-        # No meal records at all — user hasn't started logging yet.
-        # Use stage_changed_at (or engagement creation time) as fallback
-        # to calculate days_silent, so users who never logged still
-        # transition to recall stages instead of getting normal reminders forever.
+        # No meal records at all — user completed onboarding but has never
+        # logged a meal (the "activation" cohort the first-meal nudge targets).
+        #
+        # These users must NOT cycle through the recall-content stages
+        # (S2 emotion recall, S3 weekly knowledge, S4 monthly) — that content
+        # is generated from the user's logged meals and would be hollow for a
+        # never-logged user. Instead: stay in Stage 1 while the first-meal
+        # nudge fires (capped at FIRST_MEAL_NUDGE_CAP), then go straight to
+        # Stage 5 (Silent). This mirrors the never-replied cohort's
+        # permanent-Silent rule and the anti-nag ethos.
+        changed = False
         if not existed:
             data["stage_changed_at"] = now.isoformat()
             save_engagement(args.workspace_dir, data)
@@ -311,16 +337,64 @@ def main():
             print(f"{stage} 0")
             return
 
-        # Use stage_changed_at as the "last activity" reference
-        fallback_date = stage_changed_at
-        if fallback_date is None:
-            # No stage_changed_at either — treat as just created
-            log("No meal records and no stage_changed_at, assuming new user")
+        # --user-active overrides everything: user just sent a message, so
+        # they are not silent right now regardless of meal history. If they
+        # were already past S1 (shouldn't normally happen for this cohort),
+        # the reset logic below handles it; otherwise hold at current stage.
+        if args.user_active:
+            if data.get("last_active_date") != today_str:
+                data["last_active_date"] = today_str
+                changed = True
+            # A returning never-logged user in S5 resets to S1 so the nudge
+            # cycle can resume only if they re-onboard; normal welcome handled
+            # by the global welcome-back check. Keep it simple: hold stage.
+            if changed:
+                save_engagement(args.workspace_dir, data)
             print(f"{stage} 0")
             return
 
-        last_logged_date = fallback_date.date()
-        log(f"No meal records, using stage_changed_at as fallback: {fallback_date.isoformat()}")
+        # Two activation cohorts share this never-logged branch:
+        #   - first_meal_nudges_sent → onboarded-but-never-logged (Part 2)
+        #   - nudges_sent            → greeted-but-never-replied   (Part 1)
+        # Whichever cohort a user is in, once that nudge cap is reached with
+        # still no meal logged, they go straight to Silent (never into S2-S4
+        # recall content, which is hollow for a never-engaged user).
+        activation = data.get("activation") or {}
+        first_meal_sent = activation.get("first_meal_nudges_sent", 0)
+        activation_sent = activation.get("nudges_sent", 0)
+        cap_reached = (
+            first_meal_sent >= FIRST_MEAL_NUDGE_CAP
+            or activation_sent >= ACTIVATION_NUDGE_CAP
+        )
+
+        # Already exhausted a nudge cap → straight to Silent (skip S2-S4).
+        if cap_reached and stage < 5:
+            old_stage = stage
+            stage = 5
+            data["notification_stage"] = 5
+            data["stage_changed_at"] = now.isoformat()
+            if _disable_user_crons(args.workspace_dir):
+                log("Activation: nudge cap reached, never-engaged user → S5 (Silent), personal crons disabled")
+            else:
+                log("Activation: nudge cap reached → S5, WARNING: failed to disable personal crons")
+            save_engagement(args.workspace_dir, data)
+            print(f"5 0")
+            return
+
+        # Under the cap → hold at Stage 1 so the activation/first-meal nudge can
+        # fire. Do NOT fast-forward into recall content. days_silent reported as
+        # 0 so the gentle-nudge / recall logic in pre-send-check stays dormant.
+        if stage != 1 and stage < 5:
+            stage = 1
+            data["notification_stage"] = 1
+            data["stage_changed_at"] = now.isoformat()
+            changed = True
+        if changed or not existed:
+            save_engagement(args.workspace_dir, data)
+        log(f"Activation: never-engaged user, first_meal={first_meal_sent} "
+            f"activation={activation_sent} nudge(s) sent, holding Stage {stage}")
+        print(f"{stage} 0")
+        return
     else:
         last_logged_date = datetime.strptime(last_logged, "%Y-%m-%d").date()
 

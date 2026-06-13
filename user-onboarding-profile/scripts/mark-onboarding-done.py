@@ -203,6 +203,45 @@ def _update_updated_header(content: str, iso_ts: str) -> str:
     return content
 
 
+def _stamp_engagement_stage_changed_at(workspace: str, iso_ts: str) -> None:
+    """Ensure data/engagement.json has stage_changed_at set at onboarding
+    completion.
+
+    The first-meal-nudge activation flow uses stage_changed_at as the silence
+    clock for users who completed onboarding but never logged a meal (see
+    notification-manager/scripts/check-stage.py). batch-create-reminders.sh
+    creates engagement.json with stage_changed_at=null; without a real
+    timestamp the fall-through-to-Silent clock has no reference. Set it here,
+    at the moment onboarding is marked done.
+
+    Read-modify-write; never overwrites an already-set value (a returning user
+    who re-runs onboarding keeps their existing stage clock). Best-effort:
+    failures are non-fatal — the marker write is the critical path.
+    """
+    eng_path = os.path.join(workspace, "data", "engagement.json")
+    try:
+        if os.path.exists(eng_path):
+            with open(eng_path, "r", encoding="utf-8") as f:
+                eng = json.load(f)
+            if not isinstance(eng, dict):
+                return
+        else:
+            os.makedirs(os.path.dirname(eng_path), exist_ok=True)
+            eng = {
+                "notification_stage": 1,
+                "stage_changed_at": None,
+                "last_recall_date": None,
+                "recall_2_sent": False,
+                "reminder_config": {},
+            }
+        if not eng.get("stage_changed_at"):
+            eng["stage_changed_at"] = iso_ts
+            with open(eng_path, "w", encoding="utf-8") as f:
+                json.dump(eng, f, indent=2, ensure_ascii=False)
+    except (json.JSONDecodeError, IOError, OSError):
+        pass  # non-fatal
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Mark onboarding as completed in health-profile.md"
@@ -246,6 +285,8 @@ def main() -> int:
 
     if content == original:
         # No actual change (already correct with today's date).
+        # Still ensure the engagement stage clock is stamped (idempotent).
+        _stamp_engagement_stage_changed_at(workspace, iso_ts)
         print(json.dumps({"ok": True, "date": date_str, "mode": "noop"}))
         return 0
 
@@ -255,6 +296,10 @@ def main() -> int:
     except Exception as e:
         print(json.dumps({"ok": False, "error": f"write failed: {e}"}))
         return 1
+
+    # Seed the engagement stage clock so the first-meal-nudge / fall-to-Silent
+    # flow has a real reference time even before the user logs anything.
+    _stamp_engagement_stage_changed_at(workspace, iso_ts)
 
     print(json.dumps({"ok": True, "date": date_str, "mode": mode}))
     return 0
