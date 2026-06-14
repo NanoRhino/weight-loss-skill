@@ -165,7 +165,7 @@ def rebuild(state_dir, workspace, agent, channel):
         return False
 
 
-def process_agent(state_dir, workspace, agent, channel, apply):
+def process_agent(state_dir, workspace, agent, channel, apply, force=False):
     summary = {
         "agent": agent, "tz_expected": None, "listed": False,
         "needs_rebuild": False, "wrong_tz": [], "duplicates": [],
@@ -212,7 +212,7 @@ def process_agent(state_dir, workspace, agent, channel, apply):
         if len(group) > 1:
             summary["duplicates"].append({"name": nm, "count": len(group)})
 
-    summary["needs_rebuild"] = bool(summary["wrong_tz"] or summary["duplicates"])
+    summary["needs_rebuild"] = bool(summary["wrong_tz"] or summary["duplicates"] or force)
     if not summary["needs_rebuild"]:
         return summary
 
@@ -249,7 +249,14 @@ def main():
     p.add_argument("--agent")
     p.add_argument("--apply", action="store_true")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--force", action="store_true",
+                   help="rebuild even when tz/dups look fine (e.g. to pick up a "
+                        "meal-time parsing fix); requires --agent")
     args = p.parse_args()
+
+    if args.force and not args.agent:
+        print("ERROR: --force requires --agent (refusing to force-rebuild all agents)", file=sys.stderr)
+        return 1
 
     state_dir = resolve_state_dir(args.state_dir)
     workspaces_dir = args.workspaces or os.path.join(state_dir, "workspace-nutritionist")
@@ -278,7 +285,7 @@ def main():
     n_need = n_rebuilt = n_err = 0
     for agent in agents:
         ws = os.path.join(workspaces_dir, agent)
-        s = process_agent(state_dir, ws, agent, args.channel, args.apply)
+        s = process_agent(state_dir, ws, agent, args.channel, args.apply, force=args.force)
         results.append(s)
         interesting = (s["needs_rebuild"] or s["errors"] or s["unowned_recurring"])
         if not interesting:
