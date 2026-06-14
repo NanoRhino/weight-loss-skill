@@ -18,7 +18,7 @@
 - 愧疚式措辞（"你这样会前功尽弃"）
 - 系统通知语气（"提醒您…""温馨提示"）
 
-**长度：** 1-2句，不超过50字。结尾带🦏。
+**长度：** 1-2句，不超过50字。
 
 **去重：** 每次发送后将消息摘要（关键词/主题，不超过10字）写入 `engagement.json > recall_topics[]`。下次生成时读取 recall_topics，避开已用过的主题/角度。
 
@@ -36,20 +36,20 @@
 
 **上限：** 最多 2 条（T+24h + T+72h）。**用户回复任何消息 → 两条 nudge 自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 2 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 2`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
 
-**语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`，结尾 🦏。**点名暂停出口**（让用户知道可以说 "pause" 让你安静）。
+**语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`。**点名暂停出口**（让用户知道可以说 "pause" 让你安静）。
 
 **Nudge 1（T+24h，cron payload 含 `nudge=1`）：**
 - 表达"方案这边都准备好了，第一步很简单"
 - 给具体例子：随口说上一餐吃了啥就行，不用拍照
-- 英文初稿（按语言改写，不照搬）："Hey [name] — your plan's all set on my end 🦏. Whenever you're ready, the easiest way to start is just tell me what you ate last — even 'eggs and toast' works. No photo needed."
+- 英文初稿（按语言改写，不照搬）："Hey [name] — your plan's all set on my end. Whenever you're ready, the easiest way to start is just tell me what you ate last — even 'eggs and toast' works. No photo needed."
 - 本地化示例：英文 "eggs and toast"；中文用当地常见餐（如"早上吃了个包子"）。`[name]` 来自 USER.md，缺失则不用名字。
 
 **Nudge 2（T+72h，最后一条，cron payload 含 `nudge=2`，更软）：**
 - 比 nudge 1 更轻，零压力，**明确给暂停出口**
-- 英文初稿："Still here whenever you want me 🦏. No pressure at all — if now's not the time, just ignore this. If you'd rather I check in less, say 'pause' and I'll go quiet."
+- 英文初稿："Still here whenever you want me. No pressure at all — if now's not the time, just ignore this. If you'd rather I check in less, say 'pause' and I'll go quiet."
 - 本地化：保留"现在不方便就忽略 + 想少打扰说一声 pause"两层意思。
 
-**长度：** 1-2 句，结尾带 🦏。**去重：** 发送后写入 `recall_topics`，nudge 2 避开 nudge 1 的角度/例子。
+**长度：** 1-2 句。**去重：** 发送后写入 `recall_topics`，nudge 2 避开 nudge 1 的角度/例子。
 
 **发送后（compose 成功后）：确定性地 +1 计数——走脚本，不要手写 JSON：**
 ```bash
@@ -76,15 +76,15 @@ python3 {notification-manager:baseDir}/scripts/activation-mark-sent.py \
 - 表达"方案已就位，第一步很简单"
 - 给具体例子：随口报一餐 / 拍张照都行
 - 强调"我来算"——用户不用做数学
-- 英文初稿（按语言改写，不照搬）："Your plan's live — let's break it in 🦏. Next time you eat, just text me what's on the plate. Even 'oatmeal and coffee' works, or snap a photo. I'll handle the math."
+- 英文初稿（按语言改写，不照搬）："Your plan's live — let's break it in. Next time you eat, just text me what's on the plate. Even 'oatmeal and coffee' works, or snap a photo. I'll handle the math."
 - 本地化示例：英文 "oatmeal and coffee"；中文可用"一碗粥配个鸡蛋"；其他语言用当地常见早餐。
 
 **Nudge 2（第二天，cron payload 含 `nudge=2`，更软）：**
 - 比 nudge 1 更轻、更短，零压力
-- 英文初稿："No rush on logging — whenever you eat next, a quick 'had a sandwich' is all I need to get started 🦏."
+- 英文初稿："No rush on logging — whenever you eat next, a quick 'had a sandwich' is all I need to get started."
 - 本地化示例：英文 "had a sandwich"；中文 "随便说句'中午吃了碗面'就行"。
 
-**长度：** 1-2 句，结尾带 🦏。**去重：** 发送后写入 `recall_topics`，nudge 2 避开 nudge 1 的角度/例子。
+**长度：** 1-2 句。**去重：** 发送后写入 `recall_topics`，nudge 2 避开 nudge 1 的角度/例子。
 
 **发送后（compose 成功后）：确定性地 +1 计数——走脚本，不要手写 JSON：**
 ```bash

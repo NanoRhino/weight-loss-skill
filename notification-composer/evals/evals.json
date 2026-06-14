@@ -192,7 +192,7 @@
       "id": 14,
       "name": "first-meal-nudge-1-english",
       "prompt": "[SYSTEM: cron 'first_meal_nudge (nudge=1)'. pre-send-check returned SEND. User completed onboarding, never logged a meal. activation.first_meal_nudges_sent=0. USER.md Language=en. name=null. recall_topics empty.]",
-      "expected_output": "Warm day-1 ice-breaker with a concrete English food example, one line, ends with 🦏. Increments activation counter after send.",
+      "expected_output": "Warm day-1 ice-breaker with a concrete English food example, one line, no mascot emoji. Increments activation counter after send.",
       "expectations": [
         "Warm, non-judgmental — does NOT say 'you haven't logged' or count missed meals",
         "Gives a concrete, low-effort example (e.g., 'oatmeal and coffee' or 'snap a photo') to lower the bar",
@@ -200,7 +200,7 @@
         "Localized example is English/Western (NOT a Chinese dish)",
         "Does NOT frame replying as optional/a task",
         "No calorie or macro numbers",
-        "1-2 sentences, ends with 🦏",
+        "1-2 sentences; does NOT append the 🦏 mascot emoji",
         "After sending, increments the counter by calling activation-mark-sent.py --counter first_meal_nudges_sent (NOT hand-edited JSON) and appends a recall_topics entry"
       ]
     },
@@ -208,14 +208,14 @@
       "id": 15,
       "name": "first-meal-nudge-2-softer-localized-zh",
       "prompt": "[SYSTEM: cron 'first_meal_nudge (nudge=2)'. pre-send-check returned SEND. Still never logged a meal. activation.first_meal_nudges_sent=1. USER.md Language=zh. recall_topics=[{topic:'第一餐破冰'}].]",
-      "expected_output": "Softer, shorter next-day follow-up with a locally-appropriate Chinese food example, ends with 🦏. Increments counter to 2.",
+      "expected_output": "Softer, shorter next-day follow-up with a locally-appropriate Chinese food example, no mascot emoji. Increments counter to 2.",
       "expectations": [
         "Softer and shorter than nudge 1 — zero pressure",
         "Localized example is a Chinese/local everyday meal (e.g., '中午吃了碗面'), NOT 'oatmeal and coffee'",
         "Avoids reusing nudge-1's angle/example (reads recall_topics to dedup)",
         "Does NOT count days or frame logging as overdue",
         "No calorie/macro detail",
-        "Ends with 🦏",
+        "Does NOT append the 🦏 mascot emoji",
         "Replies in Chinese (USER.md Language=zh is sole authority — no language-detection logic)",
         "After sending, increments the counter by calling activation-mark-sent.py --counter first_meal_nudges_sent and appends a recall_topics entry"
       ]
@@ -236,7 +236,7 @@
       "id": 17,
       "name": "activation-nudge-1-english",
       "prompt": "[SYSTEM: cron 'activation (nudge=1)' (T+24h). pre-send-check returned SEND. Handoff user: health-profile.md Onboarding Completed=—, channel-source.json has handoffAppliedAt but NO lastInboundAt. No meals. activation.nudges_sent=0. USER.md Language=en, Name=Sarah. recall_topics empty.]",
-      "expected_output": "Warm T+24h ice-breaker addressing the user by name, with a concrete English example, no-photo-needed, ends with 🦏. Increments nudges_sent via script.",
+      "expected_output": "Warm T+24h ice-breaker addressing the user by name, with a concrete English example, no-photo-needed, no mascot emoji. Increments nudges_sent via script.",
       "expectations": [
         "Warm, non-judgmental — does NOT say 'you never replied' or count days of silence",
         "Uses the name Sarah",
@@ -245,7 +245,7 @@
         "Localized example is English/Western (NOT a Chinese dish)",
         "Does NOT frame replying as an obligation",
         "No calorie/macro numbers",
-        "1-2 sentences, ends with 🦏",
+        "1-2 sentences; does NOT append the 🦏 mascot emoji",
         "After sending, increments the counter by calling activation-mark-sent.py --counter nudges_sent and appends a recall_topics entry"
       ]
     },
@@ -253,7 +253,7 @@
       "id": 18,
       "name": "activation-nudge-2-final-localized-zh-pause-escape",
       "prompt": "[SYSTEM: cron 'activation (nudge=2)' (T+72h, final). pre-send-check returned SEND. Still no lastInboundAt, no meals. activation.nudges_sent=1. USER.md Language=zh, Name=小敏. recall_topics=[{topic:'破冰邀请'}].]",
-      "expected_output": "Softer final follow-up in Chinese that names the pause escape hatch, ends with 🦏. Increments to 2.",
+      "expected_output": "Softer final follow-up in Chinese that names the pause escape hatch, no mascot emoji. Increments to 2.",
       "expectations": [
         "Softer and shorter than nudge 1 — zero pressure",
         "Explicitly offers the pause escape hatch (tell the user they can say 'pause' / equivalent to get fewer check-ins)",
@@ -262,7 +262,7 @@
         "Localized — not a hardcoded English example",
         "Avoids reusing nudge-1's angle (reads recall_topics to dedup)",
         "Does NOT count days or guilt-trip",
-        "Ends with 🦏",
+        "Does NOT append the 🦏 mascot emoji",
         "After sending, increments the counter by calling activation-mark-sent.py --counter nudges_sent"
       ]
     },
