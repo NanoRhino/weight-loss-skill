@@ -140,11 +140,25 @@ get_automation_field() {
 }
 
 
-# Extract first HH:MM from text (handles "9:00", "18:00（注释）", "07:00-08:00", etc.)
+# Extract first HH:MM from text and normalize to 24h (handles "9:00",
+# "18:00（注释）", "07:00-08:00", and 12-hour "2:30 PM" / "9:30am").
+# A 12-hour AM/PM suffix MUST be honored: without it "2:30 PM" was read as
+# 02:30 (PM dropped), scheduling afternoon/evening reminders 12h early.
+# 24-hour input has no AM/PM marker → hour passes through unchanged.
 extract_time() {
   local raw="$1"
   if [[ "$raw" =~ ([0-9]{1,2}):([0-9]{2}) ]]; then
-    printf "%02d:%s" "$((10#${BASH_REMATCH[1]}))" "${BASH_REMATCH[2]}"
+    local hour=$((10#${BASH_REMATCH[1]})) min="${BASH_REMATCH[2]}"
+    shopt -s nocasematch
+    if [[ "$raw" =~ (a|p)\.?m\.? ]]; then
+      if [[ "${BASH_REMATCH[1]}" == "p" ]]; then
+        (( hour < 12 )) && hour=$(( hour + 12 ))
+      else
+        (( hour == 12 )) && hour=0
+      fi
+    fi
+    shopt -u nocasematch
+    printf "%02d:%s" "$hour" "$min"
   else
     echo ""
   fi
