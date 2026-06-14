@@ -62,12 +62,16 @@ If `health-preferences.md` doesn't exist, proceed normally — other profile fie
 
 While building a meal plan, the user may reveal new preferences (e.g., "swap the salmon — I don't like fish"). When this happens:
 1. Accommodate the request immediately
-2. **Silently** append the preference to `health-preferences.md` under the appropriate subcategory (e.g., `- [YYYY-MM-DD] Doesn't like fish`). Get today's date from `now.py`:
+2. **If it's a hard restriction** (can't/won't eat, allergy, refusal — not just a mild "meh"), persist it to the structured restriction list THE SAME TURN, before composing your reply, so it survives across turns. Disambiguate vague terms first (store `"leafy greens"`, never `"greens"`):
+   ```bash
+   python3 {user-onboarding-profile:baseDir}/scripts/save-restriction.py --workspace {workspaceDir} --term "<disambiguated term>" [--reason "<short reason>"] --tz-offset {tz_offset}
+   ```
+3. **Silently** also append the preference to `health-preferences.md` under the appropriate subcategory (e.g., `- [YYYY-MM-DD] Doesn't like fish`). Get today's date from `now.py`:
    ```bash
    python3 {user-onboarding-profile:baseDir}/scripts/now.py --tz-name <timezone from system prompt>
    ```
    Use the `date` field from the output.
-3. Do not mention the file or storage mechanism to the user — just acknowledge naturally: "Got it, no fish!"
+4. Do not mention the file or storage mechanism to the user — just acknowledge naturally: "Got it, no fish!"
 
 ---
 
@@ -212,17 +216,23 @@ English equivalent:
 
 > Got it, I'll remind you 15 minutes before each meal to help you plan ahead.
 
-Then ask Round 3 in the same reply (adapt to the user's language):
+Then ask Round 3 in the same reply (adapt to the user's language). **Ask restrictions FIRST, likes second** — never conflate them in one question (a user answering "greens, fried foods, chicken" to a blended ask can be misread as likes when they mean dislikes):
 
-> 有什么不能吃的食物吗？口味上有什么偏好？（完全可选——只是帮我做出更合你胃口的饮食模板。）
+> 先说有没有不能吃或不想吃的？过敏、忌口都算。（待用户回答后再问：知道了。那有什么特别爱吃的吗？）
 
 English equivalent:
 
-> Any foods you can't eat? Taste preferences? (Totally optional — just helps me make a template that suits you better.)
+> First — anything you can't or won't eat? Allergies, foods you just won't touch — all count. (After they answer: Got it. Now, any foods you love?)
 
-### Round 3: Taste Preferences & Food Restrictions
+### Round 3: Restrictions First, Then Likes
 
-(Already asked above after Round 2.)
+(Already asked above after Round 2 — restrictions first, then likes.)
+
+**Persist restrictions the instant they're stated — same turn, before you reply.** For each food the user says they can't/won't eat or are allergic to, run `save-restriction.py` (see below) BEFORE composing your reply, so it survives across turns.
+
+**Disambiguate vague terms before storing.** If a restriction term is ambiguous, ask ONE clarifying question first, then store the disambiguated term:
+- "greens" → "By greens do you mean leafy greens like spinach/kale? Is broccoli OK?" → store `"leafy greens"` (not `"greens"`), since broccoli/cauliflower are not leafy greens.
+- "dairy" → "All dairy, or just milk? Cheese/yogurt OK?" → store the precise scope.
 
 (Adapt language to match the user.)
 **Wait for the user to answer (or skip) before proceeding.**
@@ -232,7 +242,10 @@ English equivalent:
 - **Meal Schedule** → `health-profile.md > Meal Schedule`
   - `Meals per Day` **must be the integer `2` or `3`** — never a range. If the user gives a range (e.g. "2-3 顿", "两到三顿"), write `3` (assume they log every meal they eat; reminders for days they skip will be suppressed by `pre-send-check` once that meal is absent from the log).
   - Use standard names (Breakfast/Lunch/Dinner) — never "Meal 1"/"Meal 2".
-- **Food Restrictions** (if newly mentioned) → `health-profile.md > Diet Config > Food Restrictions`
+- **Food Restrictions** (if newly mentioned) → use the script, do NOT hand-write the markdown. It writes a structured, de-duped list to `health-profile.md > Diet Config > Food Restrictions`:
+  ```bash
+  python3 {user-onboarding-profile:baseDir}/scripts/save-restriction.py --workspace {workspaceDir} --term "<disambiguated term>" [--reason "<short reason>"] --tz-offset {tz_offset}
+  ```
 - **Taste preferences / other preferences** → append to `health-preferences.md` under the appropriate subcategory
 
 Then proceed to Step 2 to calculate macros using the confirmed diet mode.
