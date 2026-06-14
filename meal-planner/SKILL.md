@@ -71,6 +71,22 @@ While building a meal plan, the user may reveal new preferences (e.g., "swap the
 
 ---
 
+## Step 0: Quick Single-Idea Request? (Fast Path — Check First)
+
+**Before running any of the planning flow below, check the breadth of the request.** A request for ONE quick idea is NOT a request to build a plan — treat them differently. (See `SKILL-ROUTING.md` Pattern 9.)
+
+**Lightweight quick-idea request** — "a quick meal idea", "what should I eat for my next meal", "give me an idea", "one idea", or "yes" / "sure" in reply to the welcome greeting's offer of "a quick meal idea for your next one" (this is typically the user's FIRST action right after a TDEE handoff):
+
+→ Answer **INLINE with ONE concrete dish suggestion** and STOP. Keep it conversational and single-meal, consistent with the user's diet style / calorie target (from `USER.md`, `PLAN.md`, `health-preferences.md`), and respecting allergies/dislikes. **Do NOT attach calorie or macro numbers to the dish** (a quick idea, not a plan claim). Then bridge to logging — e.g. "When you eat it — or anything else — just text me what's on the plate or snap a photo and I'll track it for you."
+
+Then **STOP**: do NOT continue into Step 1+, do NOT generate the diet template or a weekly/7-day plan, do NOT bootstrap reminders, and do NOT run `plan-export` / generate / send MEAL-PLAN.md or a URL. The single inline idea is the entire response.
+
+**Escalation:** If the user later asks for the full plan ("ok do this for the whole week", "build my meal plan"), THEN proceed into the full flow below starting at Step 1.
+
+Per SILENT OPERATION, do not narrate this check — just answer with the one idea.
+
+---
+
 ## Step 1: Resolve Calorie Target & User Context (Conditional)
 
 Before planning any meals, you need three things: a daily calorie target, the user's locale context, and their dietary preferences.

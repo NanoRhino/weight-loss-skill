@@ -156,6 +156,9 @@ I just said?"
 | "make me a workout plan and a meal plan" | exercise-planning + meal-planning | exercise-tracking + meal-planner |
 | "I'm having oatmeal, feeling great today!" | food-log + positive-emotion | diet-tracking + emotional-support |
 | "skipped lunch, don't care anymore" | food-skip + emotional-distress | diet-tracking + emotional-support |
+| "a quick meal idea for my next one" / "what should I eat next?" | quick-idea-request | answer inline (ONE dish) — see Pattern 9, NOT meal-planner |
+| "give me an idea" / "one idea for lunch" | quick-idea-request | answer inline (ONE dish) — see Pattern 9 |
+| "build my meal plan" / "make me a weekly menu" | full-plan-request | meal-planner (full flow) |
 | "中午外面吃什么好？" | restaurant-recommendation | restaurant-meal-finder |
 | "I'm at Chipotle, what should I order?" | restaurant-recommendation | restaurant-meal-finder |
 | "附近有什么能吃的，帮我推荐一下" | restaurant-recommendation | restaurant-meal-finder |
@@ -338,6 +341,39 @@ into their weekly meal plan.
 
 After the user selects a restaurant meal, `restaurant-meal-finder` hands off
 to `diet-tracking-analysis` for logging. No conflict — sequential handoff.
+
+---
+
+### Pattern 9: Quick Meal Idea vs Full Meal Plan (meal-planner scope guard)
+
+**Trigger:** User asks "what should I eat" in a way that could mean either a
+single on-the-spot suggestion or a request to build out their whole plan. The
+default greeting right after a TDEE handoff offers "a quick meal idea for your
+next one" — when the user accepts, that acceptance lands here.
+
+**Resolution: Intent (and breadth) determines depth. Do NOT default a quick
+idea into the full meal-planner flow — that turns a one-line answer into a
+wall and kills the low-friction hook.**
+
+1. **Lightweight quick-idea request** — "a quick meal idea", "what should I
+   eat for my next meal", "give me an idea", "one idea", "yes" / "sure" in
+   response to the greeting's meal-idea offer, AND especially this being the
+   user's FIRST action right after handoff → answer **INLINE with ONE concrete
+   dish** (conversational, single meal, consistent with their diet style /
+   calorie target from `USER.md` / `PLAN.md` / `health-preferences.md`, **no
+   calorie/macro numbers attached to the dish**), then bridge to logging
+   ("when you eat it — or anything else — just text me what's on the plate or
+   snap a photo and I'll track it"). Do **NOT** invoke the full `meal-planner`
+   flow, do **NOT** run `plan-export`, do **NOT** generate or send MEAL-PLAN.md
+   or a URL. This is `meal-planner`'s "Quick Single-Idea Request" fast path
+   (see `meal-planner/SKILL.md` Step 0).
+2. **Full plan request** — "build my meal plan", "make me a weekly menu",
+   "plan my meals for the week", "give me a 7-day plan" → full `meal-planner`
+   skill as today (diet template → bootstrap reminders → `plan-export`).
+3. **Escalation** — If a user starts with a quick idea and then asks for the
+   full plan ("ok can you do this for the whole week?"), THEN transition to
+   the full `meal-planner` flow (mirrors Pattern 8's restaurant→planner
+   escalation).
 
 ---
 
