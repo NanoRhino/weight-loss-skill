@@ -28,7 +28,25 @@ from zoneinfo import ZoneInfo
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.normpath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
-_STATE_DIR = os.environ.get("OPENCLAW_STATE_DIR", os.path.join(_PROJECT_ROOT, ".openclaw-gateway"))
+
+
+def _resolve_state_dir() -> str:
+    """cwd for `openclaw cron list`. Prefer explicit override, then the real
+    OpenClaw home (~/.openclaw on production), then the legacy layout. Mirrors
+    resolve_state_dir() in create-reminder.sh / batch-create-reminders.sh."""
+    env = os.environ.get("OPENCLAW_STATE_DIR")
+    if env:
+        return env
+    home = os.environ.get("OPENCLAW_HOME")
+    if home and os.path.isdir(home):
+        return home
+    default_home = os.path.expanduser("~/.openclaw")
+    if os.path.isdir(default_home):
+        return default_home
+    return os.path.join(_PROJECT_ROOT, ".openclaw-gateway")  # legacy fallback
+
+
+_STATE_DIR = _resolve_state_dir()
 
 MAX_PER_MINUTE = 2
 

@@ -53,7 +53,7 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 12 * * *"
 ```
 
-`--tz` auto-detects from the agent workspace's `USER.md`. Falls back to `Asia/Shanghai` if not found. You can override explicitly with `--tz`.
+`--tz` auto-detects from the agent workspace's `USER.md > Timezone`. If no `--tz` is given **and** no timezone can be read, the script **aborts with an error** (it will not guess — a wrong-timezone reminder fires at the wrong real-world hour). Always either set `USER.md > Timezone` or pass `--tz` explicitly.
 
 ### Parameters
 
@@ -65,7 +65,7 @@ bash {baseDir}/scripts/create-reminder.sh \
 | `--message` | ✅ | Prompt sent to user when the job fires |
 | `--at` | one of | One-shot: relative time or ISO timestamp |
 | `--cron` | one of | Recurring: 5-field cron expression |
-| `--tz` | ❌ | Timezone for cron (auto-detects from `timezone.json`, fallback: `Asia/Shanghai`) |
+| `--tz` | ❌ | IANA timezone for cron. Auto-detects from `USER.md > Timezone` if omitted; **aborts with an error if neither is available** (no silent default) |
 | `--keep` | ❌ | Don't auto-delete one-shot jobs after running |
 | `--to` | ❌ | Explicit delivery target. Overrides auto-detection. Required for channels other than `slack`/`wechat`/`wecom` |
 | `--type` | ❌ | Job type for anti-burst scheduling: `meal`, `weight`, or `other` (default: `other`). See **Anti-burst scheduling** below |
@@ -81,9 +81,11 @@ The script resolves the delivery target (`--to`) based on the channel:
 | `wechat` / `wecom` | Extracts userId from agent ID (`wechat-dm-xxx` → `xxx`) | `--agent wechat-dm-abc123` → `abc123` |
 | Others | No auto-detection — must pass `--to` explicitly | `--to "123456789"` |
 
-Timezone auto-detection searches these paths in order:
-1. `~/.openclaw/workspace-$AGENT/USER.md`
-2. `~/.openclaw/workspace-nutritionist/$AGENT/USER.md`
+Timezone auto-detection reads `- **Timezone:**` from the first existing `USER.md` among (in order): `<state>/workspace-nutritionist/$AGENT/`, `<state>/workspace-$AGENT/`, `<project>/.openclaw-user-service/workspaces/$AGENT/`. `<state>` resolves to `$OPENCLAW_STATE_DIR` → `$OPENCLAW_HOME` → `~/.openclaw`. If none yields a timezone and no `--tz` was passed, the script aborts (no `Asia/Shanghai` default).
+
+**Idempotency:** before creating, the script checks the agent's existing jobs for one with the same `--name`; if found it skips (no duplicate). This makes creation safe under retries.
+
+**Imminent-fire guard:** for recurring (`--cron`) jobs, if the next occurrence is within ~45 min of creation, the job is created **disabled** (so it cannot fire during the same session that created it — e.g. mid-onboarding). `batch-create-reminders.sh` (auto-sync) and the deploy migration re-enable such jobs on a later run, by which point the imminent window has passed. Override the window with `REMINDER_IMMINENT_LEAD_SECONDS`.
 
 Then calls `openclaw cron add` with `sessionTarget = "isolated"`, `payload.kind = "agentTurn"`, and `delivery.mode = "announce"` automatically. The isolated agent composes the reminder and outputs the text — announce delivery sends it to the user and automatically injects the context into the main session.
 
@@ -127,6 +129,30 @@ Use the cron tool directly for listing and removing:
 - **Remove**: cron tool with `action: "remove"` and `jobId`
 - **Adjust timing**: remove old job + create new one
 
+### Repairing wrong-timezone / duplicate crons (ops migration)
+
+`scripts/migrate-cron-tz-dups.py` repairs existing agents whose reminders were
+created in the wrong timezone (silently defaulted to `Asia/Shanghai`) or were
+duplicated by a failed-then-retried batch. Because the failed-batch fallback also
+corrupted some cron **expressions** (e.g. afternoon meals stored as `15 2`/`15 6`
+instead of `15 14`/`15 18`), a tz-label swap alone is unsafe — so the migration
+**removes the agent's recurring system crons and rebuilds them** from
+`health-profile.md` via the fixed `batch-create-reminders.sh` (correct local
+expression + correct `--tz`). It never touches `[custom]` jobs, one-shot nudges,
+or recurring jobs whose names it doesn't own (those are reported only). It is
+**dry-run by default** and uses only the gateway CLI (safe with the gateway up).
+
+```bash
+# Preview one agent, then apply, then roll out to all:
+python3 {baseDir}/scripts/migrate-cron-tz-dups.py --agent 050184
+python3 {baseDir}/scripts/migrate-cron-tz-dups.py --agent 050184 --apply
+python3 {baseDir}/scripts/migrate-cron-tz-dups.py            # dry-run all
+python3 {baseDir}/scripts/migrate-cron-tz-dups.py --apply    # apply all
+```
+
+Agents with no `USER.md > Timezone` are skipped (cannot determine the correct
+zone — set it first). Run this once after deploying the timezone fix.
+
 ---
 
 ## Auto-sync on Activation
@@ -146,7 +172,8 @@ Use the cron tool directly for listing and removing:
    - Read `health-profile.md > Automation > Pattern Detection Completed`
    - If has a date → job already completed. If job still exists, remove it (stale).
    - If `—` (not completed) → check if job exists. If missing → create it.
-7. Do all of this **silently** — do not mention it to the user.
+7. **Disabled system jobs** — a recurring meal/weight/report cron may have been created `enabled=false` by the imminent-fire guard (next run too close to creation time). On sync, re-enable any disabled non-`[custom]` recurring system job (its imminent window has passed). `batch-create-reminders.sh` does this automatically at the end of its run.
+8. Do all of this **silently** — do not mention it to the user.
 
 **When creating multiple jobs at once** (initial bootstrap or large sync), use `batch-create-reminders.sh` instead of calling `create-reminder.sh` one by one. It handles slot allocation in a single pass and creates all jobs in parallel:
 
@@ -164,7 +191,7 @@ Use `--only meal,weight,report,pattern` to restrict which job types are created.
 
 ## Cron Job Definitions
 
-Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Do NOT pass `--tz`** — the script auto-detects from `USER.md`. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Prefer `batch-create-reminders.sh`** for bootstrap/sync — it reads the timezone from `USER.md` once and passes `--tz` explicitly to every job (the per-job script's own auto-detect is a fallback only). If you call `create-reminder.sh` directly, either ensure `USER.md > Timezone` is set or pass `--tz`; it will abort rather than guess. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
 
 > ⚠️ **Cron expressions use the user's LOCAL time. Do NOT convert to UTC.** The script sets `--tz` automatically, so the cron scheduler handles timezone conversion. Example: if meal is at 09:00 Beijing time, the cron expression is `45 8 * * *` (08:45 local), NOT `45 0 * * *`.
 

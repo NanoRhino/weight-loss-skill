@@ -27,7 +27,17 @@ set -euo pipefail
 #                            Comma-separated for multiple.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STATE_DIR="${OPENCLAW_STATE_DIR:-$HOME/.openclaw-gateway}"
+
+# Resolve OpenClaw state dir (cwd for `openclaw cron` invocations). Prefer an
+# explicit override, then the real OpenClaw home (~/.openclaw on production),
+# then the legacy $HOME/.openclaw-gateway path. Must match create-reminder.sh.
+resolve_state_dir() {
+  if [[ -n "${OPENCLAW_STATE_DIR:-}" ]]; then echo "$OPENCLAW_STATE_DIR"; return; fi
+  if [[ -n "${OPENCLAW_HOME:-}" && -d "${OPENCLAW_HOME}" ]]; then echo "$OPENCLAW_HOME"; return; fi
+  if [[ -d "$HOME/.openclaw" ]]; then echo "$HOME/.openclaw"; return; fi
+  echo "$HOME/.openclaw-gateway"  # legacy fallback
+}
+STATE_DIR="$(resolve_state_dir)"
 CREATE_REMINDER="$SCRIPT_DIR/create-reminder.sh"
 FIND_SLOT="$SCRIPT_DIR/find-slot.py"
 
@@ -89,9 +99,18 @@ read_usermd() {
 }
 
 get_timezone() {
+  # Read the user's IANA timezone from USER.md. FAIL LOUD if absent — a
+  # wrong-timezone reminder fires at the wrong real-world hour (worse than none),
+  # so we must not silently default to Asia/Shanghai for non-CN users.
   local tz
   tz=$(read_usermd "Timezone")
-  echo "${tz:-Asia/Shanghai}"
+  if [[ -z "$tz" ]]; then
+    echo "ERROR: No '- **Timezone:**' field in $USER_MD." >&2
+    echo "ERROR: Refusing to create reminders without a confirmed timezone (would schedule in the wrong zone)." >&2
+    echo "ERROR: Set USER.md > Timezone (IANA, e.g. America/Chicago) and re-run." >&2
+    exit 1
+  fi
+  echo "$tz"
 }
 
 get_meal_schedule() {
@@ -142,16 +161,32 @@ calc_cron_time() {
   echo "$(( total % 60 )) $(( total / 60 ))"
 }
 
+# Print existing job names for $AGENT, one per line.
+# Exit 0 = listing succeeded (output may be empty = no jobs).
+# Exit 3 = listing FAILED (gateway unreachable / bad JSON) — caller must NOT
+#          treat this as "no existing jobs" (that would create blind duplicates).
 get_existing_cron_names() {
-  command -v openclaw &>/dev/null || return
-  (cd "$STATE_DIR" && openclaw cron list --json --agent "$AGENT") 2>/dev/null \
-    | python3 -c "
-import sys, json
+  if ! command -v openclaw &>/dev/null; then
+    echo "ERROR: openclaw CLI not found on PATH" >&2
+    return 3
+  fi
+  local raw
+  # `openclaw cron list` has no --agent flag and omits disabled jobs without
+  # --all; pass --all and filter by agentId in Python.
+  raw="$(cd "$STATE_DIR" && openclaw cron list --all --json 2>/dev/null)" || return 3
+  echo "$raw" | AGENT="$AGENT" python3 -c "
+import sys, json, os
+agent = os.environ.get('AGENT','')
 try:
-    for j in json.load(sys.stdin).get('jobs', []):
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(3)
+jobs = data.get('jobs', data) if isinstance(data, dict) else data
+for j in (jobs or []):
+    if j.get('agentId') == agent:
         print(j.get('name',''))
-except: pass
-" || true
+sys.exit(0)
+"
 }
 
 should_create_type() {
@@ -167,7 +202,17 @@ echo "Timezone: $TIMEZONE"
 
 EXISTING_JOBS=""
 if [[ "$SKIP_EXISTING" == true ]]; then
-  EXISTING_JOBS=$(get_existing_cron_names)
+  # Fail CLOSED: if we cannot read the existing cron list, abort rather than
+  # create blind (the failed-then-retried list error is exactly what produced
+  # the duplicate breakfast crons). The per-job idempotency guard in
+  # create-reminder.sh is a second line of defense, but the batch must not
+  # proceed with stale dedup data when the user explicitly asked to skip dups.
+  if ! EXISTING_JOBS=$(get_existing_cron_names); then
+    echo "ERROR: --skip-existing was requested but listing existing cron jobs FAILED" >&2
+    echo "ERROR: (gateway unreachable from STATE_DIR=$STATE_DIR, or bad JSON)." >&2
+    echo "ERROR: Aborting to avoid creating duplicate reminders. Fix the gateway/STATE_DIR and re-run." >&2
+    exit 1
+  fi
 fi
 
 MEAL_SCHEDULE=$(get_meal_schedule)
@@ -463,15 +508,19 @@ for idx in "${!QUEUED_NAMES[@]}"; do
   adjusted="${ADJUSTED_CRONS[$idx]}"
 
   if [[ "$DRY_RUN" == true ]]; then
-    echo "[DRY-RUN] bash create-reminder.sh --agent \"$AGENT\" --channel \"$CHANNEL\" --exact --name \"$name\" --message \"$message\" --cron \"$adjusted\""
+    echo "[DRY-RUN] bash create-reminder.sh --agent \"$AGENT\" --channel \"$CHANNEL\" --exact --tz \"$TIMEZONE\" --name \"$name\" --message \"$message\" --cron \"$adjusted\""
     continue
   fi
 
+  # Pass --tz explicitly so the child never re-detects the timezone (its own
+  # workspace-path auto-detect is unreliable across deployment layouts and was
+  # the root cause of every reminder landing in Asia/Shanghai).
   (
     bash "$CREATE_REMINDER" \
       --agent   "$AGENT" \
       --channel "$CHANNEL" \
       --exact \
+      --tz      "$TIMEZONE" \
       --name    "$name" \
       --message "$message" \
       --cron    "$adjusted"
@@ -494,6 +543,44 @@ else
   echo "Created $CREATED/$TOTAL job(s)${FAIL_COUNT:+ ($FAIL_COUNT failed)}"
 fi
 echo "====================================="
+
+# --- Re-enable system jobs disabled by the imminent-fire guard ---
+# create-reminder.sh creates a recurring job DISABLED when its next occurrence is
+# imminent (avoids a mid-onboarding early fire). Once a later sync runs — by which
+# point the imminent window has passed — re-enable any disabled system jobs so
+# they resume their normal daily schedule. Recurring (kind=cron) jobs only;
+# one-shots and [custom] jobs are left untouched.
+if [[ "$DRY_RUN" == false ]] && command -v openclaw &>/dev/null; then
+  DISABLED_IDS="$( (cd "$STATE_DIR" && openclaw cron list --all --json 2>/dev/null) | AGENT="$AGENT" python3 -c "
+import sys, json, os
+agent = os.environ.get('AGENT','')
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+jobs = data.get('jobs', data) if isinstance(data, dict) else data
+for j in (jobs or []):
+    if j.get('agentId') != agent:
+        continue
+    name = j.get('name','') or ''
+    if name.startswith('[custom]'):
+        continue
+    if (j.get('schedule',{}) or {}).get('kind') != 'cron':
+        continue
+    if j.get('enabled', True) is False:
+        print(j.get('id',''))
+" 2>/dev/null || true)"
+  if [[ -n "$DISABLED_IDS" ]]; then
+    while IFS= read -r jid; do
+      [[ -z "$jid" ]] && continue
+      if (cd "$STATE_DIR" && openclaw cron enable "$jid" >/dev/null 2>&1); then
+        echo "Re-enabled previously-disabled system cron: $jid"
+      else
+        echo "WARNING: failed to re-enable cron $jid" >&2
+      fi
+    done <<< "$DISABLED_IDS"
+  fi
+fi
 
 [[ $FAIL_COUNT -gt 0 ]] && exit 1
 exit 0

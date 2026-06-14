@@ -30,7 +30,19 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-STATE_DIR="${OPENCLAW_STATE_DIR:-$PROJECT_ROOT/.openclaw-gateway}"
+
+# --- Resolve OpenClaw state dir (cwd for `openclaw cron` invocations) ---
+# `openclaw cron list/add` resolves ~/.openclaw relative to its working dir / env.
+# On production the state dir IS the OpenClaw home (~/.openclaw); the legacy
+# layout used $PROJECT_ROOT/.openclaw-gateway. Prefer an explicit override, then
+# the real OpenClaw home, then the legacy path — never hardcode one layout.
+resolve_state_dir() {
+  if [[ -n "${OPENCLAW_STATE_DIR:-}" ]]; then echo "$OPENCLAW_STATE_DIR"; return; fi
+  if [[ -n "${OPENCLAW_HOME:-}" && -d "${OPENCLAW_HOME}" ]]; then echo "$OPENCLAW_HOME"; return; fi
+  if [[ -d "$HOME/.openclaw" ]]; then echo "$HOME/.openclaw"; return; fi
+  echo "$PROJECT_ROOT/.openclaw-gateway"  # legacy fallback
+}
+STATE_DIR="$(resolve_state_dir)"
 
 AGENT=""
 NAME=""
@@ -79,21 +91,38 @@ if [[ -z "$NAME" ]]; then echo "ERROR: --name is required" >&2; exit 1; fi
 if [[ -z "$MESSAGE" ]]; then echo "ERROR: --message is required" >&2; exit 1; fi
 if [[ -z "$AT" && -z "$CRON_EXPR" ]]; then echo "ERROR: --at or --cron is required" >&2; exit 1; fi
 
-# --- Timezone auto-detection ---
-# Read from USER.md in workspace
-if [[ "$TZ_EXPLICIT" == "false" && -n "$CRON_EXPR" ]]; then
-  HELPERS="$PROJECT_ROOT/.openclaw-strategic-management/scripts/usermd-helpers.sh"
-  if [[ -f "$HELPERS" ]]; then
-    source "$HELPERS"
-  fi
+# --- Candidate workspace directories (used by both TZ detection + msg injection) ---
+# Order matters: production layout (~/.openclaw/workspace-nutritionist/$AGENT)
+# first, then legacy layouts. Defined unconditionally so USER_WORKSPACE
+# resolution below always has the list (previously only set inside the TZ block).
+WS_CANDIDATES=(
+  "$STATE_DIR/workspace-nutritionist/$AGENT"
+  "$STATE_DIR/workspace-$AGENT"
+  "$PROJECT_ROOT/.openclaw-user-service/workspaces/$AGENT"
+)
 
-  WS_CANDIDATES=(
-    "$STATE_DIR/workspace-$AGENT"
-    "$PROJECT_ROOT/.openclaw-user-service/workspaces/$AGENT"
-  )
+# Read a "- **<Field>:** <value>" line out of a USER.md, trimmed. Inlined so we
+# don't depend on usermd-helpers.sh, whose path differs across deployments and
+# is frequently absent (which silently broke TZ detection -> Asia/Shanghai).
+read_usermd_field() {
+  local file="$1" field="$2"
+  [[ -f "$file" ]] || return 1
+  grep -m1 "^- \*\*${field}:\*\*" "$file" 2>/dev/null \
+    | sed -E 's/^- \*\*[^*]*\*\*[[:space:]]*//' \
+    | sed -E 's/[[:space:]]+$//'
+}
+
+# --- Timezone resolution ---
+# For recurring (--cron) jobs we MUST schedule in the user's real timezone.
+# A wrong timezone is worse than no reminder (fires at the wrong real-world
+# hour), so if --tz is not given AND we can't read it from USER.md, we FAIL
+# LOUD instead of silently defaulting to Asia/Shanghai.
+if [[ "$TZ_EXPLICIT" == "true" ]]; then
+  echo "Using explicit --tz: $TZ (skipping auto-detect)"
+elif [[ -n "$CRON_EXPR" ]]; then
   for WS_DIR in "${WS_CANDIDATES[@]}"; do
-    if [[ -f "$WS_DIR/USER.md" ]] && type usermd_read &>/dev/null; then
-      AUTO_TZ=$(usermd_read "$WS_DIR" "Timezone" 2>/dev/null || echo "")
+    if [[ -f "$WS_DIR/USER.md" ]]; then
+      AUTO_TZ=$(read_usermd_field "$WS_DIR/USER.md" "Timezone" || true)
       if [[ -n "$AUTO_TZ" ]]; then
         TZ="$AUTO_TZ"
         echo "Auto-detected timezone from $WS_DIR/USER.md: $TZ"
@@ -101,10 +130,12 @@ if [[ "$TZ_EXPLICIT" == "false" && -n "$CRON_EXPR" ]]; then
       fi
     fi
   done
-  # Fallback if still empty
   if [[ -z "$TZ" ]]; then
-    TZ="Asia/Shanghai"
-    echo "WARNING: No timezone found in USER.md, falling back to $TZ"
+    echo "ERROR: Could not resolve timezone for agent '$AGENT'." >&2
+    echo "ERROR: No --tz given and no '- **Timezone:**' field found in USER.md under:" >&2
+    for WS_DIR in "${WS_CANDIDATES[@]}"; do echo "ERROR:   $WS_DIR/USER.md" >&2; done
+    echo "ERROR: Refusing to schedule a recurring reminder in the wrong timezone. Pass --tz explicitly or set USER.md > Timezone." >&2
+    exit 1
   fi
 fi
 
@@ -234,6 +265,67 @@ fi
 
 echo "Agent: $AGENT → Channel: $CHANNEL → To: $TO"
 
+# --- Imminent-first-run guard (recurring jobs only) ---
+# A freshly created recurring reminder whose next occurrence is only minutes away
+# would fire during the same session that created it (the mid-onboarding
+# early-fire bug). OpenClaw's `cron add` CLI cannot set the initial nextRunAtMs,
+# and direct store edits race a running gateway, so we use the one race-free,
+# gateway-safe lever the CLI gives us: create the job DISABLED. A disabled job
+# never fires, so it cannot go off mid-session. notification-manager auto-sync
+# (every activation) and the deploy migration re-enable it; by then the imminent
+# window has long passed and the job resumes on its normal daily schedule.
+# Threshold is generous (45 min) to cover the slot-15min meal reminders.
+IMMINENT_LEAD_SECONDS="${REMINDER_IMMINENT_LEAD_SECONDS:-2700}"  # 45 min
+CREATE_DISABLED=false
+if [[ -n "$CRON_EXPR" ]]; then
+  SECS_UNTIL=$(python3 "$SCRIPT_DIR/next-cron-run.py" --cron "$CRON_EXPR" --tz "$TZ" 2>/dev/null || echo "")
+  if [[ -n "$SECS_UNTIL" && "$SECS_UNTIL" =~ ^[0-9]+$ ]]; then
+    if (( SECS_UNTIL < IMMINENT_LEAD_SECONDS )); then
+      CREATE_DISABLED=true
+      echo "Imminent-fire guard: next run is in ${SECS_UNTIL}s (< ${IMMINENT_LEAD_SECONDS}s). Creating job DISABLED to avoid a mid-session fire; auto-sync/migration will enable it for its next occurrence."
+    fi
+  else
+    echo "WARNING: could not compute next run for '$CRON_EXPR' ($TZ); creating normally (fail-open)." >&2
+  fi
+fi
+
+# --- Idempotency guard: skip if a job with this name already exists ---
+# Protects against the failed-then-retried batch pattern (and any double
+# invocation) that otherwise produces duplicate meal-slot crons. Keyed on
+# agentId + job name (the meal slot identity). Safe regardless of
+# --skip-existing upstream. If we cannot read the cron list we do NOT skip
+# (fail-open here is correct: missing a reminder is worse than a possible dup,
+# and the batch layer fails closed on its own list error).
+existing_job_with_name() {
+  command -v openclaw >/dev/null 2>&1 || return 1
+  # `openclaw cron list` has no --agent flag and omits disabled jobs without
+  # --all; pass --all and filter by agentId + name in Python.
+  ( cd "$STATE_DIR" && openclaw cron list --all --json 2>/dev/null ) \
+    | AGENT="$AGENT" NAME="$NAME" python3 -c "
+import sys, json, os
+agent = os.environ.get('AGENT','')
+want = os.environ.get('NAME','')
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(2)  # unreadable -> caller treats as 'cannot confirm', does not skip
+jobs = data.get('jobs', data) if isinstance(data, dict) else data
+for j in (jobs or []):
+    if j.get('agentId') == agent and j.get('name') == want:
+        print(j.get('id',''))
+        sys.exit(0)
+sys.exit(1)
+"
+}
+
+DUP_ID=""
+DUP_RC=0
+DUP_ID="$(existing_job_with_name)" || DUP_RC=$?
+if [[ $DUP_RC -eq 0 && -n "$DUP_ID" ]]; then
+  echo "Idempotent skip: a job named '$NAME' already exists for agent $AGENT (id=$DUP_ID). Not creating a duplicate."
+  exit 0
+fi
+
 # --- Build the cron command ---
 # Note: Do NOT wrap $MESSAGE with delivery instructions here.
 # The no-self-delivery rule is enforced in notification-composer SKILL.md
@@ -278,6 +370,9 @@ if [[ -n "$AT" ]]; then
   fi
 elif [[ -n "$CRON_EXPR" ]]; then
   CMD+=(--cron "$CRON_EXPR" --tz "$TZ")
+  if [[ "$CREATE_DISABLED" == "true" ]]; then
+    CMD+=(--disabled)
+  fi
 fi
 
 echo "Running: ${CMD[*]}"
