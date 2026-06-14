@@ -2,6 +2,15 @@
 """
 batch-create.py — Create multiple cron jobs with a single cron-list fetch.
 
+⚠️ DEPRECATED / NOT IN THE LIVE PATH (as of the reminder-TZ fix). The production
+onboarding/sync flow uses `batch-create-reminders.sh` (which calls
+`create-reminder.sh`), not this script — nothing references it. It is kept only
+for reference. NOTE: its `detect_timezone()` still has the legacy silent
+`Asia/Shanghai` fallback (line ~86) and was intentionally NOT fixed because the
+script is dead. If you ever revive it, port the fail-loud / correct-USER.md
+timezone resolution from `create-reminder.sh` first, or it will reschedule
+non-CN users in the wrong zone.
+
 Resolves timezone and delivery target once, fetches existing jobs once,
 computes all anti-burst slots with awareness of slots allocated within the
 batch, then creates each job via `openclaw cron add`.

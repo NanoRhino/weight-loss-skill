@@ -102,7 +102,16 @@ def get_now(tz_name: str = None, tz_offset: int = None, workspace: str = None) -
             if tz:
                 return datetime.now(tz), "user_md_tzname"
 
-    # Priority 5: Server local time
+    # Priority 5: Server local time.
+    # NOTE: this is a genuine fallback, not a silent Asia/Shanghai default — the
+    # prod server runs UTC, which is a neutral choice (a US user gets UTC, not a
+    # Beijing wall-clock). Still, an unresolved zone here means "today"/"now" may
+    # be off by a few hours for the user, so log it for observability. Callers
+    # that need a correct user-local date should always pass --tz-name /
+    # --tz-offset or a --workspace whose USER.md has Timezone/TZ Offset set.
+    print("[now] WARNING: no tz-name/tz-offset arg and no USER.md "
+          "Timezone/TZ Offset — falling back to server local time "
+          "(may be wrong for the user)", file=sys.stderr)
     return datetime.now().astimezone(), "server_local"
 
 

@@ -32,7 +32,8 @@ Usage:
   python3 mark-onboarding-done.py --workspace /path/to/workspace \\
     [--tz-name Asia/Shanghai]
 
-  If --tz-name not provided, reads USER.md > Timezone (defaults Asia/Shanghai).
+  If --tz-name not provided, reads USER.md > Timezone; if that's also absent,
+  falls back to UTC (neutral) with a warning — never a silent Asia/Shanghai.
 
 Output (JSON):
   {"ok": true, "date": "2026-05-12", "mode": "updated" | "inserted"}
@@ -78,8 +79,16 @@ def _now(tz_name: str | None) -> datetime:
             return datetime.now(ZoneInfo(tz_name))
         except Exception:
             pass
-    # Fallback: UTC+8
-    return datetime.now(timezone(timedelta(hours=8)))
+    # Fallback: UTC (neutral). NOT Asia/Shanghai — this script stamps the
+    # onboarding-completed DATE and the **Updated:** offset into
+    # health-profile.md; a Beijing wall-clock would mis-date a non-CN user
+    # (e.g. a US user near local midnight gets tomorrow's date). UTC matches the
+    # prod server zone and now.py's fallback. We don't abort, because marking
+    # onboarding done is critical path (the marker flips the user to onboarded);
+    # a slightly-neutral date beats blocking onboarding.
+    print("[mark-onboarding-done] WARNING: no --tz-name and no USER.md "
+          "Timezone — using UTC for the completion date", file=sys.stderr)
+    return datetime.now(timezone.utc)
 
 
 # Detect an erroneous standalone section like:
@@ -249,7 +258,7 @@ def main() -> int:
     parser.add_argument("--workspace", required=True,
                         help="Path to agent workspace (contains health-profile.md)")
     parser.add_argument("--tz-name", default=None,
-                        help="IANA timezone name (default: read from USER.md, fallback Asia/Shanghai)")
+                        help="IANA timezone name (default: read from USER.md, fallback UTC)")
     args = parser.parse_args()
 
     workspace = args.workspace
@@ -258,7 +267,9 @@ def main() -> int:
         print(json.dumps({"ok": False, "error": f"health-profile.md not found: {path}"}))
         return 1
 
-    tz_name = args.tz_name or _read_timezone_from_user_md(workspace) or "Asia/Shanghai"
+    # tz_name may be None here; _now() falls back to UTC (neutral) with a
+    # warning, rather than a silent Asia/Shanghai default.
+    tz_name = args.tz_name or _read_timezone_from_user_md(workspace)
     now = _now(tz_name)
     date_str = now.strftime("%Y-%m-%d")
     iso_ts = now.strftime("%Y-%m-%dT%H:%M:%S%z")

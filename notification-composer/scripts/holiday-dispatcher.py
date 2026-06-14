@@ -129,7 +129,15 @@ def detect_language(workspace_dir):
 
 
 def detect_timezone(workspace_dir):
-    """Detect user timezone from USER.md Timezone field. Returns IANA tz name like 'Asia/Shanghai'."""
+    """Detect user IANA timezone from USER.md > Timezone. Returns the tz name
+    (e.g. 'America/Chicago') or None if absent/unreadable.
+
+    Returns None (not a silent 'Asia/Shanghai' default) so callers can decide
+    per-user behavior — scheduling a US user's holiday cron at a Beijing
+    wall-clock time would fire at the wrong real-world hour. This is a
+    multi-region feature (see references/holidays/{cn,us}-YYYY.json + the
+    en->us region map in detect_region), so a CN default is not safe here.
+    """
     user_md = os.path.join(workspace_dir, "USER.md")
     if os.path.exists(user_md):
         try:
@@ -143,7 +151,7 @@ def detect_timezone(workspace_dir):
                         break
         except IOError:
             pass
-    return "Asia/Shanghai"
+    return None
 
 
 def detect_region(workspace_dir):
@@ -273,8 +281,11 @@ def mark_holiday_asked(workspace_dir, holiday_name, holiday_start):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday_end, lang="zh", tz_name="Asia/Shanghai", dry_run=False):
-    """Create a one-shot cron job for the user."""
+def create_cron(agent_id, trigger_time_utc, holiday_name, holiday_start, holiday_end, lang="zh", tz_name=None, dry_run=False):
+    """Create a one-shot cron job for the user. tz_name must be the user's real
+    IANA zone (resolved + validated by the caller); no silent default."""
+    if not tz_name:
+        return {"status": "error", "error": "tz_name required (no fallback)"}
     if lang == "en":
         message = (
             f"{holiday_name} ({holiday_start} to {holiday_end}) is coming up. "
@@ -416,13 +427,24 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
         # Compute trigger time
         # Get breakfast time and compute trigger time (breakfast - 30min)
         breakfast_hour = get_breakfast_time(workspace_dir)
-        # Use user's timezone instead of global offset
+        # Use the user's own timezone. If USER.md has no Timezone, SKIP this
+        # user rather than schedule at a wrong wall-clock time (the global
+        # --tz-offset is the main agent's offset, not this user's, and would
+        # mis-fire for a US user). Holiday dispatch is opportunistic, so
+        # skipping one user is safe; do NOT abort the whole scan.
         tz_name = detect_timezone(workspace_dir)
+        if not tz_name:
+            log(f"{agent_id}: no USER.md Timezone — skipping holiday cron (won't guess zone)")
+            results.append({"agent_id": agent_id, "status": "skipped",
+                            "reason": "no USER.md timezone"})
+            continue
         try:
             tz = ZoneInfo(tz_name)
         except Exception:
-            # Fallback to global offset if ZoneInfo construction fails
-            tz = timezone(timedelta(seconds=tz_offset))
+            log(f"{agent_id}: invalid timezone '{tz_name}' — skipping holiday cron")
+            results.append({"agent_id": agent_id, "status": "skipped",
+                            "reason": f"invalid timezone {tz_name}"})
+            continue
         local_trigger = datetime(
             today.year, today.month, today.day,
             breakfast_hour, 0, tzinfo=tz
