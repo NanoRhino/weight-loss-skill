@@ -351,6 +351,20 @@ def load_today_meals(workspace_dir: str, date_str: str) -> dict:
     return result
 
 
+# One-time starter badge (NOT part of the qualified-day ladder).
+# Awarded at the user's first-meal-ever moment by diet-tracking-analysis via
+# the `award-starter` subcommand. Distinct from the calorie_target levels
+# (which need 3/7/14… qualified days) — this fires once, immediately, to reward
+# the single most important action: logging the very first meal.
+STARTER_BADGE = {
+    "id": "first-step",
+    "name_en": "🏅 First Step",
+    "name_zh": "🏅 第一步",
+    "message_en": "You logged your very first meal. This is where it starts.",
+    "message_zh": "你记录了第一餐。一切从这里开始。",
+}
+
+
 def load_badges(workspace_dir: str) -> dict:
     """Load existing badges.json or return default structure."""
     badges_path = Path(workspace_dir) / "data" / "badges.json"
@@ -740,6 +754,44 @@ def generate_badge_image(workspace_dir: str, today: str, new_badge: dict, curren
         return None
 
 
+def award_starter(workspace_dir: str, tz_offset: int):
+    """Idempotently award the one-time "First Step" starter badge.
+
+    Records it under a top-level `starter` key in badges.json (sibling to
+    `calorie_target` — does NOT touch the qualified-day ladder). Safe to call
+    repeatedly: if already awarded, it is a no-op and `newly_awarded` is false.
+    reward-engine owns badges.json, so this is the only writer of this state.
+
+    Output JSON:
+      {
+        "newly_awarded": bool,   # true only on the FIRST successful award
+        "already_awarded": bool, # true if the starter badge already existed
+        "badge": { id, name_en, name_zh, message_en, message_zh, unlocked_at }
+      }
+    """
+    today = get_local_date(tz_offset)
+
+    badges = load_badges(workspace_dir)
+    existing = badges.get("starter")
+    already = isinstance(existing, dict) and existing.get("id") == STARTER_BADGE["id"]
+
+    if already:
+        badge = existing
+        newly = False
+    else:
+        badge = dict(STARTER_BADGE)
+        badge["unlocked_at"] = today
+        badges["starter"] = badge
+        save_badges(workspace_dir, badges)
+        newly = True
+
+    print(json.dumps({
+        "newly_awarded": newly,
+        "already_awarded": already,
+        "badge": badge,
+    }, ensure_ascii=False))
+
+
 def check(workspace_dir: str, tz_offset: int):
     """Main check logic."""
     today = get_local_date(tz_offset)
@@ -890,10 +942,22 @@ def main():
     check_parser.add_argument("--workspace-dir", required=True, help="User workspace directory")
     check_parser.add_argument("--tz-offset", required=True, type=int, help="Timezone offset in minutes")
 
+    starter_parser = sub.add_parser(
+        "award-starter",
+        help="Idempotently award the one-time 'First Step' starter badge (first meal ever)",
+    )
+    starter_parser.add_argument("--workspace-dir", required=True, help="User workspace directory")
+    starter_parser.add_argument(
+        "--tz-offset", type=int, default=0,
+        help="Timezone offset in minutes (used only for the unlock date; optional)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "check":
         check(args.workspace_dir, args.tz_offset)
+    elif args.command == "award-starter":
+        award_starter(args.workspace_dir, args.tz_offset)
     else:
         parser.print_help()
         sys.exit(1)

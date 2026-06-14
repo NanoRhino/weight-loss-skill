@@ -131,7 +131,13 @@ In ONE tool batch, call ALL of these simultaneously:
 - `meal_checkin({ images: [...], text: "user's text if any", workspace_dir: "{workspaceDir}" })`
 - `read` PLAN.md, health-profile.md, health-preferences.md
 
-Do NOT call `image`, `exec`, or any script. Everything goes through `meal_checkin`.
+Do NOT call `image`, or any other script during composition — meal logging itself goes through `meal_checkin` only. (The single exception is the first-meal check below, run in this same batch — never as an extra round.)
+
+**First-meal-ever check (create/append only):** In this same parallel batch, also run the first-meal detection so you know whether to celebrate in the reply. It reads the saved meals AFTER `meal_checkin` persists, so it correctly returns `is_first_meal_ever: true` only when this is the very first food the user has ever logged:
+```bash
+python3 {baseDir}/scripts/first-meal-check.py --workspace-dir {workspaceDir}
+```
+Skip this for corrections/deletes (`action: correct/delete`) and on `meal_checkin` errors. See "First-Meal Celebration + Starter Badge" below for how to use the result (including the one follow-up `award-starter` call when it IS the first meal).
 
 ### Round 2: Compose reply
 
@@ -304,6 +310,34 @@ Give ONE unified meal/food suggestion that addresses ALL gaps together — check
 | `next_time` | 💡 | On track — habit tip or next-meal pairing. `cal_in_range_macro_off == true` → suggest swapping ingredients **tomorrow**. |
 | `case_d_snack` | 🍽 | Final meal, below BMR×0.9 — gently suggest eating a bit more today. |
 | `case_d_ok` | 💡 | Final meal, ≥BMR×0.9 but below target — "eat more if hungry, fine if not." |
+
+### 🎉 First-Meal Celebration + Starter Badge (their FIRST meal ever)
+
+When `first-meal-check.py` returns `is_first_meal_ever: true`, this is the single most important moment in the user's journey — they just did the one thing the whole experience is built around. Reward it **in this same reply** with the one-time "First Step" / 「第一步」 starter badge, woven in as the OPENING, before the ①②③ breakdown. One reply only (`meal_checkin` is once per message) — do NOT send a separate message.
+
+**Award the badge (ownership-clean — reward-engine owns badges.json):** When `is_first_meal_ever: true`, call reward-engine's idempotent award entry point. `diet-tracking` must NEVER write `badges.json` itself.
+```bash
+python3 {reward-engine:baseDir}/scripts/badge-calc.py award-starter --workspace-dir {workspaceDir} --tz-offset {tz_offset}
+```
+- It returns `newly_awarded` and `already_awarded`. **Only celebrate when `newly_awarded: true`.** If `already_awarded: true` (e.g. a `/compact` re-ran this turn, or some edge re-fire), the badge already exists — say nothing special, just compose the normal reply.
+- This is a calorie-target-ladder-independent, one-time starter badge — it does not interfere with the 3/7/14-day levels.
+
+**Compose the unlock celebration (when `newly_awarded: true`):**
+- **Lead with the badge unlock — one or two short lines.** Name what just happened and surface the badge as TEXT (Twilio is a text/MMS channel — do NOT send the badge-card image here; this is the in-the-moment text unlock). Use 🏅 for the badge and 🎉 for the win. Then flow straight into the normal ①②③ breakdown so they immediately see the payoff of logging.
+- **Tone: warm and real, never cheesy or over-the-top.** No confetti walls, no "AMAZING!!!", no fake hype. Sound like a coach who's genuinely glad they took the step.
+- **Bridge forward, not a dead end.** Close by signalling "this is how it works from here — just tell me what you eat and I've got the rest." This is the hand-off from First-Meal Mode into ongoing coaching — the start of something, not a finish line.
+- **Keep it SMS-short.** 🏅 and 🎉 are fine (in moderation). **Never use the 🦏 rhino mascot emoji.**
+- **Do NOT** mention streaks, "day 1 of N", completion dates, goal weight, or any plan/onboarding ask here — the first meal is its own moment. Streak lines and the calorie-target badge ladder are handled separately (streak day-1 is silent; ladder levels need 3 qualified days and surface via the next-day reminder), so there is no double-celebration.
+- Language comes from `USER.md` as always — the examples here are English; write in the user's language.
+
+**Example shape (English — adapt, don't copy verbatim):**
+> 🎉 First meal logged! 🏅 "First Step" unlocked — this is the whole trick: you tell me what you ate, I do the math.
+>
+> [then the normal ①②③ breakdown]
+>
+> [end naturally — e.g. "Keep sending them my way as you eat and I'll keep you on track."]
+
+When `is_first_meal_ever` is false (or the check was skipped, or `award-starter` returns `already_awarded`), compose the normal reply with no celebration and no badge mention.
 
 ### Overshoot tone
 

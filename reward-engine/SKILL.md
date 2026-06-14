@@ -95,6 +95,27 @@ python3 {baseDir}/scripts/badge-calc.py check \
 | 7 | 60 | ⭐×7 长期主义玩家 | 60天。不需要鸡汤，数据说明一切。 |
 | 8 | 90 | ⭐×8 不可撼动 | 90天。多数人的计划活不过两周，你走完了全程。这不是关于减肥了，这是你证明了自己能长期做好一件事。 |
 
+## Starter Badge — "First Step" / 「第一步」 (one-time, NOT part of the day ladder)
+
+A separate, ONE-TIME starter badge awarded the moment the user logs their **first meal ever** — to reward the single most important action immediately, instead of waiting for the 3-qualified-day Level 1. It is **independent of the calorie-target ladder above**: it does not count toward, gate, or interfere with the day-based levels, and it lives under its own `starter` key in `badges.json` (sibling to `calorie_target`).
+
+- **Who awards it:** `diet-tracking-analysis`'s first-meal flow detects the first-meal-ever moment (via `first-meal-check.py`) and calls reward-engine's award entry point below. reward-engine remains the **sole writer** of `badges.json` (CONVENTIONS.md §3 ownership).
+- **Award command (idempotent):**
+  ```bash
+  python3 {baseDir}/scripts/badge-calc.py award-starter --workspace-dir {workspaceDir} --tz-offset {tz_offset}
+  ```
+  Returns `{ "newly_awarded": bool, "already_awarded": bool, "badge": {...} }`. The caller celebrates **only** when `newly_awarded: true`; `already_awarded: true` → no-op (covers `/compact` re-runs and edge re-fires).
+- **Surfaced as TEXT** in the same meal-log reply by `diet-tracking-analysis` (Twilio is text/MMS — the in-the-moment unlock is text, not a badge-card image).
+- **No double-celebration:** the day-ladder `check` flow above is untouched (still needs 3 qualified days for Level 1), and streak day-1 is silent — so the starter badge is the only thing that fires at the first meal.
+
+### Starter badge definition
+
+| id | name (en) | name (zh) | message (en) | message (zh) |
+|----|-----------|-----------|--------------|--------------|
+| `first-step` | 🏅 First Step | 🏅 第一步 | You logged your very first meal. This is where it starts. | 你记录了第一餐。一切从这里开始。 |
+
+Defined in `scripts/badge-calc.py` as `STARTER_BADGE`.
+
 
 
 ## Badge Image Generation
@@ -132,9 +153,19 @@ File: `{workspaceDir}/data/badges.json`
     },
     "daily_deficit": 385,
     "last_calculated": "2026-05-19"
+  },
+  "starter": {
+    "id": "first-step",
+    "name_en": "🏅 First Step",
+    "name_zh": "🏅 第一步",
+    "message_en": "You logged your very first meal. This is where it starts.",
+    "message_zh": "你记录了第一餐。一切从这里开始。",
+    "unlocked_at": "2026-04-14"
   }
 }
 ```
+
+The `starter` key (one-time "First Step" badge) is a sibling of `calorie_target` — written only by `award-starter`, never by `check`. `check` preserves it (it only ever touches `calorie_target`).
 
 ## Integration Point
 

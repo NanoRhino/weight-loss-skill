@@ -97,6 +97,8 @@ When `pending_milestone` is not null, **replace** the daily line with a bigger c
 
 When `current_streak < 2`: compose the opening normally. No streak mention.
 
+> Day 1 (the user's first meal ever) is deliberately silent here — that moment is celebrated in-the-moment by `diet-tracking-analysis`'s First-Meal Celebration at log time, which also unlocks the one-time "First Step" starter badge (a `reward-engine` badge distinct from the qualified-day ladder). Streak milestones start at 3, so there is no double-celebration. Do not lower the milestone floor or add a day-1 streak line without removing the diet-tracking celebration first.
+
 ## Break Handling
 
 - Script resets `milestones_celebrated` automatically on new streak.
