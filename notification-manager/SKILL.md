@@ -53,7 +53,7 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "0 12 * * *"
 ```
 
-`--tz` auto-detects from the agent workspace's `USER.md > Timezone`. If no `--tz` is given **and** no timezone can be read, the script **aborts with an error** (it will not guess — a wrong-timezone reminder fires at the wrong real-world hour). Always either set `USER.md > Timezone` or pass `--tz` explicitly.
+`--tz` auto-detects from the agent workspace's `USER.md > Timezone`. If no `--tz` is given **and** no timezone can be read, the script **defaults to `America/New_York` (US default) with a logged warning** — this is a US-funnel product, so a US default is usually right and beats leaving the user with no reminders. For correctness, still prefer setting `USER.md > Timezone` or passing `--tz` explicitly.
 
 ### Parameters
 
@@ -65,7 +65,7 @@ bash {baseDir}/scripts/create-reminder.sh \
 | `--message` | ✅ | Prompt sent to user when the job fires |
 | `--at` | one of | One-shot: relative time or ISO timestamp |
 | `--cron` | one of | Recurring: 5-field cron expression |
-| `--tz` | ❌ | IANA timezone for cron. Auto-detects from `USER.md > Timezone` if omitted; **aborts with an error if neither is available** (no silent default) |
+| `--tz` | ❌ | IANA timezone for cron. Auto-detects from `USER.md > Timezone` if omitted; **falls back to `America/New_York` (US default) with a warning if neither is available** |
 | `--keep` | ❌ | Don't auto-delete one-shot jobs after running |
 | `--to` | ❌ | Explicit delivery target. Overrides auto-detection. Required for channels other than `slack`/`wechat`/`wecom` |
 | `--type` | ❌ | Job type for anti-burst scheduling: `meal`, `weight`, or `other` (default: `other`). See **Anti-burst scheduling** below |
@@ -81,7 +81,7 @@ The script resolves the delivery target (`--to`) based on the channel:
 | `wechat` / `wecom` | Extracts userId from agent ID (`wechat-dm-xxx` → `xxx`) | `--agent wechat-dm-abc123` → `abc123` |
 | Others | No auto-detection — must pass `--to` explicitly | `--to "123456789"` |
 
-Timezone auto-detection reads `- **Timezone:**` from the first existing `USER.md` among (in order): `<state>/workspace-nutritionist/$AGENT/`, `<state>/workspace-$AGENT/`, `<project>/.openclaw-user-service/workspaces/$AGENT/`. `<state>` resolves to `$OPENCLAW_STATE_DIR` → `$OPENCLAW_HOME` → `~/.openclaw`. If none yields a timezone and no `--tz` was passed, the script aborts (no `Asia/Shanghai` default).
+Timezone auto-detection reads `- **Timezone:**` from the first existing `USER.md` among (in order): `<state>/workspace-nutritionist/$AGENT/`, `<state>/workspace-$AGENT/`, `<project>/.openclaw-user-service/workspaces/$AGENT/`. `<state>` resolves to `$OPENCLAW_STATE_DIR` → `$OPENCLAW_HOME` → `~/.openclaw`. If none yields a timezone and no `--tz` was passed, the script defaults to `America/New_York` (US default) with a warning — never `Asia/Shanghai`.
 
 **Idempotency:** before creating, the script checks the agent's existing jobs for one with the same `--name`; if found it skips (no duplicate). This makes creation safe under retries.
 
@@ -191,7 +191,7 @@ Use `--only meal,weight,report,pattern` to restrict which job types are created.
 
 ## Cron Job Definitions
 
-Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Prefer `batch-create-reminders.sh`** for bootstrap/sync — it reads the timezone from `USER.md` once and passes `--tz` explicitly to every job (the per-job script's own auto-detect is a fallback only). If you call `create-reminder.sh` directly, either ensure `USER.md > Timezone` is set or pass `--tz`; it will abort rather than guess. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
+Create recurring cron jobs using the script above. Derive the cron times from `health-profile.md > Meal Schedule` (each meal time minus 15 min). **Prefer `batch-create-reminders.sh`** for bootstrap/sync — it reads the timezone from `USER.md` once and passes `--tz` explicitly to every job (the per-job script's own auto-detect is a fallback only). If you call `create-reminder.sh` directly, prefer setting `USER.md > Timezone` or passing `--tz`; if neither is available it falls back to `America/New_York` (US default) with a warning. **Pass `--channel`** to match the agent's delivery channel (e.g. `wechat`, `slack`). If omitted, defaults to `slack` for backward compatibility.
 
 > ⚠️ **Cron expressions use the user's LOCAL time. Do NOT convert to UTC.** The script sets `--tz` automatically, so the cron scheduler handles timezone conversion. Example: if meal is at 09:00 Beijing time, the cron expression is `45 8 * * *` (08:45 local), NOT `45 0 * * *`.
 

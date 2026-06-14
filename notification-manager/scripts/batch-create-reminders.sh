@@ -41,6 +41,10 @@ STATE_DIR="$(resolve_state_dir)"
 CREATE_REMINDER="$SCRIPT_DIR/create-reminder.sh"
 FIND_SLOT="$SCRIPT_DIR/find-slot.py"
 
+# Default timezone when USER.md has no Timezone. US-funnel product → US-Eastern
+# is usually right, and beats aborting (no reminders). Must match create-reminder.sh.
+DEFAULT_TZ="America/New_York"
+
 AGENT=""
 CHANNEL=""
 WORKSPACE=""
@@ -99,16 +103,16 @@ read_usermd() {
 }
 
 get_timezone() {
-  # Read the user's IANA timezone from USER.md. FAIL LOUD if absent — a
-  # wrong-timezone reminder fires at the wrong real-world hour (worse than none),
-  # so we must not silently default to Asia/Shanghai for non-CN users.
+  # Read the user's IANA timezone from USER.md. If absent, fall back to the US
+  # default (DEFAULT_TZ) with a logged warning — this is a US-funnel product, so
+  # a US default is usually right and beats aborting (which would leave the user
+  # with no reminders). The warning goes to stderr so it doesn't pollute the
+  # captured stdout value.
   local tz
   tz=$(read_usermd "Timezone")
   if [[ -z "$tz" ]]; then
-    echo "ERROR: No '- **Timezone:**' field in $USER_MD." >&2
-    echo "ERROR: Refusing to create reminders without a confirmed timezone (would schedule in the wrong zone)." >&2
-    echo "ERROR: Set USER.md > Timezone (IANA, e.g. America/Chicago) and re-run." >&2
-    exit 1
+    echo "WARNING: No '- **Timezone:**' field in $USER_MD; defaulting to $DEFAULT_TZ (US default)." >&2
+    tz="$DEFAULT_TZ"
   fi
   echo "$tz"
 }

@@ -72,7 +72,7 @@ Once you have meal times:
 
 1. Get current timestamp:
    ```bash
-   python3 {user-onboarding-profile:baseDir}/scripts/now.py --tz-name <timezone from USER.md, default Asia/Shanghai>
+   python3 {user-onboarding-profile:baseDir}/scripts/now.py --tz-name <timezone from USER.md; if absent, now.py defaults to America/New_York>
    ```
 2. Open `health-profile.md`, find the `## Meal Schedule` section, and fill it in using standard field names:
    - `- **Meals per Day:** 2` or `3` (integer)

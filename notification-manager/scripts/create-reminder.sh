@@ -44,6 +44,11 @@ resolve_state_dir() {
 }
 STATE_DIR="$(resolve_state_dir)"
 
+# Default timezone when USER.md has no Timezone and no --tz is given. This is a
+# US-funnel product, so a US-Eastern default is "usually right" and beats leaving
+# a user with no reminders. Single source of truth — change here only.
+DEFAULT_TZ="America/New_York"
+
 AGENT=""
 NAME=""
 MESSAGE=""
@@ -113,10 +118,11 @@ read_usermd_field() {
 }
 
 # --- Timezone resolution ---
-# For recurring (--cron) jobs we MUST schedule in the user's real timezone.
-# A wrong timezone is worse than no reminder (fires at the wrong real-world
-# hour), so if --tz is not given AND we can't read it from USER.md, we FAIL
-# LOUD instead of silently defaulting to Asia/Shanghai.
+# For recurring (--cron) jobs the schedule must be anchored to a timezone.
+# Explicit --tz always wins (and skips auto-detect). Otherwise read USER.md >
+# Timezone. If that's absent too, fall back to the US default (DEFAULT_TZ) with
+# a logged warning — this is a US-funnel product, so a US default is usually
+# right, and that beats aborting (which would leave the user with no reminders).
 if [[ "$TZ_EXPLICIT" == "true" ]]; then
   echo "Using explicit --tz: $TZ (skipping auto-detect)"
 elif [[ -n "$CRON_EXPR" ]]; then
@@ -131,11 +137,8 @@ elif [[ -n "$CRON_EXPR" ]]; then
     fi
   done
   if [[ -z "$TZ" ]]; then
-    echo "ERROR: Could not resolve timezone for agent '$AGENT'." >&2
-    echo "ERROR: No --tz given and no '- **Timezone:**' field found in USER.md under:" >&2
-    for WS_DIR in "${WS_CANDIDATES[@]}"; do echo "ERROR:   $WS_DIR/USER.md" >&2; done
-    echo "ERROR: Refusing to schedule a recurring reminder in the wrong timezone. Pass --tz explicitly or set USER.md > Timezone." >&2
-    exit 1
+    TZ="$DEFAULT_TZ"
+    echo "WARNING: No --tz given and no '- **Timezone:**' field found in USER.md for agent '$AGENT'; defaulting to $DEFAULT_TZ (US default)." >&2
   fi
 fi
 

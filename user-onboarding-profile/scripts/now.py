@@ -33,6 +33,10 @@ import re
 import sys
 from datetime import datetime, timezone, timedelta
 
+# Default timezone when no arg and no resolvable USER.md zone. US-funnel product
+# → US-Eastern default. Must match the reminder scripts' DEFAULT_TZ.
+DEFAULT_TZ = "America/New_York"
+
 
 def _read_user_md(workspace: str) -> dict:
     """Read TZ Offset and Timezone from USER.md."""
@@ -102,16 +106,20 @@ def get_now(tz_name: str = None, tz_offset: int = None, workspace: str = None) -
             if tz:
                 return datetime.now(tz), "user_md_tzname"
 
-    # Priority 5: Server local time.
-    # NOTE: this is a genuine fallback, not a silent Asia/Shanghai default — the
-    # prod server runs UTC, which is a neutral choice (a US user gets UTC, not a
-    # Beijing wall-clock). Still, an unresolved zone here means "today"/"now" may
-    # be off by a few hours for the user, so log it for observability. Callers
-    # that need a correct user-local date should always pass --tz-name /
-    # --tz-offset or a --workspace whose USER.md has Timezone/TZ Offset set.
-    print("[now] WARNING: no tz-name/tz-offset arg and no USER.md "
-          "Timezone/TZ Offset — falling back to server local time "
-          "(may be wrong for the user)", file=sys.stderr)
+    # Priority 5: US default (DEFAULT_TZ).
+    # This is a US-funnel product, so when no zone is resolvable a US-Eastern
+    # default is "usually right" — better than the prod server's UTC (which
+    # would put a US user's "today"/"now" several hours ahead) and never a silent
+    # Asia/Shanghai. Callers that need an exact user-local date should still pass
+    # --tz-name / --tz-offset or a --workspace whose USER.md has Timezone/TZ
+    # Offset set. Logged for observability.
+    print(f"[now] WARNING: no tz-name/tz-offset arg and no USER.md "
+          f"Timezone/TZ Offset — defaulting to {DEFAULT_TZ} (US default); "
+          f"may be wrong for a non-Eastern user", file=sys.stderr)
+    tz = _tz_from_name(DEFAULT_TZ)
+    if tz:
+        return datetime.now(tz), "default_us"
+    # zoneinfo data somehow unavailable — last-resort server local time.
     return datetime.now().astimezone(), "server_local"
 
 

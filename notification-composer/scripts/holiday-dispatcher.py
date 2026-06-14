@@ -29,6 +29,11 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HOLIDAYS_DIR = os.path.join(SCRIPT_DIR, "..", "references", "holidays")
 LOOKAHEAD_DAYS = 5
 
+# Default timezone when USER.md has no Timezone. US-funnel product → US-Eastern
+# default so US users still get holiday crons (vs being skipped). Must match the
+# reminder scripts' DEFAULT_TZ.
+DEFAULT_TZ = "America/New_York"
+
 # Lifecycle API —— stage 的唯一真源(替代旧 engagement.json/check-stage.py)。
 LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
 
@@ -132,9 +137,9 @@ def detect_timezone(workspace_dir):
     """Detect user IANA timezone from USER.md > Timezone. Returns the tz name
     (e.g. 'America/Chicago') or None if absent/unreadable.
 
-    Returns None (not a silent 'Asia/Shanghai' default) so callers can decide
-    per-user behavior — scheduling a US user's holiday cron at a Beijing
-    wall-clock time would fire at the wrong real-world hour. This is a
+    Returns None (not a silent 'Asia/Shanghai' default) so the caller can apply
+    the US default with a warning — scheduling a US user's holiday cron at a
+    Beijing wall-clock time would fire at the wrong real-world hour. This is a
     multi-region feature (see references/holidays/{cn,us}-YYYY.json + the
     en->us region map in detect_region), so a CN default is not safe here.
     """
@@ -427,24 +432,26 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
         # Compute trigger time
         # Get breakfast time and compute trigger time (breakfast - 30min)
         breakfast_hour = get_breakfast_time(workspace_dir)
-        # Use the user's own timezone. If USER.md has no Timezone, SKIP this
-        # user rather than schedule at a wrong wall-clock time (the global
-        # --tz-offset is the main agent's offset, not this user's, and would
-        # mis-fire for a US user). Holiday dispatch is opportunistic, so
-        # skipping one user is safe; do NOT abort the whole scan.
+        # Use the user's own timezone. If USER.md has no Timezone, fall back to
+        # the US default (this is a US-funnel product) with a warning, so US
+        # users still get a holiday cron — rather than skipping them. An invalid
+        # IANA value also falls back to the default.
         tz_name = detect_timezone(workspace_dir)
         if not tz_name:
-            log(f"{agent_id}: no USER.md Timezone — skipping holiday cron (won't guess zone)")
-            results.append({"agent_id": agent_id, "status": "skipped",
-                            "reason": "no USER.md timezone"})
-            continue
+            log(f"{agent_id}: no USER.md Timezone — defaulting to {DEFAULT_TZ} (US default)")
+            tz_name = DEFAULT_TZ
         try:
             tz = ZoneInfo(tz_name)
         except Exception:
-            log(f"{agent_id}: invalid timezone '{tz_name}' — skipping holiday cron")
-            results.append({"agent_id": agent_id, "status": "skipped",
-                            "reason": f"invalid timezone {tz_name}"})
-            continue
+            log(f"{agent_id}: invalid timezone '{tz_name}' — defaulting to {DEFAULT_TZ} (US default)")
+            tz_name = DEFAULT_TZ
+            try:
+                tz = ZoneInfo(tz_name)
+            except Exception:
+                log(f"{agent_id}: cannot load {DEFAULT_TZ} — skipping holiday cron")
+                results.append({"agent_id": agent_id, "status": "skipped",
+                                "reason": "tz data unavailable"})
+                continue
         local_trigger = datetime(
             today.year, today.month, today.day,
             breakfast_hour, 0, tzinfo=tz
