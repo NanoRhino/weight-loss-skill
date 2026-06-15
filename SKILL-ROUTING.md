@@ -305,6 +305,25 @@ another skill (e.g., logs food before finishing profile setup).
 4. Exception: P0/P1 signals (safety/emotional) always take priority,
    even mid-onboarding
 
+> **First-Meal Mode note (activation):** The rule above predates First-Meal
+> Mode and is **superseded by it** for the activation cohort. The onboarding
+> gate is now **deterministic** — evaluated each inbound turn by
+> `onboarding-check.py` (backend-service AGENTS-handoff template), not by the
+> agent guessing whether onboarding is "in progress." Under First-Meal Mode:
+> - **Meal logging is NEVER gated by onboarding.** When a user logs food, log
+>   it and celebrate (see `diet-tracking-analysis` First-Meal Celebration) —
+>   do NOT hold it behind profile questions, and do NOT acknowledge-then-defer
+>   ("I'll log that in a moment") the way step 1 above describes.
+> - **Onboarding is progressive: one ask per touchpoint**, never a multi-question
+>   interrogation in a single turn. After the first meal, it resumes
+>   one-ask-at-a-time across later turns (goal weight → diet prefs → confirm
+>   meal times). The first-meal reply itself may carry exactly ONE soft,
+>   non-gating line (the meal-reminder opt-in) — nothing more.
+> - Default meal reminders (08:30/12:30/18:30 local) are created automatically
+>   on first meal via `notification-manager`'s `batch-create-reminders.sh
+>   --only meal --skip-existing`, so the user is enrolled without an explicit
+>   "set your times" Q&A. P0/P1 still override everything.
+
 ---
 
 ### Pattern 7: Habit Check-in + Diet Logging (P3 + P2)

@@ -45,6 +45,25 @@ python3 {baseDir}/scripts/now.py --tz-name Asia/Shanghai
 
 在保存步骤开始时 **运行一次** 并复用值——不要重复调用。
 
+## ⏰ 时区落盘（首条消息必做 · 确定性 · 幂等）
+
+> **背景：** 所有提醒/日期脚本都依赖 `USER.md > Locale & Timezone > TZ Offset`（**裸符号整数秒**，如 EDT 为 `-14400`、Asia/Shanghai 为 `28800`）。线上故障根因：有用户该字段为空 → 餐前提醒全部失效。**此步必须脚本化、确定性执行，不能靠提示性文字。**
+
+**在收到用户第一条消息时——无论冷启动引导还是 handoff 暖启动——先确保时区已落盘。** 用系统提示里的 `Time zone:` 行作为 IANA 时区名，运行：
+
+```bash
+python3 {baseDir}/scripts/now.py --write-usermd --workspace {workspaceDir} --tz-name <系统提示中的时区>
+```
+
+- 该命令会把 **Timezone 和 TZ Offset 两个字段** 都写入 `USER.md > Locale & Timezone`（TZ Offset 为裸符号整数秒，由解析后的当前时刻算出，自动正确处理夏令时）。
+- **幂等：** 若两个字段都已非空，命令不改动（`usermd.wrote=false`）；只在有字段为空/缺失/`—` 时填充——正是要修复的故障模式。重跑安全。
+- **handoff 用户同样适用：** handoff 用户跳过冷启动引导，但本步仍在他们的首条消息时执行（这正是出问题的群体）。
+- 它的 `now` / `date` 输出同样可复用于本次需要的时间戳，无需再次调用 `now.py`。
+- 若系统提示没有时区行，仍运行该命令（不带 `--tz-name`）——它会写入一个非空的兜底偏移（US 默认 `America/New_York`），**绝不留空**；之后拿到真实时区可再次运行覆盖空值。
+- USER.md 始终是语言/locale 的唯一权威——**不要** 另设来源。
+
+**静默执行**——不要向用户提时区或脚本。
+
 ## 预检查：跳过已收集的数据
 
 开始对话流程前，运行此脚本检查已填字段：
@@ -207,7 +226,11 @@ python3 {weight-loss-planner:baseDir}/scripts/planner-calc.py bmi \
 
 5. **生成画像** — 静默保存所有画像文件（见下方"保存画像文件"）。把映射得到的 `activity_level` 写入 `health-profile.md > Activity & Lifestyle > Activity Level`。
 
-6. **时区** — 此处 **不** 处理时区。它存于 USER.md > Locale & Timezone。如缺失，运行 update-timezone.sh。
+6. **时区** — 时区应已在首条消息时由本技能顶部的「⏰ 时区落盘」步骤确定性写入 `USER.md > Locale & Timezone`（Timezone + TZ Offset）。此处无需重复处理。**保险起见**，若 TZ Offset 仍为空，再跑一次幂等命令补齐（绝不留空，否则提醒会失效）：
+   ```bash
+   python3 {baseDir}/scripts/now.py --write-usermd --workspace {workspaceDir} --tz-name <系统提示中的时区>
+   ```
+   （Slack 渠道如需从 Slack 资料同步时区，可用 backend-service 的 `update-timezone.sh`；但 TZ Offset 的落盘保证来自上面这个确定性步骤，不依赖 Slack。）
 
 7. **继续 Step 3** — 画像保存后，直接在本技能内进入 Step 3（减脂方案）。**不要** 切到其他技能——完整的引导流程（画像 → 方案 → 饮食模板）都在本技能内。用一句自然的过渡，例："很好，你的信息已经记录好了！接下来我来给你制定一个减脂计划。"
 

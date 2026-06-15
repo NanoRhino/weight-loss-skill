@@ -187,6 +187,22 @@ bash {baseDir}/scripts/batch-create-reminders.sh \
 
 Use `--only meal,weight,report,pattern` to restrict which job types are created. The `--skip-existing` flag prevents duplicate creation during partial syncs.
 
+### Default meal times (post-first-meal activation)
+
+The canonical **default meal schedule is `08:30` breakfast / `12:30` lunch / `18:30` dinner (local)**, with each reminder firing at meal **−15 min** (08:15 / 12:15 / 18:15). This constant lives in **exactly one place**: the `DEFAULT_MEAL_SCHEDULE` variable at the top of `scripts/batch-create-reminders.sh` (alongside `DEFAULT_TZ`). Do not hard-code these times anywhere else — reference the script.
+
+`batch-create-reminders.sh` reads meal times from `health-profile.md > Meal Schedule`. **If that section is empty or absent, the script falls back to `DEFAULT_MEAL_SCHEDULE` instead of aborting** (it previously errored out). This is what makes the deterministic post-first-meal → active transition work: right after the user logs their first meal, the activation flow can create the default 3 meal reminders with
+
+```bash
+bash {baseDir}/scripts/batch-create-reminders.sh \
+  --agent <id> --channel <ch> --workspace {workspaceDir} \
+  --only meal --skip-existing
+```
+
+even before the user has a confirmed Meal Schedule. Onboarding later confirms/overrides meal times one ask at a time (goal weight → diet prefs → confirm meal times); when the user changes a time, `health-profile.md > Meal Schedule` is updated and auto-sync rewrites the crons (stale jobs removed + recreated). A populated Meal Schedule always wins over the default — the fallback only applies when no times exist yet.
+
+All preserved behavior still applies to the fallback path: anti-burst slot allocation (`--type meal`, [−10, +5] window), timezone from `USER.md > Timezone` (default `America/New_York`, never `Asia/Shanghai`), the imminent-fire guard, and `--skip-existing` idempotency.
+
 ---
 
 ## Cron Job Definitions

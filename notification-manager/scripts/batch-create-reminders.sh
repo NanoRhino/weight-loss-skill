@@ -45,6 +45,15 @@ FIND_SLOT="$SCRIPT_DIR/find-slot.py"
 # is usually right, and beats aborting (no reminders). Must match create-reminder.sh.
 DEFAULT_TZ="America/New_York"
 
+# CANONICAL DEFAULT MEAL TIMES (single source of truth) — used when
+# health-profile.md > Meal Schedule is empty/absent (e.g. the post-first-meal
+# activation flow creates the default 3 meal reminders before the user has
+# confirmed their own times). Times are LOCAL (the script passes --tz). Format:
+# "<MealName> HH:MM" per line, matching the output shape of get_meal_schedule().
+# If you change these, this is the ONLY place to change them.
+#   Breakfast 08:30 / Lunch 12:30 / Dinner 18:30 local
+DEFAULT_MEAL_SCHEDULE=$'Breakfast 08:30\nLunch 12:30\nDinner 18:30'
+
 AGENT=""
 CHANNEL=""
 WORKSPACE=""
@@ -235,7 +244,12 @@ fi
 
 MEAL_SCHEDULE=$(get_meal_schedule)
 if [[ -z "$MEAL_SCHEDULE" ]]; then
-  echo "ERROR: No meal times in health-profile.md > Meal Schedule" >&2; exit 1
+  # No Meal Schedule yet (e.g. post-first-meal activation: we want the default
+  # 3 meal reminders created before the user has confirmed their own times).
+  # Fall back to the canonical default schedule rather than aborting. The
+  # caller can later confirm/override times → auto-sync rewrites the crons.
+  MEAL_SCHEDULE="$DEFAULT_MEAL_SCHEDULE"
+  echo "WARNING: No meal times in health-profile.md > Meal Schedule; falling back to default schedule (08:30/12:30/18:30 local)." >&2
 fi
 
 echo "Meal schedule:"
