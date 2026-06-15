@@ -16,9 +16,30 @@ Recalculates the user's daily calorie target based on their current weight every
 
 ## When Cron Fires
 
-Run `scripts/periodic-recalc.py` with:
+First read the user's `PLAN.md` and extract:
+- `current_calories`: current daily calorie target (integer)
+- `target_weight`: target weight in kg (float)
+- `tdee`: current TDEE estimate (integer, if available)
+- `activity`: activity level (sedentary/lightly_active/moderately_active/very_active)
+- `diet_mode`: diet mode (balanced/high_protein/low_carb/keto/mediterranean/plant_based/usda/if_16_8/if_5_2)
+
+Then run `scripts/periodic-recalc.py` with:
 - `--workspace` → user workspace path
 - `--planner-calc` → path to `weight-loss-planner/scripts/planner-calc.py`
+- `--current-calories`, `--target-weight`, `--tdee`, `--activity`, `--diet-mode` → values extracted from PLAN.md
+
+```bash
+python3 scripts/periodic-recalc.py \
+  --workspace {workspaceDir} \
+  --planner-calc {weight-loss-planner:baseDir}/scripts/planner-calc.py \
+  --current-calories <extracted_value> \
+  --target-weight <extracted_value> \
+  --tdee <extracted_value> \
+  --activity <extracted_value> \
+  --diet-mode <extracted_value>
+```
+
+Passing values via CLI avoids brittle regex parsing of PLAN.md. If the CLI values are omitted, the script falls back to parsing PLAN.md directly.
 
 Based on the JSON output `action` field:
 

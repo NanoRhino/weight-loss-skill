@@ -194,11 +194,29 @@ After successfully sending the weekly report (cron trigger only, not manual), ru
 
 **⚠️ 周报和周期复盘必须作为两条独立消息发送，不要合并成一条。** 先用 message tool 发送周报，确认发送成功后，再执行 periodic-recalc 并用 message tool 单独发送复盘消息。
 
+### Step 1: Read PLAN.md
+
+Read the user's `{workspaceDir}/PLAN.md` and extract:
+- `current_calories`: the current daily calorie target (integer)
+- `target_weight`: target weight in kg (float)
+- `tdee`: current TDEE estimate (integer, if available)
+- `activity`: activity level (sedentary/lightly_active/moderately_active/very_active)
+- `diet_mode`: diet mode (balanced/high_protein/low_carb/keto/mediterranean/plant_based/usda/if_16_8/if_5_2)
+
+### Step 2: Run periodic-recalc
+
 ```bash
 python3 {baseDir}/../periodic-recalc/scripts/periodic-recalc.py \
   --workspace {workspaceDir} \
-  --planner-calc {weight-loss-planner:baseDir}/scripts/planner-calc.py
+  --planner-calc {weight-loss-planner:baseDir}/scripts/planner-calc.py \
+  --current-calories <extracted_value> \
+  --target-weight <extracted_value> \
+  --tdee <extracted_value> \
+  --activity <extracted_value> \
+  --diet-mode <extracted_value>
 ```
+
+### Step 3: Handle output
 
 Based on output `action` field:
 - **`"skipped"`** — Less than 25 days since last recalc. Do nothing, end session.
