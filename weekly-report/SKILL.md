@@ -106,7 +106,7 @@ python3 {baseDir}/scripts/generate-report-html.py \
 | `--tagline` | Short witty one-liner summarizing the week (spoken Chinese, like a friend roasting with love) |
 | `--commentary` | JSON: `{"logging": "...", "calories": "...", "weight": "...", "macros": "..."}` — 2-4 sentences each, casual spoken Chinese, funny/witty, backed by real numbers |
 | `--highlights` | JSON array: 2-3 specific data-backed wins |
-| `--suggestions` | JSON array: 1-2 concrete actionable improvements |
+| `--suggestions` | JSON array of **strings**: 1-2 concrete actionable improvements. Each element MUST be a plain string like `"🍽 标题：描述"`, NOT an object. |
 | `--plan-rate` | kg/week — use `meta.plan_rate` from collect output (default 0.5) |
 | `--lang` | Report language: `zh` (default) or `en`. Read from user's profile or infer from conversation language |
 

@@ -87,7 +87,7 @@ def _write_report_log(workspace_dir, data, url):
         },
         'commentary': commentary,
         'highlights': data.get('highlights', []),
-        'suggestions': data.get('suggestions', []),
+        'suggestions': _normalize_suggestions(data.get('suggestions', [])),
         'nickname': data.get('nickname', ''),
         'tagline': data.get('tagline', ''),
     }
@@ -96,6 +96,20 @@ def _write_report_log(workspace_dir, data, url):
         json.dump(report_log, f, ensure_ascii=False, indent=2)
     log(f"Report log written to {log_path}")
     return log_path
+
+
+def _normalize_suggestions(suggestions):
+    """Ensure suggestions is a list of strings (not objects)."""
+    result = []
+    for s in suggestions:
+        if isinstance(s, dict):
+            icon = s.get('icon', '')
+            title = s.get('title', '')
+            desc = s.get('desc', '')
+            result.append(f"{icon} {title}\uff1a{desc}" if desc else f"{icon} {title}")
+        else:
+            result.append(str(s))
+    return result
 
 
 def main():
@@ -161,7 +175,7 @@ def main():
 
     data['commentary'] = commentary
     data['highlights'] = highlights
-    data['suggestions'] = suggestions
+    data['suggestions'] = _normalize_suggestions(suggestions)
     data['nickname'] = args.nickname or ''
     data['tagline'] = args.tagline or ''
     data['plan_rate'] = args.plan_rate
