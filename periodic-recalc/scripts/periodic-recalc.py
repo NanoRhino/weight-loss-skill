@@ -302,6 +302,17 @@ def main():
                         help='Path to planner-calc.py script')
     parser.add_argument('--dry-run', action='store_true',
                         help='Show what would change without writing files')
+    parser.add_argument('--current-calories', type=int, default=None,
+                        help='Current daily calorie target (overrides PLAN.md parsing)')
+    parser.add_argument('--target-weight', type=float, default=None,
+                        help='Target weight in kg')
+    parser.add_argument('--tdee', type=int, default=None,
+                        help='Current TDEE estimate')
+    parser.add_argument('--activity', type=str, default=None,
+                        help='Activity level (sedentary/lightly_active/moderately_active/very_active)')
+    parser.add_argument('--diet-mode', type=str, default=None,
+                        help='Diet mode (balanced/high_protein/low_carb/keto/mediterranean/'
+                             'plant_based/usda/if_16_8/if_5_2)')
     args = parser.parse_args()
 
     workspace = args.workspace.resolve()
@@ -374,11 +385,22 @@ def main():
         }))
         return
 
-    # Step 4: Parse current plan
-    plan_data = parse_plan_md(plan_md)
-    if not plan_data:
-        print(json.dumps({"error": "Could not parse PLAN.md"}), file=sys.stderr)
-        sys.exit(1)
+    # Step 4: Parse current plan (CLI args override file parsing)
+    if args.current_calories:
+        plan_data = {
+            'daily_calories': args.current_calories,
+            'target_weight': args.target_weight or current_weight,
+            'tdee': args.tdee or 0,
+            'activity_level': args.activity or 'lightly_active',
+            'diet_mode': args.diet_mode or 'balanced',
+            'weekly_rate': None,
+            'current_weight': current_weight,
+        }
+    else:
+        plan_data = parse_plan_md(plan_md)
+        if not plan_data:
+            print(json.dumps({"error": "Could not parse PLAN.md — pass values via CLI args instead"}), file=sys.stderr)
+            sys.exit(1)
 
     # Get additional params from health-profile.md if not in PLAN.md
     profile_data = parse_health_profile(health_profile)

@@ -1,174 +1,192 @@
-# periodic-recalc
+---
+name: periodic-recalc
+version: 2.0.0
+description: "Recalculates the user's daily calorie target every 4 weeks based on current weight. Updates PLAN.md with new TDEE, calories, and macro ranges. Reviews diet mode fit."
+---
+
+# Periodic Recalculation
+
+## Step 0: Read PLAN.md (MANDATORY — do this FIRST)
+
+Before running any script, **read the user's `{workspaceDir}/PLAN.md`** and extract these values:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `current_calories` | int | Current daily calorie target |
+| `target_weight` | float | Target weight in kg |
+| `tdee` | int | Current TDEE estimate (0 if not stated) |
+| `activity` | string | Activity level: `sedentary`, `lightly_active`, `moderately_active`, or `very_active` |
+| `diet_mode` | string | Diet mode: `balanced`, `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `usda`, `if_16_8`, `if_5_2` |
+
+PLAN.md has no fixed format — it may be in English, Chinese, bullet points, prose, or markdown tables. Use your language understanding to extract the values regardless of formatting. If a value is not explicitly stated, use these defaults:
+- `activity`: `lightly_active`
+- `diet_mode`: `balanced`
+- `tdee`: `0` (script will calculate it)
+
+---
 
 ## Overview
 
-**Type:** Inline post-weekly-report task  
-**Trigger:** Every 4 weeks on Sunday (after weekly-report)  
-**Owner:** periodic-recalc skill  
-**Dependencies:** weight-loss-planner, weight-tracking
+- **Type:** Inline post-weekly-report task
+- **Trigger:** Every 4 weeks on Sunday (after weekly-report)
+- **Dependencies:** weight-loss-planner, weight-tracking
 
-Recalculates the user's daily calorie target based on their current weight every 4 weeks. Updates PLAN.md with new TDEE, calorie target, and macro ranges. Reviews whether their actual eating pattern matches their current diet_mode and suggests mode changes if needed.
+Recalculates daily calorie target based on current weight. Updates PLAN.md with new TDEE, calorie target, and macro ranges. Reviews whether actual eating pattern matches the current diet_mode.
+
+---
 
 ## Trigger Conditions
 
-1. **Primary trigger:** Called inline by weekly-report skill after sending the weekly report (Sunday)
-2. **Secondary trigger:** When weight-tracking logs a new weight AND `pending-recalc.json` exists with `reason="awaiting_weight"`
+1. **Primary:** Called inline by weekly-report skill after sending the weekly report (Sunday)
+2. **Secondary:** When weight-tracking logs a new weight AND `pending-recalc.json` exists with `reason="awaiting_weight"`
 
-## When Cron Fires
+---
 
-Run `scripts/periodic-recalc.py` with:
-- `--workspace` → user workspace path
-- `--planner-calc` → path to `weight-loss-planner/scripts/planner-calc.py`
+## Execution
+
+After extracting values from PLAN.md (Step 0), run:
+
+```bash
+python3 {baseDir}/scripts/periodic-recalc.py \
+  --workspace {workspaceDir} \
+  --planner-calc {weight-loss-planner:baseDir}/scripts/planner-calc.py \
+  --current-calories <extracted> \
+  --target-weight <extracted> \
+  --tdee <extracted> \
+  --activity <extracted> \
+  --diet-mode <extracted>
+```
+
+All `--current-calories`, `--target-weight`, `--tdee`, `--activity`, `--diet-mode` are optional CLI args. When provided, the script skips its own PLAN.md parsing. Always provide them — that's the whole point.
+
+---
+
+## Handling Output
 
 Based on the JSON output `action` field:
 
 ### `action: "skipped"`
 
-Less than 25 days since last recalculation. Do nothing — silently exit.
+Less than 25 days since last recalc. Do nothing — silently exit.
 
 ### `action: "recalculated"`
 
-The plan has been updated. Compose a "周期复盘 + 开启新周期" message for the user.
+Plan has been updated. Compose a cycle review + new cycle message for the user.
 
-**Message structure:**
-1. 🎉 **高调庆祝**上一减脂周期完成——这是用户坚持了4周的成果，要给足仪式感和成就感。回顾这4周的体重变化，让用户感受到"我做到了"
-2. 明确的**周期切换分割线**——让用户清晰感受到"上一页翻篇了，新的一页开始了"。可以用 emoji 分隔、换个语气、或者直接说"接下来是新周期的安排"
-3. 解释新周期为什么这样调——**语气温和、有人情味**，不要像念教科书。不说"根据热量守恒定律"，而是用用户能感受到的方式表达（"你现在比4周前轻了，身体需要的也少了一点"）。参考数据：
-   - `weight_change`：掉了多少？快还是慢？
-   - `old_calories` vs `new_calories`：热量升了还是降了？
-   - `rate_kg_per_week` 变化
-   - 过去4周打卡情况（读 `data/meals/` 最近28天，统计实际平均摄入 vs 旧目标）
-   - 进度不及预期时：温和指出可能是记录有遗漏、分量比想象中多，建议下个周期注意（不要指责、不要说"你吃多了"）
-4. 列出新周期具体数字：每日热量目标、预计减脂速度（kg/周）、4周预期减重
-5. 宏量素范围（蛋白质/碳水/脂肪 g）——所有数值保留到个位数，不要小数
-6. 问用户是否同意新计划："如果没问题我就按这个来了，有想调的随时说~"
+**Message structure (in user's language — check USER.md):**
 
-**数值精度：** 热量和三大营养素都保留到个位数（如 1359 kcal、蛋白质 70-93g），不要出现小数。
+1. 🎉 **Celebrate** the completed cycle — the user stuck with it for 4 weeks. Make them feel proud. Reference their weight change.
+2. **Clear divider** between old cycle review and new cycle plan. The user should feel "previous page closed, new page begins."
+3. **Explain** why the new numbers are what they are — warm, human tone. Not "based on thermodynamic principles" but "you're lighter now, your body needs a bit less." Reference:
+   - `weight_change`: how much lost? fast or slow?
+   - `old_calories` vs `new_calories`: up or down?
+   - `rate_kg_per_week` change
+   - Actual intake vs target (read `data/meals/` last 28 days)
+   - If progress underperformed: gently note possible recording gaps or portion underestimation. Never accuse.
+4. **New cycle numbers:** daily calorie target, expected rate (kg/week), 4-week forecast
+5. **Macro ranges** (protein/carbs/fat in grams) — integers only, no decimals
+6. **Ask for confirmation:** "Does this work for you? Happy to adjust if you want."
 
-**确认机制：** 消息末尾需要和用户确认新计划。用户不回复 = 默认同意，正常按新计划执行。用户回复有异议 → 根据用户诉求调整后重新更新 PLAN.md。
+**Precision:** All nutrition values as integers (e.g. 1359 kcal, protein 70-93g). No decimals.
 
-**上下文传递：** cron 执行完成后，必须将本次复盘摘要写入 `{workspace}/data/last-recalc-summary.json`，格式：
+**Confirmation flow:**
+- No reply = accepted. Proceed with new plan.
+- User has concerns → adjust and rewrite PLAN.md accordingly.
+
+**After sending,** write `{workspaceDir}/data/last-recalc-summary.json`:
 ```json
 {
-  "date": "2026-06-02",
-  "cycle_number": 2,
-  "weight_from": 60.0,
-  "weight_to": 57.9,
-  "old_calories": 1290,
-  "new_calories": 1359,
-  "old_rate": 0.44,
-  "new_rate": 0.35,
+  "date": "<today>",
+  "cycle_number": <N>,
+  "weight_from": <previous>,
+  "weight_to": <current>,
+  "old_calories": <old>,
+  "new_calories": <new>,
+  "old_rate": <old>,
+  "new_rate": <new>,
   "awaiting_confirmation": true,
-  "message_sent": "（发给用户的完整消息文本）"
+  "message_sent": "<full message text>"
 }
 ```
-这样用户回复时，main session 的 agent 能读到这个文件理解上下文（如用户说"保持之前的速度"→ agent 知道是指 old_rate 0.44）。用户确认或 3 天无回复后，将 `awaiting_confirmation` 设为 `false`。
 
-**核心原则：**
-- 相信热量守恒，不盲信打卡数据。进度不对 = 实际摄入有偏差，但表达要有人情味
-- 前周期总结和新周期安排要有明确区分，让用户感觉到翻篇进入新阶段
-- 像朋友聊天，不像发通知。少用"因此""所以""根据"，多用口语化表达
-- **语言：用中文回复**（读 USER.md 确认用户语言）
+**Then** run diet-mode review:
 
-**Tone:** 像一个懂你的私人教练在跟你聊阶段复盘——开心的事大声说，需要改进的地方轻轻提，整体让人有动力继续。
+```bash
+python3 {baseDir}/scripts/diet-mode-review.py --workspace {workspaceDir} --days 28
+```
 
-After composing the message, run `scripts/diet-mode-review.py` with `--workspace` and `--days 28`.
-
-Based on the output:
-- **`action: "recommend_change"`** → Ask the user if they'd like to switch to the recommended diet mode. Present the actual macro ratios vs current mode's expected ranges. Frame as: "Your eating pattern has naturally evolved to match [mode] better — would you like to update your plan?"
-- **`action: "no_change"`** → Silently continue (don't mention it)
-- **`action: "insufficient_data"`** → Silently continue
+- `action: "recommend_change"` → Ask user if they want to switch diet mode. Show actual macro ratios vs expected. Frame as: "Your eating has naturally shifted toward [mode] — want to update?"
+- `action: "no_change"` → Silently continue
+- `action: "insufficient_data"` → Silently continue
 
 ### `action: "awaiting_weight"`
 
-Output to the user:
-"It's time for your 4-week plan recalculation! Please weigh yourself when you can, and I'll update your plan once you log your weight."
+Tell the user: "It's time for your 4-week plan recalculation! Please weigh yourself when you can, and I'll update your plan once you log your weight."
 
-Write `pending-recalc.json` with:
+Write `pending-recalc.json`:
 ```json
-{
-  "created_at": "<ISO timestamp>",
-  "reason": "awaiting_weight",
-  "cycle_date": "<today's date>"
-}
+{"created_at": "<ISO>", "reason": "awaiting_weight", "cycle_date": "<today>"}
 ```
 
 ### `action: "on_leave"`
 
-Write `pending-recalc.json` with:
+Write `pending-recalc.json`:
 ```json
-{
-  "created_at": "<ISO timestamp>",
-  "reason": "on_leave",
-  "cycle_date": "<today's date>"
-}
+{"created_at": "<ISO>", "reason": "on_leave", "cycle_date": "<today>"}
 ```
 
-Do NOT notify the user. The recalc will trigger on the first Sunday after leave ends (notification-manager will reschedule).
+Do NOT notify the user. Recalc triggers on first Sunday after leave ends.
 
-## When Weight is Logged (Secondary Trigger)
+---
 
-After weight-tracking logs a new weight, run `scripts/check-pending-recalc.py` with `--workspace`.
+## Secondary Trigger: Weight Logged
 
-If output is `{"should_trigger": true}`:
-- Run the full recalc flow as if the cron had fired
-- Delete `pending-recalc.json` after successful completion
+When weight-tracking logs a new weight, run:
 
-## Data Dependencies
+```bash
+python3 {baseDir}/scripts/check-pending-recalc.py --workspace {workspaceDir}
+```
 
-| File/Script | Access | Purpose |
-|-------------|--------|---------|
-| `data/weight.json` | Read | Get most recent weight entry |
-| `data/leave.json` | Read | Check if user is on leave |
-| `data/pending-recalc.json` | Read/Write/Delete | Track deferred recalcs |
-| `PLAN.md` | Read/Write | Update calorie target, TDEE, macros |
-| `health-profile.md` | Read | Get activity level, diet_mode, user demographics |
-| `data/meals/*.json` | Read | Analyze actual eating patterns (diet-mode-review) |
-| `weight-loss-planner/scripts/planner-calc.py` | Execute | Recalculate TDEE/calories/macros |
+If `{"should_trigger": true}`: run the full recalc flow, then delete `pending-recalc.json`.
 
-## Important Notes
-
-- **Always recalculate** — no threshold check. Each 4-week cycle is a new phase regardless of weight change magnitude.
-- **Macro calculation** must match onboarding formulas:
-  - Protein: 1.2-1.6 g/kg × current_weight
-  - Fat: diet_mode percentage × daily_calories
-  - Carbs: remainder
-- If `floor_clamped: true` in planner-calc output, the weekly rate was reduced because daily_cal hit the BMR floor. Update `Weekly Rate` in PLAN.md accordingly.
-- Delete `pending-recalc.json` after successful recalc (whether triggered by cron or by weight logging).
-
-## Examples
-
-### Example 1: Normal recalc
-
-Input: User is at 58.5 kg (down from 60 kg)  
-Output: "Congratulations! You've lost 1.5 kg in 4 weeks! 🎉 Your new plan is ready: 1,260 kcal/day (down from 1,290). Your TDEE dropped from 1,772 to 1,740 kcal."
-
-### Example 2: Diet mode mismatch
-
-After recalc, diet-mode-review detects: user is in `balanced` mode but eating 38% protein / 30% carbs / 32% fat.  
-Output: "I noticed your eating pattern has naturally shifted toward higher protein (38% vs the 25-35% balanced range). Would you like to switch to `high_protein` mode? It better matches what you're already doing."
-
-### Example 3: Awaiting weight
-
-User hasn't logged weight in 3 weeks. Cron fires.  
-Output: "It's time for your 4-week plan recalculation! Please weigh yourself when you can, and I'll update your plan once you log your weight."  
-(pending-recalc.json is written)
-
-Two days later, user logs weight → check-pending-recalc detects flag → full recalc runs → pending-recalc.json is deleted.
+---
 
 ## User Reply Handling (Main Session)
 
-When user replies to the periodic-recalc message (in main session), check `data/last-recalc-summary.json`:
+When user replies to the recalc message, check `data/last-recalc-summary.json`:
 
 If `awaiting_confirmation: true`:
-- User says OK/没问题/可以/按这个来 → **只需要**将 `last-recalc-summary.json` 中 `awaiting_confirmation` 设为 `false`，不需要改 PLAN.md（cron 执行时已经写好了）
-- User wants adjustment → read the summary to understand context, recalculate, update PLAN.md, confirm to user
-- User doesn't reply for 3 days → treat as confirmed, set `awaiting_confirmation: false`
+- User confirms → set `awaiting_confirmation: false` (PLAN.md already updated by script)
+- User wants changes → recalculate with their preferences, update PLAN.md, confirm
+- No reply for 3 days → treat as confirmed
 
-**⚠️ 关键语义映射：**
-- "之前的速度/之前的热量/上一周期的" → 指 `old_rate`、`old_calories`（即调整前、上一周期执行的方案）
-- "现在的/新的/这个方案" → 指 `new_rate`、`new_calories`（即刚提出的新方案）
-- "保持之前的速度" = 用户想沿用上一周期的减脂速度（old_rate），不接受减速。此时应按 old_rate 重算热量目标（会比 new_calories 低）
-- "保持现在的" = 用户同意新方案
+**Semantic mapping:**
+- "previous pace / old calories / last cycle's" → `old_rate`, `old_calories`
+- "current / new / this plan" → `new_rate`, `new_calories`
+- "keep the old pace" = user wants `old_rate`, not the new slower rate → recalculate with that rate
 
-举例：summary 中 old_rate=0.44, new_rate=0.35。用户说"保持之前的速度" → 意思是继续每周 0.44kg，不要降到 0.35。此时用 planner-calc 以 rate=0.44 重新计算热量。
+---
+
+## Data Dependencies
+
+| File | Access | Purpose |
+|------|--------|---------|
+| `PLAN.md` | Read + Write | Source of current plan; updated with new values |
+| `data/weight.json` | Read | Most recent weight |
+| `data/leave.json` | Read | Leave status |
+| `data/pending-recalc.json` | R/W/Delete | Deferred recalc tracking |
+| `data/last-recalc-summary.json` | Write | Context for user reply handling |
+| `data/meals/*.json` | Read | Actual eating patterns (diet-mode-review) |
+| `health-profile.md` | Read | Activity level, demographics |
+
+---
+
+## Important Notes
+
+- **Always recalculate** — no "too small to bother" threshold. Each 4-week cycle is a new phase.
+- **Macro formula** (must match onboarding):
+  - Protein: 1.2–1.6 g/kg × target_weight (high_protein: 1.4–1.8)
+  - Fat: diet_mode percentage × daily_calories
+  - Carbs: remainder
+- If `floor_clamped: true`: weekly rate was reduced because calories hit BMR floor. Mention this to user.
+- Delete `pending-recalc.json` after successful recalc.
