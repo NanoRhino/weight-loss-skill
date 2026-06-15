@@ -306,9 +306,14 @@ def calc_targets(weight: float, daily_cal: int, meals: int = 3,
     else:
         p_lo, p_mid, p_hi = 1.2, 1.4, 1.6
 
-    protein = round(protein_weight * p_mid, 1)
-    protein_lo = round(protein_weight * p_lo, 1)
-    protein_hi = round(protein_weight * p_hi, 1)
+    # Physiological guardrail (p0-03): cap protein at the AMDR upper bound
+    # (35% of energy) so an out-of-range weight — lbs where kg is expected, or a
+    # blank/handoff profile — can't make protein consume the whole calorie budget
+    # and drive carbs negative.
+    protein_ceil = daily_cal * 0.35 / 4
+    protein = round(min(protein_weight * p_mid, protein_ceil), 1)
+    protein_lo = round(min(protein_weight * p_lo, protein_ceil), 1)
+    protein_hi = round(min(protein_weight * p_hi, protein_ceil), 1)
 
     fat_lo_pct, fat_hi_pct = DIET_MODE_FAT.get(mode, (25, 35))
     fat_mid_pct = (fat_lo_pct + fat_hi_pct) / 2
@@ -317,9 +322,10 @@ def calc_targets(weight: float, daily_cal: int, meals: int = 3,
     fat_lo = round(daily_cal * fat_lo_pct / 100 / 9, 1)
     fat_hi = round(daily_cal * fat_hi_pct / 100 / 9, 1)
 
-    carb = round((daily_cal - protein * 4 - fat * 9) / 4, 1)
-    carb_lo = round((daily_cal - protein_hi * 4 - fat_hi * 9) / 4, 1)
-    carb_hi = round((daily_cal - protein_lo * 4 - fat_lo * 9) / 4, 1)
+    # Carbs are the residual; floor at 0 so protein+fat can't push them negative.
+    carb = round(max(0, (daily_cal - protein * 4 - fat * 9) / 4), 1)
+    carb_lo = round(max(0, (daily_cal - protein_hi * 4 - fat_hi * 9) / 4), 1)
+    carb_hi = round(max(0, (daily_cal - protein_lo * 4 - fat_lo * 9) / 4), 1)
 
     cal_lo = daily_cal - 100
     cal_hi = daily_cal + 100
