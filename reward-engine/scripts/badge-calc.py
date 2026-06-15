@@ -108,9 +108,13 @@ def calc_percentile(level: int, elapsed_days: int) -> str:
 
 
 
-def get_local_date(tz_offset_minutes: int) -> str:
-    """Get today's date string in user's local timezone."""
-    tz = timezone(timedelta(minutes=tz_offset_minutes))
+def get_local_date(tz_offset_seconds: int) -> str:
+    """Get today's date string in user's local timezone.
+
+    tz_offset_seconds is the offset from UTC in SECONDS, matching USER.md's
+    `TZ Offset` field and the rest of the skill suite (streak-calc, now.py, etc.).
+    """
+    tz = timezone(timedelta(seconds=tz_offset_seconds))
     return datetime.now(tz).strftime("%Y-%m-%d")
 
 
@@ -940,7 +944,7 @@ def main():
 
     check_parser = sub.add_parser("check", help="Check today's qualification and update badges")
     check_parser.add_argument("--workspace-dir", required=True, help="User workspace directory")
-    check_parser.add_argument("--tz-offset", required=True, type=int, help="Timezone offset in minutes")
+    check_parser.add_argument("--tz-offset", required=True, type=int, help="Timezone offset from UTC in seconds (USER.md TZ Offset)")
 
     starter_parser = sub.add_parser(
         "award-starter",
@@ -949,7 +953,7 @@ def main():
     starter_parser.add_argument("--workspace-dir", required=True, help="User workspace directory")
     starter_parser.add_argument(
         "--tz-offset", type=int, default=0,
-        help="Timezone offset in minutes (used only for the unlock date; optional)",
+        help="Timezone offset from UTC in seconds (USER.md TZ Offset; used only for the unlock date; optional)",
     )
 
     args = parser.parse_args()
