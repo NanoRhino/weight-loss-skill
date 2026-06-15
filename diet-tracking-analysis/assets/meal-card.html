@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  :root{
+    --bg:#ffffff;
+    --soft:#f5f7f9;
+    --line:#ebeef1;
+    --txt:#14171d;
+    --txt-dim:#79808c;
+    --accent:#f15a22;
+    --ok:#1f9d5f;
+    --high:#e8742a;
+    --low:#3f7fc4;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:var(--bg);}
+  body{font-family:"Noto Sans CJK SC","Noto Sans SC",sans-serif;-webkit-font-smoothing:antialiased;}
+  .card{width:560px;background:var(--bg);color:var(--txt);}
+
+  /* ===== 头部:左=本餐热量, 右=今日进度, 并排吃满整行 ===== */
+  .hero{display:flex;align-items:flex-end;gap:26px;padding:24px 28px 22px;border-bottom:1px solid var(--line);}
+  .heroL{flex-shrink:0;}
+  .heroL .meal{font-size:18px;font-weight:800;color:var(--txt-dim);letter-spacing:1px;margin-bottom:2px;}
+  .heroL .kcal{display:flex;align-items:baseline;gap:7px;}
+  .heroL .kcal b{font-size:66px;font-weight:900;line-height:.82;color:var(--accent);letter-spacing:-3px;}
+  .heroL .kcal span{font-size:17px;font-weight:700;color:var(--txt-dim);}
+
+  .heroR{flex:1;padding-bottom:5px;}
+  .heroR .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
+  .heroR .row .t{font-size:15px;font-weight:800;color:var(--txt-dim);letter-spacing:1px;}
+  .heroR .row .v b{font-size:25px;font-weight:900;color:var(--txt);}
+  .heroR .row .v span{font-size:15px;color:var(--txt-dim);font-weight:700;}
+  .bar{height:14px;background:#e4e8ec;border-radius:9px;overflow:hidden;}
+  .bar .fill{height:100%;border-radius:9px;}
+  .heroR .dnote{margin-top:7px;font-size:14px;font-weight:800;text-align:right;}
+  .dnote.over{color:#d83a3a;} .dnote.under{color:var(--txt-dim);}
+
+  /* ===== 菜品 ===== */
+  .dishes{padding:4px 28px;}
+  .dish{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--line);}
+  .dish:last-child{border-bottom:none;}
+  .dish .name{font-size:20px;font-weight:600;}
+  .dish .name em{font-style:normal;font-size:14px;color:var(--txt-dim);font-weight:500;margin-left:7px;}
+  .dish .c{font-size:20px;font-weight:800;}
+
+  /* ===== 营养素 + 蔬果 一行五项 ===== */
+  .stats{display:flex;padding:16px 28px 22px;border-top:1px solid var(--line);background:var(--soft);}
+  .stat{flex:1;text-align:center;position:relative;}
+  .stat + .stat::before{content:"";position:absolute;left:0;top:12%;height:76%;width:1px;background:#dde2e7;}
+  .stat .k{font-size:14px;color:var(--txt-dim);font-weight:700;}
+  .stat .v{font-size:24px;font-weight:900;margin:6px 0 4px;letter-spacing:-1px;}
+  .stat .s{font-size:13px;font-weight:800;}
+  .s.ok{color:var(--ok);} .s.high{color:var(--high);} .s.low{color:var(--low);}
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="hero">
+      <div class="heroL">
+        <div class="meal" id="meal"></div>
+        <div class="kcal"><b id="kcal"></b><span>千卡</span></div>
+      </div>
+      <div class="heroR">
+        <div class="row">
+          <div class="t">今日累计</div>
+          <div class="v"><b id="dcal"></b><span> / <span id="dtarget"></span></span></div>
+        </div>
+        <div class="bar"><div class="fill" id="fill"></div></div>
+        <div class="dnote" id="dnote"></div>
+      </div>
+    </div>
+
+    <div class="dishes" id="dishes"></div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+<script>
+  const D = window.__DATA__;
+  const STATUS = { on_track:["达标","ok"], high:["偏高","high"], low:["偏少","low"] };
+
+  document.getElementById("meal").textContent = D.meal_label;
+  document.getElementById("kcal").textContent = D.meal_calories;
+
+  document.getElementById("dishes").innerHTML = D.dishes.map(d =>
+    `<div class="dish"><div class="name">${d.dish_name}<em>${d.total_g}克</em></div>`+
+    `<div class="c">${d.calories}</div></div>`
+  ).join("");
+
+  document.getElementById("dcal").textContent = D.daily.calories;
+  document.getElementById("dtarget").textContent = D.daily.target;
+  const fill = document.getElementById("fill");
+  fill.style.width = Math.min(D.daily.progress_pct,100) + "%";
+  fill.style.background = D.daily.progress_pct > 100 ? "#d83a3a" : "linear-gradient(90deg,#ff8a5b,#f15a22)";
+  const dnote = document.getElementById("dnote");
+  if (D.daily.remaining < 0) { dnote.textContent = "超出 " + Math.abs(D.daily.remaining) + " 千卡"; dnote.className = "dnote over"; }
+  else { dnote.textContent = "还可摄入 " + D.daily.remaining + " 千卡"; dnote.className = "dnote under"; }
+
+  const items = [
+    ["蛋白质", D.macros.protein.value_g+"g", D.macros.protein.status],
+    ["碳水",   D.macros.carbs.value_g+"g",   D.macros.carbs.status],
+    ["脂肪",   D.macros.fat.value_g+"g",     D.macros.fat.status],
+    ["蔬菜",   D.produce.vegetables_g+"g",   D.produce.vegetables_status],
+    ["水果",   D.produce.fruits_g+"g",       D.produce.fruits_status],
+  ];
+  document.getElementById("stats").innerHTML = items.map(([k,v,st])=>{
+    const [label,cls]=STATUS[st];
+    return `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s ${cls}">${label}</div></div>`;
+  }).join("");
+</script>
+</body>
+</html>
