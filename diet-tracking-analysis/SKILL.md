@@ -142,25 +142,26 @@ It reads the saved meals AFTER `meal_checkin` persists, so `is_first_meal_ever` 
 
 ### Round 1.5: Verify per-meal macros (REQUIRED on every create/append)
 
-The per-ingredient macros in `dishes` come from the vision/nutrition LLM — its
-four numbers per food (calories / protein_g / carbs_g / fat_g) are estimated
-independently and are NOT guaranteed to be arithmetically consistent. Before you
-state ANY per-meal number, run the deterministic cross-check so the figures you
-say out loud are internally consistent and the totals are exact arithmetic
-(this is the fix for users catching wrong macros, e.g. "you said 25 g, that's
-actually 17 g"):
+The per-ingredient macros come from the vision/nutrition LLM, but `meal_checkin`
+now RECONCILES them AT THE SOURCE (in the meal-tracker plugin) before persisting:
+it snaps each food's `calories` to the arithmetic identity 4·protein + 4·carbs +
+9·fat, clamps impossible produce weights (`vegetables_g`/`fruits_g` can't exceed
+the food's own weight), and re-derives dish/meal totals by summing. So the
+`dishes` it returns, the stored `data/meals`, and `daily_total`/`progress` are
+ALREADY arithmetically consistent — this is the fix for users catching wrong
+macros (e.g. "you said 25 g, that's actually 17 g"). To turn the reconciled
+`dishes` into the exact totals you display, run:
 
 ```bash
 python3 {baseDir}/scripts/nutrition-calc.py verify-meal --dishes '<the dishes array from meal_checkin, as JSON>'
 ```
 
-- Pass the `dishes` array (or the raw `meal_json` ingredient rows) verbatim as the `--dishes` JSON.
-- **Use the returned `dishes` and `meal_total` as the authoritative per-meal numbers in your ① reply** — they recompute every dish/meal total by summing the (reconciled) ingredients (4 kcal/g protein, 4 kcal/g carbs, 9 kcal/g fat) and clamp impossible produce weights (`vegetables_g`/`fruits_g` can't exceed the food's own weight). Never re-state the raw LLM dish numbers when they differ from this.
-- **`corrections` array:** if non-empty, the LLM's numbers were inconsistent.
-  - For each correction with `uncertain: false` — silently use the reconciled number; no need to mention it.
-  - For each correction with `uncertain: true` — the gap is large enough that an underlying macro is probably wrong, not just the calorie field. Do NOT assert the number as fact. Surface it as a light, single question in your reply (e.g. "that {item} looks a bit off on my end — does {weight}g sound right?") so the user can correct it. This is cheaper than stating a wrong figure and losing trust.
-- Skip ONLY for `correct`/`delete` actions and on `meal_checkin` errors. For abort recovery (two meals), run `verify-meal` once per meal.
-- Run this in the same batch as the other Round-1 calls when possible; it is local arithmetic with no side effects (does not write any file).
+- **Use the returned `dishes` and `meal_total` as the authoritative per-meal numbers in your ① reply.** This runs the SAME reconciliation locally and is idempotent on already-reconciled dishes — it just gives you exact summed totals to display. Never re-state raw numbers that differ from it.
+- **When to ASK — read `meal_checkin`'s `macro_review` field** = `{ corrections: [...], has_uncertain: bool }`. The source reconciliation sets `has_uncertain: true` when an ingredient's macros drifted so far (>30%) that a macro itself — not just the calorie field — is probably wrong. Get the ask-signal from `macro_review`, **NOT** from re-running verify-meal (verify-meal sees the already-reconciled numbers and won't re-flag).
+  - `has_uncertain: false` — use the numbers silently; say nothing about it.
+  - `has_uncertain: true` — find the `corrections` entry with `uncertain: true` and surface it as ONE light question (e.g. "that {item} looks a bit off on my end — does {weight}g sound right?"). Do NOT assert the snapped number as fact — asking is cheaper than stating a wrong figure and losing trust.
+- Skip ONLY for `correct`/`delete` actions and on `meal_checkin` errors. For abort recovery (two meals), run `verify-meal` once per meal and check each sub-meal's `macro_review`.
+- verify-meal is local arithmetic with no side effects (writes no file); run it in the same batch as the other Round-1 calls when possible.
 
 ### Round 2: Compose reply
 
