@@ -130,6 +130,17 @@ python3 {baseDir}/scripts/onboarding-check.py --workspace {workspaceDir}
 
 **注：** 接受用户提供的任何名字或昵称——单字也完全可以。在后续轮次自然地使用这个名字，让对话更有个人感。
 
+**早早打开"随时记一餐"这扇门（低门槛 · 非阻塞 · 只提一次）：**
+
+拿到名字后，在进入 Round 2 之前，顺带轻轻告诉用户：**现在就可以随口发我一餐，我马上帮你记，资料咱们边聊边补。** 这是一扇始终敞开的并行门，**不替代、不打断、不拦住**后续访谈——说完这一句继续正常往下问动机/身体数据。目的是让用户在做完整资料之前就能体验到核心动作（记一餐），镜像 handoff 暖启动的低门槛模型。
+
+- **不要**把它框成任务或问句，**不要**等用户回应才继续——它只是一句顺带的告知，说完直接进 Round 2。
+- 只提一次。若用户当场真的发来一餐 → 正常交给 `diet-tracking-analysis` 记录并庆祝（见 `SKILL-ROUTING.md` Pattern 6 First-Meal Mode：记一餐永不被引导拦住），记完后自然回到访谈继续没问完的部分。
+- 不在这里讲拍照技巧、提醒设置或每日打卡的完整流程——那些留到 Step 5。这里只给"随口报一餐我就开始记"这一个动作。
+
+> 例："对了 [name]，咱们边聊边来就行——你现在随时可以直接发我一餐（一句"早上吃了个包子"就够），我马上帮你记上，剩下的资料咱们慢慢补。那先说说——你想减脂的原因是什么？"
+> 例（英文）："By the way [name], no need to wait — you can just text me a meal anytime (even 'eggs and toast' works) and I'll start tracking it right now; we can finish setup as we go. So — what's got you wanting to lose the weight?"
+
 **Round 2 — 动机：**
 
 拿到名字后，用几个简单例子引导用户说动机。解释你为什么问。
