@@ -4,63 +4,86 @@
 <meta charset="UTF-8">
 <style>
   :root{
-    --bg:#ffffff;
-    --soft:#f5f7f9;
-    --line:#ebeef1;
-    --txt:#14171d;
-    --txt-dim:#79808c;
-    --accent:#f15a22;
-    --ok:#1f9d5f;
-    --high:#e8742a;
-    --low:#3f7fc4;
+    --bg:#FAF8F6;
+    --tint:#F2EDE9;
+    --txt:#262626;
+    --dim:#828282;
+    --gold:#7B5724;
+    --border:#B29981;
+    --track:#EFEFEF;
+    --fill:#DFCAAD;
+    --leader:#B7B0AA;
+    --vdiv:#8B6B3E;
+    --ok:#1F9D5F;
+    --high:#7B5724;
+    --low:#3F7FC4;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{background:var(--bg);}
+  html,body{background:#ffffff;}
   body{font-family:"Noto Sans CJK SC","Noto Sans SC",sans-serif;-webkit-font-smoothing:antialiased;}
-  .card{width:560px;background:var(--bg);color:var(--txt);}
+  /* #card 现为外层容器:暖米留白底(同卡片底),四周 padding 留白,自身无边框无圆角 */
+  .card{width:560px;background:var(--bg);padding:20px;}
+  /* 内层卡片主体:棕框+圆角+卡片底色都在这里 */
+  .sheet{background:var(--bg);color:var(--txt);border:2.5px solid var(--border);border-radius:16px;overflow:hidden;}
 
-  /* ===== 头部:左=本餐热量, 右=今日进度, 并排吃满整行 ===== */
-  .hero{display:flex;align-items:flex-end;gap:26px;padding:24px 28px 22px;border-bottom:1px solid var(--line);}
+  /* ===== 头部:左=本餐热量, 右=今日进度, 顶部对齐并排吃满整行 ===== */
+  .hero{display:flex;align-items:flex-start;gap:30px;padding:26px 19px 22px;}
   .heroL{flex-shrink:0;}
-  .heroL .meal{font-size:18px;font-weight:800;color:var(--txt-dim);letter-spacing:1px;margin-bottom:2px;}
-  .heroL .kcal{display:flex;align-items:baseline;gap:7px;}
-  .heroL .kcal b{font-size:66px;font-weight:900;line-height:.82;color:var(--accent);letter-spacing:-3px;}
-  .heroL .kcal span{font-size:17px;font-weight:700;color:var(--txt-dim);}
+  .heroL .meal{font-size:17px;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:6px;}
+  .heroL .kcal{display:flex;align-items:baseline;gap:8px;}
+  .heroL .kcal b{font-size:60px;font-weight:900;line-height:.85;color:var(--txt);letter-spacing:-2px;}
+  .heroL .kcal span{font-size:24px;font-weight:600;color:var(--txt);}
 
-  .heroR{flex:1;padding-bottom:5px;}
-  .heroR .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
-  .heroR .row .t{font-size:15px;font-weight:800;color:var(--txt-dim);letter-spacing:1px;}
-  .heroR .row .v b{font-size:25px;font-weight:900;color:var(--txt);}
-  .heroR .row .v span{font-size:15px;color:var(--txt-dim);font-weight:700;}
-  .bar{height:14px;background:#e4e8ec;border-radius:9px;overflow:hidden;}
-  .bar .fill{height:100%;border-radius:9px;}
-  .heroR .dnote{margin-top:7px;font-size:14px;font-weight:800;text-align:right;}
-  .dnote.over{color:#d83a3a;} .dnote.under{color:var(--txt-dim);}
+  .heroR{flex:1;padding-top:2px;}
+  .heroR .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+  .heroR .row .t{font-size:16px;font-weight:800;color:var(--gold);letter-spacing:1px;}
+  .heroR .row .v b{font-size:28px;font-weight:900;color:var(--txt);}
+  .heroR .row .v span{font-size:17px;color:var(--dim);font-weight:600;}
+  .bar{height:22px;background:var(--track);border-radius:999px;overflow:hidden;box-shadow:inset 0 0.5px 1px rgba(0,0,0,0.25);}
+  .bar .fill{height:100%;border-radius:999px;box-shadow:inset 0 0.5px 1px rgba(0,0,0,0.25);}
+  .heroR .dnote{margin-top:8px;font-size:13px;font-weight:700;text-align:right;}
+  .dnote.over{color:#D83A3A;} .dnote.under{color:var(--dim);}
 
-  /* ===== 菜品 ===== */
-  .dishes{padding:4px 28px;}
-  .dish{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--line);}
-  .dish:last-child{border-bottom:none;}
-  .dish .name{font-size:20px;font-weight:600;}
-  .dish .name em{font-style:normal;font-size:14px;color:var(--txt-dim);font-weight:500;margin-left:7px;}
-  .dish .c{font-size:20px;font-weight:800;}
+  /* ===== 菜品(可扩展,奇偶交替底色) ===== */
+  .dishes{padding:6px 0 8px;}
+  .dish{display:flex;align-items:baseline;padding:13px 19px;}
+  .dish:nth-child(odd){background:var(--tint);}
+  /* 菜名定宽列:克数列起点固定 → 多道菜克数左对齐成一列;菜名超长时允许撑开,优先保克数对齐 */
+  .dish .name{flex:0 0 auto;min-width:175px;font-size:20px;font-weight:700;color:var(--txt);white-space:nowrap;}
+  /* 克数独立左对齐单元,紧接菜名定宽列之后,横坐标固定 */
+  .dish .g{flex-shrink:0;font-style:normal;font-size:15px;color:var(--dim);font-weight:500;}
+  .dish .leader{flex:1;border-bottom:2px dotted var(--leader);margin:0 12px;transform:translateY(-5px);}
+  .dish .c{font-size:20px;font-weight:800;color:var(--txt);white-space:nowrap;}
+  .dish .c span{font-size:14px;font-weight:600;color:var(--dim);margin-left:5px;}
 
-  /* ===== 营养素 + 蔬果 一行五项 ===== */
-  .stats{display:flex;padding:16px 28px 22px;border-top:1px solid var(--line);background:var(--soft);}
-  .stat{flex:1;text-align:center;position:relative;}
-  .stat + .stat::before{content:"";position:absolute;left:0;top:12%;height:76%;width:1px;background:#dde2e7;}
-  .stat .k{font-size:14px;color:var(--txt-dim);font-weight:700;}
-  .stat .v{font-size:24px;font-weight:900;margin:6px 0 4px;letter-spacing:-1px;}
-  .stat .s{font-size:13px;font-weight:800;}
-  .s.ok{color:var(--ok);} .s.high{color:var(--high);} .s.low{color:var(--low);}
+  /* ===== 底部:左=蔬果(图标+标签上数值下,横向并排), 中=竖线, 右=三大营养素 ===== */
+  .foot{display:flex;align-items:center;padding:12px 19px 24px;}
+  /* 末行菜品为浅色底(奇数道)时,营养素区加更深一档暖米底,与上方浅色行分层(JS动态加 .deep) */
+  .foot.deep{background:#F2EDE9;}
+  .produce{flex-shrink:0;display:flex;align-items:center;gap:22px;}
+  .produce .p{display:flex;align-items:center;gap:10px;}
+  .produce .p .ico{flex-shrink:0;width:36px;height:36px;display:block;}
+  .produce .p .txt{display:flex;flex-direction:column;line-height:1.2;}
+  .produce .p .txt .lbl{font-size:13px;font-weight:600;color:var(--dim);}
+  .produce .p .txt .val{font-size:19px;font-weight:800;color:var(--txt);}
+  .vdiv{width:4px;height:34px;background:var(--vdiv);margin:0 26px;}
+  .macros{flex:1;display:flex;}
+  .macro{flex:1;text-align:center;}
+  .macro .k{font-size:15px;color:var(--txt);font-weight:700;transform:translateY(8px);}
+  .macro .v{font-size:21px;font-weight:900;margin-top:6px;letter-spacing:-.5px;color:var(--gold);}
+  /* 三大营养素符号(✓↑↓)字形仍按 status 区分,颜色统一棕色,不随 ok/high/low 变 */
+  .macro .v .ar{font-size:14px;font-weight:900;font-style:normal;margin-left:3px;vertical-align:2px;color:var(--gold);}
+  /* 以下 ok/高/低 配色仅供蔬果等区域的状态箭头使用,营养素区不复用(被上面 .macro .v .ar 覆盖) */
+  .ar.ok{color:var(--ok);} .ar.high{color:var(--high);} .ar.low{color:var(--low);}
 </style>
 </head>
 <body>
   <div class="card" id="card">
+   <div class="sheet">
     <div class="hero">
       <div class="heroL">
         <div class="meal" id="meal"></div>
-        <div class="kcal"><b id="kcal"></b><span>千卡</span></div>
+        <div class="kcal"><b id="kcal"></b><span>kcal</span></div>
       </div>
       <div class="heroR">
         <div class="row">
@@ -73,40 +96,57 @@
     </div>
 
     <div class="dishes" id="dishes"></div>
-    <div class="stats" id="stats"></div>
+
+    <div class="foot">
+      <div class="produce" id="produce"></div>
+      <div class="vdiv"></div>
+      <div class="macros" id="macros"></div>
+    </div>
+   </div>
   </div>
 
 <script>
   const D = window.__DATA__;
-  const STATUS = { on_track:["达标","ok"], high:["偏高","high"], low:["偏少","low"] };
+  const ARROW = { on_track:["✓","ok"], high:["↑","high"], low:["↓","low"] };
 
   document.getElementById("meal").textContent = D.meal_label;
   document.getElementById("kcal").textContent = D.meal_calories;
 
   document.getElementById("dishes").innerHTML = D.dishes.map(d =>
-    `<div class="dish"><div class="name">${d.dish_name}<em>${d.total_g}克</em></div>`+
-    `<div class="c">${d.calories}</div></div>`
+    `<div class="dish"><div class="name">${d.dish_name}</div>`+
+    `<div class="g">${d.total_g}克</div>`+
+    `<div class="leader"></div>`+
+    `<div class="c">${d.calories}<span>kcal</span></div></div>`
   ).join("");
+
+  // 菜品行奇偶交替底色:第1行起为浅色(#F2EDE9)。菜品总数为奇数 → 末行浅色 → 营养素区加深一档暖米底分层;偶数 → 末行透明 → 不加。
+  if (D.dishes.length % 2 === 0) document.querySelector(".foot").classList.add("deep");
 
   document.getElementById("dcal").textContent = D.daily.calories;
   document.getElementById("dtarget").textContent = D.daily.target;
   const fill = document.getElementById("fill");
   fill.style.width = Math.min(D.daily.progress_pct,100) + "%";
-  fill.style.background = D.daily.progress_pct > 100 ? "#d83a3a" : "linear-gradient(90deg,#ff8a5b,#f15a22)";
+  fill.style.background = "#DFCAAD";
+  // 进度条下方备注文字完全去掉:无论 remaining 正负都不显示文字、不占位(进度条超标变红的 .fill 逻辑见上,不受影响)
   const dnote = document.getElementById("dnote");
-  if (D.daily.remaining < 0) { dnote.textContent = "超出 " + Math.abs(D.daily.remaining) + " 千卡"; dnote.className = "dnote over"; }
-  else { dnote.textContent = "还可摄入 " + D.daily.remaining + " 千卡"; dnote.className = "dnote under"; }
+  dnote.textContent = "";
+  dnote.className = "dnote";
+  dnote.style.display = "none";
 
-  const items = [
+  const ICON_VEG = `<svg class="ico" viewBox="0 0 95 95" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M37.647 81.917C37.647 80.2968 41.8633 52.4997 27.8359 50.0215L27.3617 46.7181C26.6865 45.8871 31.4471 46.4026 34.2189 47.5284C37.1243 48.7085 39.361 51.4242 39.361 50.0215C39.361 48.8994 32.2857 41.0646 31.7143 40.7011L39.361 37.3866C40.1921 36.919 40.836 39.5781 42.5812 40.7004C44.3264 41.8227 46.8403 52.8787 47.152 56.4103C47.6506 51.2994 53.8522 42.2635 57.5017 40.7004L59.1129 42.2635C59.7882 43.3021 60.7335 43.985 59.1129 45.1069C57.4924 46.2288 54.2158 52.9304 53.8522 54.2289L64.5154 47.5284L67.3588 50.5093C55.3607 55.2905 54.1119 75.9438 53.8522 81.917H37.647Z" fill="#7D5D4A"/><path d="M46.7637 13.084C51.2812 13.084 55.3187 15.1387 57.9932 18.3643C59.4343 16.3153 61.8154 14.9756 64.5107 14.9756C68.9092 14.9756 72.4754 18.541 72.4756 22.9395C72.4756 22.9599 72.4738 22.9806 72.4736 23.001C79.8953 23.6805 85.708 29.9217 85.708 37.5205C85.7079 45.5732 79.1797 52.1016 71.127 52.1016C63.3863 52.1014 57.0553 46.0691 56.5762 38.4492C53.9858 40.8076 50.5428 42.2461 46.7637 42.2461C43.334 42.2461 40.1814 41.0609 37.6914 39.0791C36.3803 42.9652 33.4765 46.1163 29.7559 47.7588C29.5668 52.6488 25.5457 56.5556 20.6094 56.5557C15.5524 56.5557 11.4531 52.4554 11.4531 47.3984C11.4532 45.9588 11.7849 44.5967 12.377 43.3848C10.4445 40.9113 9.29308 37.7981 9.29297 34.416C9.29297 26.3632 15.8212 19.835 23.874 19.835C24.0824 19.835 24.2898 19.84 24.4961 19.8486C25.703 16.9853 28.5364 14.9756 31.8389 14.9756C33.7973 14.9757 35.5896 15.6838 36.9766 16.8564C39.564 14.5121 42.9972 13.084 46.7637 13.084Z" fill="#B59468"/></svg>`;
+  const ICON_FRUIT = `<svg class="ico" viewBox="0 0 91 91" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M75.5174 54.4241C75.5174 67.868 70.2777 79.2543 58.1169 83.1262C55.2325 84.0446 48.5901 81.417 45.4013 81.417C42.2124 81.417 35.5701 84.0446 32.6856 83.1262C20.5248 79.2543 15.2852 67.868 15.2852 54.4241C15.2852 40.9803 18.0709 30.9692 30.2317 27.0974C39.155 24.2559 42.2124 28.4349 45.4013 28.4349C48.5901 28.4349 52.763 24.9656 59.4554 27.0964C71.6162 30.9682 75.5174 40.9803 75.5174 54.4241Z" fill="#CA9D73"/><path d="M24.4556 13.8569C22.3278 20.7353 31.5811 34.4973 42.983 32.3842C44.3175 21.7618 31.5276 12.4856 24.4556 13.8569Z" fill="#AF8524"/><path d="M66.9596 11.7447C60.0811 9.61685 46.3191 18.8702 48.4322 30.272C59.0546 31.6065 68.3308 18.8167 66.9596 11.7447Z" fill="#AF8524"/><path d="M48.7623 22.4196C49.2756 21.3246 48.8041 20.0209 47.7091 19.5076C46.6141 18.9944 45.3104 19.4659 44.7971 20.5609L46.7797 21.4902L48.7623 22.4196ZM46.7797 21.4902L44.7971 20.5609C44.0387 22.1788 43.353 23.8572 43.0536 25.7874C42.7499 27.7449 42.8607 29.836 43.511 32.3072L45.6285 31.75L47.7461 31.1928C47.2268 29.2197 47.1822 27.7403 47.3811 26.4587C47.5841 25.1498 48.0588 23.9205 48.7623 22.4196L46.7797 21.4902Z" fill="#795231"/></svg>`;
+  document.getElementById("produce").innerHTML =
+    `<div class="p">${ICON_VEG}<span class="txt"><span class="lbl">蔬菜</span><span class="val">${D.produce.vegetables_g}g</span></span></div>`+
+    `<div class="p">${ICON_FRUIT}<span class="txt"><span class="lbl">水果</span><span class="val">${D.produce.fruits_g}g</span></span></div>`;
+
+  const macros = [
     ["蛋白质", D.macros.protein.value_g+"g", D.macros.protein.status],
     ["碳水",   D.macros.carbs.value_g+"g",   D.macros.carbs.status],
     ["脂肪",   D.macros.fat.value_g+"g",     D.macros.fat.status],
-    ["蔬菜",   D.produce.vegetables_g+"g",   D.produce.vegetables_status],
-    ["水果",   D.produce.fruits_g+"g",       D.produce.fruits_status],
   ];
-  document.getElementById("stats").innerHTML = items.map(([k,v,st])=>{
-    const [label,cls]=STATUS[st];
-    return `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s ${cls}">${label}</div></div>`;
+  document.getElementById("macros").innerHTML = macros.map(([k,v,st])=>{
+    const [arr,cls]=ARROW[st];
+    return `<div class="macro"><div class="k">${k}</div><div class="v">${v}<i class="ar ${cls}">${arr}</i></div></div>`;
   }).join("");
 </script>
 </body>
