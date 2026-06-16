@@ -579,6 +579,193 @@ def evaluate(weight: float, daily_cal: int, meals: int,
 
 
 
+# ---------------------------------------------------------------------------
+# Per-meal macro verification (deterministic arithmetic cross-check)
+# ---------------------------------------------------------------------------
+#
+# WHY THIS EXISTS
+# ---------------
+# Per-ingredient macros (calories / protein_g / carbs_g / fat_g) are produced
+# free-hand by the vision/nutrition LLM in the meal-tracker plugin. The four
+# numbers are emitted independently — nothing guarantees that a food's stated
+# `calories` actually equals 4·protein + 4·carbs + 9·fat, and nothing
+# recomputes the dish/meal TOTALS by arithmetic (the LLM is trusted to sum its
+# own rows). Engaged users catch the drift ("you said 25 g, that's actually
+# 17 g") and churn. This command moves that arithmetic OUT of the LLM:
+#
+#   1. Atwater kcal identity per ingredient: implied = 4P + 4C + 9F.
+#      When stated calories drift past tolerance, snap calories to the implied
+#      value (macros are the more reliable signal — they come straight from the
+#      per-100g food tables; the kcal field is the one most often fat-fingered).
+#   2. vegetables_g / fruits_g can never exceed the food's own weight
+#      (amount_g) — clamp the physically-impossible "80 g spinach → 280 g veg"
+#      case the LLM sometimes emits from raw-vs-cooked confusion.
+#   3. Re-derive every dish total and the meal total by SUMMING the (corrected)
+#      ingredient rows — never trust an LLM-provided total.
+#
+# This does NOT need a food database: it enforces internal consistency of the
+# numbers the coach is about to say out loud, and makes the totals exact. It is
+# independent of calc_targets / the p0-03 daily-target guardrail (different code
+# path — targets vs per-meal breakdown), so the two never interact.
+
+# A food's stated calories are treated as drifted when they differ from the
+# Atwater-implied value by more than BOTH an absolute and a relative tolerance.
+# (Rounding of 1-decimal macros alone can move implied kcal by a few kcal, so a
+# small floor avoids false positives on tiny items.)
+_KCAL_ABS_TOL = 8.0     # kcal
+_KCAL_REL_TOL = 0.12    # 12%
+
+
+def _atwater_kcal(protein: float, carbs: float, fat: float) -> float:
+    return 4.0 * protein + 4.0 * carbs + 9.0 * fat
+
+
+def verify_meal(dishes: list) -> dict:
+    """Deterministically reconcile per-ingredient macros and recompute totals.
+
+    Accepts either:
+      - a flat list of ingredient dicts (meal_checkin `meal_json` shape:
+        dish_name, name, amount_g, calories, protein_g, carbs_g, fat_g,
+        vegetables_g, fruits_g), or
+      - a list of dish dicts each carrying an `ingredients`/`foods` list.
+
+    Returns corrected dishes (grouped by dish_name), an arithmetic meal total,
+    and a `corrections` list describing every change made, so the agent can
+    state numbers it knows are internally consistent.
+    """
+    # Normalize input into a flat list of ingredient rows.
+    rows: list = []
+    for entry in dishes:
+        sub = entry.get("ingredients") if isinstance(entry, dict) else None
+        if sub is None and isinstance(entry, dict):
+            sub = entry.get("foods")
+        if isinstance(sub, list) and sub and isinstance(sub[0], dict):
+            dish_name = entry.get("dish_name") or entry.get("name")
+            for f in sub:
+                r = dict(f)
+                r.setdefault("dish_name", dish_name)
+                rows.append(r)
+        else:
+            rows.append(dict(entry))
+
+    corrections: list = []
+
+    def _num(r, *keys):
+        for k in keys:
+            if r.get(k) is not None:
+                try:
+                    return float(r[k])
+                except (TypeError, ValueError):
+                    return 0.0
+        return 0.0
+
+    for r in rows:
+        name = r.get("name") or r.get("dish_name") or "?"
+        protein = _num(r, "protein_g", "protein")
+        carbs = _num(r, "carbs_g", "carbs")
+        fat = _num(r, "fat_g", "fat")
+        stated_cal = _num(r, "calories")
+        implied = round(_atwater_kcal(protein, carbs, fat), 1)
+
+        # (1) Atwater kcal identity check. When stated calories disagree with
+        # 4P+4C+9F, the row is internally inconsistent — one of the four numbers
+        # is wrong. We always snap calories to the Atwater value so the totals
+        # the coach states (and the daily progress math) are arithmetically
+        # consistent. We DO NOT claim to know which input was wrong: a large
+        # disagreement is flagged `uncertain: true` so the agent surfaces it as
+        # a question ("does that look right?") rather than asserting a number it
+        # cannot trust — the exact failure that drove the 040108 churn.
+        drift = abs(stated_cal - implied)
+        if drift > _KCAL_ABS_TOL and drift > _KCAL_REL_TOL * max(stated_cal, implied, 1.0):
+            corrections.append({
+                "type": "kcal_identity",
+                "item": name,
+                "field": "calories",
+                "from": round(stated_cal, 1),
+                "to": round(implied, 1),
+                # "uncertain" = the gap is big enough that a macro (not just the
+                # kcal field) is probably off; don't state it as fact.
+                "uncertain": drift > 0.30 * max(stated_cal, implied, 1.0),
+                "reason": f"stated {round(stated_cal,1)} kcal != 4P+4C+9F = {implied} kcal",
+            })
+            r["calories"] = implied
+        else:
+            r["calories"] = stated_cal
+
+        # (2) produce can't exceed the food's own weight
+        amount_g = _num(r, "amount_g", "display_g", "total_g")
+        for pkey in ("vegetables_g", "fruits_g"):
+            pv = _num(r, pkey)
+            if amount_g > 0 and pv > amount_g + 0.5:
+                corrections.append({
+                    "type": "produce_clamp",
+                    "item": name,
+                    "field": pkey,
+                    "from": round(pv, 1),
+                    "to": round(amount_g, 1),
+                    "reason": f"{pkey} {round(pv,1)}g exceeds food weight {round(amount_g,1)}g",
+                })
+                r[pkey] = round(amount_g, 1)
+
+        r["protein_g"] = round(protein, 1)
+        r["carbs_g"] = round(carbs, 1)
+        r["fat_g"] = round(fat, 1)
+
+    # (3) Re-derive dish totals by arithmetic (preserve first-seen dish order).
+    dish_order: list = []
+    dish_map: dict = {}
+    for r in rows:
+        dn = r.get("dish_name") or r.get("name") or "?"
+        if dn not in dish_map:
+            dish_map[dn] = {
+                "dish_name": dn, "total_g": 0.0, "calories": 0.0,
+                "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0,
+                "vegetables_g": 0.0, "fruits_g": 0.0, "ingredients": [],
+            }
+            dish_order.append(dn)
+        d = dish_map[dn]
+        d["total_g"] += _num(r, "display_g", "amount_g")
+        d["calories"] += _num(r, "calories")
+        d["protein_g"] += _num(r, "protein_g")
+        d["carbs_g"] += _num(r, "carbs_g")
+        d["fat_g"] += _num(r, "fat_g")
+        d["vegetables_g"] += _num(r, "vegetables_g")
+        d["fruits_g"] += _num(r, "fruits_g")
+        if r.get("name"):
+            d["ingredients"].append(r["name"])
+
+    out_dishes = []
+    for dn in dish_order:
+        d = dish_map[dn]
+        out_dishes.append({
+            "dish_name": dn,
+            "total_g": round(d["total_g"]),
+            "calories": round(d["calories"]),
+            "protein_g": round(d["protein_g"], 1),
+            "carbs_g": round(d["carbs_g"], 1),
+            "fat_g": round(d["fat_g"], 1),
+            "vegetables_g": round(d["vegetables_g"]),
+            "fruits_g": round(d["fruits_g"]),
+            "ingredients": d["ingredients"],
+        })
+
+    meal_total = {
+        "calories": round(sum(x["calories"] for x in out_dishes)),
+        "protein_g": round(sum(x["protein_g"] for x in out_dishes), 1),
+        "carbs_g": round(sum(x["carbs_g"] for x in out_dishes), 1),
+        "fat_g": round(sum(x["fat_g"] for x in out_dishes), 1),
+        "vegetables_g": round(sum(x["vegetables_g"] for x in out_dishes)),
+        "fruits_g": round(sum(x["fruits_g"] for x in out_dishes)),
+    }
+
+    return {
+        "dishes": out_dishes,
+        "meal_total": meal_total,
+        "corrections": corrections,
+        "ok": len(corrections) == 0,
+    }
+
+
 def produce_check(meals: int, current_meal: str, log: list,
                   schedule: dict = None) -> dict:
     """Evaluate cumulative vegetable and fruit intake at the current checkpoint.
@@ -897,6 +1084,12 @@ def main():
     qd.add_argument("--bmr", type=float, default=None)
     qd.add_argument("--schedule", default=None)
 
+    # verify-meal
+    vm = sub.add_parser("verify-meal",
+                        help="Deterministically reconcile per-ingredient macros (4/4/9 kcal identity + produce clamp) and recompute dish/meal totals")
+    vm.add_argument("--dishes", required=True,
+                    help="JSON array of dishes or ingredient rows (meal_checkin dishes/meal_json shape)")
+
     # save-evaluation
     se = sub.add_parser("save-evaluation", help="Save suggestion text to meal record")
     se.add_argument("--data-dir", required=True)
@@ -939,6 +1132,11 @@ def main():
             mode=args.mode,
             schedule=schedule,
         )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    elif args.cmd == "verify-meal":
+        dishes = json.loads(args.dishes)
+        result = verify_meal(dishes)
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     elif args.cmd == "save-evaluation":

@@ -140,9 +140,31 @@ python3 {baseDir}/scripts/first-meal-check.py --workspace-dir {workspaceDir}
 ```
 It reads the saved meals AFTER `meal_checkin` persists, so `is_first_meal_ever` is true only when this is the very first food the user has ever logged. Use the result per "First-Meal Celebration + Starter Badge" below (including the one follow-up `award-starter` call when it IS the first meal). Skip ONLY for corrections/deletes (`action: correct/delete`) and on `meal_checkin` errors.
 
+### Round 1.5: Verify per-meal macros (REQUIRED on every create/append)
+
+The per-ingredient macros in `dishes` come from the vision/nutrition LLM — its
+four numbers per food (calories / protein_g / carbs_g / fat_g) are estimated
+independently and are NOT guaranteed to be arithmetically consistent. Before you
+state ANY per-meal number, run the deterministic cross-check so the figures you
+say out loud are internally consistent and the totals are exact arithmetic
+(this is the fix for users catching wrong macros, e.g. "you said 25 g, that's
+actually 17 g"):
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py verify-meal --dishes '<the dishes array from meal_checkin, as JSON>'
+```
+
+- Pass the `dishes` array (or the raw `meal_json` ingredient rows) verbatim as the `--dishes` JSON.
+- **Use the returned `dishes` and `meal_total` as the authoritative per-meal numbers in your ① reply** — they recompute every dish/meal total by summing the (reconciled) ingredients (4 kcal/g protein, 4 kcal/g carbs, 9 kcal/g fat) and clamp impossible produce weights (`vegetables_g`/`fruits_g` can't exceed the food's own weight). Never re-state the raw LLM dish numbers when they differ from this.
+- **`corrections` array:** if non-empty, the LLM's numbers were inconsistent.
+  - For each correction with `uncertain: false` — silently use the reconciled number; no need to mention it.
+  - For each correction with `uncertain: true` — the gap is large enough that an underlying macro is probably wrong, not just the calorie field. Do NOT assert the number as fact. Surface it as a light, single question in your reply (e.g. "that {item} looks a bit off on my end — does {weight}g sound right?") so the user can correct it. This is cheaper than stating a wrong figure and losing trust.
+- Skip ONLY for `correct`/`delete` actions and on `meal_checkin` errors. For abort recovery (two meals), run `verify-meal` once per meal.
+- Run this in the same batch as the other Round-1 calls when possible; it is local arithmetic with no side effects (does not write any file).
+
 ### Round 2: Compose reply
 
-Use `meal_checkin` results to compose your reply. No more tool calls needed — `meal_checkin` already saved the meal and returned evaluation.
+Use the **verified** `dishes`/`meal_total` (Round 1.5) plus `meal_checkin`'s `evaluation` to compose your reply. No more tool calls needed — `meal_checkin` already saved the meal and returned evaluation.
 
 > **What the plugin already computed (do NOT re-derive):**
 > - `daily_total`, `progress_pct`, `remaining` — final cumulative numbers
@@ -159,7 +181,7 @@ Use `meal_checkin` results to compose your reply. No more tool calls needed — 
 > - Handle `needs_clarification` as a casual hint
 > - Add `missing_meals` note if non-empty (tell user these were estimated)
 >
-> Do not re-explain WHY the budget is what it is. Do not recompute numbers. Just use them.
+> Do not re-explain WHY the budget is what it is. Do not recompute the daily/evaluation numbers (budget, progress, checkpoint, status) — just use them. (The ONE exception is the per-meal dish/ingredient macros, which you DO verify via `verify-meal` in Round 1.5 — those LLM-estimated numbers are not trustworthy until reconciled.)
 > Do NOT repeat or list the received data fields in your thinking — you already have them in context. Go straight to decisions: what tone, what suggestion, what to say.
 
 **If abort recovery was triggered (2 meals logged):**
@@ -251,11 +273,13 @@ If `context_clues` is present and non-null in meal_checkin result, naturally wea
 
 ## Response Schemas
 
-### ① Meal Details (from `dishes`)
+### ① Meal Details (from VERIFIED `dishes` / `meal_total` — Round 1.5)
 📝 [meal name] logged!
-🍽 This meal: {total_calories} kcal | Protein {total_protein}g | Carbs {total_carbs}g | Fat {total_fat}g
-· {dish_name} — {weight}g — {calories} kcal
-· {dish_name} — {weight}g — {calories} kcal
+🍽 This meal: {meal_total.calories} kcal | Protein {meal_total.protein_g}g | Carbs {meal_total.carbs_g}g | Fat {meal_total.fat_g}g
+· {dish_name} — {total_g}g — {calories} kcal
+· {dish_name} — {total_g}g — {calories} kcal
+
+Use the `verify-meal` output here — its totals are exact arithmetic, not the LLM's self-summed figures.
 
 **Weight display:** If user reported weight, use that. Otherwise, sum all ingredients (including oil/condiments) and round to nearest 10g (cooked weight is estimated anyway, no point in single-digit precision).
 
