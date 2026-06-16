@@ -58,7 +58,7 @@
 
   /* ===== 底部:左=蔬果(图标+标签上数值下,横向并排), 中=竖线, 右=三大营养素 ===== */
   .foot{display:flex;align-items:center;padding:12px 19px 24px;background:#FAF8F6;}
-  /* 营养素区底色按菜品数奇偶给两种固定色:偶数 → .deep → #DFCAAD;奇数 → 默认 → #FAF8F6(JS动态加 .deep) */
+  /* 营养素区底色按菜品数奇偶给两种固定色:偶数 → .deep → #F2EDE9;奇数 → 默认 → #FAF8F6(JS动态加 .deep) */
   .foot.deep{background:#F2EDE9;}
   .produce{flex-shrink:0;display:flex;align-items:center;gap:22px;}
   .produce .p{display:flex;align-items:center;gap:10px;}
@@ -119,7 +119,7 @@
     `<div class="c">${d.calories}<span>kcal</span></div></div>`
   ).join("");
 
-  // 营养素区底色按菜品数奇偶给两种固定色:偶数 → 加 .deep → #DFCAAD;奇数 → 无 .deep → 默认 #FAF8F6。
+  // 营养素区底色按菜品数奇偶给两种固定色:偶数 → 加 .deep → #F2EDE9;奇数 → 无 .deep → 默认 #FAF8F6。
   if (D.dishes.length % 2 === 0) document.querySelector(".foot").classList.add("deep");
 
   document.getElementById("dcal").textContent = D.daily.calories;
