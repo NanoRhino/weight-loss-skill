@@ -26,28 +26,51 @@
 
 ## 激活提醒（Activation）— 加好友/握手后从未回复
 
-**触发：** cron message 含 `activation`（一次性 cron，由 **openclaw-infra** 在 handoff 时创建：T+24h 发 nudge 1、T+72h 发 nudge 2，用户本地白天）。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、未完成引导、不在请假/暂停、未达上限。
+**触发：** cron message 含 `activation`（一次性 cron，由 **openclaw-infra** 在注册时创建：约 T+4h 发 nudge 1、T+24h 发 nudge 2，均落在用户本地白天）。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、未完成引导、不在请假/暂停、未达上限。
 
-**对象：** 通过 TDEE handoff 进来、收到第一条欢迎消息但**一条都没回**的用户。卡点是"开口说第一句话"。这条消息只为破冰、给一个零门槛的起点。
+**对象：** 收到第一条欢迎消息但**一条都没回**的用户。卡点是"开口说第一句话"。这条消息只为破冰、给一个零门槛的起点。**两类用户都会收到这个 cron**：通过 TDEE handoff 进来的（WARM，方案已就位）和冷启动注册的（COLD，无方案）。
+
+> **冷暖分流（compose 前必做）：** 检查 workspace 根目录是否有 `PLAN.md`。
+> - **`PLAN.md` 存在 → WARM 路径**（用户走过 TDEE handoff，PLAN.md/完整资料已就位）→ 用下面的 **WARM 文案**（handoff 风格："方案都准备好了…随口报一餐就行"）。
+> - **`PLAN.md` 不存在 → COLD 路径**（冷启动用户，无方案、无完整资料）→ 用下面的 **COLD 文案**（通用零门槛 "发我上一餐" 钩子）。**COLD 文案绝不提"方案/计划/资料/都准备好了"**——冷启动用户没有这些，提了会让人困惑。
+>
+> 两条路径共用同一套上限/去重/暂停出口规则。语言仍以 `USER.md > Language` 为准（见 §通用规则，不在此做语言选择）。
 
 > **决定性判据（整个 gate 的核心）：** 读 `channel-source.json > lastInboundAt`（epoch 毫秒，由 infra Phase-0 在每条入站消息时写入）。**只要 `lastInboundAt` 存在 → 用户已经回过 → 取消 nudge（NO_REPLY）。** 这是判断"是否回复过"的唯一权威信号——不要用对话历史或别的推断。
 >
 > **失败关闭（fail closed）：** 若 `channel-source.json` 整个文件缺失或读不出，pre-send-check 返回 NO_REPLY（不发）。目标人群一定有这个文件（infra 在注册时写入），读不到状态时保守不打扰。
 
-**上限：** 最多 2 条（T+24h + T+72h）。**用户回复任何消息 → 两条 nudge 自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 2 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 2`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
+**上限：** 最多 2 条（约 T+4h + T+24h）。**用户回复任何消息 → 两条 nudge 自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 2 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 2`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
 
 **语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`。**点名暂停出口**（让用户知道可以说 "pause" 让你安静）。
 
-**Nudge 1（T+24h，cron payload 含 `nudge=1`）：**
+### WARM 路径（`PLAN.md` 存在 — TDEE handoff 用户）
+
+**Nudge 1（约 T+4h，cron payload 含 `nudge=1`）：**
 - 表达"方案这边都准备好了，第一步很简单"
 - 给具体例子：随口说上一餐吃了啥就行，不用拍照
 - 英文初稿（按语言改写，不照搬）："Hey [name] — your plan's all set on my end. Whenever you're ready, the easiest way to start is just tell me what you ate last — even 'eggs and toast' works. No photo needed."
 - 本地化示例：英文 "eggs and toast"；中文用当地常见餐（如"早上吃了个包子"）。`[name]` 来自 USER.md，缺失则不用名字。
 
-**Nudge 2（T+72h，最后一条，cron payload 含 `nudge=2`，更软）：**
+**Nudge 2（T+24h，最后一条，cron payload 含 `nudge=2`，更软）：**
 - 比 nudge 1 更轻，零压力，**明确给暂停出口**
 - 英文初稿："Still here whenever you want me. No pressure at all — if now's not the time, just ignore this. If you'd rather I check in less, say 'pause' and I'll go quiet."
 - 本地化：保留"现在不方便就忽略 + 想少打扰说一声 pause"两层意思。
+
+### COLD 路径（`PLAN.md` 不存在 — 冷启动用户）
+
+**绝不提"方案/计划/资料/都准备好了"**——冷启动用户没有方案。只给一个通用、低门槛、自我介绍式的破冰钩子：报一餐 → 我帮你算宏量。
+
+**Nudge 1（约 T+4h，cron payload 含 `nudge=1`）：**
+- 简短自我介绍 + 零门槛的第一步：随口报上一餐，文字就行，不用拍照
+- 强调"我来算宏量"——用户不用做数学
+- 英文初稿（按语言改写，不照搬）："Hey! I'm your NanoRhino coach — just text me your last meal (even 'eggs and toast' works) and I'll break down the macros. No photo needed."
+- 本地化示例：英文 "eggs and toast"；中文用当地常见餐（如"早上吃了个包子"）。`[name]` 若 USER.md 有则可用，缺失则不用名字。
+
+**Nudge 2（T+24h，最后一条，cron payload 含 `nudge=2`，更软）：**
+- 比 nudge 1 更轻，零压力，**明确给暂停出口**；仍不提方案/资料
+- 英文初稿："Still here whenever you want to give it a try — just text me any meal and I'll handle the rest. No pressure; if now's not the time, ignore this, or say 'pause' and I'll go quiet."
+- 本地化：保留"随口报一餐我来处理 + 现在不方便就忽略 + 想少打扰说一声 pause"几层意思。
 
 **长度：** 1-2 句。**去重：** 发送后写入 `recall_topics`，nudge 2 避开 nudge 1 的角度/例子。
 
