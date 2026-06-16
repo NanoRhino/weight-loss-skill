@@ -28,6 +28,11 @@ Usage:
   python3 memory-consolidator.py long-term-stats --memory-dir /path/to/memory
 """
 
+# Production EC2 invokes skill scripts as bare `python3` = 3.9 (the PEP-723
+# `requires-python` header above is NOT enforced there). Defer all annotation
+# evaluation so PEP-604 unions (`dict | None`) don't crash at import on 3.9.
+from __future__ import annotations
+
 import argparse
 import json
 import os

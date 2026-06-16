@@ -22,6 +22,10 @@ Output (dispatch mode):
     Each job is: schedule.kind="at", deleteAfterRun=true, sessionTarget=isolated
 """
 
+# Production EC2 invokes skill scripts as bare `python3` = 3.9; defer annotation
+# evaluation so PEP-604 unions (`str | None`) don't crash at import on 3.9.
+from __future__ import annotations
+
 import argparse
 import json
 import os

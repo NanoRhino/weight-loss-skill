@@ -14,6 +14,10 @@ Usage:
   python3 periodic-recalc.py --workspace /path/to/workspace --planner-calc /path/to/planner-calc.py --dry-run
 """
 
+# Production EC2 invokes skill scripts as bare `python3` = 3.9; defer annotation
+# evaluation so PEP-604 unions (`tuple[...] | None`) don't crash at import on 3.9.
+from __future__ import annotations
+
 import argparse
 import json
 import re
