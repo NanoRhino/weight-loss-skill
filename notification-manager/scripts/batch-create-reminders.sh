@@ -60,20 +60,19 @@ fi
 HEALTH_PROFILE="$WORKSPACE/health-profile.md"
 USER_MD="$WORKSPACE/USER.md"
 
-# Ensure engagement.json exists (default stage=1 for new users)
+# Ensure engagement.json exists (非 stage 业务字段容器;stage 已迁 lifecycle DB,
+# 不再写 notification_stage/stage_changed_at — 见 PHASE-1.5-DESIGN.md)
 ENGAGEMENT_PATH="$WORKSPACE/data/engagement.json"
 if [[ ! -f "$ENGAGEMENT_PATH" ]]; then
   mkdir -p "$(dirname "$ENGAGEMENT_PATH")"
   cat > "$ENGAGEMENT_PATH" << 'ENGAGEMENT_EOF'
 {
-  "notification_stage": 1,
-  "stage_changed_at": null,
   "last_recall_date": null,
   "recall_2_sent": false,
   "reminder_config": {}
 }
 ENGAGEMENT_EOF
-  echo "Created engagement.json (stage=1)"
+  echo "Created engagement.json"
 fi
 
 if [[ ! -f "$HEALTH_PROFILE" ]]; then
