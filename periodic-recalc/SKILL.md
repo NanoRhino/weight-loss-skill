@@ -1,3 +1,13 @@
+---
+name: periodic-recalc
+version: 1.0.0
+description: "Every-4-weeks plan recalculation. Recomputes the user's TDEE, daily calorie target, and macro ranges from their CURRENT weight, updates PLAN.md, and reviews whether actual eating matches their diet_mode (suggesting a mode change if not). Normally chained automatically by weekly-report on Sundays — not usually selected directly. Also trigger when weight-tracking logs a new weight AND a recalculation is pending (`pending-recalc.json` with reason `awaiting_weight`), or when ~4 weeks have passed and the calorie target is stale and should be refreshed for the user's new weight."
+metadata:
+  openclaw:
+    emoji: "arrows_counterclockwise"
+    homepage: https://github.com/NanoRhino/weight-loss-skill
+---
+
 # periodic-recalc
 
 ## Overview
