@@ -436,6 +436,38 @@ If the user proactively requests a detailed 7-day meal plan, follow the full gen
 
 ---
 
+## Persist Every Substantial Plan (Don't Let It Vanish Into Chat)
+
+A meal plan that exists only as SMS text is lost the moment it scrolls away — the user can't re-open it, so they re-ask the next day and the work is regenerated from scratch. **Any time you build a multi-meal or multi-day plan, persist it to `MEAL-PLAN.md` and export it — don't leave it as throwaway chat text.**
+
+**When this rule applies (persist + export):**
+- A **full-day plan** ("build the meals you sent into a day plan", "give me a whole day", "plan out tomorrow") — even just one day across breakfast/lunch/dinner/snack.
+- A **multi-meal or weekly plan** the user asks you to "build" / "put together" / "map out".
+- The onboarding **diet template** (already covered in Step 3 → Bootstrap Meal Reminders) and the **7-day plan** (already covered in `references/7-day-plan-generation.md`).
+
+**When this rule does NOT apply (stay inline):**
+- The Step 0 fast-path **single quick idea** ("what should I eat for my next meal", "give me one idea") — answer inline, do not persist or export.
+- A one-off question about a single food, swap, or "is X okay" — answer inline.
+
+**How to persist (export channels — Twilio/SMS, Telegram, etc.):**
+1. **Write the plan to `MEAL-PLAN.md`** in the workspace, following `references/meal-plan-schema.md` (English metadata keys, localized values). This is the durable source of truth.
+2. **Run `plan-export`** to convert + upload and get the permanent URL:
+   ```bash
+   URL=$(bash {plan-export:baseDir}/scripts/generate-and-send.sh \
+     --agent <YOUR_AGENT_ID> --input MEAL-PLAN.md \
+     --workspace {workspaceDir} --template meal-plan --key meal-plan --bucket nanorhino-im-plans)
+   ```
+3. **Send the URL** with a short summary, and tell the user they can re-open it anytime — e.g. "你的计划已生成，随时回复「我的计划」就能再打开：[URL]" / "Your plan's saved — text me 'my plan' anytime to pull it back up: [URL]".
+4. **On any later edit** (swap a meal, add a grocery list), update `MEAL-PLAN.md` and re-run the export — the URL stays the same.
+
+**Non-export channels:** present the plan inline as before; no `MEAL-PLAN.md` / URL needed.
+
+**Re-asks re-surface the saved plan — don't regenerate.** If the user later asks "what was my plan" / "show me my plan" / "我的计划", read `plan-url.json` → `meal-plan` key and send the existing URL (re-export only if `MEAL-PLAN.md` changed since the last upload). Regenerate from scratch only if the user explicitly wants a new plan.
+
+Per SILENT OPERATION, never narrate the file write or upload — just deliver the link and summary.
+
+---
+
 ### Introduce Daily Tracking Workflow
 
 Introduce the daily tracking workflow **immediately after the diet template** so the user knows exactly how each day will work going forward. If the user later requests and finalizes a 7-day meal plan, present it again after that plan is done. The user should leave this conversation knowing the rhythm of their days ahead.
