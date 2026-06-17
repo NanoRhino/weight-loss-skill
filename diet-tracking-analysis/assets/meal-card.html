@@ -60,14 +60,14 @@
   .foot{display:flex;align-items:center;padding:12px 19px 24px;background:#FAF8F6;}
   /* 营养素区底色按菜品数奇偶给两种固定色:偶数 → .deep → #F2EDE9;奇数 → 默认 → #FAF8F6(JS动态加 .deep) */
   .foot.deep{background:#F2EDE9;}
-  .produce{flex-shrink:0;display:flex;align-items:center;gap:22px;margin-left:-4px;}
-  .produce .p{display:flex;align-items:center;gap:10px;}
+  .produce{flex-shrink:0;display:flex;align-items:center;gap:14px;margin-left:-4px;}
+  .produce .p{display:flex;align-items:center;gap:6px;}
   .produce .p .ico{flex-shrink:0;width:43px;height:43px;display:block;}
   .produce .p .txt{display:flex;flex-direction:column;line-height:1.2;}
   .produce .p .txt .lbl{font-size:13px;font-weight:600;color:var(--dim);}
   .produce .p .txt .val{font-size:19px;font-weight:800;color:var(--txt);display:inline-flex;align-items:baseline;gap:3px;}
   .produce .p .txt .val .ar{font-size:13px;font-weight:900;font-style:normal;}
-  .vdiv{width:4px;height:34px;background:var(--vdiv);margin:0 26px;}
+  .vdiv{width:4px;height:34px;background:var(--vdiv);margin:0 16px;}
   .macros{flex:1;display:flex;}
   .macro{flex:1;text-align:center;}
   .macro .k{font-size:15px;color:var(--txt);font-weight:700;transform:translateY(8px);}
@@ -75,7 +75,7 @@
   /* 三大营养素符号(✓↑↓)字形仍按 status 区分,颜色统一棕色,不随 ok/high/low 变 */
   .macro .v .ar{font-size:14px;font-weight:900;font-style:normal;margin-left:3px;vertical-align:2px;color:var(--gold);}
   /* 以下 ok/高/低 配色仅供蔬果等区域的状态箭头使用,营养素区不复用(被上面 .macro .v .ar 覆盖) */
-  .ar.ok{color:var(--ok);} .ar.high{color:var(--high);} .ar.low{color:var(--low);}
+  .ar.ok{color:var(--gold);} .ar.high{color:var(--gold);} .ar.low{color:var(--gold);}
 </style>
 </head>
 <body>
