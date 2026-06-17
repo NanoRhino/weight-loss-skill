@@ -2,9 +2,6 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#FAF8F6;
@@ -16,14 +13,14 @@
     --track:#EFEFEF;
     --fill:#DFCAAD;
     --leader:#B7B0AA;
-    --vdiv:#5A3F1F;
+    --vdiv:#8B6B3E;
     --ok:#1F9D5F;
     --high:#7B5724;
     --low:#3F7FC4;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{background:#ffffff;}
-  body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC",sans-serif;-webkit-font-smoothing:antialiased;}
+  body{font-family:"Noto Sans CJK SC","Noto Sans SC",sans-serif;-webkit-font-smoothing:antialiased;}
   /* #card 现为外层容器:暖米留白底(同卡片底),四周 padding 留白,自身无边框无圆角 */
   .card{width:560px;background:var(--bg);padding:20px;}
   /* 内层卡片主体:棕框+圆角+卡片底色都在这里 */
@@ -40,7 +37,7 @@
   .heroR{flex:1;padding-top:2px;}
   .heroR .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
   .heroR .row .t{font-size:16px;font-weight:800;color:var(--gold);letter-spacing:1px;}
-  .heroR .row .v b{font-size:28px;font-weight:700;color:var(--txt);}
+  .heroR .row .v b{font-size:28px;font-weight:900;color:var(--txt);}
   .heroR .row .v span{font-size:17px;color:var(--dim);font-weight:600;}
   .bar{height:22px;background:var(--track);border-radius:999px;overflow:hidden;box-shadow:inset 0 0.5px 1px rgba(0,0,0,0.25);}
   .bar .fill{height:100%;border-radius:999px;box-shadow:inset 0 0.5px 1px rgba(0,0,0,0.25);}
@@ -69,11 +66,11 @@
   .produce .p .txt{display:flex;flex-direction:column;line-height:1.2;}
   .produce .p .txt .lbl{font-size:13px;font-weight:600;color:var(--dim);}
   .produce .p .txt .val{font-size:19px;font-weight:800;color:var(--txt);}
-  .vdiv{width:4px;height:34px;background:var(--vdiv);margin:0 18px;}
+  .vdiv{width:4px;height:34px;background:var(--vdiv);margin:0 26px;}
   .macros{flex:1;display:flex;}
   .macro{flex:1;text-align:center;}
   .macro .k{font-size:15px;color:var(--txt);font-weight:700;transform:translateY(8px);}
-  .macro .v{font-size:21px;font-weight:600;margin-top:6px;letter-spacing:-.5px;color:var(--gold);}
+  .macro .v{font-size:21px;font-weight:900;margin-top:6px;letter-spacing:-.5px;color:var(--gold);}
   /* 三大营养素符号(✓↑↓)字形仍按 status 区分,颜色统一棕色,不随 ok/high/low 变 */
   .macro .v .ar{font-size:14px;font-weight:900;font-style:normal;margin-left:3px;vertical-align:2px;color:var(--gold);}
   /* 以下 ok/高/低 配色仅供蔬果等区域的状态箭头使用,营养素区不复用(被上面 .macro .v .ar 覆盖) */
