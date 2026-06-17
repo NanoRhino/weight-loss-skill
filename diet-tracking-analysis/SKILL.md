@@ -156,11 +156,12 @@ Use `meal_checkin` results to compose your reply. The only tool call allowed her
 > Do not re-explain WHY the budget is what it is. Do not recompute numbers. Just use them.
 > Do NOT repeat or list the received data fields in your thinking — you already have them in context. Go straight to decisions: what tone, what suggestion, what to say.
 
-**If abort recovery was triggered (2 meals logged):** the card renders a single meal, so this multi-meal case stays **plain text** (do NOT render a card):
-- Show ① for EACH meal separately (two blocks)
-- Show ② daily summary once (the second meal's evaluation already includes both)
-- Show ③ suggestion once based on final daily totals
-- Add one `<!--diet_suggestion-->` tag per meal
+**If abort recovery was triggered (2 meals logged):** the card renders one meal each, so render **one card per meal** (call `render-meal-card.cjs` once per meal — this is the documented exception to the "once" rule):
+- Build one card JSON per meal (each meal's own `meal_label` / `meal_calories` / `dishes` / `macros` / `produce`). For BOTH cards' `daily` block, use the **final** daily totals (the second meal's `evaluation.daily_total`, which already includes both) — so the progress bar is consistent across the two cards.
+- Render each meal's card to its own timestamped PNG.
+- Reply body: emit BOTH `MEDIA:<PNG路径>` lines (one per card) followed by `[[order_media_first]]`, then the text. The text carries only ③ suggestion (once, based on final daily totals) + bridging comment + clarification + missing_meals — **do NOT** write ①/② as text (they're in the cards).
+- Add one `<!--diet_suggestion-->` tag per meal.
+- If any meal's render fails (exec non-zero): degrade that case to the plain-text ①②③ fallback for ALL meals (don't mix one card + one text).
 
 #### Round 2 output flow
 
@@ -188,7 +189,7 @@ For any turn that outputs the ①② breakdown (create / append / detail-bearing
    - `status` values are `on_track` / `high` / `low`, taken verbatim from the `meal_checkin` evaluation. The template renders the Chinese labels itself — do not convert.
    - `meal_label` is the Chinese meal name (matching what you'd show in ①). Use `meal_calories` = this meal's total calories.
 
-2. **Render the card** — call `exec` exactly once:
+2. **Render the card** — call `exec` once per meal (once for a normal single-meal turn; once per meal in the 2-meals abort-recovery case above):
    ```
    node {baseDir}/scripts/render-meal-card.cjs --data '<card JSON>' --output {workspaceDir}/tmp/meal-card-<timestamp>.png
    ```
@@ -220,7 +221,7 @@ For any turn that outputs the ①② breakdown (create / append / detail-bearing
    - `meal_name`: English meal name from `meal_detection.meal_name` (e.g. `lunch`, `dinner`)
    - `suggestion text`: your ③ suggestion in one line, no pipes (`|`), no angle brackets (`<>`)
 
-**That's it. 2 rounds. The only script you may call is `render-meal-card.cjs` (once, in Round 2, for any turn that outputs the ①② breakdown). Do NOT call query-day, calibration-lookup, or any other script.**
+**That's it. 2 rounds. The only script you may call is `render-meal-card.cjs` (in Round 2, for any turn that outputs the ①② breakdown — once for a single meal, or once per meal in the 2-meal abort-recovery case). Do NOT call query-day, calibration-lookup, or any other script.**
 
 ---
 
