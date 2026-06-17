@@ -140,9 +140,9 @@
     `<div class="p">${ICON_FRUIT}<span class="txt"><span class="lbl">水果</span><span class="val">${D.produce.fruits_g}g</span></span></div>`;
 
   const macros = [
-    ["蛋白质", D.macros.protein.value_g+"g", D.macros.protein.status],
-    ["碳水",   D.macros.carbs.value_g+"g",   D.macros.carbs.status],
-    ["脂肪",   D.macros.fat.value_g+"g",     D.macros.fat.status],
+    ["蛋白质", Math.round(D.macros.protein.value_g)+"g", D.macros.protein.status],
+    ["碳水",   Math.round(D.macros.carbs.value_g)+"g",   D.macros.carbs.status],
+    ["脂肪",   Math.round(D.macros.fat.value_g)+"g",     D.macros.fat.status],
   ];
   document.getElementById("macros").innerHTML = macros.map(([k,v,st])=>{
     const [arr,cls]=ARROW[st];
