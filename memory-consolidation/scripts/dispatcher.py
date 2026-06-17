@@ -10,6 +10,13 @@ Intended to run daily as a single global cron job (e.g. ~09:00 UTC). Each
 per-user job runs in an isolated session with --no-deliver (no SMS to users)
 and --delete-after-run.
 
+Cost optimization: only agents with *real* consolidation work (short-term-
+update / medium-term-consolidate / medium-term-cleanup / long-term-promote)
+get an agent turn. Dormant agents whose only need is `init` (empty memory
+files) are skipped entirely — their files are created lazily during the next
+real conversation. Agents that have real work but are missing memory files
+are `init`-ed inline (in-process, no agent turn) before dispatch.
+
 Usage:
     python3 dispatcher.py scan          # Scan only, print JSON report
     python3 dispatcher.py dispatch      # Scan + create cron jobs
@@ -326,6 +333,17 @@ def analyze_long_term(memory_dir: str) -> dict:
     return result
 
 
+# Tasks that constitute "real" consolidation work requiring an agent turn.
+# `init` is intentionally excluded: it is pure file creation, handled inline by
+# the dispatcher (see maybe_init_inline) and never on its own justifies a turn.
+REAL_WORK_TASKS = (
+    "short-term-update",
+    "medium-term-consolidate",
+    "medium-term-cleanup",
+    "long-term-promote",
+)
+
+
 def determine_tasks(short_term: dict, medium_term: dict, long_term: dict,
                     has_new_messages: bool) -> list[str]:
     """Determine which consolidation tasks a user needs."""
@@ -352,6 +370,29 @@ def determine_tasks(short_term: dict, medium_term: dict, long_term: dict,
         tasks.append("init")
 
     return tasks
+
+
+def has_real_work(tasks: list) -> bool:
+    """True if the task list contains anything beyond `init`."""
+    return any(t in REAL_WORK_TASKS for t in tasks)
+
+
+def run_inline_init(memory_dir: str) -> bool:
+    """Create missing memory files in-process (no agent turn).
+
+    Invokes `memory-consolidator.py init` directly. Returns True on success.
+    """
+    import subprocess
+    consolidator = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "memory-consolidator.py")
+    try:
+        r = subprocess.run(
+            ["python3", consolidator, "init", "--memory-dir", memory_dir],
+            capture_output=True, text=True, timeout=30,
+        )
+        return r.returncode == 0
+    except Exception:
+        return False
 
 
 def count_real_workspaces() -> int:
@@ -412,24 +453,38 @@ def scan_all_workspaces(verbose: bool = False) -> list[dict]:
         # Determine tasks
         tasks = determine_tasks(short_term, medium_term, long_term, has_new)
 
-        if tasks:
-            results.append({
-                "account_id": account_id,
-                "agent_id": agent_id,
-                "workspace": ws,
-                "tasks": tasks,
-                "short_term": short_term,
-                "medium_term": {"line_count": medium_term["line_count"],
-                                "section_count": medium_term["section_count"],
-                                "over_limit": medium_term["over_limit"]},
-                "long_term": {"exists": long_term["exists"],
-                              "needs_update": long_term["needs_update"],
-                              "last_updated": long_term["last_updated"]},
-                "has_new_messages": has_new,
-            })
+        # Optimization: dormant agents whose ONLY task is `init` (no new user
+        # messages, no pending short→medium / medium→long work) are skipped
+        # entirely — they don't need an agent turn. Their memory files are
+        # created lazily during the next real conversation (normal short-term-
+        # update flow), or inline here if they later acquire real work.
+        if not has_real_work(tasks):
+            if verbose:
+                reason = "init-only (dormant)" if tasks else "no tasks needed"
+                print(f"  SKIP {account_id}: {reason}", file=sys.stderr)
+            continue
 
-        if verbose and not tasks:
-            print(f"  SKIP {account_id}: no tasks needed", file=sys.stderr)
+        # Agent has real work. `needs_init` flags that memory files are missing
+        # and must be created inline (in-process) before the dispatched turn.
+        needs_init = "init" in tasks
+        dispatch_tasks = [t for t in tasks if t != "init"]
+
+        results.append({
+            "account_id": account_id,
+            "agent_id": agent_id,
+            "workspace": ws,
+            "memory_dir": memory_dir,
+            "tasks": dispatch_tasks,
+            "needs_init": needs_init,
+            "short_term": short_term,
+            "medium_term": {"line_count": medium_term["line_count"],
+                            "section_count": medium_term["section_count"],
+                            "over_limit": medium_term["over_limit"]},
+            "long_term": {"exists": long_term["exists"],
+                          "needs_update": long_term["needs_update"],
+                          "last_updated": long_term["last_updated"]},
+            "has_new_messages": has_new,
+        })
 
     return results
 
@@ -473,9 +528,20 @@ def dispatch_jobs(users: list[dict], args) -> list[dict]:
 
         job_time = start_time + timedelta(seconds=i * args.gap)
         at_str = job_time.strftime("%Y-%m-%dT%H:%M:%SZ")
-        prompt = build_sub_task_prompt(user)
         agent_id = user["agent_id"]
         task_summary = "+".join(user["tasks"])
+        init_note = " (+inline init)" if user.get("needs_init") else ""
+
+        # Create missing memory files in-process before dispatching the turn,
+        # so the consolidation job has files to operate on. No agent turn.
+        if user.get("needs_init"):
+            if args.dry_run:
+                pass  # report only; don't touch the filesystem in dry-run
+            elif not run_inline_init(user["memory_dir"]):
+                print(f"⚠️  [{i+1}/{len(users)}] {user['account_id']}: inline init failed; "
+                      f"dispatching anyway (job will init via skill)", file=sys.stderr)
+
+        prompt = build_sub_task_prompt(user)
 
         cmd = [
             "openclaw", "cron", "add",
@@ -492,9 +558,10 @@ def dispatch_jobs(users: list[dict], args) -> list[dict]:
         ]
 
         if args.dry_run:
-            print(f"DRY-RUN [{i+1}/{len(users)}] {user['account_id']} @ {at_str} | tasks: {task_summary}")
+            print(f"DRY-RUN [{i+1}/{len(users)}] {user['account_id']} @ {at_str} | tasks: {task_summary}{init_note}")
             created.append({"account_id": user["account_id"], "at": at_str,
-                            "tasks": user["tasks"], "dry_run": True})
+                            "tasks": user["tasks"], "needs_init": user.get("needs_init", False),
+                            "dry_run": True})
         else:
             try:
                 r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
@@ -522,12 +589,14 @@ def main():
         for u in users:
             for t in u["tasks"]:
                 task_counts[t] = task_counts.get(t, 0) + 1
+        inline_init_count = sum(1 for u in users if u.get("needs_init"))
 
         summary = {
             "scan_time": datetime.now(timezone.utc).isoformat(),
             "total_workspaces": count_real_workspaces(),
             "users_needing_work": len(users),
             "task_breakdown": task_counts,
+            "inline_init_count": inline_init_count,
             "users": users,
         }
         print(json.dumps(summary, ensure_ascii=False, indent=2))
