@@ -164,9 +164,11 @@ Use `meal_checkin` results to compose your reply. The only tool call allowed her
 
 #### Round 2 output flow
 
-**Applies ONLY to the scenarios that output the full calorie breakdown ①② — i.e. successful `create` / `append`** (same as today). For `correct` / `delete` plain confirmations that do NOT output ①②, keep plain text and do NOT render a card.
+**Card rendering trigger = this turn's `meal_checkin` returns a non-empty `dishes` array AND a non-null `evaluation.daily_total`** (i.e. this turn will show the user the full ①② calorie breakdown + daily progress). When both are present, render the card — **regardless of whether `action` is `create`, `append`, or a `correct` that carries fresh dish/evaluation data**. Only when this turn does NOT output ①② (pure `delete`, or a bare confirmation with no `dishes`/`evaluation`) keep plain text and skip the card.
 
-For create/append:
+**One-line decision rule for the agent:** look at the `meal_checkin` result — if `dishes` is non-empty AND `evaluation.daily_total` is present, render the card; otherwise plain text.
+
+For any turn that outputs the ①② breakdown (create / append / detail-bearing correct):
 
 1. **Build the card JSON** from the `meal_checkin` result (no transformation — copy the numbers through):
    ```json
@@ -211,14 +213,14 @@ For create/append:
 
 1. **Format reply** per the Round 2 output flow above (card + ③ text on success; full ①②③ text on degrade).
 2. **Ambiguous foods:** If `needs_clarification` is non-empty, append a hint. Single item → use hint directly. Multiple → merge into ONE natural sentence, e.g. "🤔 包子按鲜肉包记录、饺子按猪肉白菜馅记录，不对的话告诉我，我来改~"
-3. **Suggestion tag (REQUIRED for create/append):** Append on a new line at the very end. System auto-strips it before delivery — user never sees it.
+3. **Suggestion tag (REQUIRED for any turn that outputs the ①② breakdown — create / append / detail-bearing correct):** Append on a new line at the very end. System auto-strips it before delivery — user never sees it.
    ```
    <!--diet_suggestion:{workspaceDir}|<meal_name>|<suggestion text>-->
    ```
    - `meal_name`: English meal name from `meal_detection.meal_name` (e.g. `lunch`, `dinner`)
    - `suggestion text`: your ③ suggestion in one line, no pipes (`|`), no angle brackets (`<>`)
 
-**That's it. 2 rounds. The only script you may call is `render-meal-card.cjs` (once, in Round 2, for create/append). Do NOT call query-day, calibration-lookup, or any other script.**
+**That's it. 2 rounds. The only script you may call is `render-meal-card.cjs` (once, in Round 2, for any turn that outputs the ①② breakdown). Do NOT call query-day, calibration-lookup, or any other script.**
 
 ---
 
