@@ -26,62 +26,58 @@
 
 ## 激活提醒（Activation）— 加好友/握手后从未回复
 
-**触发：** cron message 含 `activation`（一次性 cron，由 **openclaw-infra** 在注册时创建：约 T+4h 发 nudge 1、T+24h 发 nudge 2，均落在用户本地白天）。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、未完成引导、不在请假/暂停、未达上限。
+**触发：** cron message 含 `activation`（一次性 cron，由 **openclaw-infra** 在注册时创建）。**4 触点序列**：step1 T+4h、step2 T+24h、step3 T+3d、step4 T+7d，均落在用户本地白天。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、**非未成年**、未完成引导、不在请假/暂停、未达上限。
 
 **对象：** 收到第一条欢迎消息但**一条都没回**的用户。卡点是"开口说第一句话"。这条消息只为破冰、给一个零门槛的起点。**两类用户都会收到这个 cron**：通过 TDEE handoff 进来的（WARM，方案已就位）和冷启动注册的（COLD，无方案）。
 
-> **冷暖分流（compose 前必做）：** 检查 workspace 根目录是否有 `PLAN.md`。
-> - **`PLAN.md` 存在 → WARM 路径**（用户走过 TDEE handoff，PLAN.md/完整资料已就位）→ 用下面的 **WARM 文案**（handoff 风格："方案都准备好了…随口报一餐就行"）。
-> - **`PLAN.md` 不存在 → COLD 路径**（冷启动用户，无方案、无完整资料）→ 用下面的 **COLD 文案**（通用零门槛 "发我上一餐" 钩子）。**COLD 文案绝不提"方案/计划/资料/都准备好了"**——冷启动用户没有这些，提了会让人困惑。
->
-> 两条路径共用同一套上限/去重/暂停出口规则。语言仍以 `USER.md > Language` 为准（见 §通用规则，不在此做语言选择）。
+> **内容由 `nudgeIndex` 决定（唯一真源）：** cron payload 是**自由文本指令**（非 JSON），新字段写在 composer 指令括号里，形如 `...run notification-composer for activation (nudgeIndex=3, nudgeAngle=rapport).` 从文本解析 `nudgeIndex=`（整数 1–4）和 `nudgeAngle=`（`value_first`/`photo`/`rapport`/`exit`）。**按 `nudgeIndex` 选下面对应的文案，不要用 `nudges_sent` 计数器选内容。旧的 `(nudge=N)` token 已移除——不要再找它**；两字段都解析不到则 `NO_REPLY`。
 
-> **决定性判据（整个 gate 的核心）：** 读 `channel-source.json > lastInboundAt`（epoch 毫秒，由 infra Phase-0 在每条入站消息时写入）。**只要 `lastInboundAt` 存在 → 用户已经回过 → 取消 nudge（NO_REPLY）。** 这是判断"是否回复过"的唯一权威信号——不要用对话历史或别的推断。
+> **冷暖分流（compose 前必做）：** 检查 workspace 根目录是否有 `PLAN.md`。**`PLAN.md` 存在 → WARM**（走过 TDEE handoff，可从 PLAN.md 取真实目标热量+蛋白质做个性化）；**`PLAN.md` 不存在 → COLD**（无方案，绝不提"方案/计划/资料/都准备好了"，也没有真实数字可引）。语言仍以 `USER.md > Language` 为准（见 §通用规则，不在此做语言选择）。
+
+> **决定性判据（整个 gate 的核心）：** 读 `channel-source.json > lastInboundAt`（epoch 毫秒，由 infra Phase-0 在每条入站消息时写入）。**只要 `lastInboundAt` 存在 → 用户已经回过 → 取消剩余所有触点（NO_REPLY）。** 这是判断"是否回复过"的唯一权威信号——不要用对话历史或别的推断。
 >
 > **失败关闭（fail closed）：** 若 `channel-source.json` 整个文件缺失或读不出，pre-send-check 返回 NO_REPLY（不发）。目标人群一定有这个文件（infra 在注册时写入），读不到状态时保守不打扰。
+>
+> **未成年拦截（defense-in-depth）：** pre-send-check 读结构化年龄（`handoff.json > structured.age_years`，回退 `PROFILE.md > **Age:**`）；< 18 → NO_REPLY（"minor, service not offered"）。TDEE 上游已拒未成年，此处是二道防线。无结构化年龄时 fail-open（不拦）。
 
-**上限：** 最多 2 条（约 T+4h + T+24h）。**用户回复任何消息 → 两条 nudge 自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 2 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 2`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
+**上限：** 最多 4 条（T+4h / T+24h / T+3d / T+7d）。**用户回复任何消息 → 剩余 nudge 全部自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 4 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 4`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
 
-**语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`。**点名暂停出口**（让用户知道可以说 "pause" 让你安静）。
+**语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`。NanoRhino 用驼峰写法，**不要 🦏 emoji**。门槛逐条递减（index 1 → 4 越来越轻）。`[name]` 来自 USER.md，缺失则不用名字。下面英文为初稿，按 `USER.md > Language` 改写、不照搬。
 
-### WARM 路径（`PLAN.md` 存在 — TDEE handoff 用户）
+### index 1 — `value_first`（约 T+4h，中门槛：摆出价值）
+- 复述用户的**真实每日目标**：从 `PLAN.md` 取目标热量 + 蛋白质，明确说出数字（如 "1,500 cal & ~120g protein a day"）。
+- 提议帮 ta 凑这个数 → 引一个**一个字 YES**。
+- WARM 初稿："Hey [name] — your plan's locked in: about **{target_cal} cal and {target_protein}g protein** a day. Want me to send you 3 easy meals that hit that? Just reply YES."
+- COLD（无 PLAN.md，无真实数字）：不报具体数字，改为 "Hey [name] — want me to put together 3 easy meals that fit your goal? Just reply YES." 仍走一个字 YES。
 
-**Nudge 1（约 T+4h，cron payload 含 `nudge=1`）：**
-- 表达"方案这边都准备好了，第一步很简单"
-- 给具体例子：随口说上一餐吃了啥就行，不用拍照
-- 英文初稿（按语言改写，不照搬）："Hey [name] — your plan's all set on my end. Whenever you're ready, the easiest way to start is just tell me what you ate last — even 'eggs and toast' works. No photo needed."
-- 本地化示例：英文 "eggs and toast"；中文用当地常见餐（如"早上吃了个包子"）。`[name]` 来自 USER.md，缺失则不用名字。
+### index 2 — `photo`（T+24h，低门槛：拍/报一餐）
+- 强调"我来算，免 app、免记账"——用户不用做任何数学 → 引**一张照片/一句话报餐**。
+- 初稿："No counting, no app, no tracking on your end — just snap a photo of one meal (or text what you ate) and I do the math. Try it with whatever's next."
+- WARM 可加半句把它系回目标；COLD 不提方案。
 
-**Nudge 2（T+24h，最后一条，cron payload 含 `nudge=2`，更软）：**
-- 比 nudge 1 更轻，零压力，**明确给暂停出口**
-- 英文初稿："Still here whenever you want me. No pressure at all — if now's not the time, just ignore this. If you'd rather I check in less, say 'pause' and I'll go quiet."
-- 本地化：保留"现在不方便就忽略 + 想少打扰说一声 pause"两层意思。
+### index 3 — `rapport`（T+3d，极低门槛：问难处）
+- 不要任何"记餐/拍照"动作，转为**关系破冰**：问 ta 现在吃饭这块最大的一个难处 → 引**一行字**。
+- 初稿："Different question, no tracking — what's the single biggest struggle with eating right now? Even one line helps me actually be useful to you."
 
-### COLD 路径（`PLAN.md` 不存在 — 冷启动用户）
+### index 4 — `exit`（T+7d，无门槛：体面收尾，最后一条）
+- **不提任何要求、不要 ask。** 体面收尾，留门。
+- WARM：把目标数字留给 ta（"your number's {target_cal} cal a day if you ever want it"）。COLD：留一句"随时发我都在"，不报数字。
+- 初稿（WARM）："I'll leave you to it — no more nudges from me. Your target's about **{target_cal} cal a day** whenever you want to start. Text me anytime, I'm here."
+- 初稿（COLD）："I'll leave you to it — no more nudges from me. If you ever want a hand with eating, just text me anytime. I'm here."
+- 这是序列**最后一条**；其后不再有触点（cap=4 + 此为终点）。
 
-**绝不提"方案/计划/资料/都准备好了"**——冷启动用户没有方案。只给一个通用、低门槛、自我介绍式的破冰钩子：报一餐 → 我帮你算宏量。
-
-**Nudge 1（约 T+4h，cron payload 含 `nudge=1`）：**
-- 简短自我介绍 + 零门槛的第一步：随口报上一餐，文字就行，不用拍照
-- 强调"我来算宏量"——用户不用做数学
-- 英文初稿（按语言改写，不照搬）："Hey! I'm your NanoRhino coach — just text me your last meal (even 'eggs and toast' works) and I'll break down the macros. No photo needed."
-- 本地化示例：英文 "eggs and toast"；中文用当地常见餐（如"早上吃了个包子"）。`[name]` 若 USER.md 有则可用，缺失则不用名字。
-
-**Nudge 2（T+24h，最后一条，cron payload 含 `nudge=2`，更软）：**
-- 比 nudge 1 更轻，零压力，**明确给暂停出口**；仍不提方案/资料
-- 英文初稿："Still here whenever you want to give it a try — just text me any meal and I'll handle the rest. No pressure; if now's not the time, ignore this, or say 'pause' and I'll go quiet."
-- 本地化：保留"随口报一餐我来处理 + 现在不方便就忽略 + 想少打扰说一声 pause"几层意思。
-
-**长度：** 1-2 句。**去重：** 发送后写入 `recall_topics`，nudge 2 避开 nudge 1 的角度/例子。
+**长度：** 1-2 句。
 
 **发送后（compose 成功后）：确定性地 +1 计数——走脚本，不要手写 JSON：**
 ```bash
 python3 {notification-manager:baseDir}/scripts/activation-mark-sent.py \
   --workspace-dir {workspaceDir} --counter nudges_sent
 ```
-脚本原子地把 `activation.nudges_sent` +1（无块则新建，不动其它字段）。然后再 read-modify-write 追加 `recall_topics`。**只在确实发了消息后才调脚本**（NO_REPLY 时不调）。
+脚本原子地把 `activation.nudges_sent` +1（无块则新建，不动其它字段）。**只在确实发了消息后才调脚本**（NO_REPLY 时不调）。
 
-**禁止：** 数错过的天数 · "你还没回我" · 把回复框成义务 · 卡路里/宏量细节 · 鸡汤。
+> 🚫 **activation 路径严禁手动 Edit/Write `data/engagement.json`，也不要写 `recall_topics`。** 计数只能走上面的脚本（它已持 flock + 原子 os.replace）。本路径用 `nudgeIndex` 选内容、不需要 recall_topics 去重；任何自由编辑都会与脚本竞争、把成功的 nudge run 误报为 `error`（见 050208 事故）。
+
+**禁止：** 数错过的天数 · "你还没回我" · 把回复框成义务 · index 1 外的卡路里/宏量细节 · 鸡汤 · 🦏 emoji。
 
 ---
 

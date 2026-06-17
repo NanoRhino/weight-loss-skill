@@ -370,15 +370,18 @@ is generated from logged meals and would be hollow.
 welcome message, but have **never replied at all**. Different cohort from the
 first-meal nudge (who replied + onboarded but never logged).
 
-**Cron created by openclaw-infra, NOT this repo.** The infra side schedules two
-one-shot crons at handoff time (T+24h `nudge=1`, T+72h `nudge=2`, user-local
-daytime). This skill only implements what they fire into. Fixed payload contract:
+**Cron created by openclaw-infra, NOT this repo.** The infra side schedules a
+**4-touch** one-shot cron sequence at handoff time (step1 T+4h, step2 T+24h,
+step3 T+3d, step4 T+7d; user-local daytime). This skill only implements what
+they fire into. Payload contract — each cron carries `nudgeIndex` (1–4) and
+`nudgeAngle` (`value_first`|`photo`|`rapport`|`exit`); the composer picks content
+by `nudgeIndex` (source of truth), NOT by the `nudges_sent` counter:
 
 ```
 First run: python3 {notification-composer:baseDir}/scripts/pre-send-check.py \
   --workspace-dir <WS> --meal-type activation --tz-offset <off>.
 If output is NO_REPLY, stop and output NO_REPLY.
-Otherwise run notification-composer for activation (nudge=1).
+Otherwise run notification-composer for activation (nudgeIndex=N, nudgeAngle=...).
 ```
 
 **Detection / defining gate** (`pre-send-check.py --meal-type activation`): the
@@ -388,17 +391,23 @@ set. The **defining cancel signal** is `channel-source.json > lastInboundAt`
 (epoch ms, written by infra Phase-0 on every inbound): **if present at all, the
 user has replied → NO_REPLY (cancel)**. Also NO_REPLY if `channel-source.json`
 is missing/unreadable (**fail closed** — the target cohort always has the file;
-if we can't confirm no-reply we stay silent), onboarding completed, any meal
-logged, the authoritative lifecycle Silent stage (handled by the generic
-`check_engagement_stage` gate via the lifecycle API), on leave/pause, or
-`activation.nudges_sent >= 2`.
+if we can't confirm no-reply we stay silent), **user is a minor** (structured age
+< 18 from `handoff.json > structured.age_years`, fallback `PROFILE.md > **Age:**`;
+fails open when no structured age — defense-in-depth behind the TDEE upstream
+refusal), onboarding completed, any meal logged, the authoritative lifecycle
+Silent stage (handled by the generic `check_engagement_stage` gate via the
+lifecycle API), on leave/pause, or `activation.nudges_sent >= 4`.
 
-**Cap & terminal state:** Max **2** nudges (`activation.nudges_sent`). The moment
-the user replies (or logs a meal), both nudges self-cancel. After 2 nudges, the
-pre-send-check **cap gate** (reads `activation.nudges_sent >= 2`) permanently
-suppresses the nudge — lifecycle-independent terminal guarantee, same as the
-first-meal nudge. The composer increments the counter via
+**Cap & terminal state:** Max **4** nudges (`activation.nudges_sent`). The moment
+the user replies (or logs a meal), all remaining nudges self-cancel. After 4
+nudges, the pre-send-check **cap gate** (reads `activation.nudges_sent >= 4`)
+permanently suppresses the nudge — lifecycle-independent terminal guarantee, same
+as the first-meal nudge. The composer increments the counter via
 `activation-mark-sent.py --counter nudges_sent` after each successful send.
+**The composer must NOT hand-edit engagement.json (or write recall_topics) in the
+activation path** — the counter is owned exclusively by the script (flock +
+atomic os.replace); a freehand Edit races it and mis-flags successful nudge runs
+as `error` (the 050208 incident).
 
 > ⚠️ **Cross-system flag (lifecycle handoff):** The cap gate stops the *nudges*,
 > but it does NOT itself transition the user to lifecycle Silent — stage is owned

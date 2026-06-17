@@ -112,7 +112,7 @@ the count being exact.
 | Field | Description |
 |-------|-------------|
 | `activation.first_meal_nudges_sent` | First-meal nudges sent (0-2; onboarded-but-never-logged cohort). Capped at 2 — after 2, the pre-send-check cap gate permanently suppresses the nudge (lifecycle-independent terminal guarantee). |
-| `activation.nudges_sent` | Activation nudges sent (0-2; greeted-but-never-replied cohort; cron created by openclaw-infra). Capped at 2 — same cap-gate suppression. |
+| `activation.nudges_sent` | Activation nudges sent (0-4; greeted-but-never-replied cohort; 4-touch sequence T+4h/T+24h/T+3d/T+7d, cron created by openclaw-infra, content keyed by payload `nudgeIndex`). Capped at 4 — same cap-gate suppression. |
 
 The `activation` block and each counter are optional/backward-compatible —
 absent reads as 0. (The cap gate is what stops the nudges; transitioning a

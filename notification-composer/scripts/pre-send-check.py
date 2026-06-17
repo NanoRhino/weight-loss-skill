@@ -353,7 +353,70 @@ def check_first_meal_nudge(workspace_dir, tz_offset):
     return True, None
 
 
-ACTIVATION_NUDGE_CAP = 2
+ACTIVATION_NUDGE_CAP = 4
+
+# Minimum age the SMS coaching service is offered to. Mirrors the TDEE-upstream
+# refusal — this SMS gate is defense-in-depth (a minor who somehow reached a
+# warm-start agent must never receive a re-engagement nudge).
+ACTIVATION_MIN_AGE = 18
+
+
+def _profile_age_years(workspace_dir):
+    """Return the user's age in whole years from a STRUCTURED source, or None
+    when no reliable structured age is available.
+
+    Source priority (most reliable first):
+      1. handoff.json > structured.age_years — a typed integer written by the
+         infra-side TDEE handoff. This is the canonical, machine-written field
+         for warm-start users (the only cohort this gate targets).
+      2. PROFILE.md field form `- **Age:** <int>` — the same field-form
+         convention used elsewhere (mirrors _onboarding_completed's regex
+         style). PROFILE.md is the handoff overlay, so the value is the same
+         number, just markdown-rendered.
+
+    Returns None (→ caller fails OPEN, no cancel) when neither structured source
+    yields a clean integer. We deliberately do NOT scrape free-text summaries —
+    a fragile parse that mis-reads an age is worse than relying on the typed
+    field plus the upstream TDEE refusal.
+    """
+    # 1) handoff.json structured field (typed int).
+    hpath = os.path.join(workspace_dir, "handoff.json")
+    if os.path.exists(hpath):
+        try:
+            with open(hpath) as f:
+                hd = json.load(f)
+            if isinstance(hd, dict):
+                struct = hd.get("structured")
+                if isinstance(struct, dict):
+                    age = struct.get("age_years")
+                    if isinstance(age, bool):
+                        age = None  # guard: bool is an int subclass
+                    if isinstance(age, int):
+                        return age
+                    if isinstance(age, float) and age == int(age):
+                        return int(age)
+                    if isinstance(age, str) and age.strip().isdigit():
+                        return int(age.strip())
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    # 2) PROFILE.md field form `- **Age:** <int>`.
+    import re as _re
+    ppath = os.path.join(workspace_dir, "PROFILE.md")
+    if os.path.exists(ppath):
+        try:
+            with open(ppath) as f:
+                content = f.read()
+            m = _re.search(
+                r"^\s*-\s*\*\*Age:\*\*\s*(\d{1,3})\b",
+                content, _re.IGNORECASE | _re.MULTILINE,
+            )
+            if m:
+                return int(m.group(1))
+        except IOError:
+            pass
+
+    return None
 
 
 def _read_channel_source(workspace_dir):
@@ -419,6 +482,10 @@ def check_activation_nudge(workspace_dir, tz_offset):
     Also suppress (NO_REPLY) when ANY of:
       - channel-source.json is missing/unreadable (fail closed — can't confirm
         the user hasn't replied, so stay silent)
+      - the user is a minor (structured age < ACTIVATION_MIN_AGE) — the service
+        is not offered to minors; defense-in-depth behind the TDEE upstream
+        refusal. Fails OPEN when no structured age is available (no fragile
+        free-text parse).
       - onboarding already completed (they're past the never-replied stall —
         a different cohort, handled by the first-meal nudge)
       - any meal ever logged (they engaged)
@@ -446,6 +513,14 @@ def check_activation_nudge(workspace_dir, tz_offset):
     # --- The defining check: any inbound at all means the user replied. ---
     if cs.get("lastInboundAt") is not None:
         return False, "activation — lastInboundAt present (user has replied), nudge cancelled"
+
+    # --- Minor gate (defense-in-depth behind the TDEE upstream refusal): never
+    # nudge a user whose STRUCTURED age is under ACTIVATION_MIN_AGE. Fails OPEN
+    # (no cancel) when no reliable structured age is available — we do not block
+    # on a missing/ambiguous age, and we do not scrape free text. ---
+    age = _profile_age_years(workspace_dir)
+    if age is not None and age < ACTIVATION_MIN_AGE:
+        return False, f"activation — minor (age={age} < {ACTIVATION_MIN_AGE}), service not offered"
 
     # Target user must actually be a handoff/never-replied case: onboarding
     # NOT completed. If onboarding is done, this is the wrong cohort.
