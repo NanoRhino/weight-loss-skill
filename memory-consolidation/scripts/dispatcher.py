@@ -2,10 +2,13 @@
 """
 Memory Consolidation Dispatcher
 ================================
-Scans all user workspaces, determines who needs memory consolidation,
-and creates one-shot cron jobs for each user that needs work.
+Scans all per-user nutritionist workspaces (Twilio/SMS deployment), determines
+who needs memory consolidation, and creates one-shot cron jobs for each user
+that needs work.
 
-Runs daily at 01:00 as a global Opus cron job.
+Intended to run daily as a single global cron job (e.g. ~09:00 UTC). Each
+per-user job runs in an isolated session with --no-deliver (no SMS to users)
+and --delete-after-run.
 
 Usage:
     python3 dispatcher.py scan          # Scan only, print JSON report
@@ -36,11 +39,28 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 # ── Constants ──
+# Twilio/SMS (NanoRhino) deployment. Each per-user agent has:
+#   - workspace at  /home/ec2-user/.openclaw/workspace-nutritionist/<agentId>
+#   - sessions  at  /home/ec2-user/.openclaw/agents/<sanitized agentId>/sessions
+# The workspace dir name IS the agentId (no prefix), and matches the id used by
+# `openclaw cron add --agent <id>` and openclaw.json agents.list. NOTE: the
+# agents/ session dir name is a *sanitized* (lowercased) form of the agentId for
+# mixed-case ids (e.g. agentId "002-XiaomengSlack" → agents/002-xiaomengslack),
+# so session lookup tries the exact id then the lowercased id.
 
-WORKSPACE_GLOB = "/home/nanorhino/backend-service/.openclaw-gateway/workspace-wechat-dm-*"
-AGENT_PREFIX = "wechat-dm-"
+WORKSPACE_GLOB = "/home/ec2-user/.openclaw/workspace-nutritionist/*"
 MEMORY_SUBDIR = "memory"
-SESSION_DIR_TEMPLATE = "/home/nanorhino/backend-service/.openclaw-gateway/agents/{agent_id}/sessions"
+SESSION_DIR_TEMPLATE = "/home/ec2-user/.openclaw/agents/{agent_id}/sessions"
+
+# Skill SKILL.md path on the SMS gateway (skills are a git checkout of
+# weight-loss-skill on branch experiment/activation-hooks).
+SKILL_PATH = "/home/ec2-user/.openclaw/skills/memory-consolidation/SKILL.md"
+
+# Workspace basenames that are NOT real per-user agents — skip entirely.
+# Pool-warmed agents (pool-*) have no real user; counter.json is bookkeeping;
+# test_* are provisioning stubs.
+SKIP_WORKSPACE_NAMES = {"counter.json"}
+SKIP_WORKSPACE_PREFIXES = ("pool-", "test_", "test-")
 
 # How old short-term entries must be before medium-term consolidation (days)
 SHORT_TERM_MAX_AGE_DAYS = 2
@@ -69,6 +89,12 @@ SKIP_PATTERNS = [
     "Your previous response was only an acknowledgement",
     # Skip heartbeat polls
     "Read HEARTBEAT.md if it exists",
+    # Twilio/SMS deployment: each real inbound text is preceded by an injected
+    # "Conversation info (untrusted metadata)" message carrying chat_id etc.
+    # It is role:user with a top-level timestamp, so it would otherwise be
+    # falsely counted as a new user message — skip it. (The actual user text
+    # arrives as a separate plain role:user line and is correctly counted.)
+    "Conversation info (untrusted metadata)",
 ]
 
 
@@ -91,29 +117,48 @@ def parse_args():
 
 
 def extract_account_id(workspace_path: str) -> str:
-    """Extract account ID from workspace path."""
-    dirname = os.path.basename(workspace_path)
-    # workspace-wechat-dm-{accountId}
-    prefix = "workspace-wechat-dm-"
-    if dirname.startswith(prefix):
-        return dirname[len(prefix):]
-    return dirname
+    """Derive the agentId from a workspace path.
+
+    For the SMS deployment the workspace dir name IS the agentId (no prefix),
+    e.g. /home/ec2-user/.openclaw/workspace-nutritionist/040108 → "040108".
+    """
+    return os.path.basename(workspace_path.rstrip("/"))
 
 
 def get_agent_id(account_id: str) -> str:
-    return f"wechat-dm-{account_id}"
+    """The agentId is the workspace basename itself (no prefix)."""
+    return account_id
+
+
+def _session_dir_for(agent_id: str) -> str | None:
+    """Resolve the sessions dir for an agentId.
+
+    The agents/ dir name is a sanitized (lowercased) form of the agentId for
+    mixed-case ids, so try the exact id first, then the lowercased id.
+    """
+    for candidate in (agent_id, agent_id.lower()):
+        d = SESSION_DIR_TEMPLATE.format(agent_id=candidate)
+        if os.path.isdir(d):
+            return d
+    return None
 
 
 def find_latest_session_file(agent_id: str) -> str | None:
     """Find the most recently modified session file (non-deleted)."""
-    session_dir = SESSION_DIR_TEMPLATE.format(agent_id=agent_id)
-    if not os.path.isdir(session_dir):
+    session_dir = _session_dir_for(agent_id)
+    if session_dir is None:
         return None
     candidates = []
     for f in os.listdir(session_dir):
-        if f.endswith(".jsonl") and ".deleted." not in f:
-            full = os.path.join(session_dir, f)
-            candidates.append((os.path.getmtime(full), full))
+        # Only the canonical session transcript: exclude soft-deleted sessions
+        # and the *.trajectory.jsonl internal-events sibling (which holds tool
+        # calls / cron injections, not the user-facing transcript).
+        if not f.endswith(".jsonl"):
+            continue
+        if ".deleted." in f or f.endswith(".trajectory.jsonl"):
+            continue
+        full = os.path.join(session_dir, f)
+        candidates.append((os.path.getmtime(full), full))
     if not candidates:
         return None
     candidates.sort(reverse=True)
@@ -309,6 +354,19 @@ def determine_tasks(short_term: dict, medium_term: dict, long_term: dict,
     return tasks
 
 
+def count_real_workspaces() -> int:
+    """Count workspaces that are real per-user agents (post skip-filter)."""
+    n = 0
+    for ws in glob.glob(WORKSPACE_GLOB):
+        if not os.path.isdir(ws):
+            continue
+        name = os.path.basename(ws.rstrip("/"))
+        if name in SKIP_WORKSPACE_NAMES or name.startswith(SKIP_WORKSPACE_PREFIXES):
+            continue
+        n += 1
+    return n
+
+
 def scan_all_workspaces(verbose: bool = False) -> list[dict]:
     """Scan all workspaces and determine consolidation needs."""
     workspaces = sorted(glob.glob(WORKSPACE_GLOB))
@@ -320,7 +378,18 @@ def scan_all_workspaces(verbose: bool = False) -> list[dict]:
 
     results = []
     for ws in workspaces:
+        if not os.path.isdir(ws):
+            continue  # glob may match non-dir entries (e.g. counter.json)
+
         account_id = extract_account_id(ws)
+
+        # Skip non-user workspaces: pre-warmed pool agents, provisioning stubs,
+        # and bookkeeping files.
+        if account_id in SKIP_WORKSPACE_NAMES or account_id.startswith(SKIP_WORKSPACE_PREFIXES):
+            if verbose:
+                print(f"  SKIP {account_id}: not a real user workspace", file=sys.stderr)
+            continue
+
         agent_id = get_agent_id(account_id)
         memory_dir = os.path.join(ws, MEMORY_SUBDIR)
 
@@ -372,12 +441,12 @@ def build_sub_task_prompt(user: dict) -> str:
     workspace = user["workspace"]
     memory_dir = f"{workspace}/memory"
     agent_id = user["agent_id"]
-    session_dir = SESSION_DIR_TEMPLATE.format(agent_id=agent_id)
+    session_dir = _session_dir_for(agent_id) or SESSION_DIR_TEMPLATE.format(agent_id=agent_id)
 
     task_list = ", ".join(tasks)
 
     prompt = (
-        f"Read the memory-consolidation skill at /home/nanorhino/backend-service/.openclaw-user-service/skills/memory-consolidation/SKILL.md and follow it.\n\n"
+        f"Read the memory-consolidation skill at {SKILL_PATH} and follow it.\n\n"
         f"User: `{account_id}`\n"
         f"Workspace: `{workspace}`\n"
         f"Memory dir: `{memory_dir}`\n"
@@ -456,7 +525,7 @@ def main():
 
         summary = {
             "scan_time": datetime.now(timezone.utc).isoformat(),
-            "total_workspaces": len(glob.glob(WORKSPACE_GLOB)),
+            "total_workspaces": count_real_workspaces(),
             "users_needing_work": len(users),
             "task_breakdown": task_counts,
             "users": users,
