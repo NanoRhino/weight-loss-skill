@@ -138,7 +138,7 @@ Do NOT call `image`, `exec`, or any script. Everything goes through `meal_checki
 Use `meal_checkin` results to compose your reply. No more tool calls needed — `meal_checkin` already saved the meal and returned evaluation.
 
 > **What the plugin already computed (do NOT re-derive):**
-> - `daily_total`, `progress_pct`, `remaining` — final cumulative numbers
+> - `daily_total` (incl. `daily_total.target`, `calories`, `progress_pct`, `remaining`) — final cumulative numbers. `daily_total.target` is the user's current calorie goal as of this call; always read it from here.
 > - `suggestion_type` — already decided based on meal timing, eaten status, and daily position
 > - `suggestion_budget.remaining` — the TRUE remaining budget, already accounting for `assumed_missing` meals
 > - `missing_meals` — which meals were not logged and what calories were assumed
@@ -259,6 +259,11 @@ If `context_clues` is present and non-null in meal_checkin result, naturally wea
 🔥 {daily_total.calories}/{daily_total.target} kcal
 ███████░░░ {daily_total.progress_pct}%
 Protein {protein_g}g [status] | Carbs {carbs_g}g [status] | Fat {fat_g}g [status]
+
+> The progress bar numbers come straight from this call's `meal_checkin` result:
+> - `{daily_total.target}` — copy `evaluation.daily_total.target` as-is.
+> - `{daily_total.progress_pct}` — copy `evaluation.daily_total.progress_pct` as-is.
+> - Before sending, check the target in your progress bar matches `daily_total.target` from this call.
 
 **Calorie progress bar rules:**
 - Fixed 10 chars: `█` = filled, `░` = remaining
