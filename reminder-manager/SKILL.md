@@ -79,10 +79,14 @@ Present to user in friendly format: translate cron expressions to natural langua
 bash {skillDir}/scripts/edit-reminder.sh \
   --agent {agentId} --job <jobId> \
   [--name "新名字"] [--cron "30 11 * * *"] [--at "..."] \
-  [--message "新内容"] [--enable] [--disable] [--tz "Asia/Shanghai"]
+  [--message "新内容"] [--enable] [--tz "Asia/Shanghai"]
 ```
 
 To edit, you need the job ID. If you don't have it, run list first.
+
+> 🚫 **不支持 `--disable`（已移除）。** agent 不得 disable 任何 cron。要让用户暂停接收提醒
+> → 走 `notification-composer` 的 `leave-manager.py` 写 `leave.json`（pre-send-check 在请假期
+> 自动静默 cron、到期自动恢复，全程不碰 cron）。直接 disable 会导致请假结束提醒恢复不回来。
 
 ### Delete
 
