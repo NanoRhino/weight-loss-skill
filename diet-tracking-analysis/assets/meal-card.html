@@ -60,12 +60,13 @@
   .foot{display:flex;align-items:center;padding:12px 19px 24px;background:#FAF8F6;}
   /* 营养素区底色按菜品数奇偶给两种固定色:偶数 → .deep → #F2EDE9;奇数 → 默认 → #FAF8F6(JS动态加 .deep) */
   .foot.deep{background:#F2EDE9;}
-  .produce{flex-shrink:0;display:flex;align-items:center;gap:22px;}
+  .produce{flex-shrink:0;display:flex;align-items:center;gap:22px;margin-left:-4px;}
   .produce .p{display:flex;align-items:center;gap:10px;}
   .produce .p .ico{flex-shrink:0;width:43px;height:43px;display:block;}
   .produce .p .txt{display:flex;flex-direction:column;line-height:1.2;}
   .produce .p .txt .lbl{font-size:13px;font-weight:600;color:var(--dim);}
-  .produce .p .txt .val{font-size:19px;font-weight:800;color:var(--txt);}
+  .produce .p .txt .val{font-size:19px;font-weight:800;color:var(--txt);display:inline-flex;align-items:baseline;gap:3px;}
+  .produce .p .txt .val .ar{font-size:13px;font-weight:900;font-style:normal;}
   .vdiv{width:4px;height:34px;background:var(--vdiv);margin:0 26px;}
   .macros{flex:1;display:flex;}
   .macro{flex:1;text-align:center;}
@@ -135,9 +136,11 @@
 
   const ICON_VEG = `<svg class="ico" viewBox="0 0 95 95" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M37.647 81.917C37.647 80.2968 41.8633 52.4997 27.8359 50.0215L27.3617 46.7181C26.6865 45.8871 31.4471 46.4026 34.2189 47.5284C37.1243 48.7085 39.361 51.4242 39.361 50.0215C39.361 48.8994 32.2857 41.0646 31.7143 40.7011L39.361 37.3866C40.1921 36.919 40.836 39.5781 42.5812 40.7004C44.3264 41.8227 46.8403 52.8787 47.152 56.4103C47.6506 51.2994 53.8522 42.2635 57.5017 40.7004L59.1129 42.2635C59.7882 43.3021 60.7335 43.985 59.1129 45.1069C57.4924 46.2288 54.2158 52.9304 53.8522 54.2289L64.5154 47.5284L67.3588 50.5093C55.3607 55.2905 54.1119 75.9438 53.8522 81.917H37.647Z" fill="#7D5D4A"/><path d="M46.7637 13.084C51.2812 13.084 55.3187 15.1387 57.9932 18.3643C59.4343 16.3153 61.8154 14.9756 64.5107 14.9756C68.9092 14.9756 72.4754 18.541 72.4756 22.9395C72.4756 22.9599 72.4738 22.9806 72.4736 23.001C79.8953 23.6805 85.708 29.9217 85.708 37.5205C85.7079 45.5732 79.1797 52.1016 71.127 52.1016C63.3863 52.1014 57.0553 46.0691 56.5762 38.4492C53.9858 40.8076 50.5428 42.2461 46.7637 42.2461C43.334 42.2461 40.1814 41.0609 37.6914 39.0791C36.3803 42.9652 33.4765 46.1163 29.7559 47.7588C29.5668 52.6488 25.5457 56.5556 20.6094 56.5557C15.5524 56.5557 11.4531 52.4554 11.4531 47.3984C11.4532 45.9588 11.7849 44.5967 12.377 43.3848C10.4445 40.9113 9.29308 37.7981 9.29297 34.416C9.29297 26.3632 15.8212 19.835 23.874 19.835C24.0824 19.835 24.2898 19.84 24.4961 19.8486C25.703 16.9853 28.5364 14.9756 31.8389 14.9756C33.7973 14.9757 35.5896 15.6838 36.9766 16.8564C39.564 14.5121 42.9972 13.084 46.7637 13.084Z" fill="#B59468"/></svg>`;
   const ICON_FRUIT = `<svg class="ico" viewBox="0 0 91 91" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M75.5174 54.4241C75.5174 67.868 70.2777 79.2543 58.1169 83.1262C55.2325 84.0446 48.5901 81.417 45.4013 81.417C42.2124 81.417 35.5701 84.0446 32.6856 83.1262C20.5248 79.2543 15.2852 67.868 15.2852 54.4241C15.2852 40.9803 18.0709 30.9692 30.2317 27.0974C39.155 24.2559 42.2124 28.4349 45.4013 28.4349C48.5901 28.4349 52.763 24.9656 59.4554 27.0964C71.6162 30.9682 75.5174 40.9803 75.5174 54.4241Z" fill="#CA9D73"/><path d="M24.4556 13.8569C22.3278 20.7353 31.5811 34.4973 42.983 32.3842C44.3175 21.7618 31.5276 12.4856 24.4556 13.8569Z" fill="#AF8524"/><path d="M66.9596 11.7447C60.0811 9.61685 46.3191 18.8702 48.4322 30.272C59.0546 31.6065 68.3308 18.8167 66.9596 11.7447Z" fill="#AF8524"/><path d="M48.7623 22.4196C49.2756 21.3246 48.8041 20.0209 47.7091 19.5076C46.6141 18.9944 45.3104 19.4659 44.7971 20.5609L46.7797 21.4902L48.7623 22.4196ZM46.7797 21.4902L44.7971 20.5609C44.0387 22.1788 43.353 23.8572 43.0536 25.7874C42.7499 27.7449 42.8607 29.836 43.511 32.3072L45.6285 31.75L47.7461 31.1928C47.2268 29.2197 47.1822 27.7403 47.3811 26.4587C47.5841 25.1498 48.0588 23.9205 48.7623 22.4196L46.7797 21.4902Z" fill="#795231"/></svg>`;
+  const vegA = ARROW[D.produce.vegetables_status] || ["",""];
+  const frA  = ARROW[D.produce.fruits_status]    || ["",""];
   document.getElementById("produce").innerHTML =
-    `<div class="p">${ICON_VEG}<span class="txt"><span class="lbl">蔬菜</span><span class="val">${D.produce.vegetables_g}g</span></span></div>`+
-    `<div class="p">${ICON_FRUIT}<span class="txt"><span class="lbl">水果</span><span class="val">${D.produce.fruits_g}g</span></span></div>`;
+    `<div class="p">${ICON_VEG}<span class="txt"><span class="lbl">蔬菜</span><span class="val">${D.produce.vegetables_g}g<i class="ar ${vegA[1]}">${vegA[0]}</i></span></span></div>`+
+    `<div class="p">${ICON_FRUIT}<span class="txt"><span class="lbl">水果</span><span class="val">${D.produce.fruits_g}g<i class="ar ${frA[1]}">${frA[0]}</i></span></span></div>`;
 
   const macros = [
     ["蛋白质", Math.round(D.macros.protein.value_g)+"g", D.macros.protein.status],
