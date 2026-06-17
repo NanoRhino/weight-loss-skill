@@ -57,7 +57,7 @@
   .dish .c span{font-size:14px;font-weight:600;color:var(--dim);margin-left:5px;}
 
   /* ===== 底部:左=蔬果(图标+标签上数值下,横向并排), 中=竖线, 右=三大营养素 ===== */
-  .foot{display:flex;align-items:center;padding:12px 19px 24px;background:#FAF8F6;}
+  .foot{display:grid;grid-template-columns:40% 60%;align-items:center;padding:12px 19px 24px;background:#FAF8F6;}
   /* 营养素区底色按菜品数奇偶给两种固定色:偶数 → .deep → #F2EDE9;奇数 → 默认 → #FAF8F6(JS动态加 .deep) */
   .foot.deep{background:#F2EDE9;}
   .produce{flex-shrink:0;display:flex;align-items:center;gap:22px;}
@@ -66,10 +66,10 @@
   .produce .p .txt{display:flex;flex-direction:column;line-height:1.2;}
   .produce .p .txt .lbl{font-size:13px;font-weight:600;color:var(--dim);}
   .produce .p .txt .val{font-size:19px;font-weight:800;color:var(--txt);}
-  .vdiv{width:4px;height:34px;background:var(--vdiv);margin:0 26px;}
-  .macros{flex:1;display:flex;}
+  .vdiv{width:2px;height:40px;background:var(--vdiv);margin:0 20px;}
+  .macros{display:grid;grid-template-columns:repeat(3, 1fr);}
   .macro{flex:1;text-align:center;}
-  .macro .k{font-size:15px;color:var(--txt);font-weight:700;transform:translateY(8px);}
+  .macro .k{font-size:24px;color:var(--txt);font-weight:800;transform:translateY(8px);}
   .macro .v{font-size:21px;font-weight:900;margin-top:6px;letter-spacing:-.5px;color:var(--gold);}
   /* 三大营养素符号(✓↑↓)字形仍按 status 区分,颜色统一棕色,不随 ok/high/low 变 */
   .macro .v .ar{font-size:14px;font-weight:900;font-style:normal;margin-left:3px;vertical-align:2px;color:var(--gold);}
