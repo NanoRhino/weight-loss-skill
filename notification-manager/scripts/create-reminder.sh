@@ -234,6 +234,18 @@ fi
 
 echo "Agent: $AGENT → Channel: $CHANNEL → To: $TO"
 
+# --- Resolve model from gateway config (never hardcode) ---
+# Read openclaw.json and let the config decide the provider (amazon-bedrock ARN
+# vs anthropic direct). Hardcoding `anthropic/...` once created ~29 jobs that
+# failed at auth because the gateway only holds amazon-bedrock credentials.
+# If resolution fails, omit --model and let the gateway apply its own default.
+MODEL=$(python3 "$SCRIPT_DIR/resolve-model.py" 2>/dev/null || true)
+if [[ -n "$MODEL" ]]; then
+  echo "Resolved model from config: $MODEL"
+else
+  echo "WARNING: could not resolve model from config; omitting --model (gateway default applies)" >&2
+fi
+
 # --- Build the cron command ---
 # Note: Do NOT wrap $MESSAGE with delivery instructions here.
 # The no-self-delivery rule is enforced in notification-composer SKILL.md
@@ -267,6 +279,10 @@ else
     --to "$TO"
   )
 
+fi
+
+if [[ -n "$MODEL" ]]; then
+  CMD+=(--model "$MODEL")
 fi
 
 if [[ -n "$AT" ]]; then

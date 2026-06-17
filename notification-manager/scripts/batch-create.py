@@ -36,6 +36,7 @@ _STATE_DIR = os.environ.get("OPENCLAW_STATE_DIR", os.path.join(_PROJECT_ROOT, ".
 sys.path.insert(0, _SCRIPT_DIR)
 from importlib import import_module
 find_slot = import_module("find-slot")
+resolve_model = import_module("resolve-model")
 
 
 def parse_args():
@@ -117,7 +118,7 @@ def resolve_delivery_target(agent: str, channel: str, explicit_to: str) -> str:
     sys.exit(1)
 
 
-def build_cron_cmd(agent, channel, to_target, name, message, cron_expr, tz):
+def build_cron_cmd(agent, channel, to_target, name, message, cron_expr, tz, model=None):
     """Build the openclaw cron add command."""
     if channel in ("app", "webchat"):
         bridge_url = "http://127.0.0.1:8100/cron-deliver"
@@ -155,6 +156,10 @@ def build_cron_cmd(agent, channel, to_target, name, message, cron_expr, tz):
             "--cron", cron_expr,
             "--tz", tz,
         ]
+    # Model resolved from gateway config (never hardcoded) — appended last so it
+    # applies to both branches. None → omit, gateway applies its own default.
+    if model:
+        cmd += ["--model", model]
     return cmd
 
 
@@ -179,6 +184,14 @@ def main():
     # 2. Resolve shared params ONCE
     tz = detect_timezone(args.agent)
     to_target = resolve_delivery_target(args.agent, args.channel, args.to)
+    # Resolve model from gateway config (never hardcode). None → omit --model,
+    # gateway applies its own default. See resolve-model.py for why.
+    model = resolve_model.resolve()
+    if model:
+        print(f"Resolved model from config: {model}", file=sys.stderr)
+    else:
+        print("WARNING: could not resolve model from config; omitting --model "
+              "(gateway default applies)", file=sys.stderr)
     print(f"Agent: {args.agent} → Channel: {args.channel} → To: {to_target}", file=sys.stderr)
 
     # 3. Fetch existing cron jobs ONCE
@@ -226,7 +239,7 @@ def main():
                     counts[utc_min] = counts.get(utc_min, 0) + 1
 
         # Create the job
-        cmd = build_cron_cmd(args.agent, args.channel, to_target, name, message, cron_expr, tz)
+        cmd = build_cron_cmd(args.agent, args.channel, to_target, name, message, cron_expr, tz, model)
         print(f"  Creating: {name} ({cron_expr})", file=sys.stderr)
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=_STATE_DIR)
