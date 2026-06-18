@@ -50,9 +50,10 @@
 - WARM 初稿："Hey [name] — your plan's locked in: about **{target_cal} cal and {target_protein}g protein** a day. Want me to send you 3 easy meals that hit that? Just reply YES."
 - COLD（无 PLAN.md，无真实数字）：不报具体数字，改为 "Hey [name] — want me to put together 3 easy meals that fit your goal? Just reply YES." 仍走一个字 YES。
 
-### index 2 — `photo`（T+24h，低门槛：拍/报一餐）
-- 强调"我来算，免 app、免记账"——用户不用做任何数学 → 引**一张照片/一句话报餐**。
-- 初稿："No counting, no app, no tracking on your end — just snap a photo of one meal (or text what you ate) and I do the math. Try it with whatever's next."
+### index 2 — `photo`（T+24h，低门槛：报一餐）
+> 注：契约标签 `photo` 是历史命名，不要改；现在文案以**文字报餐**为主，拍照只是补充选项。
+- 强调"我来算，免 app、免记账"——用户不用做任何数学 → 引**一句话报餐**（也可以拍张照）。
+- 初稿："No counting, no app, no tracking on your end — just text me what you ate (a photo works too) and I do the math. Try it with whatever's next."
 - WARM 可加半句把它系回目标；COLD 不提方案。
 
 ### index 3 — `rapport`（T+3d，极低门槛：问难处）
@@ -93,9 +94,9 @@ python3 {notification-manager:baseDir}/scripts/activation-mark-sent.py \
 
 **Nudge 1（day-1，cron payload 含 `nudge=1`）：**
 - 表达"方案已就位，第一步很简单"
-- 给具体例子：随口报一餐 / 拍张照都行
+- 给具体例子：随口报一餐就行（也可以拍张照）
 - 强调"我来算"——用户不用做数学
-- 英文初稿（按语言改写，不照搬）："Your plan's live — let's break it in. Next time you eat, just text me what's on the plate. Even 'oatmeal and coffee' works, or snap a photo. I'll handle the math."
+- 英文初稿（按语言改写，不照搬）："Your plan's live — let's break it in. Next time you eat, just text me what's on the plate. Even 'oatmeal and coffee' works (a photo works too). I'll handle the math."
 - 本地化示例：英文 "oatmeal and coffee"；中文可用"一碗粥配个鸡蛋"；其他语言用当地常见早餐。
 
 **Nudge 2（第二天，cron payload 含 `nudge=2`，更软）：**
