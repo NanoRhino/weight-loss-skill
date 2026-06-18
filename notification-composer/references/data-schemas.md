@@ -96,14 +96,16 @@ but `activation.*`, `recall_topics`, etc. remain in engagement.json). Both are
 incremented **deterministically** by
 `notification-manager/scripts/activation-mark-sent.py --counter <name>` (called
 by `notification-composer` after each successful send) — NOT by LLM-driven
-read-modify-write, because the "max 2 then stop" anti-nag guarantee depends on
-the count being exact.
+read-modify-write, because the "max N then stop" anti-nag guarantee depends on
+the count being exact. The same script, in the SAME flock + atomic os.replace,
+also stamps `activation.last_nudge_at`.
 
 ```json
 {
   "activation": {
     "first_meal_nudges_sent": 0,
-    "nudges_sent": 0
+    "nudges_sent": 0,
+    "last_nudge_at": "2026-06-18T16:30:00Z"
   },
   "recall_topics": []
 }
@@ -112,7 +114,8 @@ the count being exact.
 | Field | Description |
 |-------|-------------|
 | `activation.first_meal_nudges_sent` | First-meal nudges sent (0-2; onboarded-but-never-logged cohort). Capped at 2 — after 2, the pre-send-check cap gate permanently suppresses the nudge (lifecycle-independent terminal guarantee). |
-| `activation.nudges_sent` | Activation nudges sent (0-4; greeted-but-never-replied cohort; 4-touch sequence T+4h/T+24h/T+3d/T+7d, cron created by openclaw-infra, content keyed by payload `nudgeIndex`). Capped at 4 — same cap-gate suppression. |
+| `activation.nudges_sent` | Activation nudges sent (0-4; greeted-but-never-replied cohort). **Cold-Start v3:** scheduled by ONE recurring "sweep" cron (created by openclaw-infra, fires ~every 2h, generic payload). The due touch is COMPUTED by `pre-send-check.py` as `index = nudges_sent + 1`, gated on `now - claimedAt >= threshold[index]` (touch1=4h/touch2=24h/touch3=3d/touch4=7d) AND `now - last_nudge_at >= ~20h` (MIN_GAP). Content keyed by the gate's computed `nudgeIndex` (printed as `SEND activation nudgeIndex=N nudgeAngle=X`), NOT by a cron-payload token. Capped at 4 — same cap-gate suppression. |
+| `activation.last_nudge_at` | ISO-8601 UTC timestamp of the most recent activation/first-meal nudge send (e.g. `"2026-06-18T16:30:00Z"`). Stamped by `activation-mark-sent.py` in the same atomic write as the counter increment. Read by `pre-send-check.py` to enforce the ~20h MIN_GAP between activation touches (de-bunches a catch-up sweep). Absent → treated as "no prior nudge" (touch 1 has no gap to satisfy). **Single-writer field — never hand-edited.** |
 
 The `activation` block and each counter are optional/backward-compatible —
 absent reads as 0. (The cap gate is what stops the nudges; transitioning a

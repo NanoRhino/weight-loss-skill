@@ -16,6 +16,11 @@ Behavior:
   - Read-modify-write the `activation` block inside engagement.json.
   - Create the `activation` block if absent; never clobber sibling fields
     (notification_stage, stage_changed_at, etc.) or sibling counters.
+  - Stamp `activation.last_nudge_at` (ISO-8601 UTC) in the SAME write as the
+    increment, so the pre-send-check MIN_GAP (≤1 nudge per ~20h, prevents a
+    catch-up sweep from bunching touches) has a single-writer source of truth.
+    Both fields land in one flock + os.replace, so there is no second writer
+    and no freehand-Edit collision (the 050208 bug).
   - Atomic write (tmp file + os.replace) under an exclusive flock, so concurrent
     crons can't lose an increment.
 
@@ -23,7 +28,7 @@ Usage:
   python3 activation-mark-sent.py --workspace-dir <WS> \
       --counter first_meal_nudges_sent|nudges_sent
 
-Output (stdout): JSON {"status":"ok","counter":<name>,"value":<new_value>}
+Output (stdout): JSON {"status":"ok","counter":<name>,"value":<new_value>,"last_nudge_at":<iso>}
 Exit code 0 on success, 1 on hard failure (e.g. cannot write).
 """
 
@@ -33,6 +38,7 @@ import json
 import os
 import sys
 import tempfile
+from datetime import datetime, timezone
 
 VALID_COUNTERS = ("first_meal_nudges_sent", "nudges_sent")
 
@@ -83,6 +89,12 @@ def main():
             current = 0
         new_value = current + 1
         activation[args.counter] = new_value
+        # Stamp the send time in the SAME atomic write. pre-send-check reads this
+        # to enforce MIN_GAP (≤1 activation touch per ~20h). Written for BOTH
+        # counters — harmless for the first-meal nudge (which doesn't read it),
+        # and keeps a single deterministic writer for the field.
+        now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        activation["last_nudge_at"] = now_iso
         data["activation"] = activation
 
         # Atomic write to avoid races with the gateway / concurrent crons.
@@ -99,7 +111,8 @@ def main():
             raise
 
         print(json.dumps(
-            {"status": "ok", "counter": args.counter, "value": new_value},
+            {"status": "ok", "counter": args.counter, "value": new_value,
+             "last_nudge_at": now_iso},
             ensure_ascii=False,
         ))
         return 0

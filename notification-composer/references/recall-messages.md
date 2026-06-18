@@ -26,11 +26,11 @@
 
 ## 激活提醒（Activation）— 加好友/握手后从未回复
 
-**触发：** cron message 含 `activation`（一次性 cron，由 **openclaw-infra** 在注册时创建）。**4 触点序列**：step1 T+4h、step2 T+24h、step3 T+3d、step4 T+7d，均落在用户本地白天。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、**非未成年**、未完成引导、不在请假/暂停、未达上限。
+**触发：** cron message 含 `activation`。**Cold-Start v3：调度从「4 条带标签的一次性 cron」改为「openclaw-infra 在注册时挂的一条周期性 sweep cron」**（约每 2h 跑一次），payload 是**通用指令**——它不再告诉发第几条。**该发哪一条由 `pre-send-check.py` 计算**：`index = nudges_sent + 1`，只在 `now - claimedAt ≥ 该触点阈值`（step1 T+4h、step2 T+24h、step3 T+3d、step4 T+7d）**且** `now - last_nudge_at ≥ ~20h`（MIN_GAP）时放行。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、**非未成年**、未完成引导、不在请假/暂停、未达上限、且当前触点到点且不被 MIN_GAP 压住。
 
-**对象：** 收到第一条欢迎消息但**一条都没回**的用户。卡点是"开口说第一句话"。这条消息只为破冰、给一个零门槛的起点。**两类用户都会收到这个 cron**：通过 TDEE handoff 进来的（WARM，方案已就位）和冷启动注册的（COLD，无方案）。
+**对象：** 收到第一条欢迎消息但**一条都没回**的用户。卡点是"开口说第一句话"。这条消息只为破冰、给一个零门槛的起点。**两类用户都会进这个流程**：通过 TDEE handoff 进来的（WARM，方案已就位）和冷启动注册的（COLD，无方案）——COLD 用户在 v3 也会被 sweep 覆盖，下面每条都给了 COLD 写法，**绝不出现占位符泄漏（如 `{target_cal}`）或无中生有的"方案"。**
 
-> **内容由 `nudgeIndex` 决定（唯一真源）：** cron payload 是**自由文本指令**（非 JSON），新字段写在 composer 指令括号里，形如 `...run notification-composer for activation (nudgeIndex=3, nudgeAngle=rapport).` 从文本解析 `nudgeIndex=`（整数 1–4）和 `nudgeAngle=`（`value_first`/`photo`/`rapport`/`exit`）。**按 `nudgeIndex` 选下面对应的文案，不要用 `nudges_sent` 计数器选内容。旧的 `(nudge=N)` token 已移除——不要再找它**；两字段都解析不到则 `NO_REPLY`。
+> **内容由 pre-send-check 算出的 `nudgeIndex` 决定（唯一真源）：** 第三步 `pre-send-check.py` 输出形如 `SEND activation nudgeIndex=3 nudgeAngle=rapport`，从中取 `nudgeIndex`（整数 1–4）和 `nudgeAngle`（`value_first`/`photo`/`rapport`/`exit`）。**按 `nudgeIndex` 选下面对应的文案，不要用 `nudges_sent` 计数器选内容。旧的 `(nudge=N)` 和 payload 里的 `(nudgeIndex=N, nudgeAngle=X)` 都已移除——不要再去 cron payload 里找**；输出不是 `SEND activation ...` 则 `NO_REPLY`。
 
 > **冷暖分流（compose 前必做）：** 检查 workspace 根目录是否有 `PLAN.md`。**`PLAN.md` 存在 → WARM**（走过 TDEE handoff，可从 PLAN.md 取真实目标热量+蛋白质做个性化）；**`PLAN.md` 不存在 → COLD**（无方案，绝不提"方案/计划/资料/都准备好了"，也没有真实数字可引）。语言仍以 `USER.md > Language` 为准（见 §通用规则，不在此做语言选择）。
 
@@ -40,7 +40,7 @@
 >
 > **未成年拦截（defense-in-depth）：** pre-send-check 读结构化年龄（`handoff.json > structured.age_years`，回退 `PROFILE.md > **Age:**`）；< 18 → NO_REPLY（"minor, service not offered"）。TDEE 上游已拒未成年，此处是二道防线。无结构化年龄时 fail-open（不拦）。
 
-**上限：** 最多 4 条（T+4h / T+24h / T+3d / T+7d）。**用户回复任何消息 → 剩余 nudge 全部自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 4 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 4`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
+**上限：** 最多 4 条（阈值 T+4h / T+24h / T+3d / T+7d，再加每 ~20h 最多一条的 MIN_GAP 节流）。**用户回复任何消息 → 剩余 nudge 全部自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 4 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 4`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
 
 **语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`。NanoRhino 用驼峰写法，**不要 🦏 emoji**。门槛逐条递减（index 1 → 4 越来越轻）。`[name]` 来自 USER.md，缺失则不用名字。下面英文为初稿，按 `USER.md > Language` 改写、不照搬。
 
@@ -74,9 +74,9 @@
 python3 {notification-manager:baseDir}/scripts/activation-mark-sent.py \
   --workspace-dir {workspaceDir} --counter nudges_sent
 ```
-脚本原子地把 `activation.nudges_sent` +1（无块则新建，不动其它字段）。**只在确实发了消息后才调脚本**（NO_REPLY 时不调）。
+脚本在**同一次** flock + 原子 os.replace 里把 `activation.nudges_sent` +1 **并**盖上 `activation.last_nudge_at`（ISO，UTC）——后者是 pre-send-check MIN_GAP（每 ~20h 最多一条）的真源（无块则新建，不动其它字段）。**只在确实发了消息后才调脚本**（NO_REPLY 时不调）。
 
-> 🚫 **activation 路径严禁手动 Edit/Write `data/engagement.json`，也不要写 `recall_topics`。** 计数只能走上面的脚本（它已持 flock + 原子 os.replace）。本路径用 `nudgeIndex` 选内容、不需要 recall_topics 去重；任何自由编辑都会与脚本竞争、把成功的 nudge run 误报为 `error`（见 050208 事故）。
+> 🚫 **activation 路径严禁手动 Edit/Write `data/engagement.json`，也不要写 `recall_topics`。** `nudges_sent` 计数与 `last_nudge_at` 时间戳只能走上面的脚本（它已持 flock + 原子 os.replace，二者一次写入）——`last_nudge_at` 绝不能手写、也不能引入第二个写入者去碰。本路径用 pre-send-check 算出的 `nudgeIndex` 选内容、不需要 recall_topics 去重；任何自由编辑都会与脚本竞争、把成功的 nudge run 误报为 `error`（见 050208 事故）。
 
 **禁止：** 数错过的天数 · "你还没回我" · 把回复框成义务 · index 1 外的卡路里/宏量细节 · 鸡汤 · 🦏 emoji。
 

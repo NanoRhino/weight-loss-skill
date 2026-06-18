@@ -360,6 +360,54 @@ ACTIVATION_NUDGE_CAP = 4
 # warm-start agent must never receive a re-engagement nudge).
 ACTIVATION_MIN_AGE = 18
 
+# Cold-Start v3: the infra side fires ONE recurring "sweep" cron (~every 2h)
+# whose payload is GENERIC — it no longer tells us which touch to send. So the
+# gate computes the due touch here:
+#   index = nudges_sent + 1   (1..4)
+# Touch N is due iff BOTH:
+#   (a) now - claimedAt >= ACTIVATION_THRESHOLDS_SECONDS[index]
+#   (b) now - last_nudge_at >= ACTIVATION_MIN_GAP_SECONDS  (de-bunch: when a
+#       sweep catches up after an overnight registration and several thresholds
+#       are already crossed, only ONE touch goes out per sweep window).
+# Index → angle (content key the composer renders):
+#   1=value_first  2=photo  3=rapport  4=exit
+# Thresholds are the agreed contract: touch1=4h, touch2=24h, touch3=3d, touch4=7d.
+ACTIVATION_THRESHOLDS_SECONDS = {
+    1: 4 * 3600,        # T+4h
+    2: 24 * 3600,       # T+24h
+    3: 3 * 86400,       # T+3d
+    4: 7 * 86400,       # T+7d
+}
+ACTIVATION_ANGLES = {
+    1: "value_first",
+    2: "photo",
+    3: "rapport",
+    4: "exit",
+}
+# MIN_GAP ~20h: at most one activation touch per ~20h. 20h (not 24h) leaves
+# slack so a touch isn't skipped a whole extra day when a sweep lands slightly
+# under 24h after the previous send.
+ACTIVATION_MIN_GAP_SECONDS = 20 * 3600
+
+
+def _parse_iso(value):
+    """Parse an ISO-8601 timestamp (with optional trailing 'Z') into an aware
+    UTC datetime, or None on any failure. claimedAt is written by infra as
+    `new Date().toISOString()` (always UTC 'Z'); last_nudge_at is written by
+    activation-mark-sent.py as UTC 'Z' too."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    s = value.strip()
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
 
 def _profile_age_years(workspace_dir):
     """Return the user's age in whole years from a STRUCTURED source, or None
@@ -470,37 +518,48 @@ def _onboarding_completed(workspace_dir):
     return bool(val) and val not in ("—", "-", "none", "None")
 
 
-def check_activation_nudge(workspace_dir, tz_offset):
+def check_activation_nudge(workspace_dir, tz_offset, out=None):
     """Gate for the activation nudge (meal_type=activation) — the Part-1
     "greeted but never replied" cohort.
 
-    The DEFINING gate: read channel-source.json > lastInboundAt (epoch ms,
-    written by the infra-side Phase-0 instrumentation on every inbound message).
-    If lastInboundAt is present AT ALL, the user has replied at least once →
-    the nudge's whole reason to exist is gone → NO_REPLY (cancel).
+    Cold-Start v3: the infra side now fires ONE recurring generic "sweep" cron
+    instead of four payload-tagged one-shots, so the sweep no longer tells us
+    which touch to send. This gate COMPUTES the due touch:
 
-    Also suppress (NO_REPLY) when ANY of:
-      - channel-source.json is missing/unreadable (fail closed — can't confirm
-        the user hasn't replied, so stay silent)
-      - the user is a minor (structured age < ACTIVATION_MIN_AGE) — the service
-        is not offered to minors; defense-in-depth behind the TDEE upstream
-        refusal. Fails OPEN when no structured age is available (no fragile
-        free-text parse).
-      - onboarding already completed (they're past the never-replied stall —
-        a different cohort, handled by the first-meal nudge)
+        index = nudges_sent + 1   (1..4)
+
+    and sends touch `index` ONLY when BOTH timing windows are open:
+      (a) now - claimedAt   >= ACTIVATION_THRESHOLDS_SECONDS[index]
+          (touch1=4h, touch2=24h, touch3=3d, touch4=7d — the agreed contract)
+      (b) now - last_nudge_at >= ACTIVATION_MIN_GAP_SECONDS  (~20h)
+          de-bunches a catch-up sweep: when a user registered overnight and the
+          first daytime sweep sees several thresholds already crossed, only ONE
+          touch goes out per ~20h window (no first-nudge gap on touch 1).
+
+    On SEND it writes the chosen index/angle into `out` (composer renders by it).
+
+    The DEFINING gate (unchanged): read channel-source.json > lastInboundAt
+    (epoch ms, written by infra Phase-0 on every inbound). If lastInboundAt is
+    present AT ALL, the user has replied → NO_REPLY (cancel).
+
+    Also suppress (NO_REPLY) when ANY of (all unchanged):
+      - channel-source.json is missing/unreadable (fail closed)
+      - the user is a minor (structured age < ACTIVATION_MIN_AGE; fails OPEN
+        when no structured age is available)
+      - onboarding already completed (wrong cohort)
       - any meal ever logged (they engaged)
-      - engagement stage is Silent (5)
+      - engagement stage is Silent (handled by check_engagement_stage, before
+        this gate)
       - the cap (ACTIVATION_NUDGE_CAP) has been reached
 
-    Leave/pause AND the authoritative lifecycle Silent state (stage 5) are
-    handled by the generic check_leave + check_engagement_stage gates that run
-    BEFORE this one (check_engagement_stage reads stage from the lifecycle API).
-    Stage is NOT read from engagement.json here — that field is deprecated.
-    Only `activation.nudges_sent` (a non-stage business counter, still owned in
-    engagement.json) is read; the cap is the terminal anti-nag guarantee and is
-    lifecycle-independent. This gate does NOT increment the counter —
-    notification-composer calls activation-mark-sent.py --counter nudges_sent
-    after a successful compose.
+    Leave/pause AND the authoritative lifecycle Silent state are handled by the
+    generic check_leave + check_engagement_stage gates that run BEFORE this one.
+    Stage is NOT read from engagement.json. Only `activation.nudges_sent` and
+    `activation.last_nudge_at` (non-stage business fields, owned in
+    engagement.json, written ONLY by activation-mark-sent.py) are read. This
+    gate does NOT write engagement.json — the composer calls
+    activation-mark-sent.py --counter nudges_sent after a successful compose,
+    which atomically bumps the counter AND stamps last_nudge_at.
     """
     cs, cs_readable = _read_channel_source(workspace_dir)
 
@@ -531,6 +590,10 @@ def check_activation_nudge(workspace_dir, tz_offset):
     if _any_meal_ever_logged(workspace_dir):
         return False, "activation — a meal has been logged (user engaged), nudge cancelled"
 
+    # --- Read the activation business counters (single source of truth, written
+    # only by activation-mark-sent.py). ---
+    nudges_sent = 0
+    last_nudge_at_raw = None
     eng_path = os.path.join(workspace_dir, "data", "engagement.json")
     if os.path.exists(eng_path):
         try:
@@ -538,11 +601,51 @@ def check_activation_nudge(workspace_dir, tz_offset):
                 data = json.load(f)
         except (json.JSONDecodeError, IOError):
             data = {}
-        nudges_sent = (data.get("activation") or {}).get("nudges_sent", 0)
-        if nudges_sent >= ACTIVATION_NUDGE_CAP:
-            return False, f"activation — cap reached ({nudges_sent}/{ACTIVATION_NUDGE_CAP})"
+        activation = data.get("activation") or {}
+        nudges_sent = activation.get("nudges_sent", 0)
+        if not isinstance(nudges_sent, int) or isinstance(nudges_sent, bool):
+            nudges_sent = 0
+        last_nudge_at_raw = activation.get("last_nudge_at")
 
-    return True, None
+    # Cap: terminal anti-nag guarantee, lifecycle-independent.
+    if nudges_sent >= ACTIVATION_NUDGE_CAP:
+        return False, f"activation — cap reached ({nudges_sent}/{ACTIVATION_NUDGE_CAP})"
+
+    # --- Compute which touch is due. ---
+    index = nudges_sent + 1  # 1..4 (cap already enforced above)
+    threshold = ACTIVATION_THRESHOLDS_SECONDS.get(index)
+    if threshold is None:
+        # Defensive: index outside 1..4 should be impossible past the cap gate.
+        return False, f"activation — no threshold for computed index {index}"
+
+    now = datetime.now(timezone.utc)
+
+    # (a) elapsed since registration must reach this touch's threshold.
+    claimed_dt = _parse_iso(cs.get("claimedAt"))
+    if claimed_dt is None:
+        # claimedAt is the registration anchor for the whole schedule. The target
+        # cohort always has it (infra writes it at pool claim); if it's missing
+        # or unparseable we can't time the touch → fail closed (anti-nag).
+        return False, "activation — claimedAt missing/unparseable, cannot time touch (fail closed)"
+    elapsed = (now - claimed_dt).total_seconds()
+    if elapsed < threshold:
+        return False, (f"activation — touch {index} not due yet "
+                       f"(elapsed {int(elapsed)}s < threshold {threshold}s)")
+
+    # (b) MIN_GAP since the last sent touch (de-bunch catch-up sweeps). Touch 1
+    # has no prior nudge → no gap to satisfy.
+    last_nudge_dt = _parse_iso(last_nudge_at_raw)
+    if last_nudge_dt is not None:
+        gap = (now - last_nudge_dt).total_seconds()
+        if gap < ACTIVATION_MIN_GAP_SECONDS:
+            return False, (f"activation — touch {index} held by MIN_GAP "
+                           f"(last nudge {int(gap)}s ago < {ACTIVATION_MIN_GAP_SECONDS}s)")
+
+    # Due. Hand the computed index/angle to the composer.
+    if out is not None:
+        out["nudge_index"] = index
+        out["nudge_angle"] = ACTIVATION_ANGLES[index]
+    return True, f"activation — touch {index} due (angle={ACTIVATION_ANGLES[index]})"
 
 
 def check_health_flags(workspace_dir, meal_type):
@@ -710,6 +813,7 @@ def main():
     # 无需预热 engagement.json。
 
     stage_info = {"stage": 1}
+    activation_info = {}
     checks = [
         ("leave", lambda: check_leave(args.workspace_dir, args.tz_offset, args.mock_date)),
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
@@ -732,7 +836,7 @@ def main():
             args.workspace_dir, args.tz_offset)))
     elif args.meal_type == "activation":
         checks.append(("activation", lambda: check_activation_nudge(
-            args.workspace_dir, args.tz_offset)))
+            args.workspace_dir, args.tz_offset, out=activation_info)))
     elif args.meal_type in ("custom", "weekly_report", "daily_summary"):
         pass  # Only stage check needed, no meal-logged check
     else:
@@ -748,6 +852,14 @@ def main():
             return
 
     log("All checks passed")
+
+    # Activation: the gate computed which touch is due (Cold-Start v3). Emit the
+    # nudgeIndex/angle so the composer renders the right content — this replaces
+    # the old cron-payload (nudgeIndex=N, nudgeAngle=X) source.
+    if args.meal_type == "activation" and "nudge_index" in activation_info:
+        print(f"SEND activation nudgeIndex={activation_info['nudge_index']} "
+              f"nudgeAngle={activation_info['nudge_angle']}")
+        return
 
     # stage_info 由 engagement_stage check 填入「认领前」的 stage/days_silent
     if stage_info["stage"] >= 2:

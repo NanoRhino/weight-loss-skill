@@ -370,19 +370,32 @@ is generated from logged meals and would be hollow.
 welcome message, but have **never replied at all**. Different cohort from the
 first-meal nudge (who replied + onboarded but never logged).
 
-**Cron created by openclaw-infra, NOT this repo.** The infra side schedules a
-**4-touch** one-shot cron sequence at handoff time (step1 T+4h, step2 T+24h,
-step3 T+3d, step4 T+7d; user-local daytime). This skill only implements what
-they fire into. Payload contract — each cron carries `nudgeIndex` (1–4) and
-`nudgeAngle` (`value_first`|`photo`|`rapport`|`exit`); the composer picks content
-by `nudgeIndex` (source of truth), NOT by the `nudges_sent` counter:
+**Cron created by openclaw-infra, NOT this repo.** **Cold-Start v3** changed the
+schedule from four payload-tagged one-shot crons to **ONE recurring "sweep"
+cron** (fires ~every 2h) created by the infra side at handoff/registration. The
+sweep payload is **generic** — it just says "run the activation pre-send check
+and send the single due touch if the gate allows" and **no longer carries which
+touch to send**. This skill only implements what the sweep fires into.
+
+**Who computes the touch:** the gate (`pre-send-check.py --meal-type activation`),
+not the payload. It computes `index = nudges_sent + 1` (1–4) and green-lights
+touch `index` only when BOTH `now - claimedAt >= threshold[index]` (touch1=4h,
+touch2=24h, touch3=3d, touch4=7d — the agreed contract) AND
+`now - last_nudge_at >= ~20h` (MIN_GAP, so a catch-up sweep doesn't bunch
+touches). On SEND it prints `SEND activation nudgeIndex=N nudgeAngle=X` and the
+composer renders content by that `nudgeIndex` (source of truth), NOT by the
+`nudges_sent` counter and NOT from the payload. Generic sweep payload:
 
 ```
 First run: python3 {notification-composer:baseDir}/scripts/pre-send-check.py \
   --workspace-dir <WS> --meal-type activation --tz-offset <off>.
 If output is NO_REPLY, stop and output NO_REPLY.
-Otherwise run notification-composer for activation (nudgeIndex=N, nudgeAngle=...).
+Otherwise run notification-composer for activation (it reads nudgeIndex/nudgeAngle
+from the pre-send-check output line).
 ```
+
+> The old `(nudgeIndex=N, nudgeAngle=X)` / `(nudge=N)` payload tokens are
+> **removed** — the composer no longer parses them from the cron message.
 
 **Detection / defining gate** (`pre-send-check.py --meal-type activation`): the
 target user is a handoff case — `health-profile.md` exists with
@@ -391,23 +404,35 @@ set. The **defining cancel signal** is `channel-source.json > lastInboundAt`
 (epoch ms, written by infra Phase-0 on every inbound): **if present at all, the
 user has replied → NO_REPLY (cancel)**. Also NO_REPLY if `channel-source.json`
 is missing/unreadable (**fail closed** — the target cohort always has the file;
-if we can't confirm no-reply we stay silent), **user is a minor** (structured age
+if we can't confirm no-reply we stay silent), `channel-source.json > claimedAt`
+(ISO-8601, the registration anchor for the schedule) is missing/unparseable
+(**fail closed** — can't time the touch), **user is a minor** (structured age
 < 18 from `handoff.json > structured.age_years`, fallback `PROFILE.md > **Age:**`;
 fails open when no structured age — defense-in-depth behind the TDEE upstream
 refusal), onboarding completed, any meal logged, the authoritative lifecycle
 Silent stage (handled by the generic `check_engagement_stage` gate via the
-lifecycle API), on leave/pause, or `activation.nudges_sent >= 4`.
+lifecycle API), on leave/pause, `activation.nudges_sent >= 4`, the computed
+touch's threshold not yet reached, or the MIN_GAP holding it back.
+
+**Cold-START users now enter this flow.** Previously cold-start (no PLAN.md)
+users were never scheduled; under v3 the sweep covers them too. The composer
+must degrade to the COLD content variant (no `target_cal`/`target_protein`, no
+"your plan is ready" language) when `PLAN.md` is absent — see
+`notification-composer` SKILL.md § 激活提醒 and `references/recall-messages.md`.
 
 **Cap & terminal state:** Max **4** nudges (`activation.nudges_sent`). The moment
 the user replies (or logs a meal), all remaining nudges self-cancel. After 4
 nudges, the pre-send-check **cap gate** (reads `activation.nudges_sent >= 4`)
 permanently suppresses the nudge — lifecycle-independent terminal guarantee, same
 as the first-meal nudge. The composer increments the counter via
-`activation-mark-sent.py --counter nudges_sent` after each successful send.
-**The composer must NOT hand-edit engagement.json (or write recall_topics) in the
-activation path** — the counter is owned exclusively by the script (flock +
-atomic os.replace); a freehand Edit races it and mis-flags successful nudge runs
-as `error` (the 050208 incident).
+`activation-mark-sent.py --counter nudges_sent` after each successful send;
+that script, in the SAME flock + atomic os.replace, also stamps
+`activation.last_nudge_at` (ISO-8601 UTC) — the single source of truth the gate's
+MIN_GAP reads. **The composer must NOT hand-edit engagement.json (or write
+recall_topics, or write `last_nudge_at`) in the activation path** — both the
+counter and `last_nudge_at` are owned exclusively by the script (flock + atomic
+os.replace, written together); a freehand Edit races it and mis-flags successful
+nudge runs as `error` (the 050208 incident).
 
 > ⚠️ **Cross-system flag (lifecycle handoff):** The cap gate stops the *nudges*,
 > but it does NOT itself transition the user to lifecycle Silent — stage is owned
@@ -649,6 +674,7 @@ If the user says "取消提醒" without specifying which one:
 | `data/engagement.json` | `reminder_config` — direct write | Adaptive timing changes, user setting changes |
 | `data/engagement.json` | `activation.first_meal_nudges_sent` — incremented by `notification-composer` via `activation-mark-sent.py` | After each first-meal nudge send |
 | `data/engagement.json` | `activation.nudges_sent` — incremented by `notification-composer` via `activation-mark-sent.py` | After each activation (never-replied) nudge send |
+| `data/engagement.json` | `activation.last_nudge_at` (ISO-8601 UTC) — stamped by `activation-mark-sent.py` in the SAME atomic write as the increment | After each activation/first-meal nudge send; read by `pre-send-check.py` for the ~20h MIN_GAP |
 | `health-profile.md > Meal Schedule` | direct write | Adaptive timing updates, user-requested time changes |
 
 ---
