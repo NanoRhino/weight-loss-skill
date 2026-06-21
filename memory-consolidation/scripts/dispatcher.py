@@ -60,7 +60,7 @@ MEMORY_SUBDIR = "memory"
 SESSION_DIR_TEMPLATE = "/home/ec2-user/.openclaw/agents/{agent_id}/sessions"
 
 # Skill SKILL.md path on the SMS gateway (skills are a git checkout of
-# weight-loss-skill on branch experiment/activation-hooks).
+# weight-loss-skill on branch release/USA).
 SKILL_PATH = "/home/ec2-user/.openclaw/skills/memory-consolidation/SKILL.md"
 
 # Workspace basenames that are NOT real per-user agents — skip entirely.
