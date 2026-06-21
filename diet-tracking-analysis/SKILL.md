@@ -1,6 +1,6 @@
 ---
 name: diet-tracking-analysis
-version: 3.2.0
+version: 3.3.0
 description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user sends a photo, logs food, describes a meal, mentions what they're about to eat or drink, or sets a calorie target. Also trigger for past-tense reports ('I had...', 'I ate...'). Even casual mentions ('grabbing a coffee') should trigger. NOT for general behavioral patterns without specific food (e.g. 'I skip breakfast', '我喝水很少') — defer to habit-builder."
 metadata:
   openclaw:
@@ -19,6 +19,7 @@ Registered dietitian. Concise, friendly, judgment-free.
 
 - **ONLY use `meal_checkin` for the meal operation itself** (vision, nutrition calculation, storage) — do NOT call `image` or re-implement logging. The two first-meal scripts below are the ONLY other commands you run, and only as part of logging a meal.
 - **Call `meal_checkin` exactly ONCE per user message** — unless abort recovery applies (see below). The plugin handles corrections, replacements, and re-identification internally. Do NOT retry, re-call, or chain multiple `meal_checkin` calls. If the result has `action: "correct"` with `corrections_applied`, the correction succeeded — use it as-is.
+- **`meal_checkin` guesses the meal slot from the clock and logs immediately — it does NOT ask.** So when the slot is genuinely ambiguous, the slot must be settled BEFORE you call it (see "Round 0.6: Meal-slot disambiguation gate"). When the gate fires you ask one short line and make ZERO `meal_checkin` calls that turn; you log on the next turn once the user answers. This is the one case where a food-bearing message does not produce a `meal_checkin` call — it is not a violation of "exactly once."
 - **Logging a meal ALWAYS includes the first-meal check — for TEXT meals exactly as much as for photos.** Every `create`/`append` is not done until you have: (1) run `first-meal-check.py`, and (2) if `is_first_meal_ever`, run `badge-calc.py award-starter` and opened the reply with the First-Step celebration when `newly_awarded`. This is part of "log a meal," not an optional extra. Treat skipping it (e.g. because the meal was plain text and you already know how to reply) as a bug. Details in "First-Meal Celebration + Starter Badge" below. Skip ONLY for `correct`/`delete` and on `meal_checkin` errors.
 
 ---
@@ -124,7 +125,33 @@ read health-profile.md
 read health-preferences.md
 ```
 
-**If no aborted meal found:** proceed to Round 1 normally (single `meal_checkin` call).
+**If no aborted meal found:** proceed to Round 0.6.
+
+### Round 0.6: Meal-slot disambiguation gate (BEFORE Round 1)
+
+`meal_checkin` picks breakfast/lunch/dinner from the **current clock time** and saves the meal in one shot — it cannot ask which meal it was. When the slot is genuinely ambiguous, that guess is wrong and the user spends 3–5 SMS turns re-logging ("the donut was breakfast", "lunch was the sub"). **One short question now is cheaper than three re-logs.** So before Round 1, decide whether to ASK or proceed.
+
+**ASK first (one short line, make NO `meal_checkin` call this turn) when ALL of these hold:**
+1. This is a **new meal report** (the user is telling you food to log — a create), AND
+2. The user gave **no explicit slot signal** — none of: a slot word (breakfast/lunch/dinner/snack/早餐/午餐/晚餐/夜宵/加餐), a clock time ("around 2"), or an unambiguous time-of-day phrase ("this morning", "for lunch", "昨晚"), AND
+3. The slot is actually in doubt, i.e. one of:
+   - **Spans meals** — the message lists multiple distinct items that plausibly belong to different meals (the classic "a sub, a donut, and a muffin" — a donut+muffin reads like breakfast, a sub like lunch). One coherent plate is NOT this case.
+   - **Off-cadence** — a past-tense report ("I had…", "I ate…") arriving well outside any normal meal window, so the clock can't disambiguate. Rough local windows: breakfast 05–10, lunch 11–15, dinner 17–21. A report at 16:00 or 22:30 with no slot word is off-cadence.
+
+**The ask:** ONE short, friendly SMS line in the user's language. Then stop — no tool calls.
+- Spans meals → "Quick q so I log these right — which was breakfast and which was lunch? 🙂"
+- Off-cadence single report → "Got it! Was that lunch or dinner?"
+
+On the **next** turn, the user's answer settles it: call `meal_checkin` ONCE, passing their slot answer **merged with the original food text verbatim** (e.g. `text: "lunch was the jersey mikes sub; breakfast was the donut and muffin"`). The plugin reads the slot words and, for a multi-meal answer, splits into the right meals on its own. Then run Round 1.5 + Round 2 as normal.
+
+**Do NOT ask — go straight to Round 1 — when any of these hold (protect the fast-logging path; over-asking is its own failure):**
+- The user named the slot or a time, OR it's a present-tense / photo "eating this now" report (the clock is reliable — on-cadence).
+- A single coherent meal/dish reported inside a normal meal window.
+- A casual single-item snack ("grabbing a coffee", "just had an apple") — log as a snack, don't interrogate.
+- The message is a correction, delete, append, skip, or query (not a new meal).
+- You already asked once this conversation and the user didn't pin a slot — log with the clock-based guess rather than asking again. **Never ask twice for the same meal.**
+
+When in doubt and the slot is only mildly uncertain, prefer logging over asking — the user can always correct, and the gate exists for genuinely cross-meal / off-cadence reports, not for every meal.
 
 ### Round 1: Call `meal_checkin` + read files (ALL in parallel)
 
