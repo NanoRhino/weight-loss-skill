@@ -134,7 +134,19 @@ get_meal_schedule() {
       [[ "$line" =~ ^##\  ]] && break
       if [[ "$line" =~ ^-\ \*\*([^*]+):\*\*\ (.+)$ ]]; then
         local meal="${BASH_REMATCH[1]}" time="${BASH_REMATCH[2]}"
-        [[ "$meal" != "Meals per Day" && "$time" != "—" && -n "$time" ]] && echo "$meal $time"
+        # Only recognize the known meal slots. The Meal Schedule section can
+        # contain non-meal keys (e.g. "Meals per Day", or a stray
+        # "Work Schedule" a user pasted in) — those must NOT become reminders
+        # (a "Work Schedule" line once produced a bogus "Work reminder" cron).
+        case "$meal" in
+          Breakfast|Lunch|Dinner|Snack) ;;
+          *) continue ;;
+        esac
+        # Skip empty / placeholder times (—, -, none, TBD).
+        case "$time" in
+          ""|"—"|"-"|[Nn]one|[Tt][Bb][Dd]) continue ;;
+        esac
+        echo "$meal $time"
       fi
     fi
   done < "$HEALTH_PROFILE"
@@ -220,6 +232,56 @@ should_create_type() {
   [[ "$ONLY_TYPE" == "all" ]] && return 0
   [[ ",$ONLY_TYPE," == *",$1,"* ]] && return 0
   return 1
+}
+
+# --- Re-enable system jobs disabled by the imminent-fire guard ---
+# create-reminder.sh creates a recurring job DISABLED when its next occurrence is
+# imminent (avoids a mid-onboarding early fire). Once a later sync runs — by which
+# point the imminent window has passed — re-enable any disabled system jobs so
+# they resume their normal daily schedule. Recurring (kind=cron) jobs only;
+# one-shots and [custom] jobs are left untouched.
+#
+# IMPORTANT: this MUST run even when there are no new jobs to create. If every
+# queued reminder already exists (all skipped via --skip-existing) and we bailed
+# out early, the meal/weight/report crons that the imminent-fire guard left
+# enabled=false would NEVER get re-enabled once they already exist — stranding
+# them disabled forever (this stranded real users with all their meal reminders
+# stuck off). So this is a function called on BOTH the "nothing to create" path
+# and the normal completion path (exactly once per invocation).
+reenable_disabled_system_jobs() {
+  if [[ "$DRY_RUN" == false ]] && command -v openclaw &>/dev/null; then
+    local DISABLED_IDS
+    DISABLED_IDS="$( (cd "$STATE_DIR" && openclaw cron list --all --json 2>/dev/null) | AGENT="$AGENT" python3 -c "
+import sys, json, os
+agent = os.environ.get('AGENT','')
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+jobs = data.get('jobs', data) if isinstance(data, dict) else data
+for j in (jobs or []):
+    if j.get('agentId') != agent:
+        continue
+    name = j.get('name','') or ''
+    if name.startswith('[custom]'):
+        continue
+    if (j.get('schedule',{}) or {}).get('kind') != 'cron':
+        continue
+    if j.get('enabled', True) is False:
+        print(j.get('id',''))
+" 2>/dev/null || true)"
+    if [[ -n "$DISABLED_IDS" ]]; then
+      local jid
+      while IFS= read -r jid; do
+        [[ -z "$jid" ]] && continue
+        if (cd "$STATE_DIR" && openclaw cron enable "$jid" >/dev/null 2>&1); then
+          echo "Re-enabled previously-disabled system cron: $jid"
+        else
+          echo "WARNING: failed to re-enable cron $jid" >&2
+        fi
+      done <<< "$DISABLED_IDS"
+    fi
+  fi
 }
 
 # --- Phase 1: Collect job definitions ---
@@ -480,6 +542,10 @@ fi
 TOTAL=${#QUEUED_NAMES[@]}
 if [[ $TOTAL -eq 0 ]]; then
   echo "No jobs to create."
+  # Even with nothing new to create, still re-enable any system crons the
+  # imminent-fire guard left disabled — otherwise an all-skipped run (every
+  # reminder already exists) would leave them disabled forever.
+  reenable_disabled_system_jobs
   exit 0
 fi
 
@@ -576,43 +642,7 @@ else
 fi
 echo "====================================="
 
-# --- Re-enable system jobs disabled by the imminent-fire guard ---
-# create-reminder.sh creates a recurring job DISABLED when its next occurrence is
-# imminent (avoids a mid-onboarding early fire). Once a later sync runs — by which
-# point the imminent window has passed — re-enable any disabled system jobs so
-# they resume their normal daily schedule. Recurring (kind=cron) jobs only;
-# one-shots and [custom] jobs are left untouched.
-if [[ "$DRY_RUN" == false ]] && command -v openclaw &>/dev/null; then
-  DISABLED_IDS="$( (cd "$STATE_DIR" && openclaw cron list --all --json 2>/dev/null) | AGENT="$AGENT" python3 -c "
-import sys, json, os
-agent = os.environ.get('AGENT','')
-try:
-    data = json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-jobs = data.get('jobs', data) if isinstance(data, dict) else data
-for j in (jobs or []):
-    if j.get('agentId') != agent:
-        continue
-    name = j.get('name','') or ''
-    if name.startswith('[custom]'):
-        continue
-    if (j.get('schedule',{}) or {}).get('kind') != 'cron':
-        continue
-    if j.get('enabled', True) is False:
-        print(j.get('id',''))
-" 2>/dev/null || true)"
-  if [[ -n "$DISABLED_IDS" ]]; then
-    while IFS= read -r jid; do
-      [[ -z "$jid" ]] && continue
-      if (cd "$STATE_DIR" && openclaw cron enable "$jid" >/dev/null 2>&1); then
-        echo "Re-enabled previously-disabled system cron: $jid"
-      else
-        echo "WARNING: failed to re-enable cron $jid" >&2
-      fi
-    done <<< "$DISABLED_IDS"
-  fi
-fi
+reenable_disabled_system_jobs
 
 [[ $FAIL_COUNT -gt 0 ]] && exit 1
 exit 0
