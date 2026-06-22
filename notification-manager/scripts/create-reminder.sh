@@ -246,6 +246,25 @@ else
   echo "WARNING: could not resolve model from config; omitting --model (gateway default applies)" >&2
 fi
 
+# --- Cost tier: reminder-class jobs run on Sonnet, analysis jobs stay on Opus ---
+# Pure trigger/template-composition jobs (meal/weight/tips/water/herb reminders)
+# don't need Opus-level reasoning — they just fire and let notification-composer
+# fill a templated message. Sonnet is ~5x cheaper on output/cacheWrite, which
+# dominates cron cost. Analysis jobs that reason over user data (weekly report,
+# weekly insight, diet-pattern detection) keep the resolved (Opus) model.
+# Match on $NAME so it works regardless of --type granularity.
+SONNET_MODEL="amazon-bedrock/arn:aws:bedrock:us-east-1:405912452115:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0"
+_name_lc="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]')"
+case "$_name_lc" in
+  *"weekly report"*|*"weekly insight"*|*"diet pattern"*|*"pattern detection"*)
+    # analysis tier — keep resolved (Opus) model, no override
+    : ;;
+  *)
+    # reminder tier — downgrade to Sonnet
+    MODEL="$SONNET_MODEL"
+    echo "Reminder-tier job → Sonnet: $NAME" ;;
+esac
+
 # --- Build the cron command ---
 # Note: Do NOT wrap $MESSAGE with delivery instructions here.
 # The no-self-delivery rule is enforced in notification-composer SKILL.md
