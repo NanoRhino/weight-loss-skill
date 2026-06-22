@@ -22,7 +22,7 @@
   html,body{background:#ffffff;}
   body{font-family:"Noto Sans CJK SC","Noto Sans SC",sans-serif;-webkit-font-smoothing:antialiased;}
   /* #card 现为外层容器:暖米留白底(同卡片底),四周 padding 留白,自身无边框无圆角 */
-  .card{width:560px;background:var(--bg);padding:20px;}
+  .card{width:605px;background:var(--bg);padding:20px;}
   /* 内层卡片主体:棕框+圆角+卡片底色都在这里 */
   .sheet{background:var(--bg);color:var(--txt);border:2.5px solid var(--border);border-radius:16px;overflow:hidden;}
 
@@ -46,7 +46,7 @@
 
   /* ===== 菜品(可扩展,奇偶交替底色) ===== */
   .dishes{padding:6px 0 8px;}
-  .dish{display:flex;align-items:baseline;padding:13px 19px;}
+  .dish{display:flex;align-items:baseline;padding:8px 19px;}
   .dish:nth-child(odd){background:var(--tint);}
   /* 菜名定宽列:克数列起点固定 → 多道菜克数左对齐成一列;菜名超长时允许撑开,优先保克数对齐 */
   .dish .name{flex:0 0 auto;min-width:175px;font-size:26px;font-weight:700;color:var(--txt);white-space:nowrap;}
@@ -74,7 +74,7 @@
   .macro{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;}
   .macro .ic{flex-shrink:0;width:32px;height:32px;display:block;}
   .macro .txt{display:flex;flex-direction:column;line-height:1.2;}
-  .macro .k{font-size:15px;color:var(--txt);font-weight:700;white-space:nowrap;}
+  .macro .k{font-size:16px;color:var(--txt);font-weight:800;white-space:nowrap;}
   .macro .v{font-size:17px;font-weight:700;color:var(--dim);letter-spacing:-.3px;white-space:nowrap;}
   .macro .v .unit{font-size:13px;font-weight:400;color:var(--dim);margin-left:1px;}
   /* 蔬果区状态箭头颜色:统一棕色(营养素状态已用 SVG 图标区分,不靠箭头颜色) */
