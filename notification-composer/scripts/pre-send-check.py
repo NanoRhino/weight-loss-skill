@@ -276,6 +276,15 @@ def _weight_logged_on(workspace_dir, date_str):
 
 FIRST_MEAL_NUDGE_CAP = 2
 
+# Cold-Start v3 (Part-2): the first-meal nudge is driven by the SAME recurring
+# generic sweep as activation (the sweep payload runs this gate after the
+# activation gate returns NO_REPLY — the two cohorts are mutually exclusive).
+# Cadence: touch1 fires as soon as the user is eligible (onboarded, no meal);
+# touch2 fires >= FIRST_MEAL_TOUCH2_GAP_SECONDS (24h) after touch1. Then the cap
+# is the terminal anti-nag guarantee. Angles pick the copy the composer renders.
+FIRST_MEAL_TOUCH2_GAP_SECONDS = 24 * 3600
+FIRST_MEAL_ANGLES = {1: "day1", 2: "followup"}
+
 
 def _meal_has_food(meal):
     """Mirror of check-stage.py's _meal_has_food: a meal entry counts as a
@@ -309,8 +318,26 @@ def _any_meal_ever_logged(workspace_dir):
     return False
 
 
-def check_first_meal_nudge(workspace_dir, tz_offset):
-    """Gate for the one-shot first-meal nudge (meal_type=first_meal_nudge).
+def check_first_meal_nudge(workspace_dir, tz_offset, out=None):
+    """Gate for the first-meal nudge (meal_type=first_meal_nudge) — the Part-2
+    "onboarded but never logged a meal" cohort.
+
+    Cold-Start v3 (Part-2): driven by the SAME recurring generic sweep as
+    activation. The sweep payload runs this gate AFTER the activation gate
+    returns NO_REPLY (the cohorts are mutually exclusive — activation requires
+    onboarding NOT completed, this one requires it completed). Because the sweep
+    is generic, this gate COMPUTES which of the 2 touches is due:
+
+        index = first_meal_nudges_sent + 1   (1..2)
+
+      touch1 fires as soon as the user is eligible (onboarded, no meal) — no
+        prior nudge, so no gap to satisfy;
+      touch2 fires only once now - last_nudge_at >= FIRST_MEAL_TOUCH2_GAP_SECONDS
+        (~24h after touch1), giving the chosen "touch1 immediately + touch2 +24h"
+        cadence and de-bunching catch-up sweeps.
+
+    On SEND it writes the chosen index/angle into `out` (composer renders by it),
+    replacing the old `nudge=N` cron-payload source.
 
     Suppress (NO_REPLY) when ANY of:
       - onboarding NOT completed (wrong cohort — that's the activation nudge's
@@ -320,6 +347,7 @@ def check_first_meal_nudge(workspace_dir, tz_offset):
         normal tracking takes over)
       - the nudge cap (FIRST_MEAL_NUDGE_CAP) has already been reached — this is
         the terminal anti-nag guarantee, and it is lifecycle-independent
+      - touch2 is not yet 24h past touch1
 
     Note: leave/pause AND the authoritative lifecycle Silent state (stage 5) are
     handled by the generic check_leave + check_engagement_stage gates that run
@@ -329,7 +357,7 @@ def check_first_meal_nudge(workspace_dir, tz_offset):
     counter, still owned in engagement.json) is read. This gate does NOT
     increment the counter — notification-composer calls
     activation-mark-sent.py --counter first_meal_nudges_sent after a successful
-    compose.
+    compose (which also stamps last_nudge_at).
     """
     if not _onboarding_completed(workspace_dir):
         return False, "first_meal_nudge — onboarding not completed (wrong cohort)"
@@ -337,20 +365,44 @@ def check_first_meal_nudge(workspace_dir, tz_offset):
     if _any_meal_ever_logged(workspace_dir):
         return False, "first_meal_nudge — user has already logged a meal, nudge no longer needed"
 
+    nudges_sent = 0
+    last_nudge_at_raw = None
     eng_path = os.path.join(workspace_dir, "data", "engagement.json")
-    if not os.path.exists(eng_path):
-        return True, None
-    try:
-        with open(eng_path) as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return True, None  # fail-open
+    if os.path.exists(eng_path):
+        try:
+            with open(eng_path) as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            data = {}
+        activation = data.get("activation") or {}
+        nudges_sent = activation.get("first_meal_nudges_sent", 0)
+        if not isinstance(nudges_sent, int) or isinstance(nudges_sent, bool):
+            nudges_sent = 0
+        last_nudge_at_raw = activation.get("last_nudge_at")
 
-    nudges_sent = (data.get("activation") or {}).get("first_meal_nudges_sent", 0)
     if nudges_sent >= FIRST_MEAL_NUDGE_CAP:
         return False, f"first_meal_nudge — cap reached ({nudges_sent}/{FIRST_MEAL_NUDGE_CAP})"
 
-    return True, None
+    index = nudges_sent + 1  # 1..2 (cap enforced above)
+
+    # touch2 must wait FIRST_MEAL_TOUCH2_GAP after touch1's send. touch1 has no
+    # prior nudge → it fires as soon as the user is eligible.
+    if index >= 2:
+        now = datetime.now(timezone.utc)
+        last_nudge_dt = _parse_iso(last_nudge_at_raw)
+        if last_nudge_dt is None:
+            # sent==1 should imply last_nudge_at was stamped; if it's missing we
+            # cannot confirm 24h elapsed → hold (anti-nag) rather than fire early.
+            return False, "first_meal_nudge — touch 2 held (no last_nudge_at to time the 24h gap)"
+        gap = (now - last_nudge_dt).total_seconds()
+        if gap < FIRST_MEAL_TOUCH2_GAP_SECONDS:
+            return False, (f"first_meal_nudge — touch 2 not due yet "
+                           f"(last nudge {int(gap)}s ago < {FIRST_MEAL_TOUCH2_GAP_SECONDS}s)")
+
+    if out is not None:
+        out["nudge_index"] = index
+        out["nudge_angle"] = FIRST_MEAL_ANGLES[index]
+    return True, f"first_meal_nudge — touch {index} due (angle={FIRST_MEAL_ANGLES[index]})"
 
 
 ACTIVATION_NUDGE_CAP = 4
@@ -814,6 +866,7 @@ def main():
 
     stage_info = {"stage": 1}
     activation_info = {}
+    first_meal_info = {}
     checks = [
         ("leave", lambda: check_leave(args.workspace_dir, args.tz_offset, args.mock_date)),
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
@@ -833,7 +886,7 @@ def main():
             args.workspace_dir, args.tz_offset)))
     elif args.meal_type == "first_meal_nudge":
         checks.append(("first_meal_nudge", lambda: check_first_meal_nudge(
-            args.workspace_dir, args.tz_offset)))
+            args.workspace_dir, args.tz_offset, out=first_meal_info)))
     elif args.meal_type == "activation":
         checks.append(("activation", lambda: check_activation_nudge(
             args.workspace_dir, args.tz_offset, out=activation_info)))
@@ -859,6 +912,15 @@ def main():
     if args.meal_type == "activation" and "nudge_index" in activation_info:
         print(f"SEND activation nudgeIndex={activation_info['nudge_index']} "
               f"nudgeAngle={activation_info['nudge_angle']}")
+        return
+
+    # First-meal nudge (Cold-Start v3 Part-2): same generic-sweep contract as
+    # activation — the gate computed which of the 2 touches is due; emit the
+    # nudgeIndex/angle so the composer renders the right copy (replaces the old
+    # cron-payload `nudge=N` source).
+    if args.meal_type == "first_meal_nudge" and "nudge_index" in first_meal_info:
+        print(f"SEND first_meal_nudge nudgeIndex={first_meal_info['nudge_index']} "
+              f"nudgeAngle={first_meal_info['nudge_angle']}")
         return
 
     # stage_info 由 engagement_stage check 填入「认领前」的 stage/days_silent
