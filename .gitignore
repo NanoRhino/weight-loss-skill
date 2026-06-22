@@ -4,3 +4,6 @@ lingxi-security/
 searxng/
 wechat-history-import/
 __pycache__/
+
+# 运行时运营数据:agent 发送召回后回写"已推送用户"名单,各环境本地维护,不入 git
+notification-composer/references/changelog.md
