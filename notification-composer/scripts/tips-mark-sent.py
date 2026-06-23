@@ -9,7 +9,41 @@ Usage:
 import argparse
 import json
 import os
+import subprocess
 import sys
+
+
+def _delete_tips_cron(data_dir):
+    """Delete the 'Product tips' cron job after all tips are sent."""
+    try:
+        result = subprocess.run(
+            ["openclaw", "cron", "list", "--json"],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode != 0:
+            print(f"[tips-mark-sent] cron list failed: {result.stderr.strip()}", file=sys.stderr)
+            return
+        data = json.loads(result.stdout)
+        jobs = data.get("jobs", data) if isinstance(data, dict) else data
+        # Find the Product tips cron for this agent's workspace
+        for job in jobs:
+            name = job.get("name", "") or job.get("label", "")
+            payload = job.get("payload", {})
+            message = payload.get("message", "") if isinstance(payload, dict) else ""
+            if "Product tips" in name or "for tips" in message:
+                job_id = job.get("id")
+                if not job_id:
+                    continue
+                rm_result = subprocess.run(
+                    ["openclaw", "cron", "rm", job_id],
+                    capture_output=True, text=True, timeout=15
+                )
+                if rm_result.returncode == 0:
+                    print(f"[tips-mark-sent] Deleted Product tips cron: {job_id}", file=sys.stderr)
+                else:
+                    print(f"[tips-mark-sent] Failed to delete cron {job_id}: {rm_result.stderr.strip()}", file=sys.stderr)
+    except Exception as e:
+        print(f"[tips-mark-sent] Error deleting tips cron: {e}", file=sys.stderr)
 
 
 def main():
@@ -36,6 +70,12 @@ def main():
         json.dump(state, f, indent=2, ensure_ascii=False)
 
     print(f"[tips-mark-sent] tip {args.tip_id} marked as sent for {args.date}", file=sys.stderr)
+
+    # Auto-delete the Product tips cron after the last tip is sent
+    TOTAL_TIPS = 7
+    if args.tip_id >= TOTAL_TIPS:
+        _delete_tips_cron(args.data_dir)
+
     print(json.dumps({"status": "ok", "tip_id": args.tip_id, "date": args.date}, ensure_ascii=False))
 
 
