@@ -50,6 +50,7 @@
   .dish:nth-child(odd){background:var(--tint);}
   /* 菜名定宽列:克数列起点固定 → 多道菜克数左对齐成一列;菜名超长时允许撑开,优先保克数对齐 */
   .dish .name{flex:0 0 auto;min-width:175px;font-size:26px;font-weight:700;color:var(--txt);white-space:nowrap;}
+  .dish .name .paren{font-size:16px;font-weight:600;color:var(--dim);margin-left:2px;}
   /* 克数独立左对齐单元,紧接菜名定宽列之后,横坐标固定 */
   .dish .g{flex-shrink:0;font-style:normal;font-size:26px;color:var(--txt);font-weight:500;}
   .dish .g .unit{font-size:14px;font-weight:600;color:var(--dim);}
@@ -117,7 +118,7 @@
   document.getElementById("kcal").textContent = D.meal_calories;
 
   document.getElementById("dishes").innerHTML = D.dishes.map(d =>
-    `<div class="dish"><div class="name">${d.dish_name}</div>`+
+    `<div class="dish"><div class="name">${String(d.dish_name).replace(/[（(][^）)]*[）)]/g, m => `<span class="paren">${m}</span>`)}</div>`+
     `<div class="g">${d.total_g}<span class="unit">g</span></div>`+
     `<div class="leader"></div>`+
     `<div class="c">${d.calories}<span>kcal</span></div></div>`
@@ -149,7 +150,7 @@
   const ICON_STATUS = {
     high:     `<svg class="ic" viewBox="0 0 72 67" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M35.57 67V10M64.07 38.5L35.57 10L7.07 38.5" stroke="#7D5D4A" stroke-width="20" stroke-linejoin="round"/></svg>`,
     low:      `<svg class="ic" viewBox="0 0 72 67" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M35.57 0L35.57 57M7.07 28.5L35.57 57L64.07 28.5" stroke="#CA9D73" stroke-width="20" stroke-linejoin="round"/></svg>`,
-    on_track: `<svg class="ic" viewBox="0 0 65 65" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32.5" cy="32.5" r="24.5" stroke="#DFCAAD" stroke-width="16"/></svg>`,
+    on_track: `<svg class="ic" viewBox="0 0 76 66" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.1328 37.7933L28.5533 51.1133L61.1328 14.1133" stroke="#7CB568" stroke-width="20" stroke-linecap="square"/></svg>`,
   };
   const macros = [
     ["蛋白质", Math.round(D.macros.protein.value_g), D.macros.protein.status],
