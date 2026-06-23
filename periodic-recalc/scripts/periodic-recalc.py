@@ -331,41 +331,32 @@ def main():
     health_profile = workspace / 'health-profile.md'
 
     # Step 0: Check if it's too soon since last recalc (< 25 days)
-    # This allows the cron to fire every Sunday but only execute every ~4 weeks
+    # Source of truth: data/last-recalc-summary.json (script-written, schema-stable)
     # Skip this check if triggered by pending-recalc (secondary trigger)
+    last_recalc_path = workspace / 'data' / 'last-recalc-summary.json'
+
     if pending_json.exists():
         pending_data = read_json(pending_json)
-        # If there's a pending flag, this is a secondary trigger — always proceed
+        # Secondary trigger — always proceed
     else:
-        # Check PLAN.md "Updated" date
-        if plan_md.exists():
-            plan_content = plan_md.read_text(encoding='utf-8')
-            updated_match = re.search(r'\*\*Updated:\*\*\s*(\d{4}-\d{2}-\d{2})', plan_content)
-            if updated_match:
-                last_updated = date.fromisoformat(updated_match.group(1))
-                days_since = (date.today() - last_updated).days
-                if days_since < 25:
-                    print(json.dumps({
-                        "action": "skipped",
-                        "reason": f"Only {days_since} days since last update (need >= 25)",
-                        "days_since_last": days_since
-                    }))
-                    return
-            else:
-                # PLAN.md exists but missing Updated field (old format / hand-written)
-                # Gracefully skip instead of crashing downstream
-                print(json.dumps({
-                    "action": "no_plan_data",
-                    "reason": "PLAN.md missing Updated field"
-                }))
-                return
-        else:
-            # PLAN.md doesn't exist
-            print(json.dumps({
-                "action": "no_plan_data",
-                "reason": "PLAN.md not found"
-            }))
-            return
+        if last_recalc_path.exists():
+            last_recalc_data = read_json(last_recalc_path)
+            last_date_str = last_recalc_data.get('date')
+            if last_date_str:
+                try:
+                    last_date = date.fromisoformat(last_date_str)
+                    days_since = (date.today() - last_date).days
+                    if days_since < 25:
+                        print(json.dumps({
+                            "action": "skipped",
+                            "reason": f"Only {days_since} days since last recalc (need >= 25)",
+                            "days_since_last": days_since
+                        }))
+                        return
+                except (ValueError, TypeError):
+                    # Corrupt date in last-recalc-summary — treat as never recalc, proceed
+                    pass
+        # No last-recalc-summary or no/invalid date → proceed (first-time or stale)
 
     # Step 1: Check if on leave
     if is_on_leave(leave_json):
@@ -414,12 +405,9 @@ def main():
     else:
         plan_data = parse_plan_md(plan_md)
         if not plan_data:
-            # When CLI args not provided, gracefully skip if PLAN.md unparseable
-            print(json.dumps({
-                "action": "no_plan_data",
-                "reason": "Could not parse PLAN.md"
-            }))
-            return
+            # parse_plan_md failed — this is a real data error
+            print(json.dumps({"error": "Could not parse PLAN.md"}), file=sys.stderr)
+            sys.exit(1)
 
     # Get additional params from health-profile.md if not in PLAN.md
     profile_data = parse_health_profile(health_profile)
@@ -528,6 +516,19 @@ def main():
             json.dump(history, f, indent=2, ensure_ascii=False)
 
         update_plan_md(plan_md, plan_data, update_values, dry_run=False)
+
+        # Write minimal last-recalc-summary as floor — LLM may overwrite with richer fields later
+        # Read existing if present, preserve LLM-written fields
+        existing = read_json(last_recalc_path) if last_recalc_path.exists() else {}
+        existing.update({
+            "date": date.today().isoformat(),
+            "weight_from": previous_weight,
+            "weight_to": current_weight,
+            "old_calories": old_calories,
+            "new_calories": new_calories,
+        })
+        write_json(last_recalc_path, existing)
+
         # Delete pending-recalc.json if it exists
         delete_file(pending_json)
 

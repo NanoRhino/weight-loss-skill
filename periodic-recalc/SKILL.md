@@ -40,6 +40,8 @@ Recalculates daily calorie target based on current weight. Updates PLAN.md with 
 1. **Primary:** Called inline by weekly-report skill after sending the weekly report (Sunday)
 2. **Secondary:** When weight-tracking logs a new weight AND `pending-recalc.json` exists with `reason="awaiting_weight"`
 
+**25 天门的真值源：** `data/last-recalc-summary.json` 的 `date` 字段。`periodic-recalc.py` 在每次 `action="recalculated"` 时自动写入 `date` + 核心数值（weight_from, weight_to, old_calories, new_calories）；LLM 后续按本 SKILL "After sending" 那块补全完整字段（cycle_number / message_sent 等）。PLAN.md 不再用于 25 天判断。
+
 ---
 
 ## Execution
@@ -69,10 +71,6 @@ Based on the JSON output `action` field:
 
 Less than 25 days since last recalc. Do nothing — silently exit.
 
-### `action: "no_plan_data"`
-
-PLAN.md is missing, has no `Updated` field, or could not be parsed. Silently exit, no notification to user. Same handling as `skipped`.
-
 ### `action: "recalculated"`
 
 Plan has been updated. Compose a cycle review + new cycle message for the user.
@@ -98,6 +96,9 @@ Plan has been updated. Compose a cycle review + new cycle message for the user.
 - User has concerns → adjust and rewrite PLAN.md accordingly.
 
 **After sending,** write `{workspaceDir}/data/last-recalc-summary.json`:
+
+注：脚本已经预写了 `date` / `weight_from` / `weight_to` / `old_calories` / `new_calories` 字段，你只需要 merge 补全 `cycle_number` / `old_rate` / `new_rate` / `awaiting_confirmation` / `message_sent` 等剩余字段（读现有 JSON、merge、写回）。
+
 ```json
 {
   "date": "<today>",
