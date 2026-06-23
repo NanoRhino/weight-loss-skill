@@ -351,6 +351,21 @@ def main():
                         "days_since_last": days_since
                     }))
                     return
+            else:
+                # PLAN.md exists but missing Updated field (old format / hand-written)
+                # Gracefully skip instead of crashing downstream
+                print(json.dumps({
+                    "action": "no_plan_data",
+                    "reason": "PLAN.md missing Updated field"
+                }))
+                return
+        else:
+            # PLAN.md doesn't exist
+            print(json.dumps({
+                "action": "no_plan_data",
+                "reason": "PLAN.md not found"
+            }))
+            return
 
     # Step 1: Check if on leave
     if is_on_leave(leave_json):
@@ -399,8 +414,12 @@ def main():
     else:
         plan_data = parse_plan_md(plan_md)
         if not plan_data:
-            print(json.dumps({"error": "Could not parse PLAN.md — pass values via CLI args instead"}), file=sys.stderr)
-            sys.exit(1)
+            # When CLI args not provided, gracefully skip if PLAN.md unparseable
+            print(json.dumps({
+                "action": "no_plan_data",
+                "reason": "Could not parse PLAN.md"
+            }))
+            return
 
     # Get additional params from health-profile.md if not in PLAN.md
     profile_data = parse_health_profile(health_profile)

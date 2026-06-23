@@ -69,6 +69,10 @@ Based on the JSON output `action` field:
 
 Less than 25 days since last recalc. Do nothing — silently exit.
 
+### `action: "no_plan_data"`
+
+PLAN.md is missing, has no `Updated` field, or could not be parsed. Silently exit, no notification to user. Same handling as `skipped`.
+
 ### `action: "recalculated"`
 
 Plan has been updated. Compose a cycle review + new cycle message for the user.
