@@ -2,9 +2,9 @@
 """
 One-time migration script to add "Periodic recalc" cron jobs to existing agents.
 
-Scans all existing wechat-dm-* / wecom-dm-* agents in jobs.json and creates a
-"Periodic recalc" job for those missing one, using the same delivery/schedule.tz
-as their existing "Weekly report" job.
+Scans all wechat-dm-* / wecom-dm-* workspace directories and creates a
+"Periodic recalc" job for those missing one. Uses delivery/schedule.tz from
+existing jobs in jobs.json if available, otherwise uses defaults.
 
 Usage:
   python3 migrate-add-cron.py [--dry-run] [--apply] [--workspace-root <path>] [--only-agent <agentId>]
@@ -95,27 +95,77 @@ def find_weekly_report_job(jobs: list[dict]) -> dict | None:
     return None
 
 
-def create_periodic_recalc_job(template_job: dict, agent_id: str) -> dict:
+def scan_workspace_dirs(workspace_root: Path) -> list[str]:
     """
-    Create a new Periodic recalc job based on the Weekly report template.
+    Scan .openclaw-gateway/ for workspace-wechat-dm-* and workspace-wecom-dm-* directories.
+    Returns list of agent IDs (directory basename without 'workspace-' prefix).
+    """
+    gateway_dir = workspace_root / ".openclaw-gateway"
+    if not gateway_dir.exists():
+        print(f"ERROR: .openclaw-gateway not found at {gateway_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    agent_ids = []
+    for pattern in ['workspace-wechat-dm-*', 'workspace-wecom-dm-*']:
+        for workspace_dir in gateway_dir.glob(pattern):
+            if workspace_dir.is_dir():
+                # Extract agent ID: 'workspace-wechat-dm-xxx' -> 'wechat-dm-xxx'
+                dir_name = workspace_dir.name
+                if dir_name.startswith('workspace-'):
+                    agent_id = dir_name[len('workspace-'):]
+                    agent_ids.append(agent_id)
+
+    return sorted(agent_ids)
+
+
+def create_periodic_recalc_job(template_job: dict | None, agent_id: str) -> dict:
+    """
+    Create a new Periodic recalc job.
+
+    If template_job is provided, uses its schedule.tz and delivery fields.
+    If template_job is None, uses defaults:
+    - tz: 'Asia/Shanghai'
+    - delivery: {mode:'announce', channel:'wechat'|'wecom', to: agent_id without prefix}
 
     New job structure:
     - name: "Periodic recalc"
     - schedule.expr: "10 21 * * 0"
-    - schedule.tz: same as template
+    - schedule.tz: from template or default
     - sessionTarget: "isolated"
     - wakeMode: "now"
     - payload.kind: "agentTurn"
     - payload.message: with 🔄 header
-    - delivery: same as template
+    - delivery: from template or default
     - id: new UUID
     - createdAtMs: current timestamp
     """
     now_ms = int(datetime.now().timestamp() * 1000)
 
-    # Extract template values
-    template_tz = template_job.get('schedule', {}).get('tz', 'Asia/Shanghai')
-    template_delivery = template_job.get('delivery', {})
+    # Extract values from template or use defaults
+    if template_job:
+        template_tz = template_job.get('schedule', {}).get('tz', 'Asia/Shanghai')
+        template_delivery = template_job.get('delivery', {})
+    else:
+        # Defaults when no template job exists
+        template_tz = 'Asia/Shanghai'
+
+        # Determine channel and to field from agent_id
+        if agent_id.startswith('wechat-dm-'):
+            channel = 'wechat'
+            to = agent_id[len('wechat-dm-'):]
+        elif agent_id.startswith('wecom-dm-'):
+            channel = 'wecom'
+            to = agent_id[len('wecom-dm-'):]
+        else:
+            # Fallback (shouldn't happen given our filters)
+            channel = 'wechat'
+            to = agent_id
+
+        template_delivery = {
+            'mode': 'announce',
+            'channel': channel,
+            'to': to
+        }
 
     # Build message with header constraint
     message = """🔄——周期性调整——🔄
@@ -165,34 +215,52 @@ def main():
     jobs = load_jobs(jobs_path)
     print(f"Total jobs: {len(jobs)}")
 
-    grouped = group_by_agent(jobs)
+    # Detect workspace root for directory scanning
+    if args.workspace_root:
+        workspace_root = args.workspace_root
+    else:
+        # Auto-detect: script is in skills/periodic-recalc/scripts/
+        # workspace root is 3 levels up
+        script_dir = Path(__file__).parent
+        workspace_root = script_dir.parent.parent.parent.parent
 
-    # Filter to wechat-dm-* / wecom-dm-* agents
-    target_agents = {
-        agent_id: agent_jobs
-        for agent_id, agent_jobs in grouped.items()
-        if agent_id.startswith('wechat-dm-') or agent_id.startswith('wecom-dm-')
-    }
+    # Scan workspace directories to get all agents
+    all_agent_ids = scan_workspace_dirs(workspace_root)
 
+    # Filter by --only-agent if specified
     if args.only_agent:
-        if args.only_agent in target_agents:
-            target_agents = {args.only_agent: target_agents[args.only_agent]}
+        if args.only_agent in all_agent_ids:
+            all_agent_ids = [args.only_agent]
         else:
-            print(f"ERROR: Agent {args.only_agent} not found or not a wechat/wecom agent", file=sys.stderr)
+            print(f"ERROR: Agent {args.only_agent} not found in workspace directories", file=sys.stderr)
             sys.exit(1)
 
-    print(f"Target agents (wechat/wecom): {len(target_agents)}")
+    # Group existing jobs by agent for lookup
+    grouped = group_by_agent(jobs)
+
+    # Count agents: from workspace vs from jobs.json only
+    workspace_agent_count = len(all_agent_ids)
+    jobs_only_agent_count = sum(
+        1 for agent_id in grouped.keys()
+        if (agent_id.startswith('wechat-dm-') or agent_id.startswith('wecom-dm-'))
+        and agent_id not in all_agent_ids
+    )
+
+    print(f"Target agents (wechat/wecom): {workspace_agent_count}")
+    print(f"  From workspace: {workspace_agent_count}, from jobs.json only: {jobs_only_agent_count}")
 
     # Stats
     scanned = 0
     skipped = 0
     created = 0
-    errors = 0
 
     new_jobs = []
 
-    for agent_id, agent_jobs in target_agents.items():
+    for agent_id in all_agent_ids:
         scanned += 1
+
+        # Get existing jobs for this agent (if any)
+        agent_jobs = grouped.get(agent_id, [])
 
         # Check if already has Periodic recalc
         if has_periodic_recalc(agent_jobs):
@@ -200,19 +268,16 @@ def main():
             print(f"  SKIP {agent_id}: already has Periodic recalc job")
             continue
 
-        # Find Weekly report job as template
+        # Find Weekly report job as template (may be None)
         template = find_weekly_report_job(agent_jobs)
-        if not template:
-            errors += 1
-            print(f"  ERROR {agent_id}: no Weekly report job found (can't determine tz/delivery)", file=sys.stderr)
-            continue
 
-        # Create new job
+        # Create new job (uses template if available, defaults otherwise)
         new_job = create_periodic_recalc_job(template, agent_id)
         new_jobs.append(new_job)
         created += 1
 
-        print(f"  CREATE {agent_id}: {new_job['name']} @ {new_job['schedule']['expr']} {new_job['schedule']['tz']}")
+        source = "from template" if template else "from defaults"
+        print(f"  CREATE {agent_id}: {new_job['name']} @ {new_job['schedule']['expr']} {new_job['schedule']['tz']} ({source})")
 
     print()
     print("=" * 60)
@@ -220,7 +285,6 @@ def main():
     print(f"  Scanned:  {scanned} agents")
     print(f"  Skipped:  {skipped} (already have Periodic recalc)")
     print(f"  Created:  {created}")
-    print(f"  Errors:   {errors}")
     print("=" * 60)
 
     if new_jobs and not args.dry_run:
