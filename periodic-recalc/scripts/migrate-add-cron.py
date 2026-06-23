@@ -167,10 +167,10 @@ def create_periodic_recalc_job(template_job: dict | None, agent_id: str) -> dict
             'to': to
         }
 
-    # Build message with header constraint
-    message = """🔄——周期性调整——🔄
+    # Build message (task instruction only, no output format wrapper)
+    message = """Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated.
 
-Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated."""
+⚠️ Output format: see Output Format (HARD RULE) at the top of periodic-recalc/SKILL.md"""
 
     new_job = {
         "id": str(uuid.uuid4()),

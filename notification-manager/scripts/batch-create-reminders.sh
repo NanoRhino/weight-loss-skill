@@ -251,9 +251,9 @@ fi
 
 # 4. Periodic recalc
 if should_create_type "other"; then
-  queue_job "Periodic recalc" "🔄——周期性调整——🔄
+  queue_job "Periodic recalc" "Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated.
 
-Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated." "10 21 * * 0" other
+⚠️ Output format: see Output Format (HARD RULE) at the top of periodic-recalc/SKILL.md" "10 21 * * 0" other
 fi
 
 # 5. Diet pattern detection

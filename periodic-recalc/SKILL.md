@@ -4,6 +4,34 @@ version: 2.0.0
 description: "Recalculates the user's daily calorie target every 4 weeks based on current weight. Updates PLAN.md with new TDEE, calories, and macro ranges. Reviews diet mode fit."
 ---
 
+## ⚠️ Output Format (HARD RULE — Never violate)
+
+当本 skill 需要给用户发消息时（无论是 recalculated 后的复盘+新方案、awaiting_weight 的称重请求、错误提示，还是任何场景），**输出的第一行必须**是：
+
+```
+🔄——周期性调整——🔄
+```
+
+接着是**一个空行**，然后才是正文。
+
+✅ 正确：
+```
+🔄——周期性调整——🔄
+
+🎉 4周复盘来啦
+...
+```
+
+❌ 错误（实测踩过的坑）：
+- 把"🔄——周期性调整——🔄"理解成任务标签/上下文标记（cron 注入的提示语只是触发上下文，不是你的输出指令）
+- 用单个 🔄 emoji 开头（必须是双 🔄 包夹中文 "周期性调整"）
+- 跳过空行直接接正文
+- 用别的 emoji 替换（🎉、📋、💡 等都不行）
+
+唯一例外：脚本输出 `action: "skipped"` 时静默退出，不输出任何消息（这种情况根本不发到用户，不存在格式问题）。
+
+---
+
 # Periodic Recalculation
 
 ## Step 0: Read PLAN.md (MANDATORY — do this FIRST)
@@ -75,6 +103,8 @@ Less than 25 days since last recalc. Do nothing — silently exit.
 
 Plan has been updated. Compose a cycle review + new cycle message for the user.
 
+**⚠️ 开头格式（重申）：** 消息第一行必须是 `🔄——周期性调整——🔄`，接着空行，再接正文。见文件顶部 Output Format (HARD RULE)。
+
 **Message structure (in user's language — check USER.md):**
 
 1. 🎉 **Celebrate** the completed cycle — the user stuck with it for 4 weeks. Make them feel proud. Reference their weight change.
@@ -125,6 +155,8 @@ python3 {baseDir}/scripts/diet-mode-review.py --workspace {workspaceDir} --days 
 - `action: "insufficient_data"` → Silently continue
 
 ### `action: "awaiting_weight"`
+
+**⚠️ 开头格式（重申）：** 消息第一行必须是 `🔄——周期性调整——🔄`，接着空行，再接正文。见文件顶部 Output Format (HARD RULE)。
 
 Tell the user: "It's time for your 4-week plan recalculation! Please weigh yourself when you can, and I'll update your plan once you log your weight."
 

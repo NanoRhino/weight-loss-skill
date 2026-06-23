@@ -244,9 +244,9 @@ Every 4 weeks, recalculates the user's daily calorie target based on current wei
 ```bash
 bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --name "Periodic recalc" \
-  --message "🔄——周期性调整——🔄
+  --message "Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated.
 
-Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated." \
+⚠️ Output format: see Output Format (HARD RULE) at the top of periodic-recalc/SKILL.md" \
   --cron "10 21 * * 0"
 ```
 
