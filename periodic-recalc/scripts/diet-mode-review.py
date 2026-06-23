@@ -32,12 +32,12 @@ DIET_MODE_RANGES = {
     'balanced': {
         'protein': (25, 35),
         'carbs': (35, 45),
-        'fat': (25, 35),
+        'fat': (20, 35),
     },
     'high_protein': {
         'protein': (35, 45),
         'carbs': (25, 35),
-        'fat': (25, 35),
+        'fat': (20, 35),
     },
     'low_carb': {
         'protein': (30, 40),
@@ -52,7 +52,7 @@ DIET_MODE_RANGES = {
     'mediterranean': {
         'protein': (20, 30),
         'carbs': (40, 50),
-        'fat': (30, 40),
+        'fat': (20, 35),
     },
     'plant_based': {
         'protein': (20, 30),
@@ -62,12 +62,12 @@ DIET_MODE_RANGES = {
     'if_16_8': {  # defaults to balanced
         'protein': (25, 35),
         'carbs': (35, 45),
-        'fat': (25, 35),
+        'fat': (20, 35),
     },
     'if_5_2': {  # defaults to balanced
         'protein': (25, 35),
         'carbs': (35, 45),
-        'fat': (25, 35),
+        'fat': (20, 35),
     },
 }
 

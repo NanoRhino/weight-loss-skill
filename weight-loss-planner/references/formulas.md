@@ -308,7 +308,7 @@ The diet-tracking-analysis skill reads daily targets directly from weight-loss-p
 | Plant-Based | 20–30% | 25% |
 | IF (16:8 / 5:2) | 20–35% (defaults to balanced) | 27.5% |
 
-If no diet mode is specified, default to **Balanced (fat 25–35%)**.
+If no diet mode is specified, default to **Balanced (fat 20–35%)**.
 
 ### Calculation
 

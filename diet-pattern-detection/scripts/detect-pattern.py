@@ -30,6 +30,8 @@ DIET_MODE_MACROS = {
     "keto":          {"protein": (20, 25), "carbs": (5, 10),  "fat": (65, 75)},
     "mediterranean": {"protein": (20, 30), "carbs": (40, 50), "fat": (20, 35)},
     "plant_based":   {"protein": (20, 30), "carbs": (45, 55), "fat": (20, 30)},
+    "if_16_8":       {"protein": (25, 35), "carbs": (35, 45), "fat": (20, 35)},
+    "if_5_2":        {"protein": (25, 35), "carbs": (35, 45), "fat": (20, 35)},
 }
 
 _SHORT_TO_LONG = {
