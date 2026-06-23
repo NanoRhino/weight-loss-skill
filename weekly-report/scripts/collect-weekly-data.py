@@ -15,6 +15,8 @@ Usage:
 Output: JSON to stdout with all data needed for report generation.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -562,8 +564,14 @@ def _fill_macro_defaults(workspace_dir, plan):
     return plan
 
 
-def compute_summary(days, plan, weight_data):
-    """Compute aggregated statistics."""
+def compute_summary(days, plan, weight_data, estimate_missing_meals=False):
+    """Compute aggregated statistics.
+
+    estimate_missing_meals: when True (explicit user opt-in only), missing
+    meals are filled with per-meal-type weekly averages in the estimated
+    daily values. Default False — unlogged meals are unknown and stay
+    uncounted (no-assumption policy).
+    """
     logged_days = [d for d in days if d["logged"]]
     logged_count = len(logged_days)
 
@@ -645,14 +653,17 @@ def compute_summary(days, plan, weight_data):
                 day_fat += meal.get("fat", 0) or 0
                 day_carb += meal.get("carb", 0) or 0
 
-        # Fill missing standard meals with their type average
+        # Fill missing standard meals with their type average — ONLY when the
+        # user explicitly opted in to missing-meal estimation. Default: an
+        # unlogged meal is unknown, never assumed eaten.
         missing_meals = standard_meals - logged_types
-        for mt in missing_meals:
-            avg = meal_type_avgs.get(mt, global_avg)
-            day_protein += avg["protein"]
-            day_fat += avg["fat"]
-            day_carb += avg["carb"]
-            day_cal += avg["cal"]
+        if estimate_missing_meals:
+            for mt in missing_meals:
+                avg = meal_type_avgs.get(mt, global_avg)
+                day_protein += avg["protein"]
+                day_fat += avg["fat"]
+                day_carb += avg["carb"]
+                day_cal += avg["cal"]
 
         estimated_daily.append({
             "protein": day_protein,
@@ -680,7 +691,7 @@ def compute_summary(days, plan, weight_data):
         "protein_avg": round(sum(protein_values) / len(protein_values)) if protein_values else 0,
         "fat_avg": round(sum(fat_values) / len(fat_values)) if fat_values else 0,
         "carb_avg": round(sum(carb_values) / len(carb_values)) if carb_values else 0,
-        "macro_estimated": True,  # flag: macros include meal-fill estimation
+        "macro_estimated": estimate_missing_meals,  # flag: macros include meal-fill estimation (user opt-in only)
         "weight_change": weight_data.get("change"),
         "weight_readings_count": len(weight_data.get("readings", [])),
     }
@@ -737,6 +748,11 @@ def main():
                              "fat_range (list[2]), carb_range (list[2]), tdee, bmr, "
                              "weight_loss_rate, target_weight, start_weight. "
                              "When provided, merges with (overrides) read_plan() fields.")
+    parser.add_argument("--estimate-missing-meals", action="store_true",
+                        help="Fill unlogged meals with weekly per-meal-type averages "
+                             "in summary estimates. Pass ONLY when the user explicitly "
+                             "enabled missing-meal estimation in health-preferences.md. "
+                             "Default: unlogged meals are unknown and stay uncounted.")
     args = parser.parse_args()
 
     workspace_dir = _normalize_path(args.workspace_dir)
@@ -777,7 +793,7 @@ def main():
     # Always fill missing macro fields via nutrition-calc
     plan = _fill_macro_defaults(workspace_dir, plan)
 
-    summary = compute_summary(meals, plan, weight)
+    summary = compute_summary(meals, plan, weight, args.estimate_missing_meals)
 
     # Week number calculation
     first_monday = None
