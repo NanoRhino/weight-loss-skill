@@ -117,7 +117,7 @@ def parse_args():
     disp_p.add_argument("--limit", type=int, default=0, help="Max jobs to create (0=unlimited)")
     disp_p.add_argument("--gap", type=int, default=30, help="Seconds between jobs")
     disp_p.add_argument("--start-offset", type=int, default=120, help="Seconds from now for first job")
-    disp_p.add_argument("--model", default="amazon-bedrock/arn:aws:bedrock:us-east-1:405912452115:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0")
+    disp_p.add_argument("--model", default="anthropic/claude-sonnet-4-6")
     disp_p.add_argument("--verbose", action="store_true")
 
     return p.parse_args()
