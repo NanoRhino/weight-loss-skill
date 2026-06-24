@@ -21,6 +21,10 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
+# Import locale helpers from shared (two levels up from scripts/)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared'))
+from locale_helpers import is_china_user
+
 
 # Diet mode macro ranges (protein% / carbs% / fat%)
 DIET_MODE_RANGES = {
@@ -32,12 +36,12 @@ DIET_MODE_RANGES = {
     'balanced': {
         'protein': (25, 35),
         'carbs': (35, 45),
-        'fat': (25, 35),
+        'fat': (20, 35),
     },
     'high_protein': {
         'protein': (35, 45),
         'carbs': (25, 35),
-        'fat': (25, 35),
+        'fat': (20, 35),
     },
     'low_carb': {
         'protein': (30, 40),
@@ -52,7 +56,7 @@ DIET_MODE_RANGES = {
     'mediterranean': {
         'protein': (20, 30),
         'carbs': (40, 50),
-        'fat': (30, 40),
+        'fat': (20, 35),
     },
     'plant_based': {
         'protein': (20, 30),
@@ -62,12 +66,12 @@ DIET_MODE_RANGES = {
     'if_16_8': {  # defaults to balanced
         'protein': (25, 35),
         'carbs': (35, 45),
-        'fat': (25, 35),
+        'fat': (20, 35),
     },
     'if_5_2': {  # defaults to balanced
         'protein': (25, 35),
         'carbs': (35, 45),
-        'fat': (25, 35),
+        'fat': (20, 35),
     },
 }
 
@@ -179,7 +183,7 @@ def is_within_range(value: float, range_tuple: tuple[float, float]) -> bool:
     return range_tuple[0] <= value <= range_tuple[1]
 
 
-def find_best_matching_mode(actual_macros: dict, current_mode: str) -> tuple[str, str] | None:
+def find_best_matching_mode(actual_macros: dict, current_mode: str, workspace: Path) -> tuple[str, str] | None:
     """
     Find the diet mode that best matches the actual macro percentages.
     Returns (mode_name, reason) or None if current mode is still the best fit.
@@ -198,12 +202,18 @@ def find_best_matching_mode(actual_macros: dict, current_mode: str) -> tuple[str
     if fits_current:
         return None  # Current mode is fine
 
+    # China region gate: exclude Mediterranean and USDA for China users
+    is_china = is_china_user(workspace)
+
     # Find best alternative mode (closest match)
     best_match = None
     best_score = float('inf')
 
     for mode_name, ranges in DIET_MODE_RANGES.items():
         if mode_name == current_mode:
+            continue
+        # Skip Mediterranean and USDA for China users
+        if is_china and mode_name in ('mediterranean', 'usda'):
             continue
 
         # Calculate "distance" from actual to mode's midpoints
@@ -289,7 +299,7 @@ def main():
         return
 
     # Find best matching mode
-    match_result = find_best_matching_mode(actual_macros, current_mode)
+    match_result = find_best_matching_mode(actual_macros, current_mode, workspace)
 
     if match_result is None:
         # Current mode is fine
@@ -303,13 +313,17 @@ def main():
     else:
         # Recommend change
         recommended_mode, reason = match_result
+        current_range = DIET_MODE_RANGES[current_mode]
+        recommended_range = DIET_MODE_RANGES[recommended_mode]
         print(json.dumps({
             "action": "recommend_change",
             "current_mode": current_mode,
             "actual_macros": actual_macros,
             "recommended_mode": recommended_mode,
             "reason": reason,
-            "days_analyzed": len(meal_data)
+            "days_analyzed": len(meal_data),
+            "current_mode_range": {k: list(v) for k, v in current_range.items()},
+            "recommended_mode_range": {k: list(v) for k, v in recommended_range.items()},
         }))
 
 

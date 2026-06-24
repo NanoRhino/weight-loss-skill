@@ -249,6 +249,13 @@ if should_create_type "report"; then
   queue_job "Weekly report" "Run weekly-report to generate this week's progress report." "0 21 * * 0" other
 fi
 
+# 4. Periodic recalc
+if should_create_type "other"; then
+  queue_job "Periodic recalc" "Run periodic-recalc skill: python3 {skillsDir}/periodic-recalc/scripts/periodic-recalc.py --workspace {workspaceDir} --planner-calc {skillsDir}/weight-loss-planner/scripts/planner-calc.py. Then run diet-mode-review.py if recalculated.
+
+⚠️ Output format: see Output Format (HARD RULE) at the top of periodic-recalc/SKILL.md" "10 21 * * 0" other
+fi
+
 # 5. Diet pattern detection
 if should_create_type "pattern" && [[ -n "$DINNER_TIME" ]]; then
   pattern_completed=$(get_automation_field "Pattern Detection Completed")
@@ -262,11 +269,6 @@ fi
 # 6. Product tips (daily, prefer 21:00 — slot allocator handles conflicts)
 if should_create_type "tips"; then
   queue_job "Product tips" "Run notification-composer for tips." "0 21 * * *" tips
-fi
-
-# 7. Weekly insight (Thursday, prefer 21:00 — slot allocator handles conflicts)
-if should_create_type "tips"; then
-  queue_job "Weekly insight" "Run notification-composer for weekly-insight." "0 21 * * 4" tips
 fi
 
 # 8. First-meal nudge (one-shot, activation flow).

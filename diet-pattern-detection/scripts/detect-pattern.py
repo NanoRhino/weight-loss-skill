@@ -16,6 +16,11 @@ import os
 import re
 import sys
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+# Import locale helpers from shared (parent directory)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared'))
+from locale_helpers import is_china_user
 
 
 # ---------------------------------------------------------------------------
@@ -30,6 +35,8 @@ DIET_MODE_MACROS = {
     "keto":          {"protein": (20, 25), "carbs": (5, 10),  "fat": (65, 75)},
     "mediterranean": {"protein": (20, 30), "carbs": (40, 50), "fat": (20, 35)},
     "plant_based":   {"protein": (20, 30), "carbs": (45, 55), "fat": (20, 30)},
+    "if_16_8":       {"protein": (25, 35), "carbs": (35, 45), "fat": (20, 35)},
+    "if_5_2":        {"protein": (25, 35), "carbs": (35, 45), "fat": (20, 35)},
 }
 
 _SHORT_TO_LONG = {
@@ -223,6 +230,10 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
                         ref_date: str = None, tz_offset: int = None) -> dict:
     end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
 
+    # Derive workspace path from data_dir (workspace/data/meals -> workspace)
+    workspace = Path(data_dir).parent.parent
+    is_china = is_china_user(workspace)
+
     daily_splits: list[dict] = []
     for offset in range(7):
         day = (end - timedelta(days=offset)).isoformat()
@@ -256,9 +267,15 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
 
     current_dist = _mode_distance(avg_p, avg_c, avg_f, effective_current)
 
+    # Build candidate modes list — exclude Mediterranean/USDA for China users
+    candidate_modes = [
+        mode for mode in DIET_MODE_MACROS
+        if not (is_china and mode in ('mediterranean', 'usda'))
+    ]
+
     best_mode = None
     best_dist = float("inf")
-    for mode in DIET_MODE_MACROS:
+    for mode in candidate_modes:
         dist = _mode_distance(avg_p, avg_c, avg_f, mode)
         if dist < best_dist:
             best_dist = dist
@@ -276,7 +293,7 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
 
     pros_cons = _get_pros_cons(effective_current, best_mode) if mismatch else None
 
-    return {
+    result = {
         "has_pattern": mismatch,
         "current_mode": current_mode,
         "effective_current_mode": effective_current,
@@ -289,6 +306,10 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
         "all_days_consistent": all_days_match,
         "pros_cons": pros_cons,
     }
+    if mismatch:
+        result["effective_current_mode_range"] = {k: list(v) for k, v in DIET_MODE_MACROS[effective_current].items()}
+        result["detected_mode_range"] = {k: list(v) for k, v in DIET_MODE_MACROS[best_mode].items()}
+    return result
 
 
 # ---------------------------------------------------------------------------
