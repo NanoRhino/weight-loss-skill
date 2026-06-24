@@ -21,6 +21,10 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
+# Import locale helpers from shared (two levels up from scripts/)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared'))
+from locale_helpers import is_china_user
+
 
 # Diet mode macro ranges (protein% / carbs% / fat%)
 DIET_MODE_RANGES = {
@@ -179,7 +183,7 @@ def is_within_range(value: float, range_tuple: tuple[float, float]) -> bool:
     return range_tuple[0] <= value <= range_tuple[1]
 
 
-def find_best_matching_mode(actual_macros: dict, current_mode: str) -> tuple[str, str] | None:
+def find_best_matching_mode(actual_macros: dict, current_mode: str, workspace: Path) -> tuple[str, str] | None:
     """
     Find the diet mode that best matches the actual macro percentages.
     Returns (mode_name, reason) or None if current mode is still the best fit.
@@ -198,12 +202,18 @@ def find_best_matching_mode(actual_macros: dict, current_mode: str) -> tuple[str
     if fits_current:
         return None  # Current mode is fine
 
+    # China region gate: exclude Mediterranean and USDA for China users
+    is_china = is_china_user(workspace)
+
     # Find best alternative mode (closest match)
     best_match = None
     best_score = float('inf')
 
     for mode_name, ranges in DIET_MODE_RANGES.items():
         if mode_name == current_mode:
+            continue
+        # Skip Mediterranean and USDA for China users
+        if is_china and mode_name in ('mediterranean', 'usda'):
             continue
 
         # Calculate "distance" from actual to mode's midpoints
@@ -289,7 +299,7 @@ def main():
         return
 
     # Find best matching mode
-    match_result = find_best_matching_mode(actual_macros, current_mode)
+    match_result = find_best_matching_mode(actual_macros, current_mode, workspace)
 
     if match_result is None:
         # Current mode is fine

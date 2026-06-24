@@ -16,6 +16,11 @@ import os
 import re
 import sys
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+# Import locale helpers from shared (parent directory)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'shared'))
+from locale_helpers import is_china_user
 
 
 # ---------------------------------------------------------------------------
@@ -225,6 +230,10 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
                         ref_date: str = None, tz_offset: int = None) -> dict:
     end = date.fromisoformat(ref_date) if ref_date else date.fromisoformat(_local_date(tz_offset))
 
+    # Derive workspace path from data_dir (workspace/data/meals -> workspace)
+    workspace = Path(data_dir).parent.parent
+    is_china = is_china_user(workspace)
+
     daily_splits: list[dict] = []
     for offset in range(7):
         day = (end - timedelta(days=offset)).isoformat()
@@ -258,9 +267,15 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
 
     current_dist = _mode_distance(avg_p, avg_c, avg_f, effective_current)
 
+    # Build candidate modes list — exclude Mediterranean/USDA for China users
+    candidate_modes = [
+        mode for mode in DIET_MODE_MACROS
+        if not (is_china and mode in ('mediterranean', 'usda'))
+    ]
+
     best_mode = None
     best_dist = float("inf")
-    for mode in DIET_MODE_MACROS:
+    for mode in candidate_modes:
         dist = _mode_distance(avg_p, avg_c, avg_f, mode)
         if dist < best_dist:
             best_dist = dist
