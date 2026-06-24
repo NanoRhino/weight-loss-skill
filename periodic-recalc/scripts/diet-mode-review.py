@@ -313,13 +313,17 @@ def main():
     else:
         # Recommend change
         recommended_mode, reason = match_result
+        current_range = DIET_MODE_RANGES[current_mode]
+        recommended_range = DIET_MODE_RANGES[recommended_mode]
         print(json.dumps({
             "action": "recommend_change",
             "current_mode": current_mode,
             "actual_macros": actual_macros,
             "recommended_mode": recommended_mode,
             "reason": reason,
-            "days_analyzed": len(meal_data)
+            "days_analyzed": len(meal_data),
+            "current_mode_range": {k: list(v) for k, v in current_range.items()},
+            "recommended_mode_range": {k: list(v) for k, v in recommended_range.items()},
         }))
 
 

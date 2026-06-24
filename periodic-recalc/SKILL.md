@@ -150,7 +150,12 @@ Plan has been updated. Compose a cycle review + new cycle message for the user.
 python3 {baseDir}/scripts/diet-mode-review.py --workspace {workspaceDir} --days 28
 ```
 
-- `action: "recommend_change"` → Ask user if they want to switch diet mode. Show actual macro ratios vs expected. Frame as: "Your eating has naturally shifted toward [mode] — want to update?"
+- `action: "recommend_change"` → Ask user if they want to switch diet mode. Frame as: "Your eating has naturally shifted toward [mode] — want to update?"
+  Show a comparison of actual vs expected ranges. **HARD RULES for the comparison:**
+  1. Range numbers **MUST** come from `current_mode_range` and `recommended_mode_range` fields in the script output — never from memory or general knowledge.
+  2. Actual percentages **MUST** come from the `actual_macros` field in the script output.
+  3. **Forbidden:** calculating, estimating, or filling in any percentage number from prior knowledge. If the field is absent, omit that number entirely.
+  4. Suggested display format (three-column): actual (from `actual_macros`) | current mode range (from `current_mode_range`) | recommended mode range (from `recommended_mode_range`).
 - `action: "no_change"` → Silently continue
 - `action: "insufficient_data"` → Silently continue
 
