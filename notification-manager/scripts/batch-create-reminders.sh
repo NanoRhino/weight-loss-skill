@@ -271,11 +271,6 @@ if should_create_type "tips"; then
   queue_job "Product tips" "Run notification-composer for tips." "0 21 * * *" tips
 fi
 
-# 7. Weekly insight (Thursday, prefer 21:00 — slot allocator handles conflicts)
-if should_create_type "tips"; then
-  queue_job "Weekly insight" "Run notification-composer for weekly-insight." "0 21 * * 4" tips
-fi
-
 # 8. First-meal nudge (one-shot, activation flow).
 # Created at onboarding completion for users who have a populated Meal Schedule
 # but have never logged a meal. Two one-shot jobs:
