@@ -33,6 +33,11 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.normpath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
 _STATE_DIR = os.environ.get("OPENCLAW_STATE_DIR", os.path.join(_PROJECT_ROOT, ".openclaw-gateway"))
 
+# Sonnet model for reminder-tier cron jobs; analysis-tier jobs keep the resolved Opus model.
+# 2026-06-24: gateway switched amazon-bedrock → anthropic direct — use anthropic id,
+# not the bedrock ARN (old ARN caused new users' reminder cron to run on bedrock).
+SONNET_MODEL = "anthropic/claude-sonnet-4-6"
+
 sys.path.insert(0, _SCRIPT_DIR)
 from importlib import import_module
 find_slot = import_module("find-slot")
@@ -238,8 +243,18 @@ def main():
                 for utc_min in find_slot.cron_to_utc_minutes(cron_expr, tz):
                     counts[utc_min] = counts.get(utc_min, 0) + 1
 
+        # Cost tier: reminder-class jobs run on Sonnet (~5x cheaper on output/cacheWrite,
+        # which dominates cron cost); analysis jobs that reason over user data keep the
+        # resolved (Opus) model. Same split as create-reminder.sh.
+        _nl = name.lower()
+        if any(k in _nl for k in ("weekly report", "weekly insight",
+                                  "diet pattern", "pattern detection")):
+            job_model = model  # analysis tier — keep Opus
+        else:
+            job_model = SONNET_MODEL  # reminder tier — Sonnet
+
         # Create the job
-        cmd = build_cron_cmd(args.agent, args.channel, to_target, name, message, cron_expr, tz, model)
+        cmd = build_cron_cmd(args.agent, args.channel, to_target, name, message, cron_expr, tz, job_model)
         print(f"  Creating: {name} ({cron_expr})", file=sys.stderr)
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=_STATE_DIR)
