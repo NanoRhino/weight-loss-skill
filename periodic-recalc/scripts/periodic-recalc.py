@@ -7,19 +7,31 @@
 Periodic recalculation script for weight loss plans.
 
 Every 4 weeks, recalculates the user's daily calorie target based on
-current weight, updates PLAN.md with new TDEE/calories/macros.
+current weight. Outputs new TDEE/calories/macros for the LLM to write back to PLAN.md.
 
 Usage:
-  python3 periodic-recalc.py --workspace /path/to/workspace --planner-calc /path/to/planner-calc.py
-  python3 periodic-recalc.py --workspace /path/to/workspace --planner-calc /path/to/planner-calc.py --dry-run
+  python3 periodic-recalc.py \
+    --workspace /path/to/workspace \
+    --planner-calc /path/to/planner-calc.py \
+    --current-calories 1300 \
+    --target-weight 50 \
+    --tdee 1769 \
+    --activity lightly_active \
+    --diet-mode balanced \
+    --height 160 \
+    --age 30 \
+    --sex female \
+    --cycle-start-date 2026-05-27 \
+    [--weekly-rate 0.4] \
+    [--bmi-standard asian] \
+    [--dry-run]
 """
 
 import argparse
 import json
-import re
 import subprocess
 import sys
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from pathlib import Path
 
 
@@ -121,6 +133,36 @@ def get_most_recent_weight(weight_json_path: Path) -> tuple[float, str] | None:
     return weight, most_recent[0].date().isoformat()
 
 
+def get_second_weight(weight_json_path: Path) -> float | None:
+    """
+    Get the second most recent weight value from weight.json (for previous_weight).
+    Returns weight_kg or None if fewer than two entries.
+    """
+    data = read_json(weight_json_path)
+    if not data:
+        return None
+
+    entries = []
+    for timestamp_str, entry in data.items():
+        try:
+            dt = datetime.fromisoformat(timestamp_str)
+            entries.append((dt, entry['value'], entry['unit']))
+        except (ValueError, KeyError):
+            continue
+
+    if len(entries) < 2:
+        return None
+
+    entries.sort(key=lambda x: x[0], reverse=True)
+    second = entries[1]
+
+    weight = second[1]
+    if second[2] == 'lbs':
+        weight = weight / 2.205
+
+    return weight
+
+
 def is_weight_fresh(weight_date_iso: str, max_age_days: int = 14) -> bool:
     """Check if weight is within max_age_days of today."""
     weight_date = date.fromisoformat(weight_date_iso)
@@ -151,82 +193,6 @@ def write_pending_recalc(pending_path: Path, reason: str):
     write_json(pending_path, data)
 
 
-def parse_plan_md(plan_path: Path) -> dict:
-    """
-    Parse PLAN.md to extract current values.
-    Returns dict with: current_weight, target_weight, daily_calories, tdee, weekly_rate, diet_mode, etc.
-    """
-    if not plan_path.exists():
-        return {}
-
-    content = plan_path.read_text(encoding='utf-8')
-    result = {}
-
-    # Extract key-value pairs from Summary section
-    patterns = {
-        'current_weight': r'\*\*Current Weight:\*\*\s*([0-9.]+)\s*kg',
-        'target_weight': r'\*\*Target Weight:\*\*\s*([0-9.]+)\s*kg',
-        'daily_calories': r'\*\*Daily Calorie Target:\*\*\s*([0-9,]+)',
-        'tdee': r'\*\*TDEE:\*\*\s*([0-9,]+)',
-        'weekly_rate': r'\*\*Weekly Rate:\*\*\s*~?([0-9.]+)',
-        'diet_mode': r'\*\*Diet Mode:\*\*\s*(\w+)',
-        'activity_level': r'\*\*Activity Level:\*\*\s*(\w+)',
-        'bmi_standard': r'\*\*BMI Standard:\*\*\s*(\w+)',
-    }
-
-    # Extract dates
-    for date_key, date_pattern in [
-        ('created', r'\*\*Created:\*\*\s*(\d{4}-\d{2}-\d{2})'),
-        ('updated', r'\*\*Updated:\*\*\s*(\d{4}-\d{2}-\d{2})'),
-    ]:
-        match = re.search(date_pattern, content)
-        if match:
-            result[date_key] = match.group(1)
-
-    for key, pattern in patterns.items():
-        match = re.search(pattern, content, re.IGNORECASE)
-        if match:
-            value = match.group(1).replace(',', '')
-            # Convert numeric values
-            if key in ['current_weight', 'target_weight', 'weekly_rate']:
-                result[key] = float(value)
-            elif key in ['daily_calories', 'tdee']:
-                result[key] = int(value)
-            else:
-                result[key] = value
-
-    return result
-
-
-def parse_health_profile(profile_path: Path) -> dict:
-    """
-    Parse health-profile.md to extract user demographics and preferences.
-    Returns dict with: activity_level, diet_mode, bmr, etc.
-    """
-    if not profile_path.exists():
-        return {}
-
-    content = profile_path.read_text(encoding='utf-8')
-    result = {}
-
-    patterns = {
-        'activity_level': r'\*\*Activity Level:\*\*\s*(\w+)',
-        'diet_mode': r'\*\*Diet Mode:\*\*\s*(\w+)',
-        'bmr': r'\*\*BMR:\*\*\s*([0-9]+)',
-    }
-
-    for key, pattern in patterns.items():
-        match = re.search(pattern, content, re.IGNORECASE)
-        if match:
-            value = match.group(1)
-            if key == 'bmr':
-                result[key] = int(value)
-            else:
-                result[key] = value
-
-    return result
-
-
 def run_planner_calc(planner_calc_path: Path, args: list[str]) -> dict:
     """Run planner-calc.py and return parsed JSON output."""
     cmd = ['python3', str(planner_calc_path)] + args
@@ -238,62 +204,6 @@ def run_planner_calc(planner_calc_path: Path, args: list[str]) -> dict:
     return json.loads(result.stdout)
 
 
-def update_plan_md(plan_path: Path, old_values: dict, new_values: dict, dry_run: bool = False):
-    """
-    Update PLAN.md with new calorie target, TDEE, macros, and updated date.
-    """
-    if not plan_path.exists():
-        raise FileNotFoundError(f"PLAN.md not found at {plan_path}")
-
-    content = plan_path.read_text(encoding='utf-8')
-
-    # Update daily calorie target
-    content = re.sub(
-        r'(\*\*Daily Calorie Target:\*\*\s*)[0-9,]+',
-        f'\\g<1>{new_values["daily_cal"]:,}',
-        content
-    )
-
-    # Update TDEE
-    content = re.sub(
-        r'(\*\*TDEE:\*\*\s*)[0-9,]+',
-        f'\\g<1>{new_values["tdee"]:,}',
-        content
-    )
-
-    # Update weekly rate if it changed
-    if 'rate_kg_per_week' in new_values:
-        content = re.sub(
-            r'(\*\*Weekly Rate:\*\*\s*~?)[0-9.]+',
-            f'\\g<1>{new_values["rate_kg_per_week"]:.2f}',
-            content
-        )
-
-    # Update current weight
-    if 'current_weight' in new_values:
-        content = re.sub(
-            r'(\*\*Current Weight:\*\*\s*)[0-9.]+',
-            f'\\g<1>{new_values["current_weight"]}',
-            content
-        )
-
-    # Update "Updated" date
-    today = date.today().isoformat()
-    content = re.sub(
-        r'(\*\*Updated:\*\*\s*)[0-9-]+',
-        f'\\g<1>{today}',
-        content
-    )
-
-    if not dry_run:
-        plan_path.write_text(content, encoding='utf-8')
-
-
-def get_previous_weight(plan_md: dict) -> float:
-    """Get previous weight from PLAN.md (current_weight field)."""
-    return plan_md.get('current_weight', 0.0)
-
-
 def main():
     parser = argparse.ArgumentParser(description='Periodic recalculation of weight loss plan')
     parser.add_argument('--workspace', type=Path, required=True,
@@ -302,17 +212,33 @@ def main():
                         help='Path to planner-calc.py script')
     parser.add_argument('--dry-run', action='store_true',
                         help='Show what would change without writing files')
-    parser.add_argument('--current-calories', type=int, default=None,
-                        help='Current daily calorie target (overrides PLAN.md parsing)')
-    parser.add_argument('--target-weight', type=float, default=None,
+    parser.add_argument('--current-calories', type=int, required=True,
+                        help='Current daily calorie target')
+    parser.add_argument('--target-weight', type=float, required=True,
                         help='Target weight in kg')
-    parser.add_argument('--tdee', type=int, default=None,
+    parser.add_argument('--tdee', type=int, required=True,
                         help='Current TDEE estimate')
-    parser.add_argument('--activity', type=str, default=None,
-                        help='Activity level (sedentary/lightly_active/moderately_active/very_active)')
-    parser.add_argument('--diet-mode', type=str, default=None,
-                        help='Diet mode (balanced/high_protein/low_carb/keto/mediterranean/'
-                             'plant_based/usda/if_16_8/if_5_2)')
+    parser.add_argument('--activity', type=str, required=True,
+                        choices=['sedentary', 'lightly_active', 'moderately_active', 'very_active'],
+                        help='Activity level')
+    parser.add_argument('--diet-mode', type=str, required=True,
+                        choices=['balanced', 'high_protein', 'low_carb', 'keto', 'mediterranean',
+                                 'plant_based', 'usda', 'if_16_8', 'if_5_2'],
+                        help='Diet mode')
+    parser.add_argument('--height', type=float, required=True,
+                        help='Height in cm')
+    parser.add_argument('--age', type=int, required=True,
+                        help='Age in years')
+    parser.add_argument('--sex', type=str, required=True,
+                        choices=['male', 'female'],
+                        help='Sex')
+    parser.add_argument('--cycle-start-date', type=str, required=True,
+                        help='ISO date when current cycle started (YYYY-MM-DD)')
+    parser.add_argument('--bmi-standard', type=str, default='asian',
+                        choices=['asian', 'who'],
+                        help='BMI standard (default: asian)')
+    parser.add_argument('--weekly-rate', type=float, default=None,
+                        help='Old cycle weekly rate in kg/week (optional)')
     args = parser.parse_args()
 
     workspace = args.workspace.resolve()
@@ -327,8 +253,6 @@ def main():
     weight_json = workspace / 'data' / 'weight.json'
     leave_json = workspace / 'data' / 'leave.json'
     pending_json = workspace / 'data' / 'pending-recalc.json'
-    plan_md = workspace / 'PLAN.md'
-    health_profile = workspace / 'health-profile.md'
 
     # Step 0: Check if it's too soon since last recalc (< 25 days)
     # Source of truth: data/last-recalc-summary.json (script-written, schema-stable)
@@ -336,7 +260,7 @@ def main():
     last_recalc_path = workspace / 'data' / 'last-recalc-summary.json'
 
     if pending_json.exists():
-        pending_data = read_json(pending_json)
+        read_json(pending_json)
         # Secondary trigger — always proceed
     else:
         if last_recalc_path.exists():
@@ -391,65 +315,25 @@ def main():
         }))
         return
 
-    # Step 4: Parse current plan (CLI args override file parsing)
-    if args.current_calories:
-        plan_data = {
-            'daily_calories': args.current_calories,
-            'target_weight': args.target_weight or current_weight,
-            'tdee': args.tdee or 0,
-            'activity_level': args.activity or 'lightly_active',
-            'diet_mode': args.diet_mode or 'balanced',
-            'weekly_rate': None,
-            'current_weight': current_weight,
-        }
-    else:
-        plan_data = parse_plan_md(plan_md)
-        if not plan_data:
-            # parse_plan_md failed — this is a real data error
-            print(json.dumps({"error": "Could not parse PLAN.md"}), file=sys.stderr)
-            sys.exit(1)
+    # Step 4: Get previous weight from weight.json (second most recent entry)
+    previous_weight_raw = get_second_weight(weight_json)
+    previous_weight = previous_weight_raw if previous_weight_raw is not None else current_weight
+    weight_change = round(current_weight - previous_weight, 1)
 
-    # Get additional params from health-profile.md if not in PLAN.md
-    profile_data = parse_health_profile(health_profile)
-    activity_level = plan_data.get('activity_level') or profile_data.get('activity_level', 'lightly_active')
-    diet_mode = plan_data.get('diet_mode') or profile_data.get('diet_mode', 'balanced')
-    bmi_standard = plan_data.get('bmi_standard', 'asian')
-    target_weight = plan_data.get('target_weight', current_weight)
-
-    # We need height, age, sex from somewhere - these should be in USER.md or health-profile
-    # For now, we'll call planner-calc with weight only and let it use stored profile
-    # Actually, we need to read USER.md for these demographics
-    user_md = workspace / 'USER.md'
-    if not user_md.exists():
-        print(json.dumps({"error": "USER.md not found"}), file=sys.stderr)
-        sys.exit(1)
-
-    user_content = user_md.read_text(encoding='utf-8')
-
-    # Extract height, age, sex from USER.md
-    height_match = re.search(r'\*\*Height:\*\*\s+([0-9.]+)\s*cm', user_content, re.IGNORECASE)
-    age_match = re.search(r'\*\*Age:\*\*\s+([0-9]+)', user_content, re.IGNORECASE)
-    sex_match = re.search(r'\*\*Sex:\*\*\s+(\w+)', user_content, re.IGNORECASE)
-
-    if not all([height_match, age_match, sex_match]):
-        print(json.dumps({"error": "Could not extract demographics from USER.md"}), file=sys.stderr)
-        sys.exit(1)
-
-    height_cm = float(height_match.group(1))
-    age = int(age_match.group(1))
-    sex = sex_match.group(1).lower()
+    old_calories = args.current_calories
+    old_tdee = args.tdee
 
     # Step 5: Call planner-calc.py forward-calc with new weight
     calc_args = [
         'forward-calc',
         '--weight', str(current_weight),
-        '--height', str(height_cm),
-        '--age', str(age),
-        '--sex', sex,
-        '--activity', activity_level,
-        '--target-weight', str(target_weight),
-        '--mode', diet_mode,
-        '--bmi-standard', bmi_standard,
+        '--height', str(args.height),
+        '--age', str(args.age),
+        '--sex', args.sex,
+        '--activity', args.activity,
+        '--target-weight', str(args.target_weight),
+        '--mode', args.diet_mode,
+        '--bmi-standard', args.bmi_standard,
     ]
 
     try:
@@ -458,28 +342,14 @@ def main():
         print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)
 
-    # Step 6: Extract values
-    old_calories = plan_data.get('daily_calories', 0)
-    old_tdee = plan_data.get('tdee', 0)
-    previous_weight = get_previous_weight(plan_data)
-
+    # Step 6: Extract new values
     new_calories = new_calc['daily_cal']
     new_tdee = new_calc['tdee']['tdee']
-    weight_change = round(current_weight - previous_weight, 1)
-
     macros = new_calc['macros']
 
-    # Step 7: Update PLAN.md
-    update_values = {
-        'daily_cal': new_calories,
-        'tdee': new_tdee,
-        'rate_kg_per_week': new_calc['rate_kg_per_week'],
-        'current_weight': current_weight,
-    }
-
     if not args.dry_run:
-        # Step 7a: Archive current cycle to plan-history.json before overwriting
-        history_path = Path(args.workspace) / 'data' / 'plan-history.json'
+        # Archive current cycle to plan-history.json before LLM rewrites PLAN.md
+        history_path = workspace / 'data' / 'plan-history.json'
         history = []
         if history_path.exists():
             try:
@@ -489,16 +359,16 @@ def main():
                 history = []
 
         cycle_number = len(history) + 1
-        old_macros = calc_macros(previous_weight, old_calories, plan_data.get('diet_mode', 'balanced'), target_weight=plan_data.get('target_weight'))
+        old_macros = calc_macros(previous_weight, old_calories, args.diet_mode, target_weight=args.target_weight)
         history.append({
             "cycle": cycle_number,
-            "start_date": plan_data.get('updated', plan_data.get('created', '')),
+            "start_date": args.cycle_start_date,
             "end_date": date.today().isoformat(),
             "weight_start": previous_weight,
             "weight_end": current_weight,
             "calories": old_calories,
             "tdee": old_tdee,
-            "rate": plan_data.get('weekly_rate', None),
+            "rate": args.weekly_rate,
             "macros": old_macros,
             "next_cycle": {
                 "calories": new_calories,
@@ -515,8 +385,6 @@ def main():
         with open(history_path, 'w', encoding='utf-8') as f:
             json.dump(history, f, indent=2, ensure_ascii=False)
 
-        update_plan_md(plan_md, plan_data, update_values, dry_run=False)
-
         # Write minimal last-recalc-summary as floor — LLM may overwrite with richer fields later
         # Read existing if present, preserve LLM-written fields
         existing = read_json(last_recalc_path) if last_recalc_path.exists() else {}
@@ -532,14 +400,14 @@ def main():
         # Delete pending-recalc.json if it exists
         delete_file(pending_json)
 
-    # Step 8: Output results
+    # Step 7: Output results for LLM to rewrite PLAN.md and compose message
     output = {
         "action": "recalculated",
         "old_calories": old_calories,
         "new_calories": new_calories,
         "old_tdee": old_tdee,
         "new_tdee": new_tdee,
-        "old_rate": plan_data.get('weekly_rate', None),
+        "old_rate": args.weekly_rate,
         "new_rate": new_calc['rate_kg_per_week'],
         "current_weight": current_weight,
         "previous_weight": previous_weight,

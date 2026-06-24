@@ -34,22 +34,36 @@ description: "Recalculates the user's daily calorie target every 4 weeks based o
 
 # Periodic Recalculation
 
-## Step 0: Read PLAN.md (MANDATORY — do this FIRST)
+## Step 0: Read PLAN.md + USER.md (MANDATORY — do this FIRST)
 
-Before running any script, **read the user's `{workspaceDir}/PLAN.md`** and extract these values:
+Before running the script, **read both `{workspaceDir}/PLAN.md` and `{workspaceDir}/USER.md`** and extract the following values. These files have no fixed format (Chinese/English/bullet/prose all work) — use your language understanding:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `current_calories` | int | Current daily calorie target |
-| `target_weight` | float | Target weight in kg |
-| `tdee` | int | Current TDEE estimate (0 if not stated) |
-| `activity` | string | Activity level: `sedentary`, `lightly_active`, `moderately_active`, or `very_active` |
-| `diet_mode` | string | Diet mode: `balanced`, `high_protein`, `low_carb`, `keto`, `mediterranean`, `plant_based`, `usda`, `if_16_8`, `if_5_2` |
+**From PLAN.md:**
 
-PLAN.md has no fixed format — it may be in English, Chinese, bullet points, prose, or markdown tables. Use your language understanding to extract the values regardless of formatting. If a value is not explicitly stated, use these defaults:
+| Field | CLI arg | Description |
+|-------|---------|-------------|
+| `current_calories` | `--current-calories` | Current daily calorie target (int) |
+| `target_weight` | `--target-weight` | Target weight in kg (float) |
+| `tdee` | `--tdee` | Current TDEE estimate (int; if not stated, pass `0` — script handles) |
+| `activity` | `--activity` | One of: `sedentary` / `lightly_active` / `moderately_active` / `very_active` |
+| `diet_mode` | `--diet-mode` | One of: `balanced` / `high_protein` / `low_carb` / `keto` / `mediterranean` / `plant_based` / `usda` / `if_16_8` / `if_5_2` |
+| `cycle_start_date` | `--cycle-start-date` | When the current cycle started (ISO date). Read PLAN.md "Updated"/"Created" if available, else read `data/last-recalc-summary.json` `date`, else use 28 days ago |
+| `weekly_rate` (optional) | `--weekly-rate` | Old cycle weekly rate in kg (float). Skip if unclear |
+| `bmi_standard` (optional) | `--bmi-standard` | `asian` (default for CN users) or `who` |
+
+**From USER.md:**
+
+| Field | CLI arg | Description |
+|-------|---------|-------------|
+| `height_cm` | `--height` | Height in cm (float) |
+| `age` | `--age` | Age in years (int) |
+| `sex` | `--sex` | `male` or `female` |
+
+Defaults if value not explicitly stated:
 - `activity`: `lightly_active`
 - `diet_mode`: `balanced`
-- `tdee`: `0` (script will calculate it)
+- `tdee`: `0`
+- `bmi_standard`: `asian`
 
 ---
 
@@ -74,7 +88,7 @@ Recalculates daily calorie target based on current weight. Updates PLAN.md with 
 
 ## Execution
 
-After extracting values from PLAN.md (Step 0), run:
+After extracting values from PLAN.md + USER.md (Step 0), run:
 
 ```bash
 python3 {baseDir}/scripts/periodic-recalc.py \
@@ -84,10 +98,16 @@ python3 {baseDir}/scripts/periodic-recalc.py \
   --target-weight <extracted> \
   --tdee <extracted> \
   --activity <extracted> \
-  --diet-mode <extracted>
+  --diet-mode <extracted> \
+  --height <extracted> \
+  --age <extracted> \
+  --sex <extracted> \
+  --cycle-start-date <extracted> \
+  [--weekly-rate <extracted>] \
+  [--bmi-standard <extracted>]
 ```
 
-All `--current-calories`, `--target-weight`, `--tdee`, `--activity`, `--diet-mode` are optional CLI args. When provided, the script skips its own PLAN.md parsing. Always provide them — that's the whole point.
+All args are **required** except `--weekly-rate` (skip if unclear) and `--bmi-standard` (defaults to `asian`).
 
 ---
 
@@ -101,7 +121,25 @@ Less than 25 days since last recalc. Do nothing — silently exit.
 
 ### `action: "recalculated"`
 
-Plan has been updated. Compose a cycle review + new cycle message for the user.
+**Step N: Rewrite PLAN.md (LLM responsibility)**
+
+The script no longer modifies PLAN.md. After receiving this output, **you** must update `{workspaceDir}/PLAN.md` by replacing the following fields with new values from the script output:
+
+| PLAN.md concept | New value source |
+|---|---|
+| 每日热量目标 / Daily Calorie Target | `new_calories` |
+| 每日热量缺口 / Daily Calorie Deficit | `new_tdee - new_calories` (compute) |
+| 每周减脂速度 / Weekly Rate | `new_rate` (kg/week) |
+| 当前体重 / Current Weight | `current_weight` |
+| TDEE / 每日总能量消耗 | `new_tdee` |
+| 三大营养素范围 / Macro Ranges (g) | `macros.protein_g[]` / `macros.carbs_g[]` / `macros.fat_g[]` |
+| 更新日期 / Updated | today (ISO date) |
+
+**Preserve the user's original PLAN.md format**: if it's in Chinese with bullets, keep that; if English markdown table, keep that. Only swap the numbers. Do not restructure the document.
+
+---
+
+Compose a cycle review + new cycle message for the user.
 
 **⚠️ 开头格式（重申）：** 消息第一行必须是 `🔄——周期性调整——🔄`，接着空行，再接正文。见文件顶部 Output Format (HARD RULE)。
 
@@ -198,7 +236,7 @@ If `{"should_trigger": true}`: run the full recalc flow, then delete `pending-re
 When user replies to the recalc message, check `data/last-recalc-summary.json`:
 
 If `awaiting_confirmation: true`:
-- User confirms → set `awaiting_confirmation: false` (PLAN.md already updated by script)
+- User confirms → set `awaiting_confirmation: false` (PLAN.md updated by LLM in Step N above)
 - User wants changes → recalculate with their preferences, update PLAN.md, confirm
 - No reply for 3 days → treat as confirmed
 
@@ -213,13 +251,13 @@ If `awaiting_confirmation: true`:
 
 | File | Access | Purpose |
 |------|--------|---------|
-| `PLAN.md` | Read + Write | Source of current plan; updated with new values |
+| `PLAN.md` | Read + Write | LLM reads for Step 0 extractions; LLM updates with new values after recalc |
+| `USER.md` | Read | Height, age, sex (Step 0) |
 | `data/weight.json` | Read | Most recent weight |
 | `data/leave.json` | Read | Leave status |
 | `data/pending-recalc.json` | R/W/Delete | Deferred recalc tracking |
 | `data/last-recalc-summary.json` | Write | Context for user reply handling |
 | `data/meals/*.json` | Read | Actual eating patterns (diet-mode-review) |
-| `health-profile.md` | Read | Activity level, demographics |
 
 ---
 
