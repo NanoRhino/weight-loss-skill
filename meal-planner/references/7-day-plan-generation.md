@@ -20,9 +20,11 @@ Send this message **immediately** after confirming the user wants the plan, **be
 
 **CRITICAL: Generate the 7-day meal plan as a Markdown file, convert to HTML, upload to S3 — NOT as chat text.** The meal plan is too long to stream reliably in chat (messages get interrupted, context overflows, and it's hard for users to save). Instead:
 
-1. **Write the meal plan as `MEAL-PLAN.md`** in the workspace, following the schema defined in `references/meal-plan-schema.md`. This file is the agent's reference copy. **Important: metadata keys (`Date`, `Calories`, `Mode`, `Macros`) MUST always be in English** — the HTML parser depends on these exact keys. Values can be localized.
-2. **Run the export script** to convert to HTML and upload to S3:
+1. **Write `MEAL-PLAN.md` and run the export in ONE `exec` call** (per SKILL.md § Write & Export in One Exec — the export script reads the file from disk, so they must be chained with `&&`/newline inside a single command, never parallel siblings and never two separate rounds):
    ```bash
+   cat > <AGENT_WORKSPACE_PATH>/MEAL-PLAN.md <<'MEAL_PLAN_EOF'
+   # ... the complete 7-day plan, following references/meal-plan-schema.md ...
+   MEAL_PLAN_EOF
    URL=$(bash {plan-export:baseDir}/scripts/generate-and-send.sh \
      --agent <YOUR_AGENT_ID> \
      --input MEAL-PLAN.md \
@@ -31,10 +33,12 @@ Send this message **immediately** after confirming the user wants the plan, **be
      --template meal-plan \
      --key meal-plan)
    ```
-   The script auto-resolves the username from the workspace path (→ agentId → `agent-registry.json` shortId). Do NOT pass `--username` manually.
-3. **Send the public URL to the user** via the message tool, with a brief summary. The URL is permanent: `https://nanorhino.ai/{username}/meal-plan.html`.
-4. Adapt all content (food names, meal names, day names, tips) to the user's language.
-5. Use full macro names matching the user's language — never abbreviate to P/C/F. English: `Protein`, `Carbs`, `Fat`; Chinese: `蛋白`, `碳水`, `脂肪`.
+   The markdown follows the schema defined in `references/meal-plan-schema.md` (read it in the Round 1 gather batch if not already in context). **Important: metadata keys (`Date`, `Calories`, `Mode`, `Macros`) MUST always be in English** — the HTML parser depends on these exact keys. Values can be localized. Compose the plan directly inside this command — do NOT draft it in thinking first. The script auto-resolves the username from the workspace path (→ agentId → `agent-registry.json` shortId). Do NOT pass `--username` manually.
+2. **Send the public URL to the user** via the message tool, with a brief summary. The URL is permanent: `https://nanorhino.ai/{username}/meal-plan.html`.
+3. Adapt all content (food names, meal names, day names, tips) to the user's language.
+4. Use full macro names matching the user's language — never abbreviate to P/C/F. English: `Protein`, `Carbs`, `Fat`; Chinese: `蛋白`, `碳水`, `脂肪`.
+
+**Round budget for this flow (hard limit — 3 rounds):** Round 1 = gather batch (`planner-calc.py macro-targets` ∥ `meal-plan-schema.md` ∥ plan-export skill docs ∥ profile reads, all in ONE parallel batch). Round 2 = the single write+export `exec` above (plus any independent file edits in the same batch). Round 3 = the chat message with the URL. Nothing else.
 
 **Chat message template** (adapt to user's language):
 
@@ -171,7 +175,7 @@ The user may want to:
 - **Adjust for a specific day** → "Saturday is date night" → build in a higher-calorie dinner and offset elsewhere. Update and re-export.
 - **Get a grocery list** → add a grocery list section to `MEAL-PLAN.md` and re-export.
 
-For any customization, **always update `MEAL-PLAN.md` and re-run the export script** so the user gets an updated link.
+For any customization, **always update `MEAL-PLAN.md` and re-run the export script** so the user gets an updated link. Same round budget as initial generation: combine the file update and the export into one `exec` when rewriting the whole file, or batch the edit and run the export in the immediately following round — never let the update, the export, and the reply sprawl across 4+ rounds.
 
 After the plan is finalized (all customizations done), introduce the daily tracking workflow if it hasn't been presented yet (see main SKILL.md § Introduce Daily Tracking Workflow).
 
