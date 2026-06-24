@@ -125,19 +125,33 @@ function findChromium() {
 function parseArgs(argv) {
   let dataStr = null;
   let outputPath = null;
+  let workspace = null;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--data" && argv[i + 1]) dataStr = argv[++i];
     else if ((argv[i] === "--output" || argv[i] === "-o") && argv[i + 1])
       outputPath = argv[++i];
+    else if (argv[i] === "--workspace" && argv[i + 1]) workspace = argv[++i];
   }
-  return { dataStr, outputPath };
+  return { dataStr, outputPath, workspace };
+}
+
+// 卡片图归档路径:<workspace>/data/meal-cards/<YYYY-MM-DD>/<HHMMSS>.png
+// 路径逻辑在脚本里自算(按本地当前时间),不让调用方拼路径。保留历史(时分秒命名,同分钟也不撞)。
+function archivePath(workspace) {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  const time = `${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  return path.join(workspace, "data", "meal-cards", date, `${time}.png`);
 }
 
 async function main() {
-  const { dataStr: cliData, outputPath } = parseArgs(process.argv.slice(2));
+  let { dataStr: cliData, outputPath, workspace } = parseArgs(process.argv.slice(2));
 
+  // 优先 --output(显式路径,兼容旧调用);否则按 --workspace 自动归档。
   if (!outputPath) {
-    throw new Error("missing --output <path>");
+    if (!workspace) throw new Error("missing --output <path> or --workspace <dir>");
+    outputPath = archivePath(workspace);
   }
 
   // Prefer --data, else read JSON from stdin.

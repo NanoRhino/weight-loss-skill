@@ -191,11 +191,10 @@ For any turn that outputs the ①② breakdown (create / append / detail-bearing
 
 2. **Render the card** — call `exec` once per meal (once for a normal single-meal turn; once per meal in the 2-meals abort-recovery case above):
    ```
-   node {baseDir}/scripts/render-meal-card.cjs --data '<card JSON>' --output {workspaceDir}/tmp/meal-card-<timestamp>.png
+   node {baseDir}/scripts/render-meal-card.cjs --data '<card JSON>' --workspace {workspaceDir}
    ```
-   - `{baseDir}` = this skill's directory (skill system resolves it); `{workspaceDir}` = the user workspace. Do NOT hard-code any absolute path.
-   - Output to a writable workspace temp location with a timestamped filename to avoid collisions.
-   - The script prints the PNG path to stdout on success; non-zero exit means it failed.
+   - `{baseDir}` = this skill's directory (skill system resolves it); `{workspaceDir}` = the user workspace. Do NOT hard-code any absolute path. **Do NOT pass `--output`** — the script auto-archives the PNG under `{workspaceDir}/data/meal-cards/<date>/<time>.png` itself.
+   - The script prints the resulting PNG path to stdout on success — **use THAT path** in your `MEDIA:` line. Non-zero exit means it failed.
 
 3. **On success** — reply body format:
    ```
