@@ -293,7 +293,7 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
 
     pros_cons = _get_pros_cons(effective_current, best_mode) if mismatch else None
 
-    return {
+    result = {
         "has_pattern": mismatch,
         "current_mode": current_mode,
         "effective_current_mode": effective_current,
@@ -306,6 +306,10 @@ def detect_diet_pattern(data_dir: str, current_mode: str,
         "all_days_consistent": all_days_match,
         "pros_cons": pros_cons,
     }
+    if mismatch:
+        result["effective_current_mode_range"] = {k: list(v) for k, v in DIET_MODE_MACROS[effective_current].items()}
+        result["detected_mode_range"] = {k: list(v) for k, v in DIET_MODE_MACROS[best_mode].items()}
+    return result
 
 
 # ---------------------------------------------------------------------------
