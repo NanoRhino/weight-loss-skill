@@ -405,7 +405,19 @@ def check_first_meal_nudge(workspace_dir, tz_offset, out=None):
     return True, f"first_meal_nudge — touch {index} due (angle={FIRST_MEAL_ANGLES[index]})"
 
 
-ACTIVATION_NUDGE_CAP = 4
+# Cold = behavioral (no meal/weight check-in AND zero inbound SMS) — NOT
+# plan-less. ~86% of this cohort came via TDEE handoff and HAVE a full PLAN.md
+# ("got their plan, went silent"); only ~14% are truly plan-less. So this gate
+# already serves the cold population, and the composer's WARM/COLD split (PLAN.md
+# present?) gives the plan-less minority the no-numbers variant.
+#
+# Sequence shortened 4 → 2 touches (Track A, 2026-06-24). The WARM recall
+# analysis showed touches 3 and 4 produced ZERO recall — every re-engagement came
+# from touch 1 or 2, and the 3 users who hit the full 4-touch cap never replied.
+# Cold users have even lower intent, so touches 3-4 (T+3d rapport, T+7d exit) were
+# pure opt-out/annoyance risk with no upside. We keep ONLY the two beats that ever
+# worked: T+4h and T+24h. The cap is the terminal anti-nag guarantee.
+ACTIVATION_NUDGE_CAP = 2
 
 # Minimum age the SMS coaching service is offered to. Mirrors the TDEE-upstream
 # refusal — this SMS gate is defense-in-depth (a minor who somehow reached a
@@ -415,26 +427,23 @@ ACTIVATION_MIN_AGE = 18
 # Cold-Start v3: the infra side fires ONE recurring "sweep" cron (~every 2h)
 # whose payload is GENERIC — it no longer tells us which touch to send. So the
 # gate computes the due touch here:
-#   index = nudges_sent + 1   (1..4)
+#   index = nudges_sent + 1   (1..2)
 # Touch N is due iff BOTH:
 #   (a) now - claimedAt >= ACTIVATION_THRESHOLDS_SECONDS[index]
 #   (b) now - last_nudge_at >= ACTIVATION_MIN_GAP_SECONDS  (de-bunch: when a
 #       sweep catches up after an overnight registration and several thresholds
 #       are already crossed, only ONE touch goes out per sweep window).
 # Index → angle (content key the composer renders):
-#   1=value_first  2=photo  3=rapport  4=exit
-# Thresholds are the agreed contract: touch1=4h, touch2=24h, touch3=3d, touch4=7d.
+#   1=value_first  2=photo
+# Thresholds are the agreed contract: touch1=4h, touch2=24h. (T+3d/T+7d dropped —
+# see ACTIVATION_NUDGE_CAP note above.)
 ACTIVATION_THRESHOLDS_SECONDS = {
     1: 4 * 3600,        # T+4h
     2: 24 * 3600,       # T+24h
-    3: 3 * 86400,       # T+3d
-    4: 7 * 86400,       # T+7d
 }
 ACTIVATION_ANGLES = {
     1: "value_first",
     2: "photo",
-    3: "rapport",
-    4: "exit",
 }
 # MIN_GAP ~20h: at most one activation touch per ~20h. 20h (not 24h) leaves
 # slack so a touch isn't skipped a whole extra day when a sweep lands slightly
@@ -570,19 +579,32 @@ def _onboarding_completed(workspace_dir):
     return bool(val) and val not in ("—", "-", "none", "None")
 
 
+def _activation_enabled():
+    """Kill switch for the activation nudge. Reads ACTIVATION_ENABLED from the
+    environment. Default ON: only an explicit falsey value disables it. This lets
+    ops hot-disable the entire activation sequence (set ACTIVATION_ENABLED=0 and
+    restart the gateway) without a skill redeploy. Scoped to activation only — it
+    does NOT affect meal/weight reminders, recall, or the first-meal nudge."""
+    val = os.environ.get("ACTIVATION_ENABLED")
+    if val is None:
+        return True
+    return val.strip().lower() not in ("0", "false", "no", "off", "")
+
+
 def check_activation_nudge(workspace_dir, tz_offset, out=None):
     """Gate for the activation nudge (meal_type=activation) — the Part-1
     "greeted but never replied" cohort.
 
     Cold-Start v3: the infra side now fires ONE recurring generic "sweep" cron
-    instead of four payload-tagged one-shots, so the sweep no longer tells us
-    which touch to send. This gate COMPUTES the due touch:
+    instead of payload-tagged one-shots, so the sweep no longer tells us which
+    touch to send. This gate COMPUTES the due touch:
 
-        index = nudges_sent + 1   (1..4)
+        index = nudges_sent + 1   (1..2)
 
     and sends touch `index` ONLY when BOTH timing windows are open:
       (a) now - claimedAt   >= ACTIVATION_THRESHOLDS_SECONDS[index]
-          (touch1=4h, touch2=24h, touch3=3d, touch4=7d — the agreed contract)
+          (touch1=4h, touch2=24h — the agreed contract; T+3d/T+7d dropped, see
+          ACTIVATION_NUDGE_CAP note)
       (b) now - last_nudge_at >= ACTIVATION_MIN_GAP_SECONDS  (~20h)
           de-bunches a catch-up sweep: when a user registered overnight and the
           first daytime sweep sees several thresholds already crossed, only ONE
@@ -613,6 +635,14 @@ def check_activation_nudge(workspace_dir, tz_offset, out=None):
     activation-mark-sent.py --counter nudges_sent after a successful compose,
     which atomically bumps the counter AND stamps last_nudge_at.
     """
+    # Kill switch: hot-disable the whole activation nudge without a redeploy.
+    # Set ACTIVATION_ENABLED=0 (or false/no/off) in the gateway/cron environment
+    # to short-circuit every activation touch to NO_REPLY. Default ON (any other
+    # value, or unset, keeps the nudge running). Cheap operational lever — flip
+    # the env var and restart the gateway; no skill push needed.
+    if not _activation_enabled():
+        return False, "activation — disabled via ACTIVATION_ENABLED kill switch"
+
     cs, cs_readable = _read_channel_source(workspace_dir)
 
     # --- Fail closed: if we can't read channel-source.json at all, do NOT
@@ -664,10 +694,10 @@ def check_activation_nudge(workspace_dir, tz_offset, out=None):
         return False, f"activation — cap reached ({nudges_sent}/{ACTIVATION_NUDGE_CAP})"
 
     # --- Compute which touch is due. ---
-    index = nudges_sent + 1  # 1..4 (cap already enforced above)
+    index = nudges_sent + 1  # 1..2 (cap already enforced above)
     threshold = ACTIVATION_THRESHOLDS_SECONDS.get(index)
     if threshold is None:
-        # Defensive: index outside 1..4 should be impossible past the cap gate.
+        # Defensive: index outside 1..2 should be impossible past the cap gate.
         return False, f"activation — no threshold for computed index {index}"
 
     now = datetime.now(timezone.utc)

@@ -26,11 +26,15 @@
 
 ## 激活提醒（Activation）— 加好友/握手后从未回复
 
-**触发：** cron message 含 `activation`。**Cold-Start v3：调度从「4 条带标签的一次性 cron」改为「openclaw-infra 在注册时挂的一条周期性 sweep cron」**（约每 2h 跑一次），payload 是**通用指令**——它不再告诉发第几条。**该发哪一条由 `pre-send-check.py` 计算**：`index = nudges_sent + 1`，只在 `now - claimedAt ≥ 该触点阈值`（step1 T+4h、step2 T+24h、step3 T+3d、step4 T+7d）**且** `now - last_nudge_at ≥ ~20h`（MIN_GAP）时放行。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、**非未成年**、未完成引导、不在请假/暂停、未达上限、且当前触点到点且不被 MIN_GAP 压住。
+**触发：** cron message 含 `activation`。**Cold-Start v3：调度从「带标签的一次性 cron」改为「openclaw-infra 在注册时挂的一条周期性 sweep cron」**（约每 2h 跑一次），payload 是**通用指令**——它不再告诉发第几条。**该发哪一条由 `pre-send-check.py` 计算**：`index = nudges_sent + 1`，只在 `now - claimedAt ≥ 该触点阈值`（step1 T+4h、step2 T+24h）**且** `now - last_nudge_at ≥ ~20h`（MIN_GAP）时放行。`pre-send-check.py --meal-type activation` 已确认：用户从未回复过任何一条消息、**非未成年**、未完成引导、不在请假/暂停、未达上限、且当前触点到点且不被 MIN_GAP 压住。
 
-**对象：** 收到第一条欢迎消息但**一条都没回**的用户。卡点是"开口说第一句话"。这条消息只为破冰、给一个零门槛的起点。**两类用户都会进这个流程**：通过 TDEE handoff 进来的（WARM，方案已就位）和冷启动注册的（COLD，无方案）——COLD 用户在 v3 也会被 sweep 覆盖，下面每条都给了 COLD 写法，**绝不出现占位符泄漏（如 `{target_cal}`）或无中生有的"方案"。**
+> **冷的定义（重要）：** 此处「冷」是**行为定义**——无任何打卡（meal/weight）**且**零入站短信——与有没有方案**无关**。实测此 cohort 约 86% 是走 TDEE handoff 进来、**有完整 PLAN.md** 的（"拿了方案就沉默了"），只有约 14% 真正无方案。所以本流程默认面向"有方案的沉默用户"，COLD（无 PLAN.md）只是少数分支。
 
-> **内容由 pre-send-check 算出的 `nudgeIndex` 决定（唯一真源）：** 第三步 `pre-send-check.py` 输出形如 `SEND activation nudgeIndex=3 nudgeAngle=rapport`，从中取 `nudgeIndex`（整数 1–4）和 `nudgeAngle`（`value_first`/`photo`/`rapport`/`exit`）。**按 `nudgeIndex` 选下面对应的文案，不要用 `nudges_sent` 计数器选内容。旧的 `(nudge=N)` 和 payload 里的 `(nudgeIndex=N, nudgeAngle=X)` 都已移除——不要再去 cron payload 里找**；输出不是 `SEND activation ...` 则 `NO_REPLY`。
+> **序列已从 4 条缩短到 2 条（Track A，2026-06-24）：** WARM 召回分析显示**触点 3、4（T+3d / T+7d）零召回**——所有再激活都来自触点 1 或 2，撞满 4 条 cap 的 3 个用户从未回复。冷用户意向更低，触点 3-4 纯属退订/打扰风险、无任何上行。故**只保留 T+4h 和 T+24h 两条**，cap=2 是终止反唠叨保证。
+
+**对象：** 收到第一条欢迎消息但**一条都没回**的用户。卡点是"开口说第一句话"。这条消息只为破冰、给一个零门槛的起点。**两类用户都会进这个流程**：通过 TDEE handoff 进来的（WARM，方案已就位，多数）和冷启动注册的（COLD，无方案，少数）——下面每条都给了 COLD 写法，**绝不出现占位符泄漏（如 `{target_cal}`）或无中生有的"方案"。**
+
+> **内容由 pre-send-check 算出的 `nudgeIndex` 决定（唯一真源）：** 第三步 `pre-send-check.py` 输出形如 `SEND activation nudgeIndex=2 nudgeAngle=photo`，从中取 `nudgeIndex`（整数 1–2）和 `nudgeAngle`（`value_first`/`photo`）。**按 `nudgeIndex` 选下面对应的文案，不要用 `nudges_sent` 计数器选内容。旧的 `(nudge=N)` 和 payload 里的 `(nudgeIndex=N, nudgeAngle=X)` 都已移除——不要再去 cron payload 里找**；输出不是 `SEND activation ...` 则 `NO_REPLY`。
 
 > **冷暖分流（compose 前必做）：** 检查 workspace 根目录是否有 `PLAN.md`。**`PLAN.md` 存在 → WARM**（走过 TDEE handoff，可从 PLAN.md 取真实目标热量+蛋白质做个性化）；**`PLAN.md` 不存在 → COLD**（无方案，绝不提"方案/计划/资料/都准备好了"，也没有真实数字可引）。语言仍以 `USER.md > Language` 为准（见 §通用规则，不在此做语言选择）。
 
@@ -40,32 +44,23 @@
 >
 > **未成年拦截（defense-in-depth）：** pre-send-check 读结构化年龄（`handoff.json > structured.age_years`，回退 `PROFILE.md > **Age:**`）；< 18 → NO_REPLY（"minor, service not offered"）。TDEE 上游已拒未成年，此处是二道防线。无结构化年龄时 fail-open（不拦）。
 
-**上限：** 最多 4 条（阈值 T+4h / T+24h / T+3d / T+7d，再加每 ~20h 最多一条的 MIN_GAP 节流）。**用户回复任何消息 → 剩余 nudge 全部自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 4 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 4`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
+**上限：** 最多 2 条（阈值 T+4h / T+24h，再加每 ~20h 最多一条的 MIN_GAP 节流）。**用户回复任何消息 → 剩余 nudge 全部自动取消**（pre-send-check 读 lastInboundAt 拦截）。发满 2 条仍零回复 → pre-send-check 的 cap gate（读 `activation.nudges_sent >= 2`）永久拦截后续 activation nudge（与 stage 系统无关的终止保证），目的是**不让从未回复的用户收到 S2-S4 召回内容**。这与首餐激活提醒、反唠叨原则一致。（stage 真源在 lifecycle DB；把零互动用户真正转入 Silent 是 lifecycle 侧的事。）
 
-**语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`。NanoRhino 用驼峰写法，**不要 🦏 emoji**。门槛逐条递减（index 1 → 4 越来越轻）。`[name]` 来自 USER.md，缺失则不用名字。下面英文为初稿，按 `USER.md > Language` 改写、不照搬。
+**语气：** 与本文件 § 通用规则 的无唠叨规范一致。温暖、不评判、零压力。本地化到 `USER.md > Language`。NanoRhino 用驼峰写法，**不要 🦏 emoji**。门槛逐条递减（index 1 → 2 越来越轻）。`[name]` 来自 USER.md，缺失则不用名字。下面英文为初稿，按 `USER.md > Language` 改写、不照搬。
 
-### index 1 — `value_first`（约 T+4h，中门槛：摆出价值）
-- 复述用户的**真实每日目标**：从 `PLAN.md` 取目标热量 + 蛋白质，明确说出数字（如 "1,500 cal & ~120g protein a day"）。
-- 提议帮 ta 凑这个数 → 引一个**一个字 YES**。
-- WARM 初稿："Hey [name] — your plan's locked in: about **{target_cal} cal and {target_protein}g protein** a day. Want me to send you 3 easy meals that hit that? Just reply YES."
-- COLD（无 PLAN.md，无真实数字）：不报具体数字，改为 "Hey [name] — want me to put together 3 easy meals that fit your goal? Just reply YES." 仍走一个字 YES。
+### index 1 — `value_first`（约 T+4h，中门槛：方案已就位，给一个零门槛的第一步）
+- 多数用户是 WARM（有 PLAN.md）：**提醒 ta "前阵子在我们这儿做了方案，但一直没真正开始"**，强调**热量+蛋白质目标都还存着、随时能用**，给一个**最低门槛的第一步**：拍下/报出下一餐，我来算宏量。
+- 这条文案已在生产中验证（是真正让沉默用户回流的那条）。WARM 初稿（按 `USER.md > Language` 改写、不照搬）：
+  > "Hey, it's NanoRhino. You set up your plan with us a couple weeks back but we never actually got rolling. Your calorie + protein targets are still saved and ready to go. Want to give it a shot? Just snap a photo of your next meal and I'll break down the macros."
+- 可选个性化：若想点出具体数字，从 `PLAN.md` 取真实目标热量 + 蛋白质（如 "your 1,500 cal / 120g protein target"）。**只有 PLAN.md 真有数字时才报**，绝不用占位符。
+- COLD（无 PLAN.md，无真实数字，少数）：**绝不提"方案/计划/资料/都准备好了"，不报任何数字**，改为低门槛 demo 邀请，例如 "Hey, it's NanoRhino — want to give it a quick shot? Snap a photo of your next meal (or just text me what it is) and I'll break down the macros for you."
 
-### index 2 — `photo`（T+24h，低门槛：报一餐）
+### index 2 — `photo`（T+24h，低门槛：报一餐，最后一条）
 > 注：契约标签 `photo` 是历史命名，不要改；现在文案以**文字报餐**为主，拍照只是补充选项。
 - 强调"我来算，免 app、免记账"——用户不用做任何数学 → 引**一句话报餐**（也可以拍张照）。
 - 初稿："No counting, no app, no tracking on your end — just text me what you ate (a photo works too) and I do the math. Try it with whatever's next."
-- WARM 可加半句把它系回目标；COLD 不提方案。
-
-### index 3 — `rapport`（T+3d，极低门槛：问难处）
-- 不要任何"记餐/拍照"动作，转为**关系破冰**：问 ta 现在吃饭这块最大的一个难处 → 引**一行字**。
-- 初稿："Different question, no tracking — what's the single biggest struggle with eating right now? Even one line helps me actually be useful to you."
-
-### index 4 — `exit`（T+7d，无门槛：体面收尾，最后一条）
-- **不提任何要求、不要 ask。** 体面收尾，留门。
-- WARM：把目标数字留给 ta（"your number's {target_cal} cal a day if you ever want it"）。COLD：留一句"随时发我都在"，不报数字。
-- 初稿（WARM）："I'll leave you to it — no more nudges from me. Your target's about **{target_cal} cal a day** whenever you want to start. Text me anytime, I'm here."
-- 初稿（COLD）："I'll leave you to it — no more nudges from me. If you ever want a hand with eating, just text me anytime. I'm here."
-- 这是序列**最后一条**；其后不再有触点（cap=4 + 此为终点）。
+- WARM 可加半句把它系回保存好的目标；COLD 不提方案。
+- 这是序列**最后一条**；其后不再有触点（cap=2 + 此为终点）。
 
 **长度：** 1-2 句。
 

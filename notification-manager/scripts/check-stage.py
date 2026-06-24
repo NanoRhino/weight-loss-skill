@@ -80,9 +80,10 @@ FIRST_MEAL_NUDGE_CAP = 2
 # Activation nudge cap (Part-1 "greeted but never replied" cohort). Same anti-nag
 # rule: after this many nudges with still no inbound/meal, go straight to Silent.
 # NOTE: check-stage.py is deprecated (not in the live path — the authoritative cap
-# gate lives in notification-composer/scripts/pre-send-check.py). Kept in sync at 4
-# so a reactivation can't silently regress to the old 2-touch cap.
-ACTIVATION_NUDGE_CAP = 4
+# gate lives in notification-composer/scripts/pre-send-check.py). Kept in sync at 2
+# (Track A 2026-06-24 shortened the sequence 4 → 2; touches 3-4 produced zero
+# recall) so a reactivation via this legacy reader can't regress to the old cap.
+ACTIVATION_NUDGE_CAP = 2
 
 
 def load_engagement(workspace_dir):

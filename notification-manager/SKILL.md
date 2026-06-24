@@ -373,16 +373,30 @@ welcome message, but have **never replied at all**. Different cohort from the
 first-meal nudge (who replied + onboarded but never logged).
 
 **Cron created by openclaw-infra, NOT this repo.** **Cold-Start v3** changed the
-schedule from four payload-tagged one-shot crons to **ONE recurring "sweep"
+schedule from payload-tagged one-shot crons to **ONE recurring "sweep"
 cron** (fires ~every 2h) created by the infra side at handoff/registration. The
 sweep payload is **generic** — it just says "run the activation pre-send check
 and send the single due touch if the gate allows" and **no longer carries which
 touch to send**. This skill only implements what the sweep fires into.
 
+> **Cold = behavioral, not plan-less.** "Cold" = no meal/weight check-in AND zero
+> inbound SMS (the :8899 dashboard's `classifyEngagement` definition) — it has
+> nothing to do with whether the user has a plan. ~86% of this cohort came via
+> TDEE handoff and HAVE a full PLAN.md ("got their plan, went silent"); only ~14%
+> are truly plan-less. This activation gate already == the no-inbound cohort, so
+> it already serves the cold population; the composer's WARM/COLD split (PLAN.md
+> present?) handles the plan-less minority. No separate "cold" system or counter.
+
+> **Sequence shortened 4 → 2 (Track A, 2026-06-24).** WARM recall analysis: touches
+> 3 and 4 (T+3d, T+7d) produced ZERO recall — every re-engagement came from touch
+> 1 or 2, and the 3 users who hit the full 4-touch cap never replied. Cold users
+> have even lower intent, so touches 3-4 were pure opt-out/annoyance risk. Only
+> T+4h and T+24h remain; cap=2.
+
 **Who computes the touch:** the gate (`pre-send-check.py --meal-type activation`),
-not the payload. It computes `index = nudges_sent + 1` (1–4) and green-lights
+not the payload. It computes `index = nudges_sent + 1` (1–2) and green-lights
 touch `index` only when BOTH `now - claimedAt >= threshold[index]` (touch1=4h,
-touch2=24h, touch3=3d, touch4=7d — the agreed contract) AND
+touch2=24h — the agreed contract; T+3d/T+7d dropped) AND
 `now - last_nudge_at >= ~20h` (MIN_GAP, so a catch-up sweep doesn't bunch
 touches). On SEND it prints `SEND activation nudgeIndex=N nudgeAngle=X` and the
 composer renders content by that `nudgeIndex` (source of truth), NOT by the
@@ -413,18 +427,29 @@ if we can't confirm no-reply we stay silent), `channel-source.json > claimedAt`
 fails open when no structured age — defense-in-depth behind the TDEE upstream
 refusal), onboarding completed, any meal logged, the authoritative lifecycle
 Silent stage (handled by the generic `check_engagement_stage` gate via the
-lifecycle API), on leave/pause, `activation.nudges_sent >= 4`, the computed
-touch's threshold not yet reached, or the MIN_GAP holding it back.
+lifecycle API), on leave/pause, the `ACTIVATION_ENABLED` kill switch is off
+(env set to 0/false → every activation touch returns NO_REPLY),
+`activation.nudges_sent >= 2`, the computed touch's threshold not yet reached, or
+the MIN_GAP holding it back.
 
-**Cold-START users now enter this flow.** Previously cold-start (no PLAN.md)
-users were never scheduled; under v3 the sweep covers them too. The composer
-must degrade to the COLD content variant (no `target_cal`/`target_protein`, no
-"your plan is ready" language) when `PLAN.md` is absent — see
-`notification-composer` SKILL.md § 激活提醒 and `references/recall-messages.md`.
+**Kill switch:** `ACTIVATION_ENABLED` (env var read by `pre-send-check.py`,
+default ON). Set `ACTIVATION_ENABLED=0` in the gateway/cron environment and
+restart the gateway to hot-disable the entire activation sequence without a skill
+redeploy. Scoped to activation only — meal/weight reminders, recall, and the
+first-meal nudge are unaffected.
 
-**Cap & terminal state:** Max **4** nudges (`activation.nudges_sent`). The moment
-the user replies (or logs a meal), all remaining nudges self-cancel. After 4
-nudges, the pre-send-check **cap gate** (reads `activation.nudges_sent >= 4`)
+**Cold-START users also enter this flow.** "Cold" is behavioral (no inbound, no
+check-in), NOT plan-less — most of the cohort HAS a PLAN.md. Previously cold-start
+(no PLAN.md) users were never scheduled; under v3 the sweep covers them too. The
+composer uses the COLD content variant (no `target_cal`/`target_protein`, no "your
+plan is ready" language) for the plan-less minority when `PLAN.md` is absent, and
+the production-validated "your plan's still saved, want to give it a shot" copy
+for the WARM majority — see `notification-composer` SKILL.md § 激活提醒 and
+`references/recall-messages.md`.
+
+**Cap & terminal state:** Max **2** nudges (`activation.nudges_sent`). The moment
+the user replies (or logs a meal), all remaining nudges self-cancel. After 2
+nudges, the pre-send-check **cap gate** (reads `activation.nudges_sent >= 2`)
 permanently suppresses the nudge — lifecycle-independent terminal guarantee, same
 as the first-meal nudge. The composer increments the counter via
 `activation-mark-sent.py --counter nudges_sent` after each successful send;

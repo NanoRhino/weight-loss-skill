@@ -234,36 +234,34 @@
     },
     {
       "id": 17,
-      "name": "activation-nudge-1-english",
-      "prompt": "[SYSTEM: cron 'activation (nudge=1)' (T+24h). pre-send-check returned SEND. Handoff user: health-profile.md Onboarding Completed=—, channel-source.json has handoffAppliedAt but NO lastInboundAt. No meals. activation.nudges_sent=0. USER.md Language=en, Name=Sarah. recall_topics empty.]",
-      "expected_output": "Warm T+24h ice-breaker addressing the user by name, with a concrete English example, no-photo-needed, no mascot emoji. Increments nudges_sent via script.",
+      "name": "activation-nudge-1-warm-plan-saved-english",
+      "prompt": "[SYSTEM: pre-send-check returned 'SEND activation nudgeIndex=1 nudgeAngle=value_first' (touch 1, ~T+4h). Handoff user (WARM): PLAN.md present, health-profile.md Onboarding Completed=—, channel-source.json has handoffAppliedAt but NO lastInboundAt. No meals. activation.nudges_sent=0. USER.md Language=en, Name=Sarah. recall_topics empty.]",
+      "expected_output": "Warm value_first ice-breaker (production-validated copy): reminds Sarah she set up her plan a while back but never got rolling, that her calorie+protein targets are still saved and ready, and invites a single low-effort first step (snap a photo of the next meal / I'll break down the macros). No mascot emoji. Increments nudges_sent via script.",
       "expectations": [
         "Warm, non-judgmental — does NOT say 'you never replied' or count days of silence",
         "Uses the name Sarah",
-        "Gives a concrete, zero-effort starting point (e.g., 'tell me what you ate last — eggs and toast works')",
-        "Says no photo needed / easiest way to start",
-        "Localized example is English/Western (NOT a Chinese dish)",
+        "References that she set up her plan with us a while back / her targets are still saved and ready (WARM, PLAN.md present)",
+        "Invites a single zero-effort first step: snap a photo of the next meal (or just text what it was) and I'll break down the macros",
         "Does NOT frame replying as an obligation",
-        "No calorie/macro numbers",
+        "May reference the saved calorie+protein TARGET in words; only states a specific number if PLAN.md actually has one (no placeholder leakage like {target_cal})",
         "1-2 sentences; does NOT append the 🦏 mascot emoji",
-        "After sending, increments the counter by calling activation-mark-sent.py --counter nudges_sent and appends a recall_topics entry"
+        "After sending, increments the counter by calling activation-mark-sent.py --counter nudges_sent"
       ]
     },
     {
       "id": 18,
-      "name": "activation-nudge-2-final-localized-zh-pause-escape",
-      "prompt": "[SYSTEM: cron 'activation (nudge=2)' (T+72h, final). pre-send-check returned SEND. Still no lastInboundAt, no meals. activation.nudges_sent=1. USER.md Language=zh, Name=小敏. recall_topics=[{topic:'破冰邀请'}].]",
-      "expected_output": "Softer final follow-up in Chinese that names the pause escape hatch, no mascot emoji. Increments to 2.",
+      "name": "activation-nudge-2-final-photo-localized-zh",
+      "prompt": "[SYSTEM: pre-send-check returned 'SEND activation nudgeIndex=2 nudgeAngle=photo' (touch 2, ~T+24h, FINAL — cap=2). Still no lastInboundAt, no meals. activation.nudges_sent=1. USER.md Language=zh, Name=小敏. recall_topics=[{topic:'破冰邀请'}].]",
+      "expected_output": "Softer, lower-threshold final follow-up in Chinese: just report one meal, no app / no counting / no math on the user's end (a photo also works). No mascot emoji. Increments to 2 (the cap).",
       "expectations": [
-        "Softer and shorter than nudge 1 — zero pressure",
-        "Explicitly offers the pause escape hatch (tell the user they can say 'pause' / equivalent to get fewer check-ins)",
-        "Says it's fine to ignore this if now's not the time",
+        "Softer and shorter than nudge 1 — zero pressure, lowest threshold",
+        "Emphasizes 'I do the math — no app, no counting on your end'; ask is just to report one meal (a photo works too)",
         "Replies in Chinese (USER.md Language=zh is sole authority — no language-detection logic)",
         "Localized — not a hardcoded English example",
         "Avoids reusing nudge-1's angle (reads recall_topics to dedup)",
-        "Does NOT count days or guilt-trip",
+        "Does NOT count days or guilt-trip; no calorie/macro numbers",
         "Does NOT append the 🦏 mascot emoji",
-        "After sending, increments the counter by calling activation-mark-sent.py --counter nudges_sent"
+        "This is the final touch (cap=2) — after sending, increments the counter to 2 by calling activation-mark-sent.py --counter nudges_sent"
       ]
     },
     {
