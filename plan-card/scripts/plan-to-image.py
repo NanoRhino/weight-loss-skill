@@ -64,6 +64,20 @@ taller to make room; the QR caption is localized via STRINGS. When `qr` is
 ABSENT the output is byte-identical to the pre-QR renderer (the `qrcode`
 dependency is imported lazily and only on the QR path).
 
+OPTIONAL GLP-1 VARIANT (additive input field — `profile.on_glp1: bool`,
+default false; absent/false renders byte-identically to the pre-GLP-1
+pipeline). A GLP-1 agonist already suppresses appetite, so prescribing a
+deficit on top risks undereating / muscle loss. When on_glp1 is true the
+renderer pivots the product: the hero becomes the daily PROTEIN FLOOR
+(1.6 g/kg via planner-calc high_protein, forced for every intent) and the
+card/markdown drop the prescribed-deficit countdown:
+  - lose    → 保肌 (protect muscle while the shot leads the pace): daily_cal
+              held at a protective floor max(safety-floor, 1200 F / 1500 M);
+              NO deficit / weekly pace / goal date.
+  - recomp  → existing small-deficit math + GLP-1 framing.
+  - maintain→ maintenance calories + GLP-1 framing (protect muscle as
+              appetite returns).
+
 stdout on success (single JSON line):
   {"ok": true, "png": "<abs path>", "bytes": N, "plan": {...}, "plan_markdown": "..."}
 On failure: non-zero exit, {"ok": false, "error": "..."} on stdout, details on stderr.
@@ -99,6 +113,14 @@ NO_GOAL_RATE_KG = 0.35
 # Mild deterministic adjustments for the intents the Step-3 spec doesn't model.
 RECOMP_DEFICIT_KCAL = 200
 GAIN_RATE_KG_PER_WEEK = 0.25  # lean gain default → ≈275 kcal/day surplus
+
+# GLP-1 calorie floors (protective lower bound for users on a GLP-1 agonist,
+# whose appetite is already pharmacologically suppressed). More protective
+# than planner-calc's safety-floor max(BMR, 1000): research saw GLP-1 users
+# self-imposing unsafe 1185–1300 kcal/day, so we hold a sex-specific minimum
+# of 1200 (female) / 1500 (male) and take whichever floor is higher.
+GLP1_FLOOR_FEMALE = 1200
+GLP1_FLOOR_MALE = 1500
 
 VALID_SEX = {"male", "female"}
 VALID_INTENT = {"lose", "maintain", "recomp", "gain"}
@@ -202,6 +224,35 @@ STRINGS = {
         "cp_photo": "Log every meal — just text what you ate, a photo works too",
         "cp_weigh": "Weigh in Saturday morning",
         "cp_protein": "Hit your protein target at every meal",
+        # GLP-1 variant (card): hero = protein floor; intent-adapted tiles,
+        # focus copy, and first-week checkpoints. No prescribed deficit /
+        # pace / goal date for the lose (保肌) case.
+        "glp1_title": {"lose": "Your GLP-1 Plan",
+                       "maintain": "Your GLP-1 Plan",
+                       "recomp": "Your GLP-1 Plan"},
+        "glp1_hero_label": "Daily Protein Floor",
+        "glp1_hero_unit": "g · hit it even when you're not hungry",
+        "glp1_tile1_lose_label": "Don't eat below",
+        "glp1_tile1_lose_note": "muscle first, not the scale",
+        "glp1_tile2_lose_label": "Weigh in",
+        "glp1_tile2_lose_value": "Weekly",
+        "glp1_tile2_lose_note": "eat to appetite, watch the trend",
+        "glp1_tile1_recomp_label": "Slight deficit",
+        "glp1_tile1_recomp_value": "+ high protein",
+        "glp1_tile2_recomp_label": "The mirror",
+        "glp1_tile2_recomp_value": "strength shows first",
+        "glp1_tile1_maint_label": "Hold steady",
+        "glp1_tile2_maint_label": "Protein first",
+        "glp1_tile2_maint_value": "hold muscle as appetite returns",
+        "glp1_focus_lose": "Your shot leads the pace — eat to appetite, weigh "
+                           "weekly; what comes off stays fat, not muscle.",
+        "glp1_focus_kicker": "HOW THIS WORKS",
+        "glp1_cp_protein": "Hit your protein every meal, even with no appetite",
+        "glp1_cp_floor": "Don't drop below your calorie floor",
+        "glp1_cp_weigh": "Weigh in once a week",
+        "glp1_cp_strength": "2 short strength sessions — muscle protects your "
+                            "results",
+        "glp1_cp_water": "Water first",
         "qr_title": "Scan to start",
         "qr_note": "Opens a text to me with your claim code — just hit send.",
         "footer": "Text me anytime — your AI nutrition coach",
@@ -217,6 +268,8 @@ STRINGS = {
         "md_activity": "Activity: {v}",
         "assumed": " (assumed — tell me your routine to fine-tune)",
         "md_target": "Daily calorie target: {v} {cu}",
+        "md_protein_floor": "Daily protein floor: {v} g — hit it every meal, "
+                            "even when you're not hungry",
         "md_deficit": "Daily calorie deficit: ~{v} {cu}",
         "md_surplus": "Daily calorie surplus: ~{v} {cu}",
         "md_rate_loss": "Weekly loss rate: ~{v}",
@@ -235,6 +288,18 @@ STRINGS = {
                        "mirror, not the scale.",
         "expl_gain": "A modest surplus keeps the gains lean — slow on the "
                      "scale, visible in the gym.",
+        # GLP-1 PLAN.md explanations (per intent).
+        "expl_glp1_lose": "Eat at least {floor} {cu} a day, hit your protein "
+                          "every meal to protect muscle, let your appetite "
+                          "lead, and weigh in weekly. Your shot already sets "
+                          "the pace — your job is to protect muscle so what "
+                          "comes off is fat.",
+        "expl_glp1_recomp": "A small deficit with plenty of protein lets you "
+                            "build strength while the shot holds your appetite "
+                            "— judge progress by the mirror, not the scale.",
+        "expl_glp1_maintain": "Eat around this level and hold steady — protein "
+                              "first, so you keep your muscle as your appetite "
+                              "returns.",
         "floor_note": "> Note: your daily target was raised to your safety "
                       "floor and the pace adjusted accordingly — eating less "
                       "than this would work against you.",
@@ -318,6 +383,34 @@ STRINGS = {
         "cp_photo": "记录每一餐——随手发文字就行，也能拍照",
         "cp_weigh": "周六早晨称体重",
         "cp_protein": "每餐吃够你的蛋白质目标",
+        # GLP-1 变体（卡片）：主视觉换成蛋白质底线；瓷砖、重点文案和
+        # 第一周清单按 intent 适配。保肌（lose）这一档不显示规定缺口、
+        # 减脂速度或目标日期。
+        "glp1_title": {"lose": "你的 GLP-1 计划",
+                       "maintain": "你的 GLP-1 计划",
+                       "recomp": "你的 GLP-1 计划"},
+        "glp1_hero_label": "每日蛋白质底线",
+        "glp1_hero_unit": "g · 没胃口也要吃够它",
+        "glp1_tile1_lose_label": "别低于",
+        "glp1_tile1_lose_note": "保肌优先，不是减秤",
+        "glp1_tile2_lose_label": "每周称重",
+        "glp1_tile2_lose_value": "每周一次",
+        "glp1_tile2_lose_note": "按食欲吃，看趋势",
+        "glp1_tile1_recomp_label": "小缺口",
+        "glp1_tile1_recomp_value": "+ 高蛋白",
+        "glp1_tile2_recomp_label": "看镜子",
+        "glp1_tile2_recomp_value": "线条先变",
+        "glp1_tile1_maint_label": "保持维持热量",
+        "glp1_tile2_maint_label": "蛋白质优先",
+        "glp1_tile2_maint_value": "食欲回来时守住肌肉",
+        "glp1_focus_lose": "针剂主导节奏——按食欲吃、每周称重，掉下去的是"
+                           "脂肪不是肌肉。",
+        "glp1_focus_kicker": "记住这一点",
+        "glp1_cp_protein": "每餐都吃够蛋白质，哪怕没胃口",
+        "glp1_cp_floor": "别低于你的热量下限",
+        "glp1_cp_weigh": "每周称一次",
+        "glp1_cp_strength": "每周 2 次力量训练——肌肉护住成果",
+        "glp1_cp_water": "先喝水",
         "qr_title": "扫码开始",
         "qr_note": "自动打开短信并填好领取码——点发送就行。",
         "footer": "有问题随时发消息——你的 AI 营养师",
@@ -333,6 +426,7 @@ STRINGS = {
         "md_activity": "活动情况：{v}",
         "assumed": "（估算值——告诉我你的日常作息可以更精确）",
         "md_target": "每日热量目标：{v} {cu}",
+        "md_protein_floor": "每日蛋白质底线：{v} g——每餐都吃够，哪怕没胃口",
         "md_deficit": "每日热量缺口：约 {v} {cu}",
         "md_surplus": "每日热量盈余：约 {v} {cu}",
         "md_rate_loss": "每周减脂速度：约 {v}",
@@ -345,6 +439,14 @@ STRINGS = {
         "expl_maintain": "按这个量吃，体重会保持稳定——每周称一次，及时发现波动。",
         "expl_recomp": "小热量缺口配足量蛋白质，边减脂边涨力量——看镜子，别只盯着秤。",
         "expl_gain": "适度盈余让增重更干净——秤上慢一点，训练房里看得见。",
+        # GLP-1 PLAN.md 说明（按 intent）。
+        "expl_glp1_lose": "每天至少吃 {floor} {cu}，每餐都吃够蛋白质来保住"
+                          "肌肉，按食欲进食，每周称一次。针剂已经在主导节奏"
+                          "——你要做的是守住肌肉，让掉下去的是脂肪。",
+        "expl_glp1_recomp": "小热量缺口配足量蛋白质，趁针剂压住食欲时增长"
+                            "力量——看镜子，别只盯着秤。",
+        "expl_glp1_maintain": "按这个量吃、保持稳定——蛋白质优先，食欲回来时"
+                              "也能守住肌肉。",
         "floor_note": "> 注：你的每日目标已上调至安全下限，节奏也相应调整——"
                       "吃得更少反而会拖慢进度。",
         "act_desc": {
@@ -407,6 +509,12 @@ def validate_input(data: dict) -> dict:
     if intent not in VALID_INTENT:
         raise ValueError(f"profile.intent must be one of {sorted(VALID_INTENT)}")
     profile["intent"] = intent
+
+    # GLP-1 flag (additive, backward-compatible — absent/false renders
+    # byte-identically to the pre-GLP-1 pipeline). When true the renderer
+    # pivots the card/markdown from a prescribed-deficit countdown to a
+    # protein-floor / muscle-preservation framing (see compute_plan).
+    profile["on_glp1"] = bool(profile.get("on_glp1"))
 
     profile["age_years"] = int(profile["age_years"])
     profile["height_cm"] = float(profile["height_cm"])
@@ -497,6 +605,7 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
     weight = profile["weight_kg"]
     goal = profile.get("goal_weight_kg")
     intent = profile["intent"]
+    on_glp1 = profile.get("on_glp1", False)
     activity, activity_assumed = resolve_activity(profile)
     bmi_std = bmi_standard_for(locale)
     lang = locale["lang"]
@@ -509,6 +618,7 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
         "activity_assumed": activity_assumed,
         "bmi_standard": bmi_std,
         "language": lang,
+        "glp1": on_glp1,
         "rate_kg_per_week": None,
         "daily_deficit": None,
         "weeks": None,
@@ -538,6 +648,17 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
         "bmi_current": bmi["bmi"],
         "bmi_current_class": bmi["classification"],
     })
+
+    # GLP-1 path: the shot already suppresses appetite, so the lever is muscle
+    # preservation, NOT a prescribed deficit. We force a more protective floor
+    # (whichever is higher: planner-calc safety-floor or the sex-specific
+    # GLP-1 minimum) and route each intent through the GLP-1 branches below.
+    if on_glp1:
+        sex_floor = (GLP1_FLOOR_FEMALE if profile["sex"] == "female"
+                     else GLP1_FLOOR_MALE)
+        glp1_floor = max(floor, sex_floor)
+        plan["glp1_floor"] = glp1_floor
+        return compute_plan_glp1(plan, profile, tdee_rec, glp1_floor, lang)
 
     if intent == "lose":
         if goal is not None:
@@ -623,6 +744,53 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
     return finalize_plan(plan, profile, lang)
 
 
+def compute_plan_glp1(plan: dict, profile: dict, tdee_rec: float,
+                      glp1_floor: float, lang: str) -> dict:
+    """GLP-1 plan computation. Hero = protein floor for every intent;
+    muscle preservation is the lever, not a prescribed deficit.
+
+    - lose (保肌, the p1-06 safety fix): NO deficit / pace / goal date. The
+      drug leads the pace; we only hold a protective calorie floor. daily_cal
+      = glp1_floor, daily_deficit/rate/completion all None, timeline locked.
+    - recomp: keep the existing small-deficit math (clamped to glp1_floor).
+    - maintain: eat at maintenance (max of TDEE and the GLP-1 floor).
+
+    Macros are forced to high_protein (1.6 g/kg) for ALL intents in
+    finalize_plan via the plan["glp1"] flag.
+    """
+    intent = plan["intent"]
+
+    # A 'lose' goal at/above current weight is really maintenance (same
+    # reframe the non-GLP-1 path applies before the energy anchor).
+    if intent == "lose" and plan.get("goal_weight_kg") is not None \
+            and plan["goal_weight_kg"] >= plan["weight_kg"]:
+        intent = plan["intent"] = "maintain"
+
+    if intent == "lose":
+        # Safety fix: do NOT prescribe a deficit/pace/goal date on top of the
+        # appetite suppression. Hold the protective floor; let the shot lead.
+        plan.update({
+            "to_lose_kg": (round(plan["weight_kg"] - plan["goal_weight_kg"], 1)
+                           if plan.get("goal_weight_kg") is not None else None),
+            "daily_cal": glp1_floor,
+            "daily_deficit": None,
+            "rate_kg_per_week": None,
+            "weeks": None,
+            "estimated_completion": None,
+            "timeline_locked": True,
+        })
+    elif intent == "recomp":
+        daily_cal = max(tdee_rec - RECOMP_DEFICIT_KCAL, glp1_floor)
+        plan.update({
+            "daily_cal": daily_cal,
+            "daily_deficit": tdee_rec - daily_cal,
+        })
+    else:  # maintain
+        plan["daily_cal"] = max(tdee_rec, glp1_floor)
+
+    return finalize_plan(plan, profile, lang)
+
+
 def finalize_plan(plan: dict, profile: dict, lang: str) -> dict:
     """Attach card-only richness: macros, focus rules, week-1 checkpoints.
     (Approved override — card only; PLAN.md stays Step-3 compliant and
@@ -630,11 +798,20 @@ def finalize_plan(plan: dict, profile: dict, lang: str) -> dict:
     if "macros" not in plan:
         # Macros from the anchored daily target via planner-calc
         # macro-targets (canonical methodology on top of the handoff TDEE).
-        mode = "high_protein" if plan["intent"] in ("recomp", "gain") else "balanced"
+        # GLP-1 forces high_protein for EVERY intent — muscle preservation
+        # (1.6 g/kg) is the lever while the drug holds appetite.
+        if plan.get("glp1") or plan["intent"] in ("recomp", "gain"):
+            mode = "high_protein"
+        else:
+            mode = "balanced"
         args = ["macro-targets", "--weight", plan["weight_kg"],
                 "--cal", round(plan["daily_cal"]), "--mode", mode]
         goal = plan.get("goal_weight_kg")
-        if goal is not None and plan["intent"] != "maintain":
+        # GLP-1 computes protein off CURRENT body weight for muscle
+        # preservation (Jason 2026-06-25), so skip --target-weight on the
+        # GLP-1 path. The non-GLP-1 path still uses goal weight when set.
+        if goal is not None and plan["intent"] != "maintain" \
+                and not plan.get("glp1"):
             args += ["--target-weight", goal]
         plan["macros"] = run_planner(*args)
     plan["first_week"] = [text for _, text in
@@ -659,6 +836,17 @@ def first_week_items(profile: dict, activity: str, lang: str) -> list:
       5. → hydration: water first, 2L a day
     """
     s = STRINGS[lang]
+    # GLP-1 first-week set: protein-floor / floor-defense / weekly weigh /
+    # strength / water — the muscle-preservation playbook, not the cadence
+    # checkpoints (no "log every meal", no Saturday weigh-in anchor).
+    if profile.get("on_glp1"):
+        return [
+            ("🍗", s["glp1_cp_protein"]),
+            ("🛑", s["glp1_cp_floor"]),
+            ("⚖️", s["glp1_cp_weigh"]),
+            ("🏋️", s["glp1_cp_strength"]),
+            ("💧", s["glp1_cp_water"]),
+        ]
     steps = profile.get("daily_steps")
     if (steps is not None and float(steps) < 5000) or activity == "sedentary":
         movement = "focus_walk"
@@ -815,6 +1003,7 @@ def build_template_vars(plan: dict, profile: dict, locale: dict,
     s = STRINGS[lang]
     cu = cal_unit(locale["country"], lang)
     intent = plan["intent"]
+    glp1 = plan.get("glp1", False)
 
     stats_bits = [fmt_weight(profile["weight_kg"], units)]
     if plan.get("goal_weight_kg") is not None and intent != "maintain":
@@ -826,7 +1015,35 @@ def build_template_vars(plan: dict, profile: dict, locale: dict,
     hero_label = s["hero_maint"] if intent == "maintain" else s["hero_target"]
 
     # Plan tiles: deficit + pace (Step-3 elements 2 and 3).
-    if intent == "maintain":
+    if glp1:
+        # GLP-1: hero pivots to the protein floor; tiles adapt by intent.
+        hero_label = s["glp1_hero_label"]
+        if intent == "recomp":
+            tiles = (
+                (s["glp1_tile1_recomp_label"], s["glp1_tile1_recomp_value"],
+                 s["slight_deficit"]),
+                (s["glp1_tile2_recomp_label"], s["glp1_tile2_recomp_value"],
+                 s["mirror_note"]),
+            )
+        elif intent == "maintain":
+            # tile1 value = the maintenance calorie target (avoids repeating
+            # the "Hold steady" label as its own value).
+            tiles = (
+                (s["glp1_tile1_maint_label"],
+                 s["tile_approx"].format(v=fmt_num(plan["daily_cal"]), cu=cu),
+                 s["keep_level"]),
+                (s["protein"], s["glp1_tile2_maint_label"],
+                 s["glp1_tile2_maint_value"]),
+            )
+        else:  # lose (保肌) — no prescribed deficit / pace
+            tiles = (
+                (s["glp1_tile1_lose_label"],
+                 s["tile_approx"].format(v=fmt_num(plan["daily_cal"]), cu=cu),
+                 s["glp1_tile1_lose_note"]),
+                (s["glp1_tile2_lose_label"], s["glp1_tile2_lose_value"],
+                 s["glp1_tile2_lose_note"]),
+            )
+    elif intent == "maintain":
         tiles = (
             (s["goal_lbl"], s["hold_steady"], s["keep_level"]),
             (s["checkin"], s["weekly"], s["weekly_note"]),
@@ -927,7 +1144,30 @@ def build_template_vars(plan: dict, profile: dict, locale: dict,
     )
 
     # Timeline: single completion month, or the unlock prompt.
-    if plan.get("estimated_completion"):
+    if glp1:
+        # GLP-1: no goal-date countdown for any intent — the shot leads the
+        # pace. The focus message is the card's takeaway (for lose it's the
+        # core SAFETY message), so render it as a soft-pink accent tile with
+        # DARK ink — NOT the white-on-white text the non-GLP-1 maintain/recomp
+        # focus block uses (that pre-existing block is left untouched).
+        if intent == "recomp":
+            focus_line = s["recomp_focus"]
+        elif intent == "maintain":
+            focus_line = s["maintain_focus"]
+        else:  # lose (保肌)
+            focus_line = s["glp1_focus_lose"]
+        timeline_label = s["sec_focus_alt"]
+        timeline_html = (
+            '<div style="margin-top:14px; background:#fff5f8; '
+            'border:2px solid #fbe7ec; border-radius:22px; '
+            'padding:30px 36px; box-shadow:0 2px 8px rgba(215,60,99,0.06);">'
+            '<div style="font-size:22px; font-weight:700; letter-spacing:3px; '
+            f'text-transform:uppercase; color:#D73C63;">{s["glp1_focus_kicker"]}</div>'
+            '<div style="margin-top:14px; font-size:36px; line-height:1.4; '
+            f'font-weight:700; color:#1a1a2e;">{focus_line}</div>'
+            "</div>"
+        )
+    elif plan.get("estimated_completion"):
         timeline_label = s["sec_timeline"]
         timeline_html = (
             '<div class="goal-tile">'
@@ -981,15 +1221,24 @@ def build_template_vars(plan: dict, profile: dict, locale: dict,
         for icon, text in first_week_items(profile, plan["activity"], lang)
     )
 
+    if glp1:
+        plan_title = s["glp1_title"][intent]
+        hero_value = fmt_num(plan["macros"]["protein"]["target"])
+        hero_unit = s["glp1_hero_unit"]
+    else:
+        plan_title = s["title_card"][intent]
+        hero_value = fmt_num(plan["daily_cal"])
+        hero_unit = s["per_day"].format(cu=cu)
+
     return {
         "page_height": f"{page_height}px",
         "qr_html": qr_html,
         "date_label": fmt_date_label(date.today(), lang),
-        "plan_title": s["title_card"][intent],
+        "plan_title": plan_title,
         "stats_line": stats_line,
         "hero_label": hero_label,
-        "hero_value": fmt_num(plan["daily_cal"]),
-        "hero_unit": s["per_day"].format(cu=cu),
+        "hero_value": hero_value,
+        "hero_unit": hero_unit,
         "sec_plan": s["sec_plan"],
         "sec_macros": s["sec_macros"],
         "sec_rhythm": s["sec_rhythm"],
@@ -1085,12 +1334,17 @@ def build_plan_markdown(plan: dict, profile: dict, locale: dict) -> str:
     if plan["activity_assumed"]:
         activity_desc += s["assumed"]
 
+    glp1 = plan.get("glp1", False)
+
     lines = []
-    lines.append(f"# {s['title_md'][intent]}")
+    # GLP-1 uses its own plan heading ("Your GLP-1 Plan"); other intents
+    # keep the Step-3 markdown title.
+    lines.append(f"# {s['glp1_title'][intent] if glp1 else s['title_md'][intent]}")
     lines.append("")
     lines.append(f"*{s['generated'].format(date=date.today().isoformat())}*")
     lines.append("")
     # Machine-readable anchor (language-independent) for downstream parsers.
+    # Stays = round(daily_cal) for GLP-1 too, so weekly-report parsing works.
     lines.append(f"<!-- daily-calorie-target-kcal: {round(plan['daily_cal'])} -->")
     lines.append("")
     lines.append(f"## {s['md_info']}")
@@ -1105,6 +1359,24 @@ def build_plan_markdown(plan: dict, profile: dict, locale: dict) -> str:
     lines.append(f"## {s['md_plan']}")
     lines.append("")
     lines.append(f"• {s['md_target'].format(v=fmt_num(plan['daily_cal']), cu=cu)}")
+
+    if glp1:
+        # GLP-1: NO prescribed deficit / pace / goal-date lines. The drug
+        # leads the pace; we surface the protein floor and let appetite lead.
+        protein_target = round(plan["macros"]["protein"]["target"])
+        lines.append(f"• {s['md_protein_floor'].format(v=protein_target)}")
+        lines.append("")
+        if intent == "recomp":
+            explanation = s["expl_glp1_recomp"]
+        elif intent == "maintain":
+            explanation = s["expl_glp1_maintain"]
+        else:  # lose (保肌)
+            explanation = s["expl_glp1_lose"].format(
+                floor=fmt_num(plan["daily_cal"]), cu=cu)
+        lines.append(f"*{explanation}*")
+        lines.append("")
+        return "\n".join(lines)
+
     deficit = plan.get("daily_deficit")
     if deficit:
         if deficit > 0:
