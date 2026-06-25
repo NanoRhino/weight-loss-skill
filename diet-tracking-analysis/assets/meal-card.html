@@ -117,7 +117,7 @@
   // i18n: 标签按 D.lang 切换("en" → 英文,其余/缺省 → 中文)。数据值/单位 g/kcal 国际通用,不切。
   const I18N = {
     zh: { daily: "今日累计", veg: "蔬菜", fruit: "水果", protein: "蛋白质", carbs: "碳水", fat: "脂肪" },
-    en: { daily: "Today",   veg: "Veg",  fruit: "Fruit", protein: "Protein", carbs: "Carbs", fat: "Fat" },
+    en: { daily: "Daily Intake", veg: "Veg",  fruit: "Fruit", protein: "Protein", carbs: "Carbs", fat: "Fat" },
   };
   const L = I18N[D.lang === "en" ? "en" : "zh"];
   if (D.lang === "en") document.documentElement.lang = "en";
