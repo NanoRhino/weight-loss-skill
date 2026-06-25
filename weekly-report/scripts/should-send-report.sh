@@ -35,7 +35,7 @@ fi
 LIFECYCLE_API="${LIFECYCLE_API_URL:-http://127.0.0.1:3100}"
 ACC=$(basename "$WORKSPACE" | sed -E 's/^workspace-//; s/^(wechat|wecom)-dm-//')
 STAGE=$(curl -s --max-time 3 "$LIFECYCLE_API/v1/lifecycle/state/$ACC" 2>/dev/null \
-  | python3.11 -c "import sys,json; print(json.load(sys.stdin).get('stage',1))" 2>/dev/null || echo "1")
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('stage',1))" 2>/dev/null || echo "1")
 if [[ "$STAGE" -ge 3 ]]; then
   echo "no: stage=$STAGE (recall/inactive)"
   exit 0
@@ -71,7 +71,7 @@ for f in "$MEALS_DIR"/*.json; do
   FDATE="${FNAME:0:10}"
   if [[ "$FDATE" > "$MONDAY" || "$FDATE" == "$MONDAY" ]] && [[ "$FDATE" < "$SUNDAY" || "$FDATE" == "$SUNDAY" ]]; then
     # Check if file has actual food data (not empty/skeleton)
-    HAS_DATA=$(python3.11 -c "
+    HAS_DATA=$(python3 -c "
 import json
 d = json.load(open('$f'))
 if isinstance(d, list):
