@@ -473,6 +473,44 @@ nudge runs as `error` (the 050208 incident).
 
 ---
 
+### Reminder-first activation (no meal to log yet)
+
+**Purpose:** Give the handoff First-Meal Mode user a constructive branch when they
+have **nothing to log right now** ("I haven't eaten yet"). Instead of nagging for
+a meal or going quiet, the coach pivots ONCE (Single-Ask — no nagging) to offering
+the 3 meal reminders, which then become the engine that prompts the first real log.
+
+**Flow** (driven by the AGENTS-handoff First-Meal Mode template; this skill owns
+the reminder + signal mechanics):
+1. The coach writes the user's meal times to `health-profile.md > Meal Schedule`
+   (user's times if given; else `DEFAULT_MEAL_SCHEDULE` 08:30/12:30/18:30 — do NOT
+   hard-code times, reference `batch-create-reminders.sh`).
+2. Creates the 3 meal reminders:
+   ```bash
+   bash {baseDir}/scripts/batch-create-reminders.sh \
+     --agent <your-agent-id> --channel twilio --workspace {workspaceDir} \
+     --only meal --skip-existing
+   ```
+3. Stamps the activation signal (idempotent, set-once):
+   ```bash
+   python3 {baseDir}/scripts/activation-mark-reminders-set.py \
+     --workspace-dir {workspaceDir}
+   ```
+   This sets `data/engagement.json > activation.reminders_set_at` (ISO-8601 UTC) the
+   first time only; later calls are no-ops (returns `already_set: true`). The
+   openclaw-infra dashboard + activation funnel read this field to count the user as
+   activated rather than a dead lead.
+
+**This counts as activation.** It does **NOT** call `mark-onboarding-done.py` —
+reminder-setup ≠ full onboarding complete (consistent with the post-first-meal
+path, which also doesn't mark done). Meal logging stays **never-gated**, and the
+user's first real meal still triggers the First-Meal Celebration + Starter Badge.
+Progressive onboarding (goal weight → diet prefs → confirm meal times) resumes
+one-ask-per-touchpoint on later turns. See `SKILL-ROUTING.md` Pattern 6 (First-Meal
+Mode note).
+
+---
+
 ## Lifecycle: Active → Recall → Silent
 
 ```
@@ -702,6 +740,7 @@ If the user says "取消提醒" without specifying which one:
 | `data/engagement.json` | `activation.first_meal_nudges_sent` — incremented by `notification-composer` via `activation-mark-sent.py` | After each first-meal nudge send |
 | `data/engagement.json` | `activation.nudges_sent` — incremented by `notification-composer` via `activation-mark-sent.py` | After each activation (never-replied) nudge send |
 | `data/engagement.json` | `activation.last_nudge_at` (ISO-8601 UTC) — stamped by `activation-mark-sent.py` in the SAME atomic write as the increment | After each activation/first-meal nudge send; read by `pre-send-check.py` for the ~20h MIN_GAP |
+| `data/engagement.json` | `activation.reminders_set_at` (ISO-8601 UTC) — stamped once by `activation-mark-reminders-set.py` (set-once, never overwritten) | When the reminder-first activation flow creates meal reminders for a not-yet-logged user (see § Reminder-first activation). Read by the openclaw-infra dashboard + activation funnel |
 | `health-profile.md > Meal Schedule` | direct write | Adaptive timing updates, user-requested time changes |
 
 ---
