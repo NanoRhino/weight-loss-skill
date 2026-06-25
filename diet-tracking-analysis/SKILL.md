@@ -174,7 +174,8 @@ For any turn that outputs the ①② breakdown (create / append / detail-bearing
 1. **Build the card JSON** from the `meal_checkin` result (no transformation — copy the numbers through):
    ```json
    {
-     "meal_label": "<中文餐名: 早餐/午餐/晚餐/加餐>",
+     "lang": "<zh | en — see rule below>",
+     "meal_label": "<餐名 — see rule below>",
      "meal_calories": <本餐总热量>,
      "dishes": [{ "dish_name": "...", "total_g": <重量g>, "calories": <热量> }],
      "daily": { "calories": <daily_total.calories>, "target": <daily_total.target>, "progress_pct": <daily_total.progress_pct>, "remaining": <daily_total.remaining> },
@@ -183,11 +184,17 @@ For any turn that outputs the ①② breakdown (create / append / detail-bearing
        "carbs":   { "value_g": <carbs_g>,   "status": "<status.carbs>" },
        "fat":     { "value_g": <fat_g>,     "status": "<status.fat>" }
      },
-     "produce": { "vegetables_g": <produce.vegetables_g>, "vegetables_status": "<produce.vegetables_status>", "fruits_g": <produce.fruits_g>, "fruits_status": "<produce.fruits_status>" }
+     "produce": { "vegetables_g": <produce.vegetables_g>, "vegetables_status": "<produce.vegetable_status>", "fruits_g": <produce.fruits_g>, "fruits_status": "<produce.fruit_status>" }
    }
    ```
-   - `status` values are `on_track` / `high` / `low`, taken verbatim from the `meal_checkin` evaluation. The template renders the Chinese labels itself — do not convert.
-   - `meal_label` is the Chinese meal name (matching what you'd show in ①). Use `meal_calories` = this meal's total calories.
+   - `status` values are `on_track` / `high` / `low`, taken verbatim from the `meal_checkin` evaluation. The template renders fixed labels (今日累计/蔬菜/水果/蛋白质/碳水/脂肪 in zh, Today/Veg/Fruit/Protein/Carbs/Fat in en) according to `lang` — do not convert these yourself.
+   - ⚠️ **Produce field naming**: `meal_checkin` returns produce status as **singular** (`vegetable_status`, `fruit_status`), but the card schema requires **plural** (`vegetables_status`, `fruits_status`). Map: `produce.vegetable_status` → card `produce.vegetables_status`; `produce.fruit_status` → card `produce.fruits_status`. If the source value is `null` (no veg target for this meal, or fruit not yet evaluated because this is not the final meal), pass `null` through — do not invent or omit.
+   - **`lang`**: read from USER.md `locale`. If locale starts with `en` → `"en"`; otherwise → `"zh"` (default). Omit to default zh.
+   - **`meal_label`** must match `lang`:
+     - `lang: "zh"` → 中文餐名: `早餐 / 午餐 / 晚餐 / 加餐`
+     - `lang: "en"` → English meal name: `Breakfast / Lunch / Dinner / Snack`
+   - **`dish_name`** (each dish) must also match `lang`. For English users, write dish names in English (e.g. `"Pork Cutlet Curry Rice"`, not `"炸猪排咖喱饭"`).
+   - Use `meal_calories` = this meal's total calories.
 
 2. **Render the card** — call `exec` once per meal (once for a normal single-meal turn; once per meal in the 2-meals abort-recovery case above):
    ```
