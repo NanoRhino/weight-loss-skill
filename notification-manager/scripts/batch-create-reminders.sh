@@ -54,6 +54,14 @@ DEFAULT_TZ="America/New_York"
 #   Breakfast 08:30 / Lunch 12:30 / Dinner 18:30 local
 DEFAULT_MEAL_SCHEDULE=$'Breakfast 08:30\nLunch 12:30\nDinner 18:30'
 
+# CANONICAL DEFAULT WEIGH-IN ANCHOR — used as the EARLIEST_TIME fallback for the
+# weight reminders below when the user has NO Meal Schedule yet (no breakfast/meal
+# time to anchor to). The weight crons fire at anchor-30min, so 09:30 here yields
+# a gentle 09:00 local weigh-in nudge. Without this fallback the weight block was
+# skipped entirely for users with no meal schedule, leaving them with no weight
+# reminders (the orphaned-provisioning gap the reconciler now backfills). LOCAL time.
+DEFAULT_WEIGHIN_TIME="09:30"
+
 AGENT=""
 CHANNEL=""
 WORKSPACE=""
@@ -305,12 +313,14 @@ if [[ "$SKIP_EXISTING" == true ]]; then
 fi
 
 MEAL_SCHEDULE=$(get_meal_schedule)
+USED_DEFAULT_SCHEDULE=false
 if [[ -z "$MEAL_SCHEDULE" ]]; then
   # No Meal Schedule yet (e.g. post-first-meal activation: we want the default
   # 3 meal reminders created before the user has confirmed their own times).
   # Fall back to the canonical default schedule rather than aborting. The
   # caller can later confirm/override times → auto-sync rewrites the crons.
   MEAL_SCHEDULE="$DEFAULT_MEAL_SCHEDULE"
+  USED_DEFAULT_SCHEDULE=true
   echo "WARNING: No meal times in health-profile.md > Meal Schedule; falling back to default schedule (08:30/12:30/18:30 local)." >&2
 fi
 
@@ -369,9 +379,23 @@ if should_create_type "meal"; then
 fi
 
 # 2. Weight reminders
-EARLIEST_TIME="${BREAKFAST_TIME:-}"
-if [[ -z "$EARLIEST_TIME" && -n "$MEAL_SCHEDULE" ]]; then
-  EARLIEST_TIME=$(echo "$MEAL_SCHEDULE" | awk 'NR==1{print $2}')
+# Anchor: the user's REAL breakfast/first-meal time. When the user has no real
+# meal schedule (USED_DEFAULT_SCHEDULE — the default 08:30/12:30/18:30 was
+# substituted), don't inherit the placeholder breakfast; use the dedicated
+# weigh-in anchor so the nudge lands at the intended 09:00 local. Either way
+# EARLIEST_TIME is always set now, so the weight block never silently skips —
+# which is the orphaned-provisioning gap that left no-schedule users with no
+# weight reminders. Behavior is UNCHANGED when a real meal schedule exists.
+if [[ "$USED_DEFAULT_SCHEDULE" == true ]]; then
+  EARLIEST_TIME="$DEFAULT_WEIGHIN_TIME"
+  echo "No real meal schedule for weight anchor; using default weigh-in time $DEFAULT_WEIGHIN_TIME (→ weigh-in nudge at anchor-30min)." >&2
+else
+  EARLIEST_TIME="${BREAKFAST_TIME:-}"
+  if [[ -z "$EARLIEST_TIME" && -n "$MEAL_SCHEDULE" ]]; then
+    EARLIEST_TIME=$(echo "$MEAL_SCHEDULE" | awk 'NR==1{print $2}')
+  fi
+  # Defensive: if still empty (real schedule with no parseable breakfast), use default.
+  [[ -z "$EARLIEST_TIME" ]] && EARLIEST_TIME="$DEFAULT_WEIGHIN_TIME"
 fi
 
 if should_create_type "weight" && [[ -n "$EARLIEST_TIME" ]]; then
