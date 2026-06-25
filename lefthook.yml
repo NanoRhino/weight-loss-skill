@@ -1,0 +1,21 @@
+# Git hook 配置 — Skill 子模块 baseline。
+# 主要是 markdown(SKILL.md)+ Python 辅助脚本,无统一 lint/test 工具。
+# 注意:本仓也作为 backend-service 的子模块(.openclaw-user-service/skills),但子模块
+# 操作走父仓 git 命令时不触发本 hook;只有 ~/weight-loss-skill 独立 clone 里直接
+# commit/push 才触发。
+
+pre-commit:
+  parallel: true
+  commands:
+    secret-detect:
+      run: |
+        if git diff --cached --diff-filter=ACM -z --name-only | xargs -0 grep -lE '(AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{48}|-----BEGIN (RSA |EC )?PRIVATE KEY|ghp_[a-zA-Z0-9]{36})' 2>/dev/null; then
+          echo "⚠️  疑似密钥泄露,请检查暂存文件"
+          exit 1
+        fi
+    trailing-whitespace:
+      run: |
+        if git diff --cached --check 2>/dev/null | grep -q 'trailing whitespace'; then
+          echo "⚠️  存在尾部空白"
+          exit 1
+        fi
