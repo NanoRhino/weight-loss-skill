@@ -21,8 +21,9 @@ Behavior:
       2. regex-remove ALL fenced blocks (inclusive of both markers)
       3. write back
       4. ASSERT result <= 12,288 B AND required load-bearing markers present
-         ("System Confidentiality", "Cron", "Tools & Formatting").
-         On any assertion failure → restore the backup, exit non-zero, log.
+         (System Confidentiality, a "## Cron" heading, a "## Tools" heading —
+         matched variant-tolerantly). On any assertion failure → restore the
+         backup, exit non-zero, log.
   - Idempotent: no opening fence → no-op, exit 0.
   - No AGENTS.md at all → no-op, exit 0 (nothing to strip).
 
@@ -50,9 +51,17 @@ OPEN_MARKER = "<!-- activation-only -->"
 CLOSE_MARKER = "<!-- /activation-only -->"
 BACKUP_SUFFIX = ".pre-activation-strip"
 
-# Required load-bearing markers that must survive the strip. These are substring
-# checks (not full headings) so they tolerate "## Cron & Heartbeats" etc.
-REQUIRED_MARKERS = ("System Confidentiality", "Cron", "Tools & Formatting")
+# Required load-bearing markers that must survive the strip, matched
+# variant-tolerantly (the handoff variant names its tail "## Tools & Formatting"
+# while older/standard variants use "## Tools"; both use "## Cron & Heartbeats").
+# Match the heading prefix by regex so a header rename can't trip a false
+# strip-failure. "System Confidentiality" is a plain substring (present in the
+# handoff variant that carries the activation fence).
+REQUIRED_MARKERS = (
+    ("System Confidentiality", re.compile(r"System Confidentiality")),
+    ("Cron", re.compile(r"^##\s*Cron\b", re.MULTILINE)),
+    ("Tools", re.compile(r"^##\s*Tools\b", re.MULTILINE)),
+)
 
 # Non-greedy block remover, DOTALL so it spans newlines. Also swallows a trailing
 # newline after the close marker to avoid leaving a blank-line scar.
@@ -145,9 +154,9 @@ def main():
     failures = []
     if bytes_after > AGENTS_CAP_BYTES:
         failures.append(f"result {bytes_after}B > cap {AGENTS_CAP_BYTES}B")
-    for marker in REQUIRED_MARKERS:
-        if marker not in stripped:
-            failures.append(f"missing required marker '{marker}'")
+    for label, rx in REQUIRED_MARKERS:
+        if not rx.search(stripped):
+            failures.append(f"missing required marker '{label}'")
 
     if failures:
         _restore(backup_path, agents_path)
