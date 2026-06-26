@@ -1,5 +1,12 @@
 # Reminder Strategy: Recall + Streak
 
+> ⚠️ **本文档已过时（2026-06-16）。** 文中描述的 `check-stage.py` + `engagement.json`
+> 的 `notification_stage`/`weekly_recall_count`/`stage_changed_at` 那套 stage 机制**已废弃**：
+> stage 计算、召回判定、welcome_back/frozen 全部迁到 **lifecycle API（DB 唯一真源）**，
+> `check-stage.py` 已删除。当前真实机制见 lifecycle-api 设计文档（`PHASE-1.5-DESIGN.md`）
+> 与 `notification-composer/SKILL.md` / `pre-send-check.py`（调 `/v1/lifecycle/state` `/due`）。
+> 本文保留作历史设计参考，**勿按文中 check-stage 流程操作**。
+
 This document describes the full recall and streak strategy implemented
 in this branch, including what each component does, how they connect,
 and what needs to be reflected in `notification-composer/SKILL.md` to
