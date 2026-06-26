@@ -235,16 +235,19 @@ fi
 echo "Agent: $AGENT → Channel: $CHANNEL → To: $TO"
 
 # --- Resolve model from gateway config (never hardcode) ---
-# Read openclaw.json and let the config decide the provider (amazon-bedrock ARN
-# vs anthropic direct). Hardcoding `anthropic/...` once created ~29 jobs that
-# failed at auth because the gateway only holds amazon-bedrock credentials.
-# If resolution fails, omit --model and let the gateway apply its own default.
+# Both tiers resolved from openclaw.json:
+#   - analysis: agents.defaults.model.primary (Opus)
+#   - reminder: agents.defaults.modelTiers.reminder (Sonnet, with Bedrock ARN fallback)
+# Hardcoding `anthropic/...` once created ~29 jobs that failed at auth because
+# the gateway only held amazon-bedrock credentials — never again.
 MODEL=$(python3 "$SCRIPT_DIR/resolve-model.py" 2>/dev/null || true)
+REMINDER_MODEL=$(python3 "$SCRIPT_DIR/resolve-model.py" --tier reminder 2>/dev/null || true)
 if [[ -n "$MODEL" ]]; then
-  echo "Resolved model from config: $MODEL"
+  echo "Resolved analysis model: $MODEL"
 else
-  echo "WARNING: could not resolve model from config; omitting --model (gateway default applies)" >&2
+  echo "WARNING: could not resolve analysis model from config; omitting --model (gateway default applies)" >&2
 fi
+echo "Resolved reminder model: $REMINDER_MODEL"
 
 # --- Cost tier: reminder-class jobs run on Sonnet, analysis jobs stay on Opus ---
 # Pure trigger/template-composition jobs (meal/weight/tips/water/herb reminders)
@@ -253,17 +256,14 @@ fi
 # dominates cron cost. Analysis jobs that reason over user data (weekly report,
 # weekly insight, diet-pattern detection) keep the resolved (Opus) model.
 # Match on $NAME so it works regardless of --type granularity.
-# 2026-06-24: gateway 已从 amazon-bedrock 切到 anthropic 直连,用 anthropic id 而非旧 bedrock ARN
-# (旧 ARN 导致新用户提醒类 cron 跑在 bedrock 上)
-SONNET_MODEL="anthropic/claude-sonnet-4-6"
 _name_lc="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]')"
 case "$_name_lc" in
   *"weekly report"*|*"weekly insight"*|*"diet pattern"*|*"pattern detection"*)
     # analysis tier — keep resolved (Opus) model, no override
     : ;;
   *)
-    # reminder tier — downgrade to Sonnet
-    MODEL="$SONNET_MODEL"
+    # reminder tier — Sonnet (from config or fallback)
+    MODEL="$REMINDER_MODEL"
     echo "Reminder-tier job → Sonnet: $NAME" ;;
 esac
 

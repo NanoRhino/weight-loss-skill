@@ -33,15 +33,14 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.normpath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
 _STATE_DIR = os.environ.get("OPENCLAW_STATE_DIR", os.path.join(_PROJECT_ROOT, ".openclaw-gateway"))
 
-# Sonnet model for reminder-tier cron jobs; analysis-tier jobs keep the resolved Opus model.
-# 2026-06-24: gateway switched from amazon-bedrock to anthropic direct — use anthropic id,
-# not the bedrock ARN (old ARN caused new users' reminder cron to run on bedrock).
-SONNET_MODEL = "anthropic/claude-sonnet-4-6"
-
 sys.path.insert(0, _SCRIPT_DIR)
 from importlib import import_module
 find_slot = import_module("find-slot")
 resolve_model = import_module("resolve-model")
+
+# Reminder-tier model:resolve from openclaw.json (agents.defaults.modelTiers.reminder)
+# with a Bedrock Sonnet ARN fallback. Lazy-resolved at main() so import-time cfg
+# absence doesn't crash.
 
 
 def parse_args():
@@ -189,14 +188,17 @@ def main():
     # 2. Resolve shared params ONCE
     tz = detect_timezone(args.agent)
     to_target = resolve_delivery_target(args.agent, args.channel, args.to)
-    # Resolve model from gateway config (never hardcode). None → omit --model,
-    # gateway applies its own default. See resolve-model.py for why.
+    # Resolve both tiers from gateway config (never hardcode). See resolve-model.py.
+    # analysis: agents.defaults.model.primary;reminder: agents.defaults.modelTiers.reminder
+    # (with Bedrock Sonnet ARN fallback).
     model = resolve_model.resolve()
+    reminder_model = resolve_model.resolve_reminder()
     if model:
-        print(f"Resolved model from config: {model}", file=sys.stderr)
+        print(f"Resolved analysis model: {model}", file=sys.stderr)
     else:
-        print("WARNING: could not resolve model from config; omitting --model "
+        print("WARNING: could not resolve analysis model from config; omitting --model "
               "(gateway default applies)", file=sys.stderr)
+    print(f"Resolved reminder model: {reminder_model}", file=sys.stderr)
     print(f"Agent: {args.agent} → Channel: {args.channel} → To: {to_target}", file=sys.stderr)
 
     # 3. Fetch existing cron jobs ONCE
@@ -250,9 +252,9 @@ def main():
         _nl = name.lower()
         if any(k in _nl for k in ("weekly report", "weekly insight",
                                   "diet pattern", "pattern detection")):
-            job_model = model  # analysis tier — keep Opus
+            job_model = model  # analysis tier — Opus from config
         else:
-            job_model = SONNET_MODEL  # reminder tier — Sonnet
+            job_model = reminder_model  # reminder tier — Sonnet from config (fallback safe)
 
         # Create the job
         cmd = build_cron_cmd(args.agent, args.channel, to_target, name, message, cron_expr, tz, job_model)

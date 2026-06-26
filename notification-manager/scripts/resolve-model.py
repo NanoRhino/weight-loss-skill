@@ -10,12 +10,19 @@ moment they were created. Instead of hardcoding, read openclaw.json and emit the
 model the gateway is actually configured to use — i.e. let the config decide
 "amazon-bedrock (ARN) vs anthropic (direct)".
 
-Resolution order:
-  1. agents.defaults.model.primary — the gateway's own resolved default, already
-     provider-prefixed (e.g. `amazon-bedrock/<arn>` or `anthropic/<id>`). This is
-     the single source of truth for "which provider + model has credentials".
-  2. Fallback: first configured provider in models.providers (preferring
-     amazon-bedrock, then anthropic, then any) + that provider's first model id.
+Two tiers (analysis vs reminder):
+  - Analysis (default, used by weekly insight / diet pattern / etc):
+    `agents.defaults.model.primary` — the gateway's resolved default,
+    typically Opus for quality.
+  - Reminder (用于 breakfast/lunch/dinner reminder, product tips, etc):
+    `agents.defaults.modelTiers.reminder` — operator-configurable cheaper
+    model (typically Sonnet on Bedrock) to save ~$3800/mo on hot-path cron.
+    Falls back to a hardcoded Bedrock Sonnet ARN if the config field is
+    absent (matches what 181/200 prod cron jobs already use).
+
+CLI:
+  $ resolve-model.py                # analysis tier (primary)
+  $ resolve-model.py --tier reminder  # reminder tier
 
 Prints the resolved "<provider>/<model-id>" to stdout on success. On failure
 prints nothing to stdout and exits nonzero — callers then omit --model and let
@@ -24,9 +31,17 @@ the gateway apply its own default (which is the safe behavior, not the bug).
 Config path: $OPENCLAW_STATE_DIR/openclaw.json, defaulting to the repo's
 .openclaw-gateway/openclaw.json (same resolution the sibling scripts use).
 """
+import argparse
 import json
 import os
 import sys
+
+# Reminder-tier fallback when openclaw.json has no agents.defaults.modelTiers.reminder.
+# Matches the Bedrock Sonnet ARN already used by 181/200 prod cron jobs (2026-06-26).
+_REMINDER_FALLBACK = (
+    "amazon-bedrock/arn:aws:bedrock:us-east-1:405912452115:"
+    "inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0"
+)
 
 
 def _config_path() -> str:
@@ -64,22 +79,60 @@ def resolve_model(cfg: dict):
     return None
 
 
-def resolve():
-    """Read the gateway config and return the model string, or None on failure."""
+def resolve_reminder_model(cfg: dict) -> str:
+    """Reminder-tier model: openclaw.json override → hardcoded Bedrock Sonnet fallback.
+
+    Reads agents.defaults.modelTiers.reminder. The fallback is a last-resort
+    only — it matches what prod is already running today, so it is safe even
+    if the config field is missing. Operators wanting a different reminder
+    model just add the field to openclaw.json (no code change needed).
+    """
+    override = (
+        cfg.get("agents", {})
+        .get("defaults", {})
+        .get("modelTiers", {})
+        .get("reminder")
+    )
+    if isinstance(override, str) and "/" in override:
+        return override
+    return _REMINDER_FALLBACK
+
+
+def _load_config():
     try:
         with open(_config_path()) as f:
-            cfg = json.load(f)
+            return json.load(f)
     except Exception:
+        return None
+
+
+def resolve():
+    """Read the gateway config and return the analysis-tier model, or None on failure."""
+    cfg = _load_config()
+    if cfg is None:
         return None
     return resolve_model(cfg)
 
 
+def resolve_reminder():
+    """Reminder-tier model. Never returns None — falls back to a known-good Bedrock ARN."""
+    cfg = _load_config() or {}
+    return resolve_reminder_model(cfg)
+
+
 def main() -> int:
-    try:
-        with open(_config_path()) as f:
-            cfg = json.load(f)
-    except Exception as e:
-        print(f"resolve-model: cannot read config: {e}", file=sys.stderr)
+    p = argparse.ArgumentParser(description="Resolve cron job model from gateway config.")
+    p.add_argument("--tier", choices=["analysis", "reminder"], default="analysis",
+                   help="analysis (default, Opus-class) or reminder (Sonnet-class)")
+    args = p.parse_args()
+
+    if args.tier == "reminder":
+        print(resolve_reminder())
+        return 0
+
+    cfg = _load_config()
+    if cfg is None:
+        print("resolve-model: cannot read config", file=sys.stderr)
         return 1
     model = resolve_model(cfg)
     if not model:
