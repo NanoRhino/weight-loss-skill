@@ -28,6 +28,16 @@ def _normalize_path(p):
     return re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
 
 
+def _validate_data_dir(p):
+    """Reject --data-dir pointing to workspace root (missing /data suffix)."""
+    if re.search(r'workspace-(?:wechat|wecom)-dm-[^/]+/?$', p.rstrip('/')):
+        sys.stderr.write(
+            "ERROR: --data-dir points to the workspace root; expected '<workspace>/data'. "
+            f"Got: {p}\n"
+        )
+        sys.exit(2)
+
+
 def run_script(cmd):
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -104,6 +114,7 @@ def main():
                         help="Record today as last intervention date and exit")
     args = parser.parse_args()
     args.data_dir = _normalize_path(args.data_dir)
+    _validate_data_dir(args.data_dir)
 
     # --- Mark intervention mode ---
     if args.mark_intervention:

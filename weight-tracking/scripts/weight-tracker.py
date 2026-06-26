@@ -26,6 +26,23 @@ def _normalize_path(p):
     return _re.sub(r'(workspace-(?:wechat|wecom)-dm-)([^/]+)', lambda m: m.group(1) + m.group(2).lower(), p)
 
 
+def _validate_data_dir(p):
+    """
+    Reject --data-dir that points to the workspace root (i.e. missing /data suffix).
+    Pre-existing real-world bug: agent occasionally retries after a usage error
+    and passes --data-dir <workspaceDir> instead of <workspaceDir>/data, then
+    save_data silently creates weight.json in the workspace root, breaking the
+    dashboard sync. Fail loudly here so the agent notices and retries correctly.
+    """
+    import re as _re
+    if _re.search(r'workspace-(?:wechat|wecom)-dm-[^/]+/?$', p.rstrip('/')):
+        sys.stderr.write(
+            "ERROR: --data-dir points to the workspace root; expected '<workspace>/data'. "
+            f"Got: {p}\n"
+        )
+        sys.exit(2)
+
+
 # ── Constants ────────────────────────────────────────────────────────────────
 
 KG_PER_LB = 0.45359237
@@ -296,10 +313,13 @@ def main():
     p_unit.add_argument("--unit", required=True)
 
     args = parser.parse_args()
-    args.data_dir = _normalize_path(args.data_dir)
 
     if not args.command:
         parser.error("command is required")
+
+    if hasattr(args, "data_dir") and args.data_dir:
+        args.data_dir = _normalize_path(args.data_dir)
+        _validate_data_dir(args.data_dir)
 
     cmds = {
         "save": cmd_save,
