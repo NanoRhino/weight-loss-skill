@@ -21,11 +21,24 @@ import argparse
 import json
 import os
 import sys
-import urllib.request
-import urllib.error
 from datetime import datetime, timezone, timedelta
 
-LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
+# Lifecycle is resolved locally + deterministically by notification-manager's
+# lifecycle-check.py (the 127.0.0.1:3100 DB API was never deployed — every caller
+# failed open to Stage 1, so recall/decay was a prod no-op). Import the resolver
+# from the sibling skill's scripts dir; subprocess fallback keeps the gate working
+# even if the import path can't be resolved at runtime.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_LIFECYCLE_DIR = os.path.normpath(
+    os.path.join(_HERE, "..", "..", "notification-manager", "scripts")
+)
+if _LIFECYCLE_DIR not in sys.path:
+    sys.path.insert(0, _LIFECYCLE_DIR)
+try:
+    import importlib
+    _lifecycle = importlib.import_module("lifecycle-check")
+except Exception:  # noqa: BLE001 — fall back to subprocess at call sites
+    _lifecycle = None
 
 
 def _normalize_path(p):
@@ -48,40 +61,56 @@ def _account_id(workspace_dir):
     return base
 
 
-def lifecycle_state(account_id):
-    """GET /v1/lifecycle/state/<acc>. None on failure."""
+def lifecycle_state(workspace_dir, tz_offset=0):
+    """Local lifecycle resolution (replaces GET /v1/lifecycle/state). Returns the
+    resolver dict {state, activated, days_silent, stage, ...} or None on hard
+    failure. Prefers the in-process import; falls back to subprocessing
+    lifecycle-check.py if the import wasn't available."""
+    if _lifecycle is not None:
+        try:
+            return _lifecycle.resolve(workspace_dir, tz_offset)
+        except Exception as e:  # noqa: BLE001
+            log(f"lifecycle resolve() failed: {e}")
+            return None
+    # Subprocess fallback.
+    import subprocess
+    script = os.path.join(_LIFECYCLE_DIR, "lifecycle-check.py")
     try:
-        with urllib.request.urlopen(f"{LIFECYCLE_API}/v1/lifecycle/state/{account_id}", timeout=3) as r:
-            return json.loads(r.read().decode("utf-8"))
-    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
-        return None
+        out = subprocess.run(
+            ["python3", script, "--workspace-dir", workspace_dir,
+             "--tz-offset", str(tz_offset)],
+            capture_output=True, timeout=15, text=True,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return json.loads(out.stdout.strip())
+    except (OSError, ValueError, json.JSONDecodeError, subprocess.SubprocessError) as e:
+        log(f"lifecycle subprocess failed: {e}")
+    return None
 
 
-def lifecycle_is_due(account_id):
-    """该用户今天是否该发召回(GET /due 已做 stage 判定+节奏+当天去重)。
-    返回 (is_due: bool, tier: str|None)。失败返回 (None, None) 让调用方降级。"""
+def lifecycle_mark_recall(workspace_dir, tier):
+    """Local replacement for POST /v1/lifecycle/recall-sent: bump the recall
+    counter (recall.weekly_sent / monthly_sent + last_recall_at) in
+    engagement.json so recall cadence/dedup is deterministic. Best-effort — a
+    failure here must never block a send decision."""
+    if _lifecycle is not None:
+        try:
+            _lifecycle.mark_recall_sent(workspace_dir, tier)
+            return True
+        except Exception as e:  # noqa: BLE001
+            log(f"mark recall-sent failed for {workspace_dir}: {e}")
+            return False
+    import subprocess
+    script = os.path.join(_LIFECYCLE_DIR, "lifecycle-check.py")
     try:
-        with urllib.request.urlopen(f"{LIFECYCLE_API}/v1/lifecycle/due?limit=1000", timeout=10) as r:
-            users = json.loads(r.read().decode("utf-8")).get("users", [])
-        for u in users:
-            if u.get("account_id") == account_id:
-                return True, u.get("tier")
-        return False, None
-    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
-        return None, None
-
-
-def lifecycle_mark_recall(account_id, tier):
-    """POST /recall-sent 认领今天的召回位(检查时认领,复刻旧 last_recall_date 语义)。"""
-    body = json.dumps({"account_id": account_id, "tier": tier}).encode("utf-8")
-    req = urllib.request.Request(f"{LIFECYCLE_API}/v1/lifecycle/recall-sent", data=body,
-                                 method="POST", headers={"content-type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=5) as r:
-            r.read()
+        subprocess.run(
+            ["python3", script, "--workspace-dir", workspace_dir,
+             "--mark-recall", tier],
+            capture_output=True, timeout=10,
+        )
         return True
-    except (urllib.error.URLError, OSError) as e:
-        log(f"mark recall-sent failed for {account_id}: {e}")
+    except (OSError, subprocess.SubprocessError) as e:
+        log(f"mark recall-sent subprocess failed: {e}")
         return False
 
 
@@ -105,33 +134,55 @@ def check_health_profile(workspace_dir):
     return True, None
 
 
+def _last_recall_at(workspace_dir):
+    """Read recall.last_recall_at (ISO-8601 UTC) from engagement.json, or None.
+    Used for local recall cadence + same-day dedup (replaces the 3100 /due API)."""
+    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
+    if not os.path.exists(eng_path):
+        return None
+    try:
+        with open(eng_path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    recall = data.get("recall")
+    if not isinstance(recall, dict):
+        return None
+    return _parse_iso(recall.get("last_recall_at"))
+
+
 def check_engagement_stage(workspace_dir, meal_type, tz_offset, out=None):
     """Check 2: engagement stage gating.
 
     Stage 1 (ACTIVE):  SEND — normal reminder
-    Stage 2 (RECALL):  SEND once per day (first meal cron only, suppress rest)
+    Stage 2 (RECALL):  SEND once per day (lunch recall only, suppress rest)
                         Weight reminders suppressed entirely.
-    Stage 3 (WEEKLY):  SEND once per week (if >= 7 days since last_recall_date)
+    Stage 3 (WEEKLY):  SEND once per week (>= 7 days since last_recall_at)
                         Weight reminders suppressed entirely.
-    Stage 4 (MONTHLY): SEND once per month (if >= 30 days since last_recall_date)
+    Stage 4 (MONTHLY): SEND once per month (>= 30 days since last_recall_at)
                         Weight reminders suppressed entirely.
     Stage 5 (SILENT):  NO_REPLY — suppress everything
 
-    Stage from lifecycle API /state (single source of truth). Recall cadence +
-    same-day dedup from /due (event-sourced). On SEND-recall, claims the slot by
-    POST /recall-sent immediately (check-time claim, replaces old last_recall_date).
+    Stage + days_silent come from the LOCAL deterministic resolver
+    (notification-manager/lifecycle-check.py) — the 127.0.0.1:3100 DB API was
+    never deployed, so this is now a real (no longer no-op) gate. Recall ladder is
+    the 2/4 model: days_silent <2 → S1, 2-3 → S2, >=4 → S3+ (weekly→monthly→silent
+    by local recall counters). Recall cadence + same-day dedup are computed locally
+    from recall.last_recall_at; on a SEND-recall we claim the slot by bumping the
+    local counter (recall.weekly_sent / monthly_sent) immediately.
     """
-    account_id = _account_id(workspace_dir)
-    state = lifecycle_state(account_id)
+    state = lifecycle_state(workspace_dir, tz_offset)
     if state is None:
-        # fail-open: API 不可达时按正常提醒发(Stage 1 行为),不漏发
-        log(f"/state unavailable for {account_id}, fail-open as stage 1")
+        # fail-open: resolver unavailable → behave as Stage 1 (don't drop sends).
+        log(f"lifecycle resolve unavailable for {workspace_dir}, fail-open as stage 1")
         return True, None
 
     stage = state.get("stage", 1)
     days_silent_val = state.get("days_silent", 0)
-    # 记录"认领前"的 stage/days_silent 给输出用(认领+1 recall 可能改变 stage,
-    # 但这条召回的身份应是认领前的 stage)
+    # Record the pre-claim stage/days_silent for the output line (claiming a recall
+    # may advance stage, but this recall's identity is the pre-claim stage).
     if out is not None:
         out["stage"] = stage
         out["days_silent"] = days_silent_val
@@ -139,11 +190,11 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset, out=None):
     if stage >= 5:
         return False, f"stage={stage} — user is in silent mode"
 
-    # first_meal_nudge / activation: the authoritative lifecycle Silent gate
-    # (stage >= 5, above) still applies — never nudge a Silent user. Past that,
-    # the recall/lunch-only logic below is for the engaged recall stages and is
-    # irrelevant to these never-engaged cohorts, so bypass it. The nudge-specific
-    # gating (onboarding/already-logged/lastInboundAt/cap) lives in
+    # first_meal_nudge / activation: the authoritative Silent gate (stage >= 5,
+    # above) still applies — never nudge a Silent user. Past that, the recall/
+    # lunch-only logic below is for the engaged recall stages and is irrelevant to
+    # these never-engaged cohorts, so bypass it. The nudge-specific gating
+    # (onboarding/already-logged/lastInboundAt/cap) lives in
     # check_first_meal_nudge / check_activation_nudge, which run after this.
     if meal_type in ("first_meal_nudge", "activation"):
         return True, None
@@ -160,31 +211,34 @@ def check_engagement_stage(workspace_dir, meal_type, tz_offset, out=None):
         if stage >= 3 and meal_type == "weekly_report":
             return False, f"stage={stage} — weekly_report suppressed at stage 3+"
 
-    # Stage 2: only lunch slot, only on days_silent 3 or 5 (Day 3 / Day 5)
-    # Exception: weekly_report allowed through at S2 (user has recent data)
+    # Stage 2: only lunch slot recall. Exception: weekly_report allowed at S2
+    # (user still has recent data). (2/4 ladder: S2 spans days_silent 2-3.)
     if stage == 2 and meal_type not in ("weekly_report",):
         if meal_type not in ("lunch", "meal_2"):
             return False, f"stage=2 — only lunch recall allowed, got {meal_type}"
-        if days_silent_val not in (3, 5):
-            return False, f"stage=2 — days_silent={days_silent_val}, recall only on day 3/5"
 
     # Stage 3-4: only lunch slot for recall messages
     if stage in (3, 4):
         if meal_type not in ("lunch", "meal_2"):
             return False, f"stage={stage} — only lunch recall allowed, got {meal_type}"
 
-    # Recall cadence + same-day dedup: ask /due (handles 7d/30d cadence + today-dedup).
-    # weekly_report at S2 is NOT a recall message — skip the due/claim gate.
+    # Recall cadence + same-day dedup, computed LOCALLY from recall.last_recall_at.
+    # weekly_report at S2 is NOT a recall message — skip the cadence/claim gate.
+    #   S2: at most one recall per day (same-day dedup).
+    #   S3: at most one per 7 days.   S4: at most one per 30 days.
     if stage in (2, 3, 4) and meal_type not in ("weekly_report",):
-        is_due, tier = lifecycle_is_due(account_id)
-        if is_due is None:
-            # /due 不可达:降级放行(宁可发,不漏召回),不认领
-            log(f"/due unavailable for {account_id}, fail-open recall")
-            return True, (f"recall stage={stage} days_silent={days_silent_val}" if stage == 2 else None)
-        if not is_due:
-            return False, f"stage={stage} — not due for recall today (cadence/dedup)"
-        # 检查时认领:立即记 recall_sent,防同 slot 重触发重复发(复刻旧 last_recall_date 语义)
-        lifecycle_mark_recall(account_id, tier or ("weekly" if stage in (2, 3) else "monthly"))
+        last_recall = _last_recall_at(workspace_dir)
+        now = datetime.now(timezone.utc)
+        if last_recall is not None:
+            elapsed_days = (now - last_recall).total_seconds() / 86400.0
+            min_gap_days = {2: 1, 3: 7, 4: 30}[stage]
+            if elapsed_days < min_gap_days:
+                return False, (f"stage={stage} — not due for recall "
+                               f"(last recall {elapsed_days:.1f}d ago < {min_gap_days}d)")
+        # Due → claim the slot immediately by bumping the local recall counter
+        # (replaces POST /recall-sent). weekly for S2/S3, monthly for S4.
+        tier = "monthly" if stage == 4 else "weekly"
+        lifecycle_mark_recall(workspace_dir, tier)
         if stage == 2:
             return True, f"recall stage=2 days_silent={days_silent_val}"
         return True, None
@@ -349,13 +403,13 @@ def check_first_meal_nudge(workspace_dir, tz_offset, out=None):
         the terminal anti-nag guarantee, and it is lifecycle-independent
       - touch2 is not yet 24h past touch1
 
-    Note: leave/pause AND the authoritative lifecycle Silent state (stage 5) are
-    handled by the generic check_leave + check_engagement_stage gates that run
-    BEFORE this one (check_engagement_stage reads stage from the lifecycle API).
-    Stage is NO LONGER read from engagement.json here — that field is deprecated
-    (stage lives in the lifecycle DB). Only `activation.*` (a non-stage business
-    counter, still owned in engagement.json) is read. This gate does NOT
-    increment the counter — notification-composer calls
+    Note: leave/pause AND the authoritative Silent state (stage 5) are handled by
+    the generic check_leave + check_engagement_stage gates that run BEFORE this
+    one (check_engagement_stage derives stage from the LOCAL lifecycle-check.py
+    resolver — days_silent + recall counters, no DB). The `notification_stage`
+    field is no longer read here; only `activation.*` (non-stage business
+    counters, owned in engagement.json) is read. This gate does NOT increment the
+    counter — notification-composer calls
     activation-mark-sent.py --counter first_meal_nudges_sent after a successful
     compose (which also stamps last_nudge_at).
     """
@@ -798,21 +852,12 @@ def check_scheduling_constraints(workspace_dir, meal_type, tz_offset):
 def check_leave(workspace_dir, tz_offset, mock_date=None):
     """Check if user is on leave. If so, suppress all reminders.
 
-    双源严格同步:请假状态有两个真源 —— leave.json(本地,存请假天数/原因业务细节)
-    与 DB silence_state='frozen'(lifecycle 权威,plugin 注入靠它)。二者必须一致。
-    **以 DB frozen 为权威**对账 leave.json,修正不一致(防漂移):
-      - DB frozen=true  → 请假中,拦截(NO_REPLY)。leave.json 缺失则不影响拦截。
-      - DB frozen=false 但 leave.json 仍在期内 → DB 已解冻(reactor 到期 / 用户回归 /
-        手动改),leave.json 滞后 → 删 leave.json,放行(以 DB 为准)。
-      - DB 不可达 → 降级回退到「只看 leave.json」的原逻辑(lifecycle 挂了请假仍按
-        leave.json 生效,不因 DB 故障误发提醒)。
+    Leave is now tracked SOLELY by the local data/leave.json (start/end/reason).
+    The DB silence_state='frozen' source is gone (the 3100 lifecycle API was never
+    deployed). leave.json is the single source of truth: present + today within
+    [start, end] → on leave → NO_REPLY. Expired files are auto-cleaned.
     """
     leave_path = os.path.join(workspace_dir, "data", "leave.json")
-
-    # 先查 DB frozen(权威)。account_id 从 workspace 路径取。
-    account_id = _account_id(workspace_dir)
-    state = lifecycle_state(account_id) if account_id else None
-    db_frozen = bool(state.get("frozen")) if isinstance(state, dict) else None
 
     # 读 leave.json 本地态
     leave_data = None
@@ -844,24 +889,8 @@ def check_leave(workspace_dir, tz_offset, mock_date=None):
 
     leave_active_local = leave_data is not None and start <= today <= end
 
-    # ── DB 权威对账 ───────────────────────────────────────────────────────
-    if db_frozen is True:
-        # DB 说请假中 → 拦截(无论 leave.json 在不在)。
-        return False, f"user on leave (db frozen; leave.json {start}~{end})" if leave_data else "user on leave (db frozen)"
-
-    if db_frozen is False:
-        # DB 说没请假。leave.json 若仍在期内 = 滞后,删之同步(以 DB 为准)。
-        if leave_data is not None:
-            try:
-                os.remove(leave_path)
-                log(f"leave.json 与 DB 不一致(DB 已解冻),删 leave.json 同步")
-            except OSError:
-                pass
-        return True, None
-
-    # ── DB 不可达(db_frozen is None)→ 降级:只看 leave.json(原逻辑) ──────────
     if leave_active_local:
-        return False, f"user on leave ({start} to {end}) [db unavailable, leave.json only]"
+        return False, f"user on leave ({start} to {end})"
     # 过期自动清理
     if leave_data is not None and today > end:
         try:
@@ -891,8 +920,8 @@ def main():
     args = parser.parse_args()
     args.workspace_dir = _normalize_path(args.workspace_dir)
 
-    # Stage 由 lifecycle API 实时计算(check_engagement_stage 内部调 /state),
-    # 无需预热 engagement.json。
+    # Stage is resolved locally + deterministically by lifecycle-check.py
+    # (check_engagement_stage calls the in-workspace resolver — no HTTP, no DB).
 
     stage_info = {"stage": 1}
     activation_info = {}

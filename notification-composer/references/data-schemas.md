@@ -75,11 +75,11 @@ All data is written to the user's workspace and readable by any part of the syst
 |------|---------------|-----|
 | Weight records | `data/weight.json` | `weight-tracker.py save/load` (from `weight-tracking` skill) |
 | Meal records | `data/meals/YYYY-MM-DD.json` | `nutrition-calc.py save/load` (from `diet-tracking-analysis` skill) |
-| Engagement stage | `data/engagement.json > notification_stage` | direct read/write |
-| Last interaction | Derived from `data/meals/*.json` | `check-stage.py` scans for most recent logged meal date |
-| Stage changed at | `data/engagement.json > stage_changed_at` | written by `check-stage.py` |
-| Last recall date | `data/engagement.json > last_recall_date` | written by `notification-composer` after each daily recall (Stage 2) |
-| Final recall sent | `data/engagement.json > recall_2_sent` | written by `notification-composer` after final recall (Stage 3) |
+| Engagement stage | _derived, not stored_ | `lifecycle-check.py resolve()` computes stage 1–5 live from days_silent + recall counters (no `notification_stage` field; the 3100 DB was never deployed) |
+| Last interaction | Derived from `data/meals/*.json` + `data/weight.json` + `channel-source.json > lastInboundAt` | `lifecycle-check.py` takes the most recent of the three |
+| Weekly recalls sent | `data/engagement.json > recall.weekly_sent` | bumped by `lifecycle-check.py mark_recall_sent("weekly")` on each S2/S3 recall claim |
+| Monthly recalls sent | `data/engagement.json > recall.monthly_sent` | bumped by `lifecycle-check.py mark_recall_sent("monthly")` on each S4 recall claim |
+| Last recall at | `data/engagement.json > recall.last_recall_at` | stamped by `mark_recall_sent` (drives local same-day/7d/30d cadence dedup) |
 | Adaptive config | `data/engagement.json > reminder_config` | direct read/write |
 | First-meal nudge count | `data/engagement.json > activation.first_meal_nudges_sent` | written by `notification-composer` via `activation-mark-sent.py` after each first-meal nudge send |
 | Activation nudge count | `data/engagement.json > activation.nudges_sent` | written by `notification-composer` via `activation-mark-sent.py` after each activation (never-replied) nudge send |

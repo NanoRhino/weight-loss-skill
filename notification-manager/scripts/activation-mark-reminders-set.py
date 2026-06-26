@@ -37,9 +37,12 @@ import argparse
 import fcntl
 import json
 import os
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
+
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def _normalize_path(p):
@@ -49,6 +52,27 @@ def _normalize_path(p):
         r'(workspace-(?:wechat|wecom)-dm-)([^/]+)',
         lambda m: m.group(1) + m.group(2).lower(), p,
     )
+
+
+def _strip_activation_block(workspace_dir):
+    """Shed the activation-only block from AGENTS.md now that the user is
+    activated (warm → active). Best-effort: the strip script is idempotent and
+    restores its own backup on any assertion failure, so a non-zero exit here
+    must NOT fail the activation stamp (the stamp is the load-bearing signal).
+    Logs the strip outcome to stderr."""
+    strip_script = os.path.join(_SCRIPT_DIR, "agents-activation-strip.py")
+    if not os.path.exists(strip_script):
+        return
+    try:
+        proc = subprocess.run(
+            ["python3", strip_script, "--workspace-dir", workspace_dir],
+            capture_output=True, timeout=30, text=True,
+        )
+        print(f"[activation-mark-reminders-set] strip: rc={proc.returncode} "
+              f"{proc.stdout.strip()}{proc.stderr.strip()}", file=sys.stderr)
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"[activation-mark-reminders-set] strip failed (non-fatal): {e}",
+              file=sys.stderr)
 
 
 def main():
@@ -107,6 +131,11 @@ def main():
             except OSError:
                 pass
             raise
+
+        # warm → active: shed the activation-only AGENTS.md block now that the
+        # reminder-first activation signal is stamped. Done AFTER the engagement
+        # write + outside nothing else depends on (best-effort, non-fatal).
+        _strip_activation_block(workspace_dir)
 
         print(json.dumps(
             {"status": "ok", "reminders_set_at": now_iso, "already_set": False},

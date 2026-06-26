@@ -193,3 +193,58 @@ means:
 - When creating new cron jobs (in `create-reminder.sh` or any other
   script), do **not** prepend wrapper text to `--message`. Pass the raw
   instruction only.
+
+---
+
+## 12. User Lifecycle (derive, don't store) + the AGENTS.md mutation precedent
+
+The user lifecycle (cold → warm → active → abandoning, plus the recall ladder)
+is **computed deterministically and locally** — there is no lifecycle DB. The
+former `127.0.0.1:3100` API was never deployed (every caller failed open to
+Stage 1, so recall/decay was a prod no-op).
+
+### Resolver ownership
+- **`notification-manager/scripts/lifecycle-check.py`** is the single resolver.
+  Importable: `resolve(workspace_dir, tz_offset)` returns
+  `{state, activated, first_meal_ever, days_silent, stage, last_interaction_date,
+  reminders_set_at}`. CLI: `python3 lifecycle-check.py --workspace-dir <ws>
+  [--tz-offset N]`. Callers (`pre-send-check.py`, `holiday-dispatcher.py`,
+  `s4-central-dispatch.py`, `leave-manager.py` via leave.json) consume it instead
+  of any HTTP call.
+- **Derive, don't store:** stage/days_silent/activated are derived from signals
+  that already exist (`data/meals/*.json` food meals, `data/weight.json`,
+  `channel-source.json > lastInboundAt`, `engagement.json >
+  activation.reminders_set_at`). No `notification_stage` / `stage_changed_at`
+  field is persisted — those (and `check-stage.py`) were removed.
+
+### Recall counters (the one new persisted state)
+The only persisted lifecycle field is the local recall counter — owned by
+**notification-manager**, written via `lifecycle-check.py mark_recall_sent()` (or
+`--mark-recall {weekly,monthly}`):
+
+| `data/engagement.json` field | Type | Meaning |
+|---|---|---|
+| `recall.weekly_sent` | int | weekly recalls sent (≥3 → Stage 4 Monthly) |
+| `recall.monthly_sent` | int | monthly recalls sent (≥3 → Stage 5 Silent) |
+| `recall.last_recall_at` | ISO-8601 UTC | last recall send; drives cadence + same-day dedup |
+
+These replace the old `POST /v1/lifecycle/recall-sent` event. Backward-compatible
+(absent = all zeros). Recall ladder is the **2/4** model: `days_silent < 2`
+Active, `2–3` Recall, `≥ 4` Weekly → Monthly → Silent.
+
+### First sanctioned `AGENTS.md` mutation by a skill
+Skills generally **must not** write `AGENTS.md` (it's agent identity/config). The
+lifecycle strip step is the **first and only** sanctioned exception:
+- **`notification-manager/scripts/agents-activation-strip.py`** removes the
+  `<!-- activation-only -->` … `<!-- /activation-only -->` fenced block from the
+  workspace `AGENTS.md` on warm → active, with a backup
+  (`AGENTS.md.pre-activation-strip`), a **≤ 12,288 B** cap assert, a required
+  load-bearing marker assert (`System Confidentiality`, `Cron`,
+  `Tools & Formatting`), restore-on-failure, and idempotency (no fence → no-op).
+- Triggered from (a) `activation-mark-reminders-set.py` after it stamps
+  `reminders_set_at`; (b) the first-meal path (diet-tracking-analysis, on
+  `is_first_meal_ever`).
+- Rationale: the handoff `AGENTS.md` carried the always-injected First-Meal block
+  (~2–3 KB) permanently, which blew the bootstrap cap. Once activated it is dead
+  weight. **Any future skill wanting to touch `AGENTS.md` must add itself here
+  with the same backup + cap + marker safety contract — do not mutate it ad hoc.**

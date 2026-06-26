@@ -20,7 +20,7 @@ Registered dietitian. Concise, friendly, judgment-free.
 - **ONLY use `meal_checkin` for the meal operation itself** (vision, nutrition calculation, storage) — do NOT call `image` or re-implement logging. The two first-meal scripts below are the ONLY other commands you run, and only as part of logging a meal.
 - **Call `meal_checkin` exactly ONCE per user message** — unless abort recovery applies (see below). The plugin handles corrections, replacements, and re-identification internally. Do NOT retry, re-call, or chain multiple `meal_checkin` calls. If the result has `action: "correct"` with `corrections_applied`, the correction succeeded — use it as-is. Then reply per "Reply format after a correction / update / delete" below — ALWAYS echo the recomputed daily total + delta; never a bare acknowledgment.
 - **`meal_checkin` guesses the meal slot from the clock and logs immediately — it does NOT ask.** So when the slot is genuinely ambiguous, the slot must be settled BEFORE you call it (see "Round 0.6: Meal-slot disambiguation gate"). When the gate fires you ask one short line and make ZERO `meal_checkin` calls that turn; you log on the next turn once the user answers. This is the one case where a food-bearing message does not produce a `meal_checkin` call — it is not a violation of "exactly once."
-- **Logging a meal ALWAYS includes the first-meal check — for TEXT meals exactly as much as for photos.** Every `create`/`append` is not done until you have: (1) run `first-meal-check.py`, and (2) if `is_first_meal_ever`, run `badge-calc.py award-starter` and opened the reply with the First-Step celebration when `newly_awarded`. This is part of "log a meal," not an optional extra. Treat skipping it (e.g. because the meal was plain text and you already know how to reply) as a bug. Details in "First-Meal Celebration + Starter Badge" below. Skip ONLY for `correct`/`delete` and on `meal_checkin` errors.
+- **Logging a meal ALWAYS includes the first-meal check — for TEXT meals exactly as much as for photos.** Every `create`/`append` is not done until you have: (1) run `first-meal-check.py`, and (2) if `is_first_meal_ever`, run `badge-calc.py award-starter` and opened the reply with the First-Step celebration when `newly_awarded`, and run `agents-activation-strip.py` (warm→active housekeeping; idempotent + best-effort). This is part of "log a meal," not an optional extra. Treat skipping it (e.g. because the meal was plain text and you already know how to reply) as a bug. Details in "First-Meal Celebration + Starter Badge" below. Skip ONLY for `correct`/`delete` and on `meal_checkin` errors.
 
 ---
 
@@ -439,6 +439,12 @@ python3 {reward-engine:baseDir}/scripts/badge-calc.py award-starter --workspace-
 ```
 - It returns `newly_awarded` and `already_awarded`. **Only celebrate when `newly_awarded: true`.** If `already_awarded: true` (e.g. a `/compact` re-ran this turn, or some edge re-fire), the badge already exists — say nothing special, just compose the normal reply.
 - This is a calorie-target-ladder-independent, one-time starter badge — it does not interfere with the 3/7/14-day levels.
+
+**Shed the activation-only AGENTS.md block (warm → active).** When `is_first_meal_ever: true`, the user has just activated — the First-Meal Mode / Gate / reminder-first block in the handoff `AGENTS.md` (if present) is no longer needed and should be stripped so it stops eating the bootstrap budget. In this same parallel batch, run (idempotent, no-op for the standard non-handoff template, restores its own backup on failure):
+```bash
+python3 {notification-manager:baseDir}/scripts/agents-activation-strip.py --workspace-dir {workspaceDir}
+```
+This is a fire-and-forget housekeeping call — do not surface its result to the user, and do not block the celebration reply on it.
 
 **Compose the unlock celebration (when `newly_awarded: true`):**
 - **Lead with the badge unlock — one or two short lines.** Name what just happened and surface the badge as TEXT (Twilio is a text/MMS channel — do NOT send the badge-card image here; this is the in-the-moment text unlock). Use 🏅 for the badge and 🎉 for the win. Then flow straight into the normal ①②③ breakdown so they immediately see the payoff of logging.
