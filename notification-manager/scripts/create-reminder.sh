@@ -267,6 +267,21 @@ case "$_name_lc" in
     echo "Reminder-tier job → Sonnet: $NAME" ;;
 esac
 
+# --- Cost tier: reminder-class jobs run on Sonnet, analysis jobs stay on Opus ---
+# Reminder/template jobs (meal/weight/tips/water) just fire a templated message and
+# don't need Opus-level reasoning; Sonnet is ~5x cheaper on output/cacheWrite (dominates
+# cron cost). Analysis jobs (weekly report/insight, diet-pattern detection) keep Opus.
+# 2026-06-24: gateway 已从 amazon-bedrock 切到 anthropic 直连,用 anthropic id 而非旧 bedrock ARN。
+SONNET_MODEL="anthropic/claude-sonnet-4-6"
+_name_lc="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]')"
+case "$_name_lc" in
+  *"weekly report"*|*"weekly insight"*|*"diet pattern"*|*"pattern detection"*)
+    : ;;  # analysis tier — keep resolved (Opus) model
+  *)
+    MODEL="$SONNET_MODEL"
+    echo "Reminder-tier job → Sonnet: $NAME" ;;
+esac
+
 # --- Build the cron command ---
 # Note: Do NOT wrap $MESSAGE with delivery instructions here.
 # The no-self-delivery rule is enforced in notification-composer SKILL.md
