@@ -20,8 +20,6 @@ import json
 import os
 import subprocess
 import sys
-import urllib.request
-import urllib.error
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -34,26 +32,19 @@ LOOKAHEAD_DAYS = 5
 # reminder scripts' DEFAULT_TZ.
 DEFAULT_TZ = "America/New_York"
 
-# Lifecycle API —— stage 的唯一真源(替代旧 engagement.json/check-stage.py)。
-LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
-
-
-def _account_id_from_agent(agent_id):
-    """wechat-dm-<acc> / wecom-dm-<acc> → <acc>。"""
-    for prefix in ("wechat-dm-", "wecom-dm-"):
-        if agent_id.startswith(prefix):
-            return agent_id[len(prefix):]
-    return agent_id
-
-
-def fetch_lifecycle_state(account_id):
-    """GET /v1/lifecycle/state/<acc>。失败返回 None(调用方降级处理)。"""
-    url = f"{LIFECYCLE_API}/v1/lifecycle/state/{account_id}"
-    try:
-        with urllib.request.urlopen(url, timeout=3) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
-        return None
+# Lifecycle stage comes from the LOCAL deterministic resolver
+# (notification-manager/lifecycle-check.py) — the 127.0.0.1:3100 DB API was never
+# deployed. Import it from the sibling skill's scripts dir.
+_LIFECYCLE_DIR = os.path.normpath(
+    os.path.join(SCRIPT_DIR, "..", "..", "notification-manager", "scripts")
+)
+if _LIFECYCLE_DIR not in sys.path:
+    sys.path.insert(0, _LIFECYCLE_DIR)
+try:
+    import importlib
+    _lifecycle = importlib.import_module("lifecycle-check")
+except Exception:  # noqa: BLE001
+    _lifecycle = None
 
 
 def log(msg):
@@ -216,19 +207,21 @@ def get_breakfast_time(workspace_dir):
     return 9  # default
 
 
-def get_engagement_stage(workspace_dir):
-    """Get lifecycle stage from lifecycle API (single source of truth).
+def get_engagement_stage(workspace_dir, tz_offset=0):
+    """Get lifecycle stage from the LOCAL deterministic resolver
+    (lifecycle-check.py — days_silent + local recall counters).
 
-    Replaces old engagement.json `notification_stage` read. account_id is
-    derived from the workspace dir name (workspace-wechat-dm-<acc> → <acc>).
     Default 1 (active) on any failure — holidays then proceed (fail-open).
     """
-    agent_id = os.path.basename(os.path.normpath(workspace_dir)).replace("workspace-", "")
-    account_id = _account_id_from_agent(agent_id)
-    state = fetch_lifecycle_state(account_id)
-    if state and isinstance(state.get("stage"), int):
-        return state["stage"]
-    return 1
+    if _lifecycle is None:
+        return 1
+    try:
+        state = _lifecycle.resolve(workspace_dir, tz_offset)
+        stage = state.get("stage")
+        return stage if isinstance(stage, int) else 1
+    except Exception as e:  # noqa: BLE001
+        log(f"lifecycle resolve failed for {workspace_dir}: {e}")
+        return 1
 
 
 def is_already_asked(workspace_dir, holiday_name, holiday_start, today):
@@ -392,7 +385,7 @@ def scan_and_dispatch(openclaw_dir, tz_offset, holidays_by_region, today, dry_ru
             continue
 
         # Check stage
-        stage = get_engagement_stage(workspace_dir)
+        stage = get_engagement_stage(workspace_dir, tz_offset)
         if stage >= 2:
             results.append({"agent_id": agent_id, "status": "skipped", "reason": f"stage {stage}"})
             continue

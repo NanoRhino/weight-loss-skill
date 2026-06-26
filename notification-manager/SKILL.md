@@ -155,6 +155,49 @@ zone — set it first). Run this once after deploying the timezone fix.
 
 ---
 
+## Lifecycle resolver (owned here)
+
+`scripts/lifecycle-check.py` is the **single, deterministic, in-workspace**
+user-lifecycle resolver — it replaces the never-deployed `127.0.0.1:3100` DB
+lifecycle/recall API. "Derive, don't store": stage/days_silent/activated are
+computed from signals that already exist (`data/meals/*.json`, `data/weight.json`,
+`channel-source.json > lastInboundAt`, `engagement.json > activation.reminders_set_at`).
+
+```bash
+# Resolve a workspace's lifecycle (JSON on stdout)
+python3 {baseDir}/scripts/lifecycle-check.py --workspace-dir {workspaceDir} --tz-offset {tz_offset}
+# → {"state","activated","first_meal_ever","days_silent","stage","last_interaction_date","reminders_set_at"}
+
+# Claim a recall slot (local counter — replaces POST /v1/lifecycle/recall-sent)
+python3 {baseDir}/scripts/lifecycle-check.py --workspace-dir {workspaceDir} --mark-recall weekly|monthly
+# Clear recall counters on a clean return (optional; stage already auto-resets)
+python3 {baseDir}/scripts/lifecycle-check.py --workspace-dir {workspaceDir} --reset-recall
+```
+
+Importable: `from importlib import import_module; m = import_module("lifecycle-check")`
+then `m.resolve(workspace_dir, tz_offset)` / `m.mark_recall_sent(workspace_dir, tier)`.
+`pre-send-check.py`, `holiday-dispatcher.py`, and `s4-central-dispatch.py` all
+consume it (import-with-subprocess-fallback). **Recall counters** (the only new
+persisted field) live in `engagement.json > recall.{weekly_sent, monthly_sent,
+last_recall_at}` — owned by this skill (see § Workspace). Recall ladder is the
+**2/4** model. `check-stage.py` was removed; its meal-scan logic is folded in here.
+
+### AGENTS.md activation strip (warm → active)
+
+`scripts/agents-activation-strip.py --workspace-dir {workspaceDir}` removes the
+`<!-- activation-only -->` … `<!-- /activation-only -->` fenced block from the
+workspace `AGENTS.md` once the user activates, so that always-injected First-Meal
+content stops eating the 12,288 B bootstrap budget. It backs up to
+`AGENTS.md.pre-activation-strip`, asserts the result is ≤ 12,288 B and that the
+load-bearing markers (`System Confidentiality`, `Cron`, `Tools & Formatting`)
+survive, restores the backup on any assertion failure, and is idempotent (no
+fence → no-op). It is the **first sanctioned skill mutation of `AGENTS.md`** (see
+CONVENTIONS.md §12). It runs automatically from `activation-mark-reminders-set.py`
+(reminder-first activation) and from the first-meal path
+(diet-tracking-analysis, on `is_first_meal_ever`).
+
+---
+
 ## Auto-sync on Activation
 
 **Every time this skill is activated** (by a cron trigger, by another skill like `meal-planner`, or by any interaction), verify that existing cron jobs match the current meal times in `health-profile.md > Meal Schedule`:
@@ -355,14 +398,13 @@ permanently suppresses the nudge — this is the terminal anti-nag guarantee and
 that a never-logged user never receives the engaged-recall content (S2-S4), which
 is generated from logged meals and would be hollow.
 
-> **Stage authority (post-lifecycle-migration):** `notification_stage` /
-> `stage_changed_at` are NO LONGER stored in `engagement.json` — stage lives in
-> the lifecycle DB (computed from `last_interaction_at`). The cap gate is what
-> enforces the "stop after 2" guarantee; it does not rely on writing a Silent
-> stage. `check-stage.py` is deprecated (still present but not in the live path);
-> `mark-onboarding-done.py` still seeds `stage_changed_at` defensively for any
-> legacy reader, but the activation flow does not depend on it. See the
-> cross-system flag in § Activation nudge below.
+> **Stage authority (post-3100-decommission):** `notification_stage` /
+> `stage_changed_at` are NOT stored in `engagement.json` — stage is **derived
+> locally** by `lifecycle-check.py` (days_silent + `recall.*` counters). The cap
+> gate is what enforces the "stop after 2" guarantee; it does not rely on writing
+> a Silent stage. `check-stage.py` has been **removed** (its meal-scan logic was
+> folded into `lifecycle-check.py`). The activation flow does not depend on any
+> stage field. See the cross-system flag in § Activation nudge below.
 
 ---
 
@@ -425,9 +467,9 @@ if we can't confirm no-reply we stay silent), `channel-source.json > claimedAt`
 (**fail closed** — can't time the touch), **user is a minor** (structured age
 < 18 from `handoff.json > structured.age_years`, fallback `PROFILE.md > **Age:**`;
 fails open when no structured age — defense-in-depth behind the TDEE upstream
-refusal), onboarding completed, any meal logged, the authoritative lifecycle
+refusal), onboarding completed, any meal logged, the authoritative
 Silent stage (handled by the generic `check_engagement_stage` gate via the
-lifecycle API), on leave/pause, the `ACTIVATION_ENABLED` kill switch is off
+local `lifecycle-check.py` resolver), on leave/pause, the `ACTIVATION_ENABLED` kill switch is off
 (env set to 0/false → every activation touch returns NO_REPLY),
 `activation.nudges_sent >= 2`, the computed touch's threshold not yet reached, or
 the MIN_GAP holding it back.
@@ -461,15 +503,17 @@ counter and `last_nudge_at` are owned exclusively by the script (flock + atomic
 os.replace, written together); a freehand Edit races it and mis-flags successful
 nudge runs as `error` (the 050208 incident).
 
-> ⚠️ **Cross-system flag (lifecycle handoff):** The cap gate stops the *nudges*,
-> but it does NOT itself transition the user to lifecycle Silent — stage is owned
-> by the lifecycle DB (computed from `last_interaction_at`). For a never-engaged
-> user the lifecycle system will compute its own stage from the absence of
-> interactions; whether it has a dedicated "never-engaged → permanent Silent"
-> rule (mirroring this anti-nag intent) is owned by the lifecycle service, not
-> this repo. The weight-loss-skill guarantee here is narrowly: **these two nudge
-> types stop firing after 2 sends.** Any broader "move them to Silent so normal
-> recall content also stops" must be implemented lifecycle-side.
+> ⚠️ **Cross-system flag (lifecycle interaction):** The cap gate stops the
+> *nudges*, but it does NOT itself move the user to Silent — stage is **derived**
+> by `lifecycle-check.py` from days_silent + recall counters. For a never-engaged
+> user (no meals, no inbound) there is no recent interaction, so days_silent has
+> nothing to anchor to and `lifecycle-check.py` reports stage 1 with days_silent 0
+> (cold/warm state, not the recall ladder). The recall ladder only engages once a
+> user has interacted at least once and then gone quiet. The weight-loss-skill
+> guarantee here is narrowly: **these two nudge types stop firing after 2 sends**
+> (cap gate, lifecycle-independent). Recall content (S2–S4) never fires for a
+> never-engaged user precisely because there is no last-interaction date to start
+> the silence clock.
 
 ---
 
@@ -499,7 +543,11 @@ the reminder + signal mechanics):
    This sets `data/engagement.json > activation.reminders_set_at` (ISO-8601 UTC) the
    first time only; later calls are no-ops (returns `already_set: true`). The
    openclaw-infra dashboard + activation funnel read this field to count the user as
-   activated rather than a dead lead.
+   activated rather than a dead lead. **On the first stamp it also runs
+   `agents-activation-strip.py` automatically** (warm → active housekeeping): the
+   `<!-- activation-only -->` block in the handoff `AGENTS.md` is shed (backup +
+   12,288 B cap assert + load-bearing marker assert, idempotent, restore-on-failure).
+   Best-effort — a strip failure never blocks the activation stamp.
 
 **This counts as activation.** It does **NOT** call `mark-onboarding-done.py` —
 reminder-setup ≠ full onboarding complete (consistent with the post-first-meal
@@ -513,37 +561,51 @@ Mode note).
 
 ## Lifecycle: Active → Recall → Silent
 
+**Resolved locally + deterministically** by `scripts/lifecycle-check.py` (the
+`127.0.0.1:3100` DB API was never deployed — every caller failed open to Stage 1,
+so recall was a prod no-op until this resolver replaced it). Recall ladder is the
+**2/4** model (NEW — was 3/6):
+
 ```
-Stage 1: ACTIVE — normal reminders
-    │   Day 1: normal reminders, no extra
-    │   Day 2: first meal adds gentle nudge, rest normal
+Stage 1: ACTIVE — normal reminders        (days_silent < 2)
     │
-    └── 2 full missed days (days_silent=3): zero replies + zero messages
+    └── days_silent >= 2
            │
-Stage 2: RECALL — stop meal/weight reminders, lunch-only recall
-    │       Day 4 (ds=3): emotion + content recall (lunch slot)
-    │       Day 4: nothing sent
-    │       Day 6 (ds=5): ask if busy, offer to pause (lunch slot)
+Stage 2: RECALL — stop meal/weight reminders, lunch-only recall  (2 <= days_silent < 4)
+    │       At most one recall per day (same-day dedup via recall.last_recall_at)
     │
-    ├── User sends any message → back to Stage 1
-    └── days_silent >= 5
+    ├── User sends any message / logs a meal / weighs in → back to Stage 1
+    └── days_silent >= 4
            │
-Stage 3: WEEKLY RECALL — 1x/week, rotate content types
-    │       Week 1: nutrition knowledge
-    │       Week 2: feature update
-    │       Week 3: casual check-in
+Stage 3: WEEKLY RECALL — 1x/week (>= 7d since last recall), rotate content types
     │       Also stops weekly report
     │
-    ├── User sends any message → back to Stage 1
-    └── 3 weekly recalls sent → disable personal crons
+    ├── User returns → back to Stage 1
+    └── 3 weekly recalls sent (recall.weekly_sent >= 3) → disable personal crons
            │
-Stage 4: MONTHLY RECALL — 1x/month, central dispatch (not personal crons)
+Stage 4: MONTHLY RECALL — 1x/month (>= 30d), central dispatch (not personal crons)
     │
-    ├── User sends any message → back to Stage 1, re-enable personal crons
-    └── 3 monthly recalls sent → Stage 5
+    ├── User returns → back to Stage 1, re-enable personal crons
+    └── 3 monthly recalls sent (recall.monthly_sent >= 3) → Stage 5
            │
 Stage 5: SILENT — send nothing. Wait for user to return.
 ```
+
+**Stage source:** `scripts/lifecycle-check.py` — import
+`resolve(workspace_dir, tz_offset)` or run
+`python3 {baseDir}/scripts/lifecycle-check.py --workspace-dir {workspaceDir} [--tz-offset N]`.
+It returns `{state, activated, first_meal_ever, days_silent, stage,
+last_interaction_date, reminders_set_at}`. `days_silent` is whole days since the
+most recent of {last food-meal, last weight, last inbound (`channel-source.json >
+lastInboundAt`)}. A new meal/weight/inbound auto-resets to Stage 1 (days_silent
+drops below 2). `pre-send-check.py` calls this resolver, not any HTTP endpoint.
+
+**Recall claim:** when `pre-send-check.py` green-lights a recall, it claims the
+slot by bumping the **local** counter (`recall.weekly_sent` for S2/S3,
+`recall.monthly_sent` for S4) and stamping `recall.last_recall_at` via
+`lifecycle-check.py mark_recall_sent()` — replaces the old
+`POST /v1/lifecycle/recall-sent` event. Same-day / 7-day / 30-day cadence dedup is
+computed from `recall.last_recall_at`.
 
 **Activation nudges (special case — never-engaged users):** Two cohorts get a
 capped one-shot nudge instead of (or before) the recall content above:
@@ -566,25 +628,26 @@ moving a never-engaged user to lifecycle Silent is a lifecycle-side concern. See
 Stage 4 users no longer consume personal cron resources. Instead:
 
 1. A single central cron runs daily at lunch, executing `s4-central-dispatch.py`
-2. The script calls lifecycle API `GET /due`, which returns users due for recall
-   today (stage resolution + 30-day cadence + same-day dedup all handled by the API),
-   and filters to `tier=monthly` (Stage 4)
+2. The script **scans all workspaces and resolves each one locally** via
+   `lifecycle-check.py`, emitting users who are Stage 4 AND monthly-due (>= 30
+   days since `recall.last_recall_at`). No HTTP — the old `GET /due` API was never
+   deployed.
 3. For each matched user, the main agent:
    a. Reads user data from their workspace (meals, preferences, etc.)
    b. Generates a recall message following `recall-messages.md` S4 rules
    c. Sends via `message` tool with the `channel` and `target` from script output
-   d. Calls `s4-central-dispatch.py --mark-sent <account_id|workspace_dir>`, which
-      records a `recall_sent` event via the lifecycle API (event-sourced; no file write)
+   d. Calls `s4-central-dispatch.py --mark-sent <workspace_dir>`, which bumps the
+      **local** `recall.monthly_sent` counter (+ `recall.last_recall_at`)
 
 **Central dispatch usage:**
 ```bash
-# Ask lifecycle API which S4 users need recall today
+# Scan workspaces for S4 users due for monthly recall today
 python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
   --openclaw-dir /home/admin/.openclaw --tz-offset 28800
 
-# After sending message to a user, record the recall
+# After sending message to a user, record the recall (prefer the workspace dir)
 python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
-  --mark-sent <account_id|workspace_dir>
+  --openclaw-dir /home/admin/.openclaw --mark-sent <workspace_dir|account_id>
 ```
 
 **Suppression rules:**
@@ -593,25 +656,27 @@ python3 {notification-manager:baseDir}/scripts/s4-central-dispatch.py \
 - Stage 5: stop everything
 
 Recall replaces the lunch reminder slot — don't send at random hours.
-Stage is owned by the lifecycle API (DB), computed live from `last_interaction_at`
-+ recall events — **never written to `engagement.json`**.
 
-**Stage transition logic:** Stage is no longer computed by a script that scans meal
-files. The lifecycle API derives it in real time from the user's last **interaction**
-(any inbound message, written by chat-logger) and the count of `recall_sent` events:
-days_silent <3 → S1, <6 → S2, then weekly/monthly recall counts advance S3→S4→S5.
-A returning user (any inbound) refreshes `last_interaction_at`, which auto-resets the
-stage to 1 and discards prior recall events. `pre-send-check.py` queries `/state` and
-`/due` to decide whether to send a normal reminder, a recall, or nothing — the agent
-no longer runs any stage-update script before reminders.
+**Stage transition logic:** Stage is derived in real time by
+`lifecycle-check.py` from the user's last **interaction** (most recent of last
+food-meal date / last weight date / last inbound date from `channel-source.json >
+lastInboundAt`) and the **local** recall counters: `days_silent < 2` → S1, `2–3` →
+S2, `>= 4` → S3, then `recall.weekly_sent >= 3` → S4, `recall.monthly_sent >= 3` →
+S5. A returning user (any new meal/weight/inbound) drops days_silent below 2 →
+auto-resets to S1; `lifecycle-check.py reset_recall()` clears the weekly/monthly
+counters so a future silent spell starts fresh. `pre-send-check.py` calls the
+resolver (no HTTP) to decide whether to send a normal reminder, a recall, or
+nothing — the agent no longer runs any stage-update script before reminders.
 
-During recall stages, `pre-send-check.py` claims the day's recall slot by posting a
-`recall_sent` event when it green-lights a send (same-day dedup lives in the API).
+During recall stages, `pre-send-check.py` claims the day's recall slot by bumping
+`recall.weekly_sent` / `recall.monthly_sent` (+ `recall.last_recall_at`) when it
+green-lights a send; same-day / 7-day / 30-day dedup is computed from
+`recall.last_recall_at`.
 
 **When a silent user returns:**
-Stage auto-resets to 1 (lifecycle API, on the returning inbound). Resume normal
-reminders. The warm welcome message itself is composed by `notification-composer`
-(triggered by SKILL-ROUTING's Welcome Back Check reading the injected `## User Lifecycle`).
+Stage auto-resets to 1 the moment a fresh meal/weight/inbound lands (days_silent
+drops below 2). Resume normal reminders. The warm welcome itself is composed by
+`notification-composer` (triggered by SKILL-ROUTING's Welcome Back Check).
 
 ---
 
@@ -728,14 +793,18 @@ If the user says "取消提醒" without specifying which one:
 | Source | Field / Path | Purpose |
 |--------|-------------|---------|
 | `health-profile.md` | `Meal Schedule` | Reminder schedule + max reminders/day |
-| `data/meals/*.json` | `status` field per meal entry | Derive last interaction date (most recent logged meal) |
-| `data/engagement.json` | `stage_changed_at` | Stage transition timing |
+| `data/meals/*.json` | food meals (non-empty `items`/`foods`) | `lifecycle-check.py` last-interaction date + food-meal count |
+| `data/weight.json` | weight check-ins | `lifecycle-check.py` last-interaction date |
+| `channel-source.json` | `lastInboundAt` | `lifecycle-check.py` last-inbound date (cold/warm + days_silent) |
+| `data/engagement.json` | `activation.reminders_set_at`, `recall.*` | `lifecycle-check.py` activation + recall ladder |
 
 ### Writes
 
 | Path | How | When |
 |------|-----|------|
-| (stage) | lifecycle API (DB), computed live | Stage is NOT written to engagement.json anymore |
+| (stage) | derived locally by `lifecycle-check.py` | Stage is NOT persisted — computed on demand from signals above |
+| `data/engagement.json` | `recall.{weekly_sent,monthly_sent,last_recall_at}` — written by `lifecycle-check.py mark_recall_sent()` (atomic flock) | When `pre-send-check.py` / `s4-central-dispatch.py` claims a recall slot |
+| `AGENTS.md` | activation-only block removed by `agents-activation-strip.py` (backup + cap/marker assert) | On warm → active (reminder-first activation or first meal) — see § Reminder-first activation |
 | `data/engagement.json` | `reminder_config` — direct write | Adaptive timing changes, user setting changes |
 | `data/engagement.json` | `activation.first_meal_nudges_sent` — incremented by `notification-composer` via `activation-mark-sent.py` | After each first-meal nudge send |
 | `data/engagement.json` | `activation.nudges_sent` — incremented by `notification-composer` via `activation-mark-sent.py` | After each activation (never-replied) nudge send |
@@ -758,7 +827,7 @@ If the user says "取消提醒" without specifying which one:
 1. 表达理解，主动提出暂停提醒
 2. 询问暂停多久（"大概要忙多久呀？"）
 3. 用户给了时间 → set leave 对应日期
-4. 用户没给时间 → 不设leave，让 lifecycle API 按 days_silent 自然推进到 S3（7天后第1条每周召回）
+4. 用户没给时间 → 不设leave，让 `lifecycle-check.py` 按 days_silent 自然推进到 S3（4 天后进入每周召回）
 5. 暂停期间所有主动消息停止
 6. 给了时间的：到期自动恢复 / 用户提前回来 → clear leave
 7. 没给时间的：按S3→S4→S5正常流转，用户随时回来重置到S1

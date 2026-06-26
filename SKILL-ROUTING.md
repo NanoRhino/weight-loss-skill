@@ -20,24 +20,36 @@ make the user repeat themselves.
 
 ## Welcome Back Check (Global — ALL Skills)
 
-**Before routing to any skill**, check the **`## User Lifecycle`** section that
-is auto-injected into your system prompt by the lifecycle-stage plugin (no script
-to run, no file to read — it's already in your context):
+**Before routing to any skill**, judge welcome-back from the conversation itself:
+if the user is returning after a clear gap (the last few turns are days old, or
+they say "好久没记录了" / "I'm back"), open with a warm, brief welcome (1 sentence)
+before your normal response, then proceed normally. If they're on leave/pause
+(`data/leave.json` active), respond normally — don't nudge for check-ins.
 
-1. If that section shows **`welcome_back: TRUE`**:
-   - Add a warm, brief welcome (1 sentence) before your normal response.
-   - **Do not** clear any flag or run any script — the lifecycle service clears
-     `welcome_back` automatically once your reply goes out (the outbound message
-     is what marks the welcome as delivered).
-   - If the section also shows `frozen: TRUE`, the user is on leave/pause — just
-     respond normally, don't nudge for check-ins.
-2. Otherwise → proceed normally.
-
-> The `## User Lifecycle` section is the single source of truth for stage /
-> welcome-back / frozen. Don't read `engagement.json` stage fields or run
-> `check-stage.py` for this — those are deprecated and being removed.
+> **Lifecycle source of truth (post-3100-decommission):** stage / days_silent /
+> activation are computed **deterministically and locally** by
+> `notification-manager/scripts/lifecycle-check.py` (importable
+> `resolve(workspace_dir, tz_offset)` or `python3 lifecycle-check.py
+> --workspace-dir <ws>`). The old DB lifecycle API (`127.0.0.1:3100`) and the
+> plugin-injected `## User Lifecycle` section were **never deployed** — do not
+> rely on them. `check-stage.py` and the `engagement.json` `notification_stage` /
+> `stage_changed_at` fields are removed; do not read or write them. The recall
+> ladder is the **2/4** model: `days_silent < 2` Active, `2–3` Recall, `≥ 4`
+> Weekly → (3 weeklies) Monthly → (3 monthlies) Silent, with the weekly/monthly
+> counts stored locally in `engagement.json > recall.{weekly_sent, monthly_sent,
+> last_recall_at}` (owned by notification-manager). A new meal/weight/inbound
+> auto-resets to Active (days_silent drops below 2).
 
 **Welcome style:** Warm but brief. "好久不见！" / "欢迎回来～" — never mention how long they were gone.
+
+> **Skills may mutate `AGENTS.md` — one sanctioned case only.** The lifecycle
+> strip step (`notification-manager/scripts/agents-activation-strip.py`) is the
+> **first and only** sanctioned precedent of a skill writing the workspace
+> `AGENTS.md`. On warm → active it removes the `<!-- activation-only -->` …
+> `<!-- /activation-only -->` fenced block (backup + 12,288 B cap assert +
+> load-bearing-marker assert, restore-on-failure, idempotent). No other skill may
+> edit `AGENTS.md`; this exception exists solely to shed the always-injected
+> activation content that blew the bootstrap cap. See CONVENTIONS.md §12.
 
 ---
 

@@ -2,15 +2,17 @@
 """
 s4-central-dispatch.py — Central dispatcher for Stage 4 (monthly) recall messages.
 
-Runs once daily (lunch slot). Asks the lifecycle API which users need a recall
-today, filters to monthly (Stage 4), and outputs the routing info for each.
+Runs once daily (lunch slot). Scans all user workspaces, resolves each one's
+lifecycle locally (notification-manager/lifecycle-check.py), and emits routing
+info for the users who are in Stage 4 (monthly recall) AND due today (>= 30 days
+since their last recall, from recall.last_recall_at). No HTTP, no DB.
 
-Lifecycle API is the single source of truth: GET /v1/lifecycle/due already does
-stage resolution + 30-day cadence + same-day dedup, so this script no longer
-scans workspaces or reads engagement.json.
+History: this used to call GET /v1/lifecycle/due on the 127.0.0.1:3100 lifecycle
+API, which was NEVER deployed — so this dispatcher was a no-op in prod. It now
+computes stage + monthly-cadence deterministically from each workspace.
 
 Usage:
-  python3 s4-central-dispatch.py --openclaw-dir <ignored> --tz-offset 28800
+  python3 s4-central-dispatch.py --openclaw-dir /home/admin/.openclaw --tz-offset 28800
   python3 s4-central-dispatch.py --mark-sent <workspace_dir|account_id>
 
 Output (stdout): JSON array, each object:
@@ -19,14 +21,24 @@ Output (stdout): JSON array, each object:
   If no users need monthly recall today, outputs: []
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
 import sys
-import urllib.request
-import urllib.error
+from datetime import datetime, timezone
 
-LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+try:
+    import importlib
+    _lifecycle = importlib.import_module("lifecycle-check")
+except Exception:  # noqa: BLE001
+    _lifecycle = None
+
+MONTHLY_CADENCE_DAYS = 30
 
 
 def log(msg):
@@ -44,68 +56,112 @@ def _account_id(s):
     return base
 
 
-def fetch_due(limit=1000):
-    """GET /v1/lifecycle/due → list of due users (any stage)."""
-    url = f"{LIFECYCLE_API}/v1/lifecycle/due?limit={limit}"
-    try:
-        with urllib.request.urlopen(url, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data.get("users", [])
-    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError) as e:
-        log(f"ERROR fetching /due: {e}")
-        return None
+def _channel_and_target(agent_id):
+    """Derive (channel, target) from the agent/session id prefix.
+    Defaults to wechat (the historical default) when no known prefix matches."""
+    if agent_id.startswith("wecom-dm-"):
+        return "wecom", agent_id[len("wecom-dm-"):]
+    if agent_id.startswith("wechat-dm-"):
+        return "wechat", agent_id[len("wechat-dm-"):]
+    return "wechat", agent_id
 
 
-def post_recall_sent(account_id, tier="monthly"):
-    """POST /v1/lifecycle/recall-sent — record a sent recall (event-sourced)."""
-    url = f"{LIFECYCLE_API}/v1/lifecycle/recall-sent"
-    body = json.dumps({"account_id": account_id, "tier": tier}).encode("utf-8")
-    req = urllib.request.Request(url, data=body, method="POST",
-                                 headers={"content-type": "application/json"})
+def _monthly_due(workspace_dir):
+    """True iff >= MONTHLY_CADENCE_DAYS since recall.last_recall_at (or never)."""
+    eng_path = os.path.join(workspace_dir, "data", "engagement.json")
+    if not os.path.exists(eng_path):
+        return True
     try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            json.loads(resp.read().decode("utf-8"))
-        log(f"  recall-sent recorded: {account_id} ({tier})")
-    except (urllib.error.URLError, OSError, ValueError) as e:
-        log(f"  ERROR recall-sent for {account_id}: {e}")
+        with open(eng_path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return True
+    recall = data.get("recall") if isinstance(data, dict) else None
+    if not isinstance(recall, dict):
+        return True
+    last = recall.get("last_recall_at")
+    if not (isinstance(last, str) and last.strip()):
+        return True
+    s = last.strip()
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return True
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    elapsed_days = (datetime.now(timezone.utc) - dt).total_seconds() / 86400.0
+    return elapsed_days >= MONTHLY_CADENCE_DAYS
+
+
+def scan(openclaw_dir, tz_offset):
+    """Scan all workspaces; return the Stage-4-and-due routing list."""
+    results = []
+    if _lifecycle is None:
+        log("lifecycle-check.py not importable — cannot resolve stages")
+        return results
+    if not os.path.isdir(openclaw_dir):
+        log(f"openclaw dir not found: {openclaw_dir}")
+        return results
+
+    for entry in sorted(os.listdir(openclaw_dir)):
+        if not entry.startswith("workspace-"):
+            continue
+        workspace_dir = os.path.join(openclaw_dir, entry)
+        if not os.path.isdir(workspace_dir):
+            continue
+        agent_id = entry[len("workspace-"):]
+        try:
+            state = _lifecycle.resolve(workspace_dir, tz_offset)
+        except Exception as e:  # noqa: BLE001
+            log(f"resolve failed for {agent_id}: {e}")
+            continue
+        if state.get("stage") != 4:
+            continue
+        if not _monthly_due(workspace_dir):
+            continue
+        channel, target = _channel_and_target(agent_id)
+        results.append({
+            "workspace_dir": workspace_dir,
+            "session_key": agent_id,
+            "channel": channel,
+            "target": target,
+            "stage": 4,
+            "days_silent": state.get("days_silent", 0),
+        })
+        log(f"  → {agent_id}: needs monthly recall (days_silent={state.get('days_silent')})")
+    return results
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--openclaw-dir", default="/home/admin/.openclaw",
-                        help="(ignored, kept for backward-compat)")
+                        help="Path to ~/.openclaw (workspaces live under it)")
     parser.add_argument("--tz-offset", type=int, default=28800,
-                        help="(ignored, lifecycle API handles tz)")
+                        help="Timezone offset in seconds from UTC")
     parser.add_argument("--mark-sent", metavar="WORKSPACE_OR_ACCOUNT",
                         help="Record a monthly recall as sent (call after message delivered)")
     args = parser.parse_args()
 
-    # --mark-sent mode: record recall_sent event and exit
+    # --mark-sent mode: bump the local monthly recall counter and exit.
     if args.mark_sent:
-        post_recall_sent(_account_id(args.mark_sent), tier="monthly")
+        if _lifecycle is None:
+            log("lifecycle-check.py not importable — cannot mark recall sent")
+            return
+        # Resolve the workspace dir: --mark-sent may be a full workspace path or
+        # a bare account/session id (then we cannot bump without a path).
+        ws = args.mark_sent
+        if "/" not in ws:
+            ws = os.path.join(args.openclaw_dir, f"workspace-{ws}")
+        try:
+            _lifecycle.mark_recall_sent(ws, "monthly")
+            log(f"  recall-sent recorded (monthly): {ws}")
+        except Exception as e:  # noqa: BLE001
+            log(f"  ERROR recall-sent for {ws}: {e}")
         return
 
-    users = fetch_due()
-    if users is None:
-        print("[]")  # API failure → no dispatch (fail-safe, avoids wrong sends)
-        return
-
-    results = []
-    for u in users:
-        if u.get("tier") != "monthly":
-            continue  # this dispatcher only handles Stage 4 monthly recall
-        acc = u["account_id"]
-        session_key = f"wechat-dm-{acc}"
-        results.append({
-            "workspace_dir": None,  # lifecycle API is source of truth; no longer workspace-based
-            "session_key": session_key,
-            "channel": "wechat",
-            "target": acc,
-            "stage": 4,
-            "days_silent": u.get("days_silent", 0),
-        })
-        log(f"  → {session_key}: needs monthly recall (days_silent={u.get('days_silent')})")
-
+    results = scan(args.openclaw_dir, args.tz_offset)
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
 
