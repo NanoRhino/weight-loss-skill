@@ -12,13 +12,17 @@ model the gateway is actually configured to use — i.e. let the config decide
 
 Two tiers (analysis vs reminder):
   - Analysis (default, used by weekly insight / diet pattern / etc):
-    `agents.defaults.model.primary` — the gateway's resolved default,
-    typically Opus for quality.
+    `agents.defaults.model.primary` from openclaw.json — the gateway's
+    resolved default, typically Opus for quality.
   - Reminder (用于 breakfast/lunch/dinner reminder, product tips, etc):
-    `agents.defaults.modelTiers.reminder` — operator-configurable cheaper
-    model (typically Sonnet on Bedrock) to save ~$3800/mo on hot-path cron.
-    Falls back to a hardcoded Bedrock Sonnet ARN if the config field is
-    absent (matches what 181/200 prod cron jobs already use).
+    Env var `REMINDER_MODEL` (from .env / systemd EnvironmentFile).
+    Falls back to a hardcoded Bedrock Sonnet ARN if the env var is unset
+    (matches what 181/200 prod cron jobs already use).
+
+    Why env var instead of openclaw.json: openclaw schema rejects unknown
+    keys (zod strict mode), and adding it under .agents.defaults requires
+    framework patching. Env vars are the existing channel for operator
+    overrides — same place as ANTHROPIC_API_KEY / AWS_* live today.
 
 CLI:
   $ resolve-model.py                # analysis tier (primary)
@@ -79,21 +83,19 @@ def resolve_model(cfg: dict):
     return None
 
 
-def resolve_reminder_model(cfg: dict) -> str:
-    """Reminder-tier model: openclaw.json override → hardcoded Bedrock Sonnet fallback.
+def resolve_reminder_model(_cfg: dict | None = None) -> str:
+    """Reminder-tier model: REMINDER_MODEL env var → hardcoded Bedrock Sonnet fallback.
 
-    Reads agents.defaults.modelTiers.reminder. The fallback is a last-resort
-    only — it matches what prod is already running today, so it is safe even
-    if the config field is missing. Operators wanting a different reminder
-    model just add the field to openclaw.json (no code change needed).
+    Reads $REMINDER_MODEL (set via .env / systemd EnvironmentFile). The fallback
+    is a last-resort only — it matches what prod is already running today, so
+    it is safe even if the env var is unset. Operators wanting a different
+    reminder model just add `REMINDER_MODEL=...` to .env and restart gateway.
+
+    The cfg param is kept for backwards compat (was openclaw.json-based) but
+    is no longer consulted.
     """
-    override = (
-        cfg.get("agents", {})
-        .get("defaults", {})
-        .get("modelTiers", {})
-        .get("reminder")
-    )
-    if isinstance(override, str) and "/" in override:
+    override = os.environ.get("REMINDER_MODEL", "").strip()
+    if override and "/" in override:
         return override
     return _REMINDER_FALLBACK
 
@@ -115,9 +117,11 @@ def resolve():
 
 
 def resolve_reminder():
-    """Reminder-tier model. Never returns None — falls back to a known-good Bedrock ARN."""
-    cfg = _load_config() or {}
-    return resolve_reminder_model(cfg)
+    """Reminder-tier model. Never returns None — falls back to a known-good Bedrock ARN.
+
+    Reads $REMINDER_MODEL env var; no need to load openclaw.json.
+    """
+    return resolve_reminder_model()
 
 
 def main() -> int:
