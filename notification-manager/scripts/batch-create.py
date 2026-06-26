@@ -36,7 +36,7 @@ _STATE_DIR = os.environ.get("OPENCLAW_STATE_DIR", os.path.join(_PROJECT_ROOT, ".
 # Sonnet model for reminder-tier cron jobs; analysis-tier jobs keep the resolved Opus model.
 # 2026-06-24: gateway switched amazon-bedrock → anthropic direct — use anthropic id,
 # not the bedrock ARN (old ARN caused new users' reminder cron to run on bedrock).
-SONNET_MODEL = "anthropic/claude-sonnet-4-6"
+SONNET_MODEL = "amazon-bedrock/arn:aws:bedrock:us-east-1:405912452115:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0"
 
 sys.path.insert(0, _SCRIPT_DIR)
 from importlib import import_module

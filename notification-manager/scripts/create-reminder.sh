@@ -251,7 +251,7 @@ fi
 # don't need Opus-level reasoning; Sonnet is ~5x cheaper on output/cacheWrite (dominates
 # cron cost). Analysis jobs (weekly report/insight, diet-pattern detection) keep Opus.
 # 2026-06-24: gateway 已从 amazon-bedrock 切到 anthropic 直连,用 anthropic id 而非旧 bedrock ARN。
-SONNET_MODEL="anthropic/claude-sonnet-4-6"
+SONNET_MODEL="amazon-bedrock/arn:aws:bedrock:us-east-1:405912452115:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0"
 _name_lc="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]')"
 case "$_name_lc" in
   *"weekly report"*|*"weekly insight"*|*"diet pattern"*|*"pattern detection"*)
