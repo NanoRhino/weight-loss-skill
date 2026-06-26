@@ -117,7 +117,8 @@ def parse_args():
     disp_p.add_argument("--limit", type=int, default=0, help="Max jobs to create (0=unlimited)")
     disp_p.add_argument("--gap", type=int, default=30, help="Seconds between jobs")
     disp_p.add_argument("--start-offset", type=int, default=120, help="Seconds from now for first job")
-    disp_p.add_argument("--model", default="anthropic/claude-sonnet-4-6")
+    disp_p.add_argument("--model", default=None,
+                        help="Model override for the consolidation cron; omit to inherit the agent default")
     disp_p.add_argument("--verbose", action="store_true")
 
     return p.parse_args()
@@ -550,12 +551,14 @@ def dispatch_jobs(users: list[dict], args) -> list[dict]:
             "--session", "isolated",
             "--at", at_str,
             "--message", prompt,
-            "--model", args.model,
             "--delete-after-run",
             "--timeout-seconds", "300",
             "--no-deliver",
             "--json",
         ]
+        # Only pin a model when explicitly overridden; otherwise inherit the agent default.
+        if args.model:
+            cmd += ["--model", args.model]
 
         if args.dry_run:
             print(f"DRY-RUN [{i+1}/{len(users)}] {user['account_id']} @ {at_str} | tasks: {task_summary}{init_note}")
