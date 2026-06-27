@@ -1,5 +1,5 @@
 # /// script
-# requires-python = ">=3.10"
+# requires-python = ">=3.9"
 # dependencies = []
 # ///
 """
@@ -17,6 +17,12 @@ Commands:
   produce-check — Evaluate cumulative vegetable and fruit intake (China region).
   calibration-lookup — Look up user's portion calibrations for food items.
   oil-calibration-lookup — Look up user's oil calibrations for food items.
+  verify-meal  — Reconcile a fresh log: snap kcal to 4P+4C+9F, recompute totals.
+  rescale-calories — Calories-only edit: rescale macros to a user-pinned kcal
+                     (or --keep-macros to flag a physically-impossible pin).
+  recompute-quantity — Quantity edit: recompute kcal+macros from per-unit × new qty.
+  check-cross-category — Flag a food filed under two meal slots at once.
+  detect-duplicate — Flag a re-sent photo as a candidate duplicate (confirm-before-add).
 
 Usage:
   python3 nutrition-calc.py detect-meal --tz-offset 28800 --meals 3 \
@@ -35,6 +41,7 @@ Usage:
       --meal-type lunch --items '["鸡胸肉+糙米+西兰花", "牛肉面+茶叶蛋", "沙拉+全麦面包+酸奶"]'
   python3 nutrition-calc.py produce-check --meals 3 --current-meal lunch --log '[...]'
 """
+from __future__ import annotations
 
 import argparse
 import json
@@ -766,6 +773,249 @@ def verify_meal(dishes: list) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Edit reconciliation: keep dependent fields consistent after a user correction
+# ---------------------------------------------------------------------------
+#
+# WHY THIS EXISTS
+# ---------------
+# `verify_meal` (above) reconciles a freshly-logged meal by trusting the macros
+# and snapping the kcal field to 4P+4C+9F. That is the right move for a NEW log.
+# It is the WRONG move for two kinds of user CORRECTION, where a single field is
+# the authoritative input and the OTHER fields must follow it:
+#
+#   (A) Calorie-only edit ("make that protein bowl 30 calories").
+#       The user is pinning kcal. Snapping kcal back up to 4P+4C+9F (=240) throws
+#       the edit away and leaves "30 kcal / 60 g protein" — the impossible row the
+#       coach itself flagged. Correct behaviour: rescale P/C/F proportionally so
+#       the macro RATIO is preserved and 4P+4C+9F lands on the pinned kcal. If the
+#       pinned kcal is physically impossible for the locked macros (e.g. user pins
+#       30 kcal but insists protein stays 60 g → 240 kcal floor), we cannot honour
+#       both — surface a flag and DON'T silently persist the impossible row.
+#
+#   (B) Quantity edit ("that was 5 slices, not the whole box" / "24 oz").
+#       kcal and macros were estimated for the OLD quantity. Recompute every
+#       number from per-unit values × the new quantity instead of keeping the old
+#       total. "5 slices … 600 kcal" (the whole-box number) becomes ~250 kcal.
+#
+# Both are pure arithmetic on the numbers the coach is about to say — no food DB.
+
+# A pinned kcal is treated as "physically impossible for the locked macros" when
+# it falls below the floor set by the macros that cannot go away. We use total
+# macro mass as that floor: 4P+4C+9F is the minimum energy those grams imply.
+_RESCALE_REL_FLOOR = 0.01   # guard against divide-by-zero on all-zero rows
+
+
+def rescale_to_calories(protein: float, carbs: float, fat: float,
+                        pinned_calories: float) -> dict:
+    """Rescale macros so 4P+4C+9F equals a user-pinned calorie value.
+
+    Used for a CALORIES-ONLY correction. Preserves the P:C:F ratio and scales all
+    three so the Atwater identity lands on `pinned_calories`. The kcal field then
+    equals the pinned value exactly (no snap-back).
+
+    Returns the rescaled row plus a `flag`:
+      - flag == None        → rescaled cleanly.
+      - flag == "all_zero"  → no macros to scale (e.g. a 0/0/0 row); we just set
+        calories and leave macros at 0. Nothing to rescale.
+    Physical-impossibility (pinned kcal below the macro-mass floor) is NOT
+    possible here because we scale the macros DOWN with the kcal — the ratio is
+    preserved and the identity always closes. The impossible case only arises when
+    the user pins kcal AND insists the macros stay fixed; that is handled by
+    `pin_calories_keep_macros` below, which is what surfaces the flag.
+    """
+    implied = _atwater_kcal(protein, carbs, fat)
+    if implied <= _RESCALE_REL_FLOOR:
+        return {
+            "protein_g": round(protein, 1),
+            "carbs_g": round(carbs, 1),
+            "fat_g": round(fat, 1),
+            "calories": round(pinned_calories),
+            "flag": "all_zero",
+        }
+    factor = pinned_calories / implied
+    return {
+        "protein_g": round(protein * factor, 1),
+        "carbs_g": round(carbs * factor, 1),
+        "fat_g": round(fat * factor, 1),
+        "calories": round(pinned_calories),
+        "flag": None,
+    }
+
+
+def pin_calories_keep_macros(protein: float, carbs: float, fat: float,
+                             pinned_calories: float) -> dict:
+    """Honour a pinned kcal while keeping macros locked — flag if impossible.
+
+    This is the OTHER branch of a calories-only edit: the user pinned kcal but
+    also wants the macros left as they are. We can only honour both when the
+    pinned kcal is at least the macro-mass floor (4P+4C+9F). When it is below the
+    floor, the row is physically impossible (e.g. 30 kcal with 60 g protein) — we
+    do NOT persist it silently. We return the floor as `min_calories` and
+    `impossible: True` so the agent surfaces the conflict and asks, rather than
+    writing an impossible row.
+    """
+    floor = round(_atwater_kcal(protein, carbs, fat))
+    impossible = pinned_calories < floor - _KCAL_ABS_TOL
+    return {
+        "protein_g": round(protein, 1),
+        "carbs_g": round(carbs, 1),
+        "fat_g": round(fat, 1),
+        "calories": round(pinned_calories),
+        "min_calories": floor,
+        "impossible": impossible,
+    }
+
+
+def recompute_quantity(row: dict, new_quantity: float,
+                       old_quantity: float = None) -> dict:
+    """Recompute kcal AND macros for a new quantity from per-unit values.
+
+    For a QUANTITY correction ("5 slices", "24 oz"). Derives per-unit calories /
+    protein / carbs / fat / weight from the old row and multiplies by the new
+    quantity, so every dependent number tracks the change instead of keeping the
+    old total. `old_quantity` defaults to the row's stored quantity (`quantity`
+    field) or 1 when absent.
+
+    The row is expected to carry the totals for the OLD quantity:
+      calories, protein_g, carbs_g, fat_g, and optionally total_g/amount_g.
+    """
+    def _g(*keys):
+        for k in keys:
+            v = row.get(k)
+            if v is not None:
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    return 0.0
+        return 0.0
+
+    if old_quantity is None:
+        old_quantity = _g("quantity")
+    if not old_quantity or old_quantity <= 0:
+        old_quantity = 1.0
+
+    factor = new_quantity / old_quantity
+    out = dict(row)
+    out["quantity"] = new_quantity
+    out["calories"] = round(_g("calories") * factor)
+    out["protein_g"] = round(_g("protein_g", "protein") * factor, 1)
+    out["carbs_g"] = round(_g("carbs_g", "carbs") * factor, 1)
+    out["fat_g"] = round(_g("fat_g", "fat") * factor, 1)
+    weight = _g("total_g", "amount_g", "display_g")
+    if weight > 0:
+        out["total_g"] = round(weight * factor)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Double-category guard: a single logged food belongs to exactly one meal slot
+# ---------------------------------------------------------------------------
+
+def find_cross_category_dupes(log: list, meals: int = 3,
+                              schedule: dict = None) -> dict:
+    """Find foods written into two different meal categories at once.
+
+    A single eaten food must live under exactly one meal slot. The plugin
+    occasionally re-files the same item under both (e.g. lunch AND snack),
+    double-counting it in the daily total. This scans the day's `log` and reports
+    any food name that appears under more than one resolved meal slot, so the
+    agent can drop the stray copy before echoing the total.
+
+    Matching is by normalized food name (case/space-insensitive). Returns the
+    duplicated names with the slots they appear under; it does NOT mutate the log.
+    """
+    seen: dict = {}
+    for meal in log:
+        slot = resolve_meal_name(meal.get("name", ""), meals, schedule)
+        foods = meal.get("foods") or meal.get("items") or []
+        for f in foods:
+            fname = (f.get("name") or f.get("dish_name") or "").strip().lower()
+            if not fname:
+                continue
+            seen.setdefault(fname, set()).add(slot)
+    dupes = [
+        {"food": name, "slots": sorted(slots)}
+        for name, slots in seen.items()
+        if len(slots) > 1
+    ]
+    return {"has_cross_category_dupes": len(dupes) > 0, "dupes": dupes}
+
+
+# ---------------------------------------------------------------------------
+# Candidate-duplicate photo detection (defense in depth — webhook dedupes too)
+# ---------------------------------------------------------------------------
+#
+# WHY THIS EXISTS
+# ---------------
+# A re-sent / duplicate photo can get auto-logged as a SECOND meal. The transport
+# layer (openclaw-infra webhook) dedupes identical inbound media, but a near-
+# identical re-send (same plate, slightly different frame) can still slip through
+# and produce a near-identical estimate moments after the first. This flags that
+# case so the agent CONFIRMS ("same meal or additional?") instead of silently
+# appending a duplicate. Pure comparison of the two estimates — no image hashing.
+
+_DUP_WINDOW_MIN = 15          # minutes — "just logged" window
+_DUP_CAL_REL_TOL = 0.10       # within 10% calories → near-identical
+_DUP_CAL_ABS_TOL = 30.0       # kcal floor for tiny meals
+
+
+def _parse_iso(ts: str):
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+
+
+def detect_duplicate(candidate: dict, recent_meals: list,
+                     now_iso: str = None,
+                     window_min: int = _DUP_WINDOW_MIN) -> dict:
+    """Decide whether a just-submitted photo meal is a candidate duplicate.
+
+    `candidate` is the new estimate ({calories, logged_at?}). `recent_meals` is
+    the day's existing meals (each with `calories` and a `logged_at`/`time` ISO
+    timestamp). A candidate is flagged when an existing meal within the last
+    `window_min` minutes has a calorie estimate within tolerance — meaning the
+    agent should ASK "same meal or additional?" rather than auto-append.
+
+    Returns {is_candidate_duplicate, match, reason}. Side-effect free.
+    """
+    cand_cal = float(candidate.get("calories") or 0)
+    now = _parse_iso(now_iso) or datetime.now(timezone.utc)
+
+    best = None
+    for m in recent_meals:
+        m_cal = float(m.get("calories") or 0)
+        m_ts = _parse_iso(m.get("logged_at") or m.get("time") or m.get("timestamp"))
+        if m_ts is None:
+            continue
+        age_min = (now - m_ts).total_seconds() / 60.0
+        if age_min < 0 or age_min > window_min:
+            continue
+        tol = max(_DUP_CAL_ABS_TOL, _DUP_CAL_REL_TOL * max(cand_cal, m_cal, 1.0))
+        if abs(cand_cal - m_cal) <= tol:
+            if best is None or age_min < best["_age"]:
+                best = {
+                    "name": m.get("name"),
+                    "calories": round(m_cal),
+                    "minutes_ago": round(age_min, 1),
+                    "_age": age_min,
+                }
+    if best is None:
+        return {"is_candidate_duplicate": False, "match": None, "reason": None}
+    best.pop("_age", None)
+    return {
+        "is_candidate_duplicate": True,
+        "match": best,
+        "reason": (
+            f"a meal ~{best['calories']} kcal was logged {best['minutes_ago']} "
+            f"min ago (within {window_min} min, calories within tolerance)"
+        ),
+    }
+
+
 def produce_check(meals: int, current_meal: str, log: list,
                   schedule: dict = None) -> dict:
     """Evaluate cumulative vegetable and fruit intake at the current checkpoint.
@@ -1090,6 +1340,40 @@ def main():
     vm.add_argument("--dishes", required=True,
                     help="JSON array of dishes or ingredient rows (meal_checkin dishes/meal_json shape)")
 
+    # rescale-calories — calories-only correction (Bug A.1)
+    rc = sub.add_parser("rescale-calories",
+                        help="Rescale P/C/F proportionally so 4P+4C+9F equals a user-pinned calorie value (calories-only edit)")
+    rc.add_argument("--protein", type=float, required=True)
+    rc.add_argument("--carbs", type=float, required=True)
+    rc.add_argument("--fat", type=float, required=True)
+    rc.add_argument("--calories", type=float, required=True,
+                    help="The user-pinned calorie value to rescale macros to")
+    rc.add_argument("--keep-macros", action="store_true",
+                    help="Pin kcal but LOCK macros; flag if physically impossible instead of rescaling")
+
+    # recompute-quantity — quantity correction (Bug A.2)
+    rq = sub.add_parser("recompute-quantity",
+                        help="Recompute kcal AND macros from per-unit values × new quantity (quantity edit)")
+    rq.add_argument("--row", required=True,
+                    help="JSON object with the OLD-quantity totals (calories, protein_g, carbs_g, fat_g, total_g?, quantity?)")
+    rq.add_argument("--new-quantity", type=float, required=True)
+    rq.add_argument("--old-quantity", type=float, default=None)
+
+    # check-cross-category — double-category guard (Bug A.3)
+    cc = sub.add_parser("check-cross-category",
+                        help="Report foods written into two different meal slots at once")
+    cc.add_argument("--log", required=True, help="JSON array of the day's meals")
+    cc.add_argument("--meals", type=int, default=3)
+    cc.add_argument("--schedule", default=None)
+
+    # detect-duplicate — candidate-duplicate photo (Bug B)
+    dd = sub.add_parser("detect-duplicate",
+                        help="Flag a just-submitted photo meal as a candidate duplicate of a recently-logged meal")
+    dd.add_argument("--candidate", required=True, help="JSON object {calories, logged_at?}")
+    dd.add_argument("--recent-meals", required=True, help="JSON array of the day's meals")
+    dd.add_argument("--now", default=None, help="ISO timestamp for 'now' (default: current UTC)")
+    dd.add_argument("--window-min", type=int, default=_DUP_WINDOW_MIN)
+
     # save-evaluation
     se = sub.add_parser("save-evaluation", help="Save suggestion text to meal record")
     se.add_argument("--data-dir", required=True)
@@ -1137,6 +1421,32 @@ def main():
     elif args.cmd == "verify-meal":
         dishes = json.loads(args.dishes)
         result = verify_meal(dishes)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    elif args.cmd == "rescale-calories":
+        if args.keep_macros:
+            result = pin_calories_keep_macros(
+                args.protein, args.carbs, args.fat, args.calories)
+        else:
+            result = rescale_to_calories(
+                args.protein, args.carbs, args.fat, args.calories)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    elif args.cmd == "recompute-quantity":
+        row = json.loads(args.row)
+        result = recompute_quantity(row, args.new_quantity, args.old_quantity)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    elif args.cmd == "check-cross-category":
+        log = json.loads(args.log)
+        schedule = json.loads(args.schedule) if args.schedule else None
+        result = find_cross_category_dupes(log, args.meals, schedule)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    elif args.cmd == "detect-duplicate":
+        candidate = json.loads(args.candidate)
+        recent_meals = json.loads(args.recent_meals)
+        result = detect_duplicate(candidate, recent_meals, args.now, args.window_min)
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     elif args.cmd == "save-evaluation":
