@@ -1,6 +1,6 @@
 ---
 name: diet-tracking-analysis
-version: 3.4.0
+version: 3.5.0
 description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user sends a photo, logs food, describes a meal, mentions what they're about to eat or drink, or sets a calorie target. Also trigger for past-tense reports ('I had...', 'I ate...'). Even casual mentions ('grabbing a coffee') should trigger. NOT for general behavioral patterns without specific food (e.g. 'I skip breakfast', '我喝水很少') — defer to habit-builder."
 metadata:
   openclaw:
@@ -191,6 +191,31 @@ python3 {baseDir}/scripts/nutrition-calc.py verify-meal --dishes '<the dishes ar
 - Skip ONLY for `correct`/`delete` actions and on `meal_checkin` errors. For abort recovery (two meals), run `verify-meal` once per meal and check each sub-meal's `macro_review`.
 - verify-meal is local arithmetic with no side effects (writes no file); run it in the same batch as the other Round-1 calls when possible.
 
+### Round 1.6: Duplicate-photo gate (photos only — confirm before keeping a near-identical re-send)
+
+A re-sent / duplicate photo can get auto-logged as a SECOND meal. The transport
+layer (openclaw-infra webhook) dedupes identical inbound media; this is
+defense-in-depth for a near-identical re-send that slips through. Run ONLY when the
+current message was a **photo create/append** (skip for text logs, corrections,
+deletes, and the first meal of the day — nothing to collide with):
+
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py detect-duplicate \
+  --candidate '{"calories": <meal_checkin meal_total calories>}' \
+  --recent-meals '<the day's already-logged meals as JSON (meal_checkin existing_meals)>'
+```
+
+- `is_candidate_duplicate: false` → proceed to Round 2 normally.
+- `is_candidate_duplicate: true` → the new photo closely matches a meal logged in the
+  last ~15 min. **Do NOT keep it as a new meal silently.** Issue ONE follow-up
+  `meal_checkin` to delete the just-added duplicate copy (sanctioned extra call, same
+  exception class as abort recovery), then ask ONE short line: "Looks like the same
+  {match.name} you just sent — log it again as a separate meal, or was that a re-send?
+  🙂". On the user's next turn, if they say it's additional/a second helping, log it
+  then; if a re-send, leave it dropped. This also covers the sibling case (a genuine
+  second helping): when the photo matches the most recent logged meal, ask "same meal
+  or additional?" instead of auto-adding as new.
+
 ### Round 2: Compose reply
 
 Use the **verified** `dishes`/`meal_total` (Round 1.5) plus `meal_checkin`'s `evaluation` to compose your reply. No more tool calls needed — `meal_checkin` already saved the meal and returned evaluation.
@@ -260,6 +285,58 @@ meal_checkin({ text: "用户说的原话", workspace_dir: "{workspaceDir}" })
 ```
 
 Examples: "米饭其实只吃了半碗", "删掉午餐", "午餐还吃了个苹果"
+
+### Edit reconciliation — keep dependent fields consistent (REQUIRED on corrections)
+
+`meal_checkin` performs the edit, but a single-field correction must not leave the
+row in an impossible state. Two edit shapes need a dependent-field recompute; both
+are deterministic arithmetic via `nutrition-calc.py` (run on the returned `dishes`,
+in the same batch as Round 1.5 `verify-meal`). **A correction is wrong if it changes
+one number and leaves the others contradicting it.**
+
+**(A) Calories-only edit** — the user pins a calorie value ("make that protein bowl
+30 calories", "that's actually 250 cal"). Snapping kcal back to 4P+4C+9F (what
+`verify-meal` does for a fresh log) throws the user's number away and leaves an
+impossible row (e.g. `30 kcal · 60g protein`). Instead, **rescale the macros to the
+pinned kcal**, preserving the P:C:F ratio:
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py rescale-calories \
+  --protein <P> --carbs <C> --fat <F> --calories <user_pinned_kcal>
+```
+Use the returned `protein_g/carbs_g/fat_g/calories` as the corrected row. This is
+the default. If the user instead insists the macros stay fixed AND pins a kcal,
+add `--keep-macros`: when it returns `impossible: true` (pinned kcal below the
+`min_calories` floor), **do NOT persist the impossible row** — surface the conflict
+in one short line ("60g protein alone is ~{min_calories} kcal, so 30 doesn't add up
+— want me to keep the calories and adjust the protein, or the other way?") and let
+the user choose. Never silently store `30 kcal · 60g protein`.
+
+**(B) Quantity edit** — the user corrects the amount ("that was 5 slices, not the
+box", "24 oz"). kcal and macros were estimated for the OLD quantity; recompute every
+number from per-unit values × the new quantity rather than keeping the old total:
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py recompute-quantity \
+  --row '<the dish/food row as JSON, carrying old-quantity totals + quantity/total_g>' \
+  --new-quantity <N> [--old-quantity <M>]
+```
+"whole box — 600 kcal" → "5 slices" becomes ~250 kcal, not a stale 600. Use the
+returned row as the corrected dish.
+
+**(C) Double-category guard (REQUIRED before echoing the daily total on any
+create/append/correct).** A single eaten food must live under exactly ONE meal slot.
+The plugin occasionally files the same item under two (e.g. lunch AND snack),
+double-counting it. After the edit, before you state the daily total, check:
+```bash
+python3 {baseDir}/scripts/nutrition-calc.py check-cross-category \
+  --log '<the day's meals as JSON (meal_checkin existing_meals / a load)>'
+```
+If `has_cross_category_dupes: true`, the same food is in two slots — issue ONE
+follow-up `meal_checkin` to delete the stray copy (this is the one sanctioned extra
+call beyond "exactly once", same exception class as abort recovery), then echo the
+corrected total. If false, proceed normally.
+
+Run `verify-meal` on the reconciled `dishes` afterward so the per-item number you
+echo is exact arithmetic.
 
 ### Correction Alias (after correction succeeds)
 
