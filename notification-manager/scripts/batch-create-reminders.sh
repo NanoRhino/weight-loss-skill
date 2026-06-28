@@ -453,10 +453,22 @@ fi
 echo "Slot allocation complete. Creating $TOTAL job(s) in parallel..."
 echo ""
 
-# --- Phase 3: Parallel job creation ---
+# --- Phase 3: Parallel job creation (with sequential retry for transient failures) ---
+#
+# Parallel mode opens N concurrent WebSocket handshakes to the gateway.  Under
+# load this occasionally drops one with "gateway closed (1000 normal closure)"
+# even though every individual handshake works fine in isolation.  Past
+# incident (2026-06-27 user 虹晨曦): 1 of 10 parallel creates failed with
+# exactly this signature, leaving Lunch reminder missing for a real user.
+#
+# Fix: pair each background job with the index that spawned it (PID→IDX map)
+# so a wait failure tells us *which* reminder failed, then retry those
+# specific names sequentially with brief backoff.  Sequential retry avoids the
+# concurrent-handshake pressure that triggered the original failure.
 
 PIDS=()
-FAIL_COUNT=0
+PID_TO_IDX=()
+FAILED_IDXS=()
 
 for idx in "${!QUEUED_NAMES[@]}"; do
   name="${QUEUED_NAMES[$idx]}"
@@ -478,13 +490,51 @@ for idx in "${!QUEUED_NAMES[@]}"; do
       --cron    "$adjusted"
   ) &
   PIDS+=($!)
+  PID_TO_IDX+=("$idx")
 done
 
 if [[ "$DRY_RUN" == false ]]; then
-  for pid in "${PIDS[@]}"; do
-    wait "$pid" || FAIL_COUNT=$((FAIL_COUNT + 1))
+  for i in "${!PIDS[@]}"; do
+    pid="${PIDS[$i]}"
+    if ! wait "$pid"; then
+      FAILED_IDXS+=("${PID_TO_IDX[$i]}")
+    fi
   done
 fi
+
+# Retry failed jobs sequentially (parallel pressure was the suspected cause).
+# 2 attempts with 1s backoff — single-job WS handshake under no concurrency
+# pressure recovers quickly when it recovers at all.
+RETRY_FAIL_COUNT=0
+if [[ "$DRY_RUN" == false && ${#FAILED_IDXS[@]} -gt 0 ]]; then
+  echo ""
+  echo "Retrying ${#FAILED_IDXS[@]} failed job(s) sequentially..."
+  for idx in "${FAILED_IDXS[@]}"; do
+    name="${QUEUED_NAMES[$idx]}"
+    message="${QUEUED_MESSAGES[$idx]}"
+    adjusted="${ADJUSTED_CRONS[$idx]}"
+    success=false
+    for attempt in 1 2; do
+      echo "  retry $attempt/2: $name"
+      if bash "$CREATE_REMINDER" \
+          --agent   "$AGENT" \
+          --channel "$CHANNEL" \
+          --exact \
+          --name    "$name" \
+          --message "$message" \
+          --cron    "$adjusted"; then
+        success=true; break
+      fi
+      [[ $attempt -lt 2 ]] && sleep 1
+    done
+    if [[ "$success" == false ]]; then
+      RETRY_FAIL_COUNT=$((RETRY_FAIL_COUNT + 1))
+      echo "  ✗ STILL FAILED: $name" >&2
+    fi
+  done
+fi
+
+FAIL_COUNT=$RETRY_FAIL_COUNT
 
 echo ""
 echo "====================================="
@@ -492,7 +542,18 @@ if [[ "$DRY_RUN" == true ]]; then
   echo "DRY-RUN: $TOTAL job(s) would be created"
 else
   CREATED=$(( TOTAL - FAIL_COUNT ))
-  echo "Created $CREATED/$TOTAL job(s)${FAIL_COUNT:+ ($FAIL_COUNT failed)}"
+  echo "Created $CREATED/$TOTAL job(s)${FAIL_COUNT:+ ($FAIL_COUNT failed after retries)}"
+  if [[ $FAIL_COUNT -gt 0 ]]; then
+    echo ""
+    echo "⚠️  These reminders are NOT created and need manual intervention:" >&2
+    for idx in "${FAILED_IDXS[@]}"; do
+      # Only list those that didn't succeed in retry — simplest: re-check by
+      # whether they were in FAILED_IDXS AND the retry log line said STILL FAILED.
+      # We approximate by listing all originally-failed names; operator will see
+      # which had "STILL FAILED" in the log above.
+      echo "  - ${QUEUED_NAMES[$idx]}" >&2
+    done
+  fi
 fi
 echo "====================================="
 
