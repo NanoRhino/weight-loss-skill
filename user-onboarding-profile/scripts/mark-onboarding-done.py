@@ -50,6 +50,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -203,6 +204,86 @@ def _update_updated_header(content: str, iso_ts: str) -> str:
     return content
 
 
+_SEND_CARD = (
+    "/home/nanorhino/backend-service/.openclaw-gateway/extensions/"
+    "wechat/miniprogram-card/send-card.mjs"
+)
+
+
+def _schedule_d7_mpcard_cron(workspace: str, now: datetime) -> str:
+    """Best-effort: create a one-shot cron that fires on completion day + 6
+    days at 10:00 Beijing time, telling the agent to send a miniprogram card
+    (weight curve cover → dashboard) as a recall nudge.
+
+    Never raises: any failure returns a status string for the output JSON and
+    must NOT affect the onboarding-completed marker (already written).
+    """
+    try:
+        account_id = os.path.basename(os.path.normpath(workspace))
+        prefix = "workspace-wechat-dm-"
+        if not account_id.startswith(prefix):
+            return "skipped_bad_workspace"
+        account_id = account_id[len(prefix):]
+        agent_id = f"wechat-dm-{account_id}"
+
+        identity_path = os.path.join(workspace, "wechat-identity.json")
+        if not os.path.exists(identity_path):
+            return "skipped_no_robotid"
+        with open(identity_path, "r", encoding="utf-8") as f:
+            robot_id = (json.load(f) or {}).get("robotId")
+        if not robot_id:
+            return "skipped_no_robotid"
+
+        # Target: (today + 6 days) 10:00:00 +08:00.
+        target = (now + timedelta(days=6)).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        at_iso = target.strftime("%Y-%m-%dT%H:%M:%S%z")
+        at_iso = at_iso[:-2] + ":" + at_iso[-2:]
+
+        name = f"d7-mpcard-{account_id[-6:]}"
+
+        # Idempotency: skip if a same-named job already exists.
+        try:
+            listed = subprocess.run(
+                ["openclaw", "cron", "list", "--agent", agent_id, "--all", "--json"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if listed.returncode == 0 and listed.stdout.strip():
+                data = json.loads(listed.stdout)
+                jobs = data.get("jobs", data) if isinstance(data, dict) else data
+                if any(j.get("name") == name for j in (jobs or [])):
+                    return "exists"
+        except Exception:
+            # List failure shouldn't block creation; deleteAfterRun + stable
+            # name keep duplicates bounded.
+            pass
+
+        message = (
+            "First run this exec command and then reply NO_REPLY: "
+            f"node {_SEND_CARD} {robot_id} {account_id}"
+        )
+
+        created = subprocess.run(
+            [
+                "openclaw", "cron", "add",
+                "--agent", agent_id,
+                "--name", name,
+                "--at", at_iso,
+                "--message", message,
+                "--session", "isolated",
+                "--no-deliver",
+                "--delete-after-run",
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+        if created.returncode != 0:
+            return f"error: {(created.stderr or created.stdout).strip()[:200]}"
+        return f"scheduled:{at_iso}"
+    except Exception as e:
+        return f"error: {e}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Mark onboarding as completed in health-profile.md"
@@ -246,7 +327,9 @@ def main() -> int:
 
     if content == original:
         # No actual change (already correct with today's date).
-        print(json.dumps({"ok": True, "date": date_str, "mode": "noop"}))
+        mpcard_cron = _schedule_d7_mpcard_cron(workspace, now)
+        print(json.dumps({"ok": True, "date": date_str, "mode": "noop",
+                          "mpcard_cron": mpcard_cron}))
         return 0
 
     try:
@@ -256,7 +339,9 @@ def main() -> int:
         print(json.dumps({"ok": False, "error": f"write failed: {e}"}))
         return 1
 
-    print(json.dumps({"ok": True, "date": date_str, "mode": mode}))
+    mpcard_cron = _schedule_d7_mpcard_cron(workspace, now)
+    print(json.dumps({"ok": True, "date": date_str, "mode": mode,
+                      "mpcard_cron": mpcard_cron}))
     return 0
 
 
