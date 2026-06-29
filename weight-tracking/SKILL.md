@@ -1,7 +1,7 @@
 ---
 name: weight-tracking
-version: 1.1.0
-description: "Track body weight with full CRUD operations, unit conversion, and trend analysis. Trigger when user reports weight, asks about weight trend, wants to correct a weight entry, or change their unit preference. Trigger phrases: 'I weigh...', '体重...', '称了一下...', 'my weight is...', 'change to pounds', '改成斤', 'weight trend', '体重趋势'."
+version: 1.2.0
+description: "Track body weight with full CRUD operations, unit conversion, and trend analysis. Trigger when user reports weight, asks about weight trend, wants to correct a weight entry, or change their unit preference. Trigger phrases: 'I weigh...', '体重...', '称了一下...', 'my weight is...', 'change to pounds', '改成斤', 'weight trend', '体重趋势'. ANY message containing a weight number or weight change — regardless of context (e.g. '我XX斤', '掉了X斤', '称了XX', 'my weight is...') — MUST trigger this skill and be recorded into data/weight.json; never reply verbally without saving."
 metadata:
   openclaw:
     emoji: "scales"
@@ -23,6 +23,20 @@ Do NOT read this SKILL.md again if it's already in context from a prior turn.
 ## Data Storage
 
 **File:** `{workspaceDir}/data/weight.json` — JSON object keyed by ISO-8601 datetime with timezone offset. Each entry: `{ "value": 80, "unit": "kg" }`.
+
+## Hard Rules — Weight Storage (MANDATORY)
+
+These rules are non-negotiable. They exist because agents have stored weight in self-invented files (`weight-log.md`) or in `PLAN.md` as a dated ledger, leaving `data/weight.json` incomplete and breaking badges/dashboards.
+
+1. **Always record, never just talk.** 用户任何形式提及体重数值或体重变化（"我XX斤"、"称了XX"、"体重XX"、"掉了X斤"、"my weight is..."），都必须调用 `save-and-check.py`（或 `weight-tracker.py save`）写入 `data/weight.json`。不允许只口头回复而不记录。 ANY mention of a weight value or weight change MUST be written to `data/weight.json` via the save script — a verbal reply alone is never sufficient.
+
+2. **Single source of truth.** `data/weight.json` 是体重的唯一权威数据源。`data/weight.json` is the single source of truth for body weight.
+
+3. **No alternative weight files.** 禁止新建 `weight-log.md` 或任何其它体重记录文件。 Never create `weight-log.md` or any other file to store weight.
+
+4. **Never write weight into PLAN.md.** 禁止把"当前体重"或"每日体重"写进 `PLAN.md`。`PLAN.md` 只承载静态计划参数（起始体重 start weight、目标体重 target weight、热量目标 calorie target、营养素范围 macro ranges），这些在建档/recalc 时确定，不随每次称重更新。 `PLAN.md` holds only static plan parameters (start weight, target weight, calorie target, macro ranges), set at onboarding/recalc — never updated per weigh-in.
+
+5. **Read forward, never write back.** 需要展示"当前体重"时，从 `data/weight.json` 读取最新值，绝不反向写回 `PLAN.md`。 When you need to show the current weight, read the latest value from `data/weight.json`; never write it back into `PLAN.md`.
 
 ## Scripts
 
