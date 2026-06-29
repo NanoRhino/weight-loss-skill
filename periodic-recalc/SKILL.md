@@ -174,7 +174,7 @@ Compose a cycle review + new cycle message for the user.
    - **Rule:** If `old_calories == new_calories` and `old_rate == new_rate`, the message should be SHORT — just celebrate the cycle, note weight status, and say "继续按当前方案走". Do NOT list all the unchanged numbers again.
 4. **New cycle numbers:** daily calorie target, expected rate (kg/week), 4-week forecast
 5. **Macro ranges** (protein/carbs/fat in grams) — integers only, no decimals
-6. **协作口吻（试行 + 可调）：** 告知用户先按新方案试一段时间，不合适随时调整。例："新周期热量调到了 {new_calories} kcal，咱们先试一段时间，不合适随时调整~" — 不要问"你觉得OK吗？"（不是征求批准），也不要说"方案已经生效"（太单方面）。核心语义：先试试 → 不合适再调 → 你随时可以提。
+6. **收尾语气（逻辑，不写死措辞）：** 表达三层意思：①这是新方案 ②先试一段时间 ③不合适随时可以调。禁止征求批准（"你觉得OK吗"）、禁止单方面通知（"方案已经生效"）。语气像朋友商量，不是上级通知。具体措辞由你根据用户语言和场景自由组织。
 
 **Precision:** All nutrition values as integers (e.g. 1359 kcal, protein 70-93g). No decimals.
 
