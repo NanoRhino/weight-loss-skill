@@ -143,6 +143,33 @@ For style examples: `read references/hook-examples.md`
 
 **ED/avoid_weight_focus flags:** Omit progress bar, weight fields, and ⚖️ line. Hook focuses on consistency/variety.
 
+### Step 6b: Dashboard Tip (touch point 2)
+
+The weekly report already sends *this week's* report URL. Once in a while, also point
+the user at their **always-current full dashboard** (a different surface). Gate it
+through the shared dashboard-tip gate so it never spams:
+
+```bash
+python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py check \
+  --workspace-dir {workspaceDir} --surface weekly_report --tz-offset {tz_offset}
+```
+
+- `SHOW surface=weekly_report` → append the **weekly-report** tip line from
+  `dashboard-link/SKILL.md` § Proactive Dashboard Tip **as a separate line after the
+  report URL**, phrased to clearly distinguish *this week's report* from the *live
+  full dashboard* (all-time weight & calories). User's language per `USER.md`. After
+  the message is sent, run:
+  ```bash
+  python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py mark \
+    --workspace-dir {workspaceDir} --surface weekly_report --tz-offset {tz_offset}
+  ```
+- `SUPPRESS ...` → send the weekly report as-is, no dashboard line.
+
+The gate (owned by `dashboard-link`) enforces the global ≤ 2-total / once-per-surface
+/ stop-when-discovered policy and respects pause/leave/opt-out. Do NOT add a separate
+flag. This is a single extra line on a message that already carries a URL — it does
+not turn into a second message.
+
 ---
 
 ## Pre-send Checks (cron auto-send)

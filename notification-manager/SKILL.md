@@ -811,6 +811,7 @@ If the user says "取消提醒" without specifying which one:
 | `data/engagement.json` | `activation.last_nudge_at` (ISO-8601 UTC) — stamped by `activation-mark-sent.py` in the SAME atomic write as the increment | After each activation/first-meal nudge send; read by `pre-send-check.py` for the ~20h MIN_GAP |
 | `data/engagement.json` | `activation.reminders_set_at` (ISO-8601 UTC) — stamped once by `activation-mark-reminders-set.py` (set-once, never overwritten) | When the reminder-first activation flow creates meal reminders for a not-yet-logged user (see § Reminder-first activation). Read by the openclaw-infra dashboard + activation funnel |
 | `health-profile.md > Meal Schedule` | direct write | Adaptive timing updates, user-requested time changes |
+| `data/engagement.json` | `dashboard_tip.*` sub-object — written by **`dashboard-link`**'s `dashboard-tip-gate.py` (read-modify-write, preserves all other keys) | Proactive data-center tip show-policy gate. This file is owned here, but the `dashboard_tip` sub-key is owned by `dashboard-link` — a sanctioned narrow cross-write (see `dashboard-link/SKILL.md` § Proactive Dashboard Tip). Do NOT read/write `dashboard_tip` from this skill. |
 
 ---
 
