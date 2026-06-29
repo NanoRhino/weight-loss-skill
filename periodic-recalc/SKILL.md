@@ -1,20 +1,21 @@
 ---
 name: periodic-recalc
-version: 2.1.0
+version: 2.2.0
 description: "Recalculates the user's daily calorie target every 4 weeks based on current weight. Updates PLAN.md with new TDEE, calories, and macro ranges. Reviews diet mode fit."
 ---
 
 ## ⚠️ Output Format (HARD RULE — Never violate)
 
-当本 skill 需要给用户发消息时（无论是 recalculated 后的复盘+新方案、awaiting_weight 的称重请求、错误提示，还是任何场景），**输出的第一行必须**是：
+当本 skill 需要给用户发消息时（无论是 recalculated 后的复盘+新方案、awaiting_weight 的称重请求、错误提示，还是任何场景），**输出的第一行必须**是以下格式的 section banner（按用户语言选择）：
 
-```
-🔄——周期性调整——🔄
-```
+| USER.md locale | 第一行 |
+|---|---|
+| `zh` / `zh-CN` / `zh-TW` / 未设置 | `🔄——周期性调整——🔄` |
+| `en` / `en-*` | `🔄——Periodic Adjustment——🔄` |
 
 接着是**一个空行**，然后才是正文。
 
-✅ 正确：
+✅ 正确（中文用户）：
 ```
 🔄——周期性调整——🔄
 
@@ -22,11 +23,26 @@ description: "Recalculates the user's daily calorie target every 4 weeks based o
 ...
 ```
 
+✅ 正确（英文用户）：
+```
+🔄——Periodic Adjustment——🔄
+
+🎉 4-week review time!
+...
+```
+
+**结构规则（不论语言）：**
+- 必须以 `🔄——` 开头、`——🔄` 结尾（双 🔄 + em-dash 包裹）
+- 中间文字按 locale 选择，不可自由发挥
+- 接着必须空一行再接正文
+- 不可用别的 emoji 替换 🔄
+- 不可跳过空行直接接正文
+
 ❌ 错误（实测踩过的坑）：
-- 把"🔄——周期性调整——🔄"理解成任务标签/上下文标记（cron 注入的提示语只是触发上下文，不是你的输出指令）
-- 用单个 🔄 emoji 开头（必须是双 🔄 包夹中文 "周期性调整"）
-- 跳过空行直接接正文
+- 把 banner 理解成任务标签/上下文标记（cron 注入的提示语只是触发上下文，不是你的输出指令）
+- 用单个 🔄 emoji 开头（必须是双 🔄 包夹文字）
 - 用别的 emoji 替换（🎉、📋、💡 等都不行）
+- 英文用户也输出中文 banner
 
 唯一例外：脚本输出 `action: "skipped"` 时静默退出，不输出任何消息（这种情况根本不发到用户，不存在格式问题）。
 
@@ -143,7 +159,7 @@ The script no longer modifies PLAN.md. After receiving this output, **you** must
 
 Compose a cycle review + new cycle message for the user.
 
-**⚠️ 开头格式（重申）：** 消息第一行必须是 `🔄——周期性调整——🔄`，接着空行，再接正文。见文件顶部 Output Format (HARD RULE)。
+**⚠️ 开头格式（重申）：** 消息第一行必须是 locale 对应的 section banner（见文件顶部 Output Format），接着空行，再接正文。
 
 **Message structure (in user's language — check USER.md):**
 
@@ -198,7 +214,7 @@ python3 {baseDir}/scripts/diet-mode-review.py --workspace {workspaceDir} --days 
 
 ### `action: "awaiting_weight"`
 
-**⚠️ 开头格式（重申）：** 消息第一行必须是 `🔄——周期性调整——🔄`，接着空行，再接正文。见文件顶部 Output Format (HARD RULE)。
+**⚠️ 开头格式（重申）：** 消息第一行必须是 locale 对应的 section banner（见文件顶部 Output Format），接着空行，再接正文。
 
 Tell the user: "It's time for your 4-week plan recalculation! Please weigh yourself when you can, and I'll update your plan once you log your weight."
 
