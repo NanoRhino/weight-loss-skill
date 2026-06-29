@@ -174,11 +174,11 @@ Compose a cycle review + new cycle message for the user.
    - **Rule:** If `old_calories == new_calories` and `old_rate == new_rate`, the message should be SHORT — just celebrate the cycle, note weight status, and say "继续按当前方案走". Do NOT list all the unchanged numbers again.
 4. **New cycle numbers:** daily calorie target, expected rate (kg/week), 4-week forecast
 5. **Macro ranges** (protein/carbs/fat in grams) — integers only, no decimals
-6. **协作口吻（已生效）：** 告知用户新方案开始实施，语气友好、协作。例："新周期热量调到了 {new_calories} kcal，接下来用新方案实施，有什么想法咱们一起沟通~" — 不要问"你觉得OK吗？"（不是征求批准），也不要说"方案已经生效"（太单方面）。方案在 Step N 已写入 PLAN.md，但对用户的表达是"一起往前走"而不是"我替你决定了"。
+6. **协作口吻（试行 + 可调）：** 告知用户先按新方案试一段时间，不合适随时调整。例："新周期热量调到了 {new_calories} kcal，咱们先试一段时间，不合适随时调整~" — 不要问"你觉得OK吗？"（不是征求批准），也不要说"方案已经生效"（太单方面）。核心语义：先试试 → 不合适再调 → 你随时可以提。
 
 **Precision:** All nutrition values as integers (e.g. 1359 kcal, protein 70-93g). No decimals.
 
-**Already effective:** PLAN.md 已在 Step N 更新。对用户的表达不是"已经替你定了"，而是"新方案开始实施，有想法一起调整"。用户后续有异议 → 按其偏好重算并改写 PLAN.md。
+**Already effective:** PLAN.md 已在 Step N 更新。对用户的表达是"先试一段时间，不合适再调整"。用户后续有异议 → 按其偏好重算并改写 PLAN.md。
 
 **After sending,** write `{workspaceDir}/data/last-recalc-summary.json`:
 
