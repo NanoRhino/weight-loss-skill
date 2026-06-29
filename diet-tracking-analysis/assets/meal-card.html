@@ -49,8 +49,13 @@
 
   /* ===== 菜品(可扩展,奇偶交替底色) ===== */
   .dishes{padding:6px 0 8px;}
+  .mealhead{display:flex;align-items:baseline;justify-content:space-between;padding:12px 19px 8px;border-top:1px solid var(--leader);}
+  .mealhead:first-child{border-top:none;}
+  .mealhead .mh-name{font-size:20px;font-weight:800;color:var(--gold);letter-spacing:1px;}
+  .mealhead .mh-cal{font-size:18px;font-weight:700;color:var(--dim);}
+  .mealhead .mh-cal span{font-size:13px;font-weight:600;margin-left:3px;}
+  .row-zebra{background:var(--tint);}
   .dish{display:flex;align-items:baseline;padding:8px 19px;}
-  .dish:nth-child(odd){background:var(--tint);}
   /* 菜名定宽列:克数列起点固定 → 多道菜克数左对齐成一列;菜名超长时允许撑开,优先保克数对齐 */
   .dish .name{flex:0 0 auto;min-width:175px;font-size:26px;font-weight:700;color:var(--txt);white-space:nowrap;}
   .dish .name .paren{font-size:16px;font-weight:600;color:var(--dim);margin-left:2px;}
@@ -129,15 +134,27 @@
   document.getElementById("meal").textContent = D.meal_label;
   document.getElementById("kcal").textContent = D.meal_calories;
 
-  document.getElementById("dishes").innerHTML = D.dishes.map(d =>
-    `<div class="dish"><div class="name">${String(d.dish_name).replace(/[（(][^）)]*[）)]/g, m => `<span class="paren">${m}</span>`)}</div>`+
+  // 斑马纹:餐标题行 + 菜品行 作为一个连续序列,全局奇偶交替(奇数行=第1/3/5..行加底色)
+  let rowIdx = 0;
+  const zebra = () => (++rowIdx % 2 === 1) ? " row-zebra" : "";
+  const dishRowZ = d =>
+    `<div class="dish${zebra()}"><div class="name">${String(d.dish_name).replace(/[（(][^）)]*[）)]/g, m => `<span class="paren">${m}</span>`)}</div>`+
     `<div class="g">${d.total_g}<span class="unit">g</span></div>`+
     `<div class="leader"></div>`+
-    `<div class="c">${d.calories}<span>kcal</span></div></div>`
-  ).join("");
+    `<div class="c">${d.calories}<span>kcal</span></div></div>`;
 
-  // 营养素区底色按菜品数奇偶给两种固定色:偶数 → 加 .deep → #F2EDE9;奇数 → 无 .deep → 默认 #FAF8F6。
-  if (D.dishes.length % 2 === 0) document.querySelector(".foot").classList.add("deep");
+  if (Array.isArray(D.meal_groups) && D.meal_groups.length) {
+    document.getElementById("dishes").innerHTML = D.meal_groups.map(g => {
+      const head = `<div class="mealhead${zebra()}"><span class="mh-name">${g.label}</span>`+
+                   `<span class="mh-cal">${g.calories}<span>kcal</span></span></div>`;
+      return head + (g.dishes || []).map(dishRowZ).join("");
+    }).join("");
+  } else {
+    document.getElementById("dishes").innerHTML = D.dishes.map(dishRowZ).join("");
+  }
+
+  // 营养素区底色:跟最后一行斑马错开。最后一行 row-zebra(奇数)→foot 浅;最后一行白(偶数)→foot 加 .deep。
+  if (rowIdx % 2 === 0) document.querySelector(".foot").classList.add("deep");
 
   document.getElementById("dcal").textContent = D.daily.calories;
   document.getElementById("dtarget").textContent = D.daily.target;

@@ -196,6 +196,14 @@ For any turn that outputs the ①② breakdown (create / append / detail-bearing
    - **`dish_name`** (each dish) must also match `lang`. For English users, write dish names in English (e.g. `"Pork Cutlet Curry Rice"`, not `"炸猪排咖喱饭"`).
    - Use `meal_calories` = this meal's total calories.
 
+   **Multi-meal (多餐合并):** When `meal_checkin` returns `result.multi === true`, `result.meals` is an array — one element per meal, each carrying that meal's own `meal_detection` (read `meal_name` from it), `dishes`, and `produce`. All meals are already saved. Render **one** card (not one per meal), grouping dishes by meal via the `meal_groups` field:
+   - `meal_label`: 合并餐名，按 `lang` 拼实际餐次。zh 用 `早餐+午餐+晚餐`（按实到的餐次顺序）；en 用 `Breakfast+Lunch+Dinner`.
+   - `meal_calories`: 各餐总热量相加。
+   - `meal_groups`: 数组，按早→午→晚顺序，每个元素 `{ "label": "<餐名,按 lang>", "calories": <该餐总热量>, "dishes": [{ "dish_name": "...", "total_g": <重量g>, "calories": <热量> }] }`.
+   - `daily` / `macros` / `produce`: 用 `result.evaluation`（已是最后一餐 = 全天累计），直接照搬，与单餐时同。
+   - 单餐时**不写** `meal_groups`，仍用 `dishes` 字段（向后兼容；模板两者都支持）。仍只渲一张卡，调一次 `render-meal-card.cjs`。
+   - 文字回复（③建议等）照旧；①② 现在都在这张合并卡里。
+
 2. **Render the card** — call `exec` once per meal (once for a normal single-meal turn; once per meal in the 2-meals abort-recovery case above):
    ```
    node {baseDir}/scripts/render-meal-card.cjs --data '<card JSON>' --workspace {workspaceDir}
