@@ -577,6 +577,35 @@ section（错格式），下游正则匹配的是 `- **Onboarding Completed:**` 
 
 ⚠️ **不要对用户提及** 脚本执行或 "Onboarding Completed" 这个词。
 
+### 数据中心提示（触点 3 — 新用户激活后）
+
+新用户刚刚完成引导、方案已就位——这是让他们知道"数据中心"网页存在的自然时机。
+通过 dashboard-link 的共享门控判断是否追加 **一句** 提示（永不刷屏）：
+
+```bash
+python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py check \
+  --workspace-dir {workspaceDir} --surface activation --tz-offset {tz_offset}
+```
+
+- 输出 `SHOW surface=activation` → 在 Step 5 那条主消息**末尾**追加
+  `dashboard-link/SKILL.md` § Proactive Dashboard Tip 里的 **activation** 提示句
+  （仅一行，纯 URL，语言遵循 `USER.md`——绝不推断）。这是允许追加的一句，不要展开成
+  多句或讲解。消息发送成功后，运行：
+  ```bash
+  python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py mark \
+    --workspace-dir {workspaceDir} --surface activation --tz-offset {tz_offset}
+  ```
+- 输出 `SUPPRESS ...` → 不提数据中心，正常结束引导。
+
+门控（由 `dashboard-link` 拥有）统一执行全局展示策略（总计 ≤ 2 次、每个触点仅一次、
+同日不重复、用户发现/打开后永久停止），并尊重暂停/请假/退订。**不要**在此另设标记。
+`{agentId}` = `{workspaceDir}` 的 basename（与 dashboard-link 一致，原样使用）。
+
+> **与首餐庆祝的关系：** 若用户是经由首餐路径（First-Meal Mode）激活而非走完整引导，
+> 庆祝由 `diet-tracking-analysis` 处理，那条回复**只允许一句前向引导**（提醒 opt-in），
+> 不在那里加数据中心提示——避免与首餐时刻抢戏。数据中心 activation 提示只在本处
+> （完整引导收尾）触发；门控的"每触点一次"保证两条路径不会重复打扰同一用户。
+
 ---
 
 ## 健康安全提示

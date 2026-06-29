@@ -64,10 +64,101 @@ Nothing else — no extra explanation, no "let me know if…".
 
 ---
 
+When the user **asks for / opens** the dashboard via this skill, also record the
+discovery so the proactive tip (below) stops firing — they already know about the
+page:
+
+```bash
+python3 {baseDir}/scripts/dashboard-tip-gate.py opened --workspace-dir {workspaceDir}
+```
+
+Fire-and-forget (idempotent, best-effort) — do not surface its result or block the
+reply on it.
+
+---
+
+## Proactive Dashboard Tip (owned here)
+
+Beyond answering on request, the coach **proactively** surfaces a ONE-LINE tip about
+the dashboard at three natural touch points, to help users discover it. The tip is
+emitted by other skills, but the **show-policy gate and the wording live here** so
+there is a single source of truth and a single anti-spam gate.
+
+### The gate (single shared anti-over-messaging gate)
+
+`scripts/dashboard-tip-gate.py` is the ONE place that decides whether the tip may
+fire and records that it fired. Touch-point skills MUST call it — never hand-roll
+their own flag.
+
+```bash
+# May I show the tip on this surface right now? (no mutation)
+python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py check \
+  --workspace-dir {workspaceDir} --surface <milestone|weekly_report|activation> \
+  --tz-offset {tz_offset}
+# -> "SHOW surface=<s>"  or  "SUPPRESS reason=<r>"
+
+# After the tip is actually sent, record it (mirrors tips-check/tips-mark-sent split)
+python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py mark \
+  --workspace-dir {workspaceDir} --surface <milestone|weekly_report|activation> \
+  --tz-offset {tz_offset}
+```
+
+Only append the tip line when `check` prints `SHOW`. On `SUPPRESS`, say nothing about
+the dashboard — compose the rest of the reply normally. **`check` does not mutate**;
+call `mark` only after the message is sent.
+
+### Show policy (documented)
+
+- **At most 2 shows total** across all touch points (`--max-shows`, default 2), AND
+- **at most once per touch point** (each surface — milestone / weekly_report /
+  activation — fires once, ever), AND
+- **never twice on the same local day**.
+- **Hard stop on discovery:** once the user asks for / opens the dashboard
+  (`opened` above is called by this skill's request path) the tip is suppressed
+  **forever** — a user who already knows the page should stop seeing the tip.
+- **Pause / leave / opt-out respected centrally:** the gate returns `SUPPRESS` when
+  `data/leave.json` is an active leave, or the user opted out (`optout` command).
+  Touch-point skills do NOT re-implement pause/opt-out detection — the gate owns it.
+  (This honors SKILL-ROUTING.md "Pause/Leave Execution" — a paused/opted-down user
+  never gets the tip.)
+
+### Tip wording (one line; pick to fit; user's language per USER.md — never inferred)
+
+`{agentId}` is derived exactly as in the Response section above (basename of
+`{workspaceDir}`, verbatim). Plain URL, no tracking params, no markdown link.
+
+**Touch point 1 — meal-log milestone** (append after the milestone celebration):
+- EN: `By the way, you can see all this on your live dashboard anytime — weight, calories & charts: https://user.nanorhino.com/me/{agentId}`
+- ZH: `对了，这些随时都能在你的数据中心看到——体重、热量和图表：https://user.nanorhino.com/me/{agentId}`
+
+**Touch point 2 — weekly report** (append as a SEPARATE line after the weekly URL;
+make the distinction clear — this week's report vs the always-current full view):
+- EN: `That link is this week's report — for your always-current full dashboard (all-time weight & calories), it's: https://user.nanorhino.com/me/{agentId}`
+- ZH: `上面是这周的周报；想看一直更新的完整数据中心（历史体重和热量），在这里：https://user.nanorhino.com/me/{agentId}`
+
+**Touch point 3 — after new-user activation** (append the ONE allowed soft line):
+- EN: `One more thing — everything you log shows up live on your own dashboard: https://user.nanorhino.com/me/{agentId} (you can also just ask me for "my data" anytime).`
+- ZH: `还有一点——你记的所有数据都会实时显示在你的数据中心：https://user.nanorhino.com/me/{agentId}（也可以随时跟我说"我的数据"）。`
+
+Keep it to ONE line. The optional "ask me for my data anytime" hint is only on the
+activation surface (where teaching the feature matters most); keep milestone and
+weekly-report tips to the link alone to stay SMS-short.
+
+---
+
 ## Data
 
-Reads: none. Writes: none. The URL is constructed from `{workspaceDir}` only; all
-data is rendered server-side by the dashboard worker from its own store.
+The dashboard URL is constructed from `{workspaceDir}` only; the dashboard page
+itself is rendered server-side by the dashboard worker from its own store.
+
+**Proactive-tip gate state (owned by this skill):** `dashboard-tip-gate.py` reads
+and writes a single `dashboard_tip` sub-object inside `data/engagement.json`
+(`{shows, last_shown_date, shown_surfaces, opened, opted_out}`). It is a read-modify-
+write that **preserves every other key** in `engagement.json` (atomic `os.replace`).
+The file itself is owned by `notification-manager` (activation/recall ladder); this
+skill owns only the `dashboard_tip` sub-key — a narrow, sanctioned cross-write,
+documented in `notification-manager/SKILL.md`'s Workspace table. It also reads
+`data/leave.json` (read-only) for pause detection. No other state.
 
 ---
 

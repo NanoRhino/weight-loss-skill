@@ -184,3 +184,31 @@ Called by `diet-tracking-analysis` after `meal_checkin` returns with `action: "c
 5. If qualified_today == false:
    → Say nothing about badges
 ```
+
+## Milestone → Dashboard Tip (touch point 1)
+
+A **level-up** (`level_up == true`) is a logging milestone — the natural,
+once-in-a-while moment to also help the user discover their live web dashboard.
+This is the ONLY badge-flow moment that may carry the dashboard tip; never add it on
+a plain `qualified_today` accumulation day, and never on every meal log.
+
+**Only when `level_up == true`** (after composing the badge celebration above),
+gate-check and, if allowed, append the dashboard tip as ONE extra line:
+
+```bash
+python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py check \
+  --workspace-dir {workspaceDir} --surface milestone --tz-offset {tz_offset}
+```
+
+- `SHOW surface=milestone` → append the **milestone** tip line from
+  `dashboard-link/SKILL.md` § Proactive Dashboard Tip (one line, plain URL, user's
+  language per `USER.md`), then after the reply is sent run:
+  ```bash
+  python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py mark \
+    --workspace-dir {workspaceDir} --surface milestone --tz-offset {tz_offset}
+  ```
+- `SUPPRESS ...` → say nothing about the dashboard; send the badge celebration alone.
+
+The shared gate (owned by `dashboard-link`) enforces the global show-policy
+(≤ 2 total, once per surface, never twice/day, stop once discovered) and respects
+pause/leave/opt-out — so this never spams. Do NOT introduce a separate flag here.
