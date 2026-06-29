@@ -902,6 +902,26 @@ def check_leave(workspace_dir, tz_offset, mock_date=None):
     return True, None
 
 
+def check_reminders_paused(workspace_dir):
+    """Check 0 (belt-and-suspenders): user soft-paused ALL reminders.
+
+    Infra implements a deterministic "pause all reminders" opt-down: on a
+    stop/pause intent it calls disableCronJobsForAgent AND sets
+    remindersPaused=true in the agent's channel-source.json (workspace root,
+    OWNED by infra — we only READ it here). Infra already gates its own proactive
+    paths; this is the FIRE-TIME gate so any cron still queued/surviving produces
+    NO_REPLY for EVERY meal_type instead of a proactive message.
+
+    FAIL-OPEN: channel-source.json missing/corrupt or the field absent → treat as
+    NOT paused (continue) — never trap a user in silence on a read error.
+    """
+    cs, cs_readable = _read_channel_source(workspace_dir)
+    if not cs_readable:
+        return True, None  # fail-open
+    val = cs.get("remindersPaused")
+    if val is True or (isinstance(val, str) and val.strip().lower() == "true"):
+        return False, "remindersPaused=true — user has paused all reminders"
+    return True, None
 
 
 def main():
@@ -927,6 +947,7 @@ def main():
     activation_info = {}
     first_meal_info = {}
     checks = [
+        ("reminders_paused", lambda: check_reminders_paused(args.workspace_dir)),
         ("leave", lambda: check_leave(args.workspace_dir, args.tz_offset, args.mock_date)),
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
         ("engagement_stage", lambda: check_engagement_stage(
