@@ -206,7 +206,7 @@ def _update_updated_header(content: str, iso_ts: str) -> str:
 
 _SEND_CARD = (
     "/home/nanorhino/backend-service/.openclaw-gateway/extensions/"
-    "wechat/miniprogram-card/send-card.mjs"
+    "wechat/miniprogram-card/send-fixed-card.mjs"
 )
 
 
