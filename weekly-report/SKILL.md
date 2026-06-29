@@ -5,6 +5,8 @@ description: generate personalized weekly progress reports for Nano Rhino users.
 
 # Weekly Report
 
+> ⏸️ **PAUSED (2026-06-29): scheduled weekly reports are turned OFF for all users.** `should-send-report.sh` returns `no: weekly reports paused` by default, so the cron flow (Step 2) stops at the gate and sends nothing. Re-enable by setting `WEEKLY_REPORT_ENABLED=1` in the environment (no redeploy) or removing the kill-switch block in `scripts/should-send-report.sh`. Manual/explicit user requests still work only if the gate is re-enabled.
+
 > 🚨 **OUTPUT CONTRACT: Every execution MUST produce a clickable report URL. A text-only summary without a URL = FAILED. If scripts fail, report the error — do NOT fall back to plain-text.**
 
 > ⚠️ **SILENT OPERATION:** Never narrate internal actions to the user. Just do it and respond with the result.

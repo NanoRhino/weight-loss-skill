@@ -10,6 +10,18 @@ set -euo pipefail
 WORKSPACE=""
 MIN_DAYS=2
 
+# --- KILL SWITCH: weekly reports are PAUSED for all users (2026-06-29) ---
+# Decision: pause every weekly report send for now (over-delivery incident —
+# one user received the same report 3x in 90s). This gate is the single choke
+# point for the weekly-report skill flow, so a hard "no" here stops all sends.
+# Default = PAUSED. To RE-ENABLE later, set WEEKLY_REPORT_ENABLED=1 (or
+# true/yes/on) in the cron/agent environment — no redeploy needed — or delete
+# this block.
+case "${WEEKLY_REPORT_ENABLED:-}" in
+  1|true|TRUE|yes|YES|on|ON) : ;;  # explicitly re-enabled → fall through
+  *) echo "no: weekly reports paused (set WEEKLY_REPORT_ENABLED=1 to re-enable)"; exit 0 ;;
+esac
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --workspace-dir) WORKSPACE="$2"; shift 2 ;;

@@ -476,6 +476,82 @@ def mark_recall_sent(workspace_dir, tier):
                 pass
 
 
+def last_proactive_send_date(workspace_dir):
+    """Return engagement.json proactive.last_send_date (local 'YYYY-MM-DD'), or
+    None. Read-only; used by pre-send-check's global daily proactive cap (at most
+    one proactive message per local day across ALL meal_types). Never raises."""
+    workspace_dir = _normalize_path(workspace_dir)
+    data = _load_engagement(workspace_dir)
+    proactive = data.get("proactive")
+    if not isinstance(proactive, dict):
+        return None
+    val = proactive.get("last_send_date")
+    return val if isinstance(val, str) and val.strip() else None
+
+
+def mark_proactive_sent(workspace_dir, local_date, meal_type):
+    """Claim the global daily proactive slot. Atomically stamp
+    proactive.{last_send_date,last_send_type,last_send_at} in engagement.json
+    under an exclusive flock (mirrors mark_recall_sent). The daily cap is enforced
+    by pre-send-check: once last_send_date == today, every further proactive
+    meal_type that day returns NO_REPLY. Claimed at gate-decision time (the
+    conservative anti-burst choice — errs toward fewer messages, like the recall
+    claim). Raises on hard write failure; caller treats failure as best-effort.
+
+    local_date: 'YYYY-MM-DD' in the user's local tz (the cap's day boundary).
+    meal_type:  the slot that won the day (debug/audit only).
+    """
+    workspace_dir = _normalize_path(workspace_dir)
+    path = os.path.join(workspace_dir, "data", "engagement.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    lockfile = path + ".lock"
+    lock_fd = None
+    try:
+        lock_fd = open(lockfile, "w")
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+
+        data = {}
+        if os.path.exists(path):
+            try:
+                with open(path) as f:
+                    data = json.load(f)
+                if not isinstance(data, dict):
+                    data = {}
+            except (json.JSONDecodeError, IOError):
+                data = {}
+
+        proactive = data.get("proactive")
+        if not isinstance(proactive, dict):
+            proactive = {}
+        proactive["last_send_date"] = local_date
+        proactive["last_send_type"] = meal_type
+        proactive["last_send_at"] = datetime.now(timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        data["proactive"] = proactive
+
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(path), suffix=".tmp")
+        try:
+            with os.fdopen(tmp_fd, "w") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp_path, path)
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
+        return dict(proactive)
+    finally:
+        if lock_fd:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                lock_fd.close()
+            except Exception:
+                pass
+
+
 def reset_recall(workspace_dir):
     """Clear the local recall counters when a user returns (any fresh
     interaction). Best-effort: silently no-ops if engagement.json can't be read.
@@ -536,7 +612,30 @@ def main():
                         help="Bump the local recall counter for this tier and exit")
     parser.add_argument("--reset-recall", action="store_true",
                         help="Clear local weekly/monthly recall counters and exit")
+    # Optional CLI for the global daily proactive cap marker (subprocess fallback
+    # for pre-send-check when the in-process import isn't available).
+    parser.add_argument("--last-proactive-date", action="store_true",
+                        help="Print proactive.last_send_date (or 'null') and exit")
+    parser.add_argument("--mark-proactive", default=None, metavar="YYYY-MM-DD",
+                        help="Claim the daily proactive slot for this local date and exit")
+    parser.add_argument("--mark-proactive-type", default="unknown",
+                        help="meal_type that won the daily slot (audit only)")
     args = parser.parse_args()
+
+    if args.last_proactive_date:
+        val = last_proactive_send_date(args.workspace_dir)
+        print(val if val else "null")
+        return 0
+
+    if args.mark_proactive:
+        try:
+            mark_proactive_sent(args.workspace_dir, args.mark_proactive, args.mark_proactive_type)
+            print(json.dumps({"status": "ok"}, ensure_ascii=False))
+            return 0
+        except Exception as e:  # noqa: BLE001
+            log(f"mark-proactive failed: {e}")
+            print(json.dumps({"status": "error", "error": str(e)}, ensure_ascii=False))
+            return 1
 
     if args.mark_recall:
         try:

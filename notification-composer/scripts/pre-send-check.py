@@ -114,6 +114,57 @@ def lifecycle_mark_recall(workspace_dir, tier):
         return False
 
 
+def lifecycle_last_proactive_date(workspace_dir):
+    """Local read of engagement.json proactive.last_send_date (the global daily
+    proactive cap marker). Returns 'YYYY-MM-DD' or None. Never raises."""
+    if _lifecycle is not None:
+        try:
+            return _lifecycle.last_proactive_send_date(workspace_dir)
+        except Exception as e:  # noqa: BLE001
+            log(f"last_proactive_send_date() failed: {e}")
+            return None
+    import subprocess
+    script = os.path.join(_LIFECYCLE_DIR, "lifecycle-check.py")
+    try:
+        out = subprocess.run(
+            ["python3", script, "--workspace-dir", workspace_dir,
+             "--last-proactive-date"],
+            capture_output=True, timeout=10, text=True,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            val = out.stdout.strip()
+            return val if val and val != "null" else None
+    except (OSError, subprocess.SubprocessError) as e:
+        log(f"last_proactive_send_date subprocess failed: {e}")
+    return None
+
+
+def lifecycle_mark_proactive(workspace_dir, local_date, meal_type):
+    """Local claim of the global daily proactive slot (engagement.json
+    proactive.last_send_date). Best-effort — a failure here must never block a
+    send decision (we already decided SEND; worst case the cap doesn't bite for
+    this one day)."""
+    if _lifecycle is not None:
+        try:
+            _lifecycle.mark_proactive_sent(workspace_dir, local_date, meal_type)
+            return True
+        except Exception as e:  # noqa: BLE001
+            log(f"mark proactive-sent failed for {workspace_dir}: {e}")
+            return False
+    import subprocess
+    script = os.path.join(_LIFECYCLE_DIR, "lifecycle-check.py")
+    try:
+        subprocess.run(
+            ["python3", script, "--workspace-dir", workspace_dir,
+             "--mark-proactive", local_date, "--mark-proactive-type", meal_type],
+            capture_output=True, timeout=10,
+        )
+        return True
+    except (OSError, subprocess.SubprocessError) as e:
+        log(f"mark proactive-sent subprocess failed: {e}")
+        return False
+
+
 def get_local_date(tz_offset):
     """Get current local date string YYYY-MM-DD."""
     tz = timezone(timedelta(seconds=tz_offset))
@@ -924,6 +975,32 @@ def check_reminders_paused(workspace_dir):
     return True, None
 
 
+# Global daily proactive cap: at most ONE proactive message per local day across
+# ALL meal_types (meal check-ins, weight, recall, activation/first-meal nudges).
+# This is the deterministic anti-burst backstop — even if duplicate or leftover
+# crons fire for the same slot (the "Lunch check-in" sent twice 1 min apart) or
+# several slots come due the same day, only the first to pass the gate gets out;
+# the rest return NO_REPLY. The slot is CLAIMED at gate-decision time (see
+# main()'s mark-proactive), mirroring the recall claim — the conservative choice
+# that errs toward fewer messages, which is exactly the intent.
+def check_daily_proactive_cap(workspace_dir, tz_offset):
+    """Check 0.5: a proactive message has already gone out today → NO_REPLY.
+
+    Reads engagement.json proactive.last_send_date via the local lifecycle
+    resolver and compares to the user's LOCAL date. Must run BEFORE
+    check_engagement_stage (which has a recall-claim side effect) so a capped day
+    never bumps the recall counter without an actual send.
+
+    FAIL-OPEN: resolver/marker unavailable → treat as not-yet-sent (continue) —
+    never trap a user in silence on a read error.
+    """
+    today = get_local_date(tz_offset)
+    last = lifecycle_last_proactive_date(workspace_dir)
+    if last is not None and last == today:
+        return False, f"daily proactive cap — already sent a proactive message today ({today})"
+    return True, None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Pre-send check for meal/weight reminders")
     parser.add_argument("--workspace-dir", required=True, help="Agent workspace root")
@@ -950,6 +1027,10 @@ def main():
         ("reminders_paused", lambda: check_reminders_paused(args.workspace_dir)),
         ("leave", lambda: check_leave(args.workspace_dir, args.tz_offset, args.mock_date)),
         ("health_profile", lambda: check_health_profile(args.workspace_dir)),
+        # Global daily proactive cap MUST run before engagement_stage (which has a
+        # recall-claim side effect) so a capped day never bumps the recall counter.
+        ("daily_proactive_cap", lambda: check_daily_proactive_cap(
+            args.workspace_dir, args.tz_offset)),
         ("engagement_stage", lambda: check_engagement_stage(
             args.workspace_dir, args.meal_type, args.tz_offset, out=stage_info)),
         ("health_flags", lambda: check_health_flags(args.workspace_dir, args.meal_type)),
@@ -985,6 +1066,12 @@ def main():
             return
 
     log("All checks passed")
+
+    # Claim the global daily proactive slot: from here on this is a SEND, so stamp
+    # today's LOCAL date in engagement.json proactive.last_send_date. Every further
+    # proactive meal_type today will hit check_daily_proactive_cap → NO_REPLY.
+    # Best-effort (never blocks the send we've already decided on).
+    lifecycle_mark_proactive(args.workspace_dir, get_local_date(args.tz_offset), args.meal_type)
 
     # Activation: the gate computed which touch is due (Cold-Start v3). Emit the
     # nudgeIndex/angle so the composer renders the right content — this replaces
