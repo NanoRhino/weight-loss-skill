@@ -178,6 +178,8 @@ I just said?"
 | "我喝水很少" / "I don't eat breakfast" | behavior-self-report | habit-builder |
 | "我吃饭太快了" / "I snack too much at night" | behavior-self-report | habit-builder |
 | "我想养成早睡的习惯" | habit-request | habit-builder |
+| "how many calories today" / "今日进度" / "今天还剩多少" | daily-number-query | personal-data-query (text in chat — NOT a link) |
+| "my dashboard" / "show me my charts" / "the website" / "数据中心" / "网页版" / "我的进度网页" | dashboard-web-view | dashboard-link (send the personal dashboard URL) |
 
 ---
 
@@ -432,6 +434,34 @@ build a habit or get exercise programming.
 2. Handle the foundational one first
 3. Transition naturally to the next
 4. Each planning skill's output can inform the next
+
+---
+
+### Pattern 11: Daily Numbers vs Dashboard Link (Same Tier — P4)
+
+**Trigger:** User asks about their data. Two distinct intents share this surface:
+a quick in-chat number ("how many calories today", "今日进度") versus the full
+online view ("my dashboard", "show me my charts", "the website", "数据中心",
+"网页版").
+
+**Resolution: Intent (text vs web view) determines routing.**
+
+1. **Quick daily number** — "how many calories today", "what did I eat",
+   "今日进度", "今天还剩多少" → `personal-data-query` answers with the **text**
+   summary in chat. Do NOT send a link.
+2. **Full web view / charts / history** — "my dashboard", "my data center",
+   "my progress page", "show me my charts", "the website", "web version",
+   "数据中心", "网页版", "我的进度网页", "看我的数据图表", "数据链接" →
+   `dashboard-link` sends the personal dashboard URL
+   (`https://user.nanorhino.com/me/{agentId}`, one short line).
+3. **Both in one message** ("how am I doing today, and send me the page") →
+   give the quick text answer (personal-data-query) and append the dashboard
+   line (dashboard-link). Single coherent reply, no double greeting.
+4. **"weekly report" / "周报"** is neither — that's `weekly-report`.
+
+**Key:** Never hijack a quick daily-number request into a link, and never answer
+a "send me the web/charts" request with only text. The dividing line is text vs
+web view, not the word "data".
 
 ---
 
