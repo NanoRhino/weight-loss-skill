@@ -114,29 +114,29 @@ def lifecycle_mark_recall(workspace_dir, tier):
         return False
 
 
-def lifecycle_last_proactive_date(workspace_dir):
-    """Local read of engagement.json proactive.last_send_date (the global daily
-    proactive cap marker). Returns 'YYYY-MM-DD' or None. Never raises."""
+def lifecycle_proactive_count(workspace_dir, local_date):
+    """Local read of how many proactive messages were sent on `local_date`
+    (engagement.json proactive.count, scoped to that day). Returns an int (0 on
+    any failure / different day). Never raises."""
     if _lifecycle is not None:
         try:
-            return _lifecycle.last_proactive_send_date(workspace_dir)
+            return int(_lifecycle.proactive_sends_on(workspace_dir, local_date))
         except Exception as e:  # noqa: BLE001
-            log(f"last_proactive_send_date() failed: {e}")
-            return None
+            log(f"proactive_sends_on() failed: {e}")
+            return 0
     import subprocess
     script = os.path.join(_LIFECYCLE_DIR, "lifecycle-check.py")
     try:
         out = subprocess.run(
             ["python3", script, "--workspace-dir", workspace_dir,
-             "--last-proactive-date"],
+             "--proactive-count-on", local_date],
             capture_output=True, timeout=10, text=True,
         )
-        if out.returncode == 0 and out.stdout.strip():
-            val = out.stdout.strip()
-            return val if val and val != "null" else None
+        if out.returncode == 0 and out.stdout.strip().isdigit():
+            return int(out.stdout.strip())
     except (OSError, subprocess.SubprocessError) as e:
-        log(f"last_proactive_send_date subprocess failed: {e}")
-    return None
+        log(f"proactive count subprocess failed: {e}")
+    return 0
 
 
 def lifecycle_mark_proactive(workspace_dir, local_date, meal_type):
@@ -975,29 +975,35 @@ def check_reminders_paused(workspace_dir):
     return True, None
 
 
-# Global daily proactive cap: at most ONE proactive message per local day across
-# ALL meal_types (meal check-ins, weight, recall, activation/first-meal nudges).
-# This is the deterministic anti-burst backstop — even if duplicate or leftover
-# crons fire for the same slot (the "Lunch check-in" sent twice 1 min apart) or
-# several slots come due the same day, only the first to pass the gate gets out;
-# the rest return NO_REPLY. The slot is CLAIMED at gate-decision time (see
-# main()'s mark-proactive), mirroring the recall claim — the conservative choice
-# that errs toward fewer messages, which is exactly the intent.
+# Global daily proactive cap: at most DAILY_PROACTIVE_CAP proactive messages per
+# local day across ALL meal_types (meal check-ins, weight, recall,
+# activation/first-meal nudges combined). This is the deterministic anti-burst
+# backstop — even if duplicate or leftover crons fire for the same slot (the
+# "Lunch check-in" sent twice 1 min apart) or many slots come due the same day,
+# only the first DAILY_PROACTIVE_CAP to pass the gate get out; the rest return
+# NO_REPLY. Each send is COUNTED at gate-decision time (see main()'s
+# mark-proactive), mirroring the recall claim — the conservative choice that errs
+# toward fewer messages.
+DAILY_PROACTIVE_CAP = 3
+
+
 def check_daily_proactive_cap(workspace_dir, tz_offset):
-    """Check 0.5: a proactive message has already gone out today → NO_REPLY.
+    """Check 0.5: DAILY_PROACTIVE_CAP proactive messages already sent today →
+    NO_REPLY.
 
-    Reads engagement.json proactive.last_send_date via the local lifecycle
-    resolver and compares to the user's LOCAL date. Must run BEFORE
-    check_engagement_stage (which has a recall-claim side effect) so a capped day
-    never bumps the recall counter without an actual send.
+    Reads engagement.json proactive.count (scoped to the user's LOCAL date) via
+    the local lifecycle resolver. Must run BEFORE check_engagement_stage (which
+    has a recall-claim side effect) so a capped day never bumps the recall counter
+    without an actual send.
 
-    FAIL-OPEN: resolver/marker unavailable → treat as not-yet-sent (continue) —
-    never trap a user in silence on a read error.
+    FAIL-OPEN: resolver/counter unavailable → count reads 0 (continue) — never
+    trap a user in silence on a read error.
     """
     today = get_local_date(tz_offset)
-    last = lifecycle_last_proactive_date(workspace_dir)
-    if last is not None and last == today:
-        return False, f"daily proactive cap — already sent a proactive message today ({today})"
+    sent = lifecycle_proactive_count(workspace_dir, today)
+    if sent >= DAILY_PROACTIVE_CAP:
+        return False, (f"daily proactive cap — already sent {sent}/{DAILY_PROACTIVE_CAP} "
+                       f"proactive messages today ({today})")
     return True, None
 
 

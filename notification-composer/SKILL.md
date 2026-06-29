@@ -70,7 +70,7 @@ python3 {baseDir}/scripts/pre-send-check.py \
 - **`SEND recall stage=N days_silent=X`** → 用户处于召回阶段（Stage N）。**必须发召回消息，不是正常提醒。** 忽略 cron 原始的 meal-type，按召回阶段的语气和内容模板写。参考第四步的 Stage 2/3/4 分支。
 - **`SEND activation nudgeIndex=N nudgeAngle=X`** → 激活提醒（cold-start）。`pre-send-check` 已**算出该发哪一条触点**（N=1–2，X=`value_first`/`photo`）。**用这个 `nudgeIndex` 选文案**——见第四步 § 激活提醒。（Cold-Start v3：cron 是通用 sweep，不再在 payload 里带 nudgeIndex，由 gate 计算。）
 
-> ⚠️ **全局每日上限（2026-06-29）：** pre-send-check 现在每个本地自然日**最多放行一条主动消息**（餐食提醒/称重/召回/激活 nudge 全部合并计数）。当天首条 `SEND` 会在 engagement.json 写入 `proactive.last_send_date` 认领当日名额；之后任何主动 meal-type 都返回 `NO_REPLY: daily proactive cap`。这是防重复/防轰炸的确定性兜底——即使上游有重复或残留 cron，同一天也只发一条。用户主动打卡不受影响（只拦主动提醒）。
+> ⚠️ **全局每日上限（2026-06-29）：** pre-send-check 现在每个本地自然日**最多放行 3 条主动消息**（餐食提醒/称重/召回/激活 nudge 全部合并计数，常量 `DAILY_PROACTIVE_CAP`）。每条 `SEND` 在 engagement.json 给 `proactive.count` 计数（按本地日期，翻天归零）；当天计满 3 条后，任何主动 meal-type 都返回 `NO_REPLY: daily proactive cap`。这是防重复/防轰炸的确定性兜底——即使上游有重复或残留 cron，同一天也最多 3 条。用户主动打卡不受影响（只拦主动提醒）。
 > ⚠️ pre-send-check 会在请假期间自动返回 `NO_REPLY`，无需 agent 额外判断。
 > ⚠️ 假期期间用户主动打卡 → 正常记录，不拦。leave 只影响 cron 提醒。
 > ⚠️ 用户提前说"我回来了" → 调用 `leave-manager.py clear`。

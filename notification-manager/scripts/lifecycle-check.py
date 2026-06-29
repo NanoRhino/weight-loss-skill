@@ -476,30 +476,42 @@ def mark_recall_sent(workspace_dir, tier):
                 pass
 
 
-def last_proactive_send_date(workspace_dir):
-    """Return engagement.json proactive.last_send_date (local 'YYYY-MM-DD'), or
-    None. Read-only; used by pre-send-check's global daily proactive cap (at most
-    one proactive message per local day across ALL meal_types). Never raises."""
+def _int0(v):
+    """Coerce to a non-negative int (bool/None/garbage → 0)."""
+    if isinstance(v, bool) or not isinstance(v, int) or v < 0:
+        return 0
+    return v
+
+
+def proactive_sends_on(workspace_dir, local_date):
+    """Return how many proactive messages have been sent on `local_date`
+    (engagement.json proactive.{last_send_date,count}). Returns 0 when the stored
+    date isn't local_date (day rolled over) or nothing is recorded. Read-only;
+    used by pre-send-check's global daily proactive cap (at most N proactive
+    messages per local day across ALL meal_types). Never raises."""
     workspace_dir = _normalize_path(workspace_dir)
     data = _load_engagement(workspace_dir)
     proactive = data.get("proactive")
     if not isinstance(proactive, dict):
-        return None
-    val = proactive.get("last_send_date")
-    return val if isinstance(val, str) and val.strip() else None
+        return 0
+    if proactive.get("last_send_date") != local_date:
+        return 0  # different day → today's count is 0
+    return _int0(proactive.get("count", 0))
 
 
 def mark_proactive_sent(workspace_dir, local_date, meal_type):
-    """Claim the global daily proactive slot. Atomically stamp
-    proactive.{last_send_date,last_send_type,last_send_at} in engagement.json
-    under an exclusive flock (mirrors mark_recall_sent). The daily cap is enforced
-    by pre-send-check: once last_send_date == today, every further proactive
-    meal_type that day returns NO_REPLY. Claimed at gate-decision time (the
-    conservative anti-burst choice — errs toward fewer messages, like the recall
-    claim). Raises on hard write failure; caller treats failure as best-effort.
+    """Claim ONE global daily proactive slot. Atomically bump the per-day counter
+    proactive.{last_send_date,count,last_send_type,last_send_at} in
+    engagement.json under an exclusive flock (mirrors mark_recall_sent). The daily
+    CAP itself lives in pre-send-check (DAILY_PROACTIVE_CAP); this only counts.
+    When the stored date != local_date the counter rolls over to 1 for the new
+    day; same-day calls increment. Claimed at gate-decision time (conservative
+    anti-burst — errs toward fewer messages, like the recall claim). Raises on
+    hard write failure; caller treats failure as best-effort.
 
     local_date: 'YYYY-MM-DD' in the user's local tz (the cap's day boundary).
-    meal_type:  the slot that won the day (debug/audit only).
+    meal_type:  the slot that consumed this send (debug/audit only).
+    Returns the updated proactive block (incl. the new count).
     """
     workspace_dir = _normalize_path(workspace_dir)
     path = os.path.join(workspace_dir, "data", "engagement.json")
@@ -524,7 +536,10 @@ def mark_proactive_sent(workspace_dir, local_date, meal_type):
         proactive = data.get("proactive")
         if not isinstance(proactive, dict):
             proactive = {}
+        # Roll the counter over on a new local day; otherwise increment.
+        prev = _int0(proactive.get("count", 0)) if proactive.get("last_send_date") == local_date else 0
         proactive["last_send_date"] = local_date
+        proactive["count"] = prev + 1
         proactive["last_send_type"] = meal_type
         proactive["last_send_at"] = datetime.now(timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
@@ -612,19 +627,18 @@ def main():
                         help="Bump the local recall counter for this tier and exit")
     parser.add_argument("--reset-recall", action="store_true",
                         help="Clear local weekly/monthly recall counters and exit")
-    # Optional CLI for the global daily proactive cap marker (subprocess fallback
+    # Optional CLI for the global daily proactive counter (subprocess fallback
     # for pre-send-check when the in-process import isn't available).
-    parser.add_argument("--last-proactive-date", action="store_true",
-                        help="Print proactive.last_send_date (or 'null') and exit")
+    parser.add_argument("--proactive-count-on", default=None, metavar="YYYY-MM-DD",
+                        help="Print how many proactive sends happened on this local date and exit")
     parser.add_argument("--mark-proactive", default=None, metavar="YYYY-MM-DD",
-                        help="Claim the daily proactive slot for this local date and exit")
+                        help="Bump the daily proactive counter for this local date and exit")
     parser.add_argument("--mark-proactive-type", default="unknown",
-                        help="meal_type that won the daily slot (audit only)")
+                        help="meal_type that consumed this send (audit only)")
     args = parser.parse_args()
 
-    if args.last_proactive_date:
-        val = last_proactive_send_date(args.workspace_dir)
-        print(val if val else "null")
+    if args.proactive_count_on:
+        print(proactive_sends_on(args.workspace_dir, args.proactive_count_on))
         return 0
 
     if args.mark_proactive:
