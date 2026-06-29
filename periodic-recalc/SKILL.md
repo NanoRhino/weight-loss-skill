@@ -165,19 +165,20 @@ Compose a cycle review + new cycle message for the user.
 
 1. 🎉 **Celebrate** the completed cycle — the user stuck with it for 4 weeks. Make them feel proud. Reference their weight change.
 2. **Clear divider** between old cycle review and new cycle plan. The user should feel "previous page closed, new page begins."
-3. **Explain** why the new numbers are what they are — warm, human tone. Not "based on thermodynamic principles" but "you're lighter now, your body needs a bit less." Reference:
+3. **只说变化的，不变的不用说。** 先明确告知本次调整了什么（热量 1300→1360、速度 0.4→0.35 等），再用温暖口吻解释原因。如果某项没变（热量/速度/宏量都一样），不要重复罗列"保持不变"——用户不需要被告知"没变化"。Reference:
    - `weight_change`: how much lost? fast or slow?
-   - `old_calories` vs `new_calories`: up or down?
-   - `rate_kg_per_week` change
+   - `old_calories` vs `new_calories`: changed? If same, skip or one sentence only
+   - `rate_kg_per_week` change: only mention if different
    - Actual intake vs target (read `data/meals/` last 28 days)
    - If progress underperformed: gently note possible recording gaps or portion underestimation. Never accuse.
+   - **Rule:** If `old_calories == new_calories` and `old_rate == new_rate`, the message should be SHORT — just celebrate the cycle, note weight status, and say "继续按当前方案走". Do NOT list all the unchanged numbers again.
 4. **New cycle numbers:** daily calorie target, expected rate (kg/week), 4-week forecast
 5. **Macro ranges** (protein/carbs/fat in grams) — integers only, no decimals
-6. **商量口吻（已生效）：** 告知用户已调整，语气友好但明确方案已生效。例："新周期我把每日热量调到了 {new_calories} kcal（原因…），先按这个来一个周期，有想法随时跟我说~" — 不要问"你觉得OK吗？"或用征求批准的语气。方案在 Step N 已写入 PLAN.md，发消息时已经生效。
+6. **协作口吻（已生效）：** 告知用户新方案开始实施，语气友好、协作。例："新周期热量调到了 {new_calories} kcal，接下来用新方案实施，有什么想法咱们一起沟通~" — 不要问"你觉得OK吗？"（不是征求批准），也不要说"方案已经生效"（太单方面）。方案在 Step N 已写入 PLAN.md，但对用户的表达是"一起往前走"而不是"我替你决定了"。
 
 **Precision:** All nutrition values as integers (e.g. 1359 kcal, protein 70-93g). No decimals.
 
-**Already effective:** PLAN.md 已在 Step N 更新，方案发出即生效。用户后续有异议 → 按其偏好重算并改写 PLAN.md。无需等待确认。
+**Already effective:** PLAN.md 已在 Step N 更新。对用户的表达不是"已经替你定了"，而是"新方案开始实施，有想法一起调整"。用户后续有异议 → 按其偏好重算并改写 PLAN.md。
 
 **After sending,** write `{workspaceDir}/data/last-recalc-summary.json`:
 
