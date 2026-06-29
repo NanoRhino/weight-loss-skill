@@ -1,6 +1,6 @@
 ---
 name: periodic-recalc
-version: 2.0.0
+version: 2.1.0
 description: "Recalculates the user's daily calorie target every 4 weeks based on current weight. Updates PLAN.md with new TDEE, calories, and macro ranges. Reviews diet mode fit."
 ---
 
@@ -121,7 +121,7 @@ Less than 25 days since last recalc. Do nothing — silently exit.
 
 ### `action: "recalculated"`
 
-**Step N: Rewrite PLAN.md (LLM responsibility)**
+**Step N: Rewrite PLAN.md (LLM responsibility — DO THIS IMMEDIATELY)**
 
 The script no longer modifies PLAN.md. After receiving this output, **you** must update `{workspaceDir}/PLAN.md` by replacing the following fields with new values from the script output:
 
@@ -136,6 +136,8 @@ The script no longer modifies PLAN.md. After receiving this output, **you** must
 | 更新日期 / Updated | today (ISO date) |
 
 **Preserve the user's original PLAN.md format**: if it's in Chinese with bullets, keep that; if English markdown table, keep that. Only swap the numbers. Do not restructure the document.
+
+**⚠️ PLAN.md 必须在发消息之前写好。** 方案即时生效，不存在"等确认"中间态。写完 PLAN.md 再发消息。
 
 ---
 
@@ -155,17 +157,15 @@ Compose a cycle review + new cycle message for the user.
    - If progress underperformed: gently note possible recording gaps or portion underestimation. Never accuse.
 4. **New cycle numbers:** daily calorie target, expected rate (kg/week), 4-week forecast
 5. **Macro ranges** (protein/carbs/fat in grams) — integers only, no decimals
-6. **Ask for confirmation:** "Does this work for you? Happy to adjust if you want."
+6. **商量口吻（已生效）：** 告知用户已调整，语气友好但明确方案已生效。例："新周期我把每日热量调到了 {new_calories} kcal（原因…），先按这个来一个周期，有想法随时跟我说~" — 不要问"你觉得OK吗？"或用征求批准的语气。方案在 Step N 已写入 PLAN.md，发消息时已经生效。
 
 **Precision:** All nutrition values as integers (e.g. 1359 kcal, protein 70-93g). No decimals.
 
-**Confirmation flow:**
-- No reply = accepted. Proceed with new plan.
-- User has concerns → adjust and rewrite PLAN.md accordingly.
+**Already effective:** PLAN.md 已在 Step N 更新，方案发出即生效。用户后续有异议 → 按其偏好重算并改写 PLAN.md。无需等待确认。
 
 **After sending,** write `{workspaceDir}/data/last-recalc-summary.json`:
 
-注：脚本已经预写了 `date` / `weight_from` / `weight_to` / `old_calories` / `new_calories` 字段，你只需要 merge 补全 `cycle_number` / `old_rate` / `new_rate` / `awaiting_confirmation` / `message_sent` 等剩余字段（读现有 JSON、merge、写回）。
+注：脚本已经预写了 `date` / `weight_from` / `weight_to` / `old_calories` / `new_calories` 字段，你只需要 merge 补全 `cycle_number` / `old_rate` / `new_rate` / `message_sent` 等剩余字段（读现有 JSON、merge、写回）。
 
 ```json
 {
@@ -177,7 +177,6 @@ Compose a cycle review + new cycle message for the user.
   "new_calories": <new>,
   "old_rate": <old>,
   "new_rate": <new>,
-  "awaiting_confirmation": true,
   "message_sent": "<full message text>"
 }
 ```
@@ -233,17 +232,17 @@ If `{"should_trigger": true}`: run the full recalc flow, then delete `pending-re
 
 ## User Reply Handling (Main Session)
 
-When user replies to the recalc message, check `data/last-recalc-summary.json`:
+When user replies to the recalc message (in the main session):
 
-If `awaiting_confirmation: true`:
-- User confirms → set `awaiting_confirmation: false` (PLAN.md updated by LLM in Step N above)
-- User wants changes → recalculate with their preferences, update PLAN.md, confirm
-- No reply for 3 days → treat as confirmed
+The new plan is **already effective** (PLAN.md updated at send time). Handle replies as:
+- User has no objection / thanks / acknowledges → no action needed
+- User wants changes (different rate, different calories, concerns) → recalculate with their preferences, rewrite PLAN.md, and confirm the update
+- User asks "why did you change it" → explain: cite weight change, old vs new calories, and the reasoning from the recalc message. **Never deny having made the change** — it's recorded in `last-recalc-summary.json` and PLAN.md is already updated.
 
 **Semantic mapping:**
 - "previous pace / old calories / last cycle's" → `old_rate`, `old_calories`
 - "current / new / this plan" → `new_rate`, `new_calories`
-- "keep the old pace" = user wants `old_rate`, not the new slower rate → recalculate with that rate
+- "keep the old pace" = user wants `old_rate`, not the new slower rate → recalculate with that rate, update PLAN.md
 
 ---
 
@@ -256,7 +255,7 @@ If `awaiting_confirmation: true`:
 | `data/weight.json` | Read | Most recent weight |
 | `data/leave.json` | Read | Leave status |
 | `data/pending-recalc.json` | R/W/Delete | Deferred recalc tracking |
-| `data/last-recalc-summary.json` | Write | Context for user reply handling |
+| `data/last-recalc-summary.json` | Write | Recalc history and audit trail |
 | `data/meals/*.json` | Read | Actual eating patterns (diet-mode-review) |
 
 ---
