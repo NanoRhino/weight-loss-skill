@@ -1,7 +1,7 @@
 ---
 name: dashboard-link
 version: 1.0.0
-description: "Send the user their personal web dashboard ('data center') link — the full web view of their weight, calories, charts, and history. Use ONLY when the user asks for the full web/online view of their data: 'my dashboard', 'my data center', 'my progress page', 'show me my charts', 'the website', 'web version', 'data link', '我的数据中心', '数据中心', '我的进度网页', '看我的数据图表', '数据链接', '网页版'. Do NOT trigger for quick in-chat numbers like 'how many calories today' / '今日进度' — those stay text and route to personal-data-query."
+description: "Send the user their personal web dashboard ('data center') link — the full web view of their weight, calories, charts, and history. Use when the user asks for the full web/online view of their data OR asks whether a dashboard/app/website even exists: 'my dashboard', 'my data center', 'my progress page', 'show me my charts', 'the website', 'web version', 'data link', 'is there a dashboard/website?', 'do you have an app?', 'should I use the app/dashboard?', '我的数据中心', '数据中心', '我的进度网页', '看我的数据图表', '数据链接', '网页版', '有没有网页/App', '有App吗', '要用App吗'. The dashboard EXISTS — never deny it; answer the existence question AND send the link. Do NOT trigger for quick in-chat numbers like 'how many calories today' / '今日进度' — those stay text and route to personal-data-query."
 metadata:
   openclaw:
     emoji: "globe_with_meridians"
@@ -29,6 +29,17 @@ Activate when the user asks for the **full web / online view** of their data, e.
   "send me the link to my data", "where can I see my history online"
 - Chinese: "我的数据"（指网页）, "数据中心", "我的进度网页", "看我的数据图表",
   "数据链接", "网页版", "把我数据的链接发我"
+
+**Also activate on existence / advisory questions** — when the user asks *whether*
+a dashboard, app, or website exists, or *whether they should use it*. These are NOT
+covered by the imperative phrasings above and were previously mis-answered with a
+flat "no app / no dashboard" denial. The dashboard **exists**; treat these as a
+request to confirm it AND send the link:
+
+- English: "is there a dashboard/website?", "do you have an app?", "do I need an
+  app?", "should I be using the app/dashboard?", "where do I see my progress?"
+- Chinese: "有没有网页/App?", "有App吗?", "要用App吗?", "需要下载App吗?",
+  "我该用数据中心吗?"
 
 **Do NOT trigger** when the user just wants today's numbers in chat — "how many
 calories today", "what did I eat", "今日进度", "今天还剩多少". Those are a quick
@@ -59,6 +70,13 @@ the request. Examples (pick wording to fit, keep it to one line):
 
 - EN: `Here's your dashboard — weight, calories & charts: https://user.nanorhino.com/me/{agentId}`
 - ZH: `这是你的数据中心，体重、热量和图表都在这里：https://user.nanorhino.com/me/{agentId}`
+
+If the message was an **existence / advisory question** ("is there an app?", "should
+I use the dashboard?"), lead with a one-clause yes — *no app to download, but you do
+have a web dashboard* — then the same single URL line. Keep it to one short SMS:
+
+- EN: `No app to download — but you do have a web dashboard: https://user.nanorhino.com/me/{agentId}`
+- ZH: `不用下载App——但你有一个网页数据中心：https://user.nanorhino.com/me/{agentId}`
 
 Nothing else — no extra explanation, no "let me know if…".
 

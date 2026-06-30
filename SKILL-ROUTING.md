@@ -179,7 +179,7 @@ I just said?"
 | "我吃饭太快了" / "I snack too much at night" | behavior-self-report | habit-builder |
 | "我想养成早睡的习惯" | habit-request | habit-builder |
 | "how many calories today" / "今日进度" / "今天还剩多少" | daily-number-query | personal-data-query (text in chat — NOT a link) |
-| "my dashboard" / "show me my charts" / "the website" / "数据中心" / "网页版" / "我的进度网页" | dashboard-web-view | dashboard-link (send the personal dashboard URL) |
+| "my dashboard" / "show me my charts" / "the website" / "is there an app/dashboard?" / "should I use the dashboard?" / "数据中心" / "网页版" / "我的进度网页" / "有App吗" | dashboard-web-view | dashboard-link (confirm the dashboard exists + send the personal dashboard URL; never deny it) |
 
 ---
 
@@ -454,10 +454,15 @@ online view ("my dashboard", "show me my charts", "the website", "数据中心",
    "数据中心", "网页版", "我的进度网页", "看我的数据图表", "数据链接" →
    `dashboard-link` sends the personal dashboard URL
    (`https://user.nanorhino.com/me/{agentId}`, one short line).
-3. **Both in one message** ("how am I doing today, and send me the page") →
+3. **Existence / advisory question** — "is there a dashboard/website?", "do you
+   have an app?", "should I be using the app/dashboard?", "有没有网页/App?",
+   "有App吗?", "要用App吗?" → also `dashboard-link`. The dashboard EXISTS;
+   confirm it ("no app to download, but you do have a web dashboard") and send the
+   link. **Never deny the dashboard** by generalizing from the "no app" pricing line.
+4. **Both in one message** ("how am I doing today, and send me the page") →
    give the quick text answer (personal-data-query) and append the dashboard
    line (dashboard-link). Single coherent reply, no double greeting.
-4. **"weekly report" / "周报"** is neither — that's `weekly-report`.
+5. **"weekly report" / "周报"** is neither — that's `weekly-report`.
 
 **Key:** Never hijack a quick daily-number request into a link, and never answer
 a "send me the web/charts" request with only text. The dividing line is text vs
