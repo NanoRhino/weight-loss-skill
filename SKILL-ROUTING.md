@@ -344,7 +344,9 @@ another skill (e.g., logs food before finishing profile setup).
 >   right now ("I haven't eaten yet" / declined the meal ask once), the coach
 >   pivots ONCE (Single-Ask — no nagging) to offering the 3 meal reminders. On
 >   acceptance it writes `health-profile.md > Meal Schedule`, runs
->   `batch-create-reminders.sh --only meal,weight --skip-existing`, and stamps the
+>   `batch-create-reminders.sh --only meal --skip-existing` (meal only — this
+>   user hasn't logged yet; the weekly weight check-in is added once they log
+>   their first meal), and stamps the
 >   activation signal via `notification-manager`'s
 >   `activation-mark-reminders-set.py` — **this counts as activation** (so the
 >   user isn't a dead lead), and the meal reminders then drive the first log. It

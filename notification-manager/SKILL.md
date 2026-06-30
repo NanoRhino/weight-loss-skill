@@ -521,11 +521,14 @@ the reminder + signal mechanics):
 1. The coach writes the user's meal times to `health-profile.md > Meal Schedule`
    (user's times if given; else `DEFAULT_MEAL_SCHEDULE` 08:30/12:30/18:30 — do NOT
    hard-code times, reference `batch-create-reminders.sh`).
-2. Creates the meal reminders + the weekly weight check-in:
+2. Creates the 3 meal reminders — **meal only** here. This user has not logged
+   yet (not active), so do NOT create the weekly weight check-in; it is added
+   later, the moment they log their first meal (post-first-meal flow uses
+   `--only meal,weight`). Weight reminders are for active loggers only.
    ```bash
    bash {baseDir}/scripts/batch-create-reminders.sh \
      --agent <your-agent-id> --channel twilio --workspace {workspaceDir} \
-     --only meal,weight --skip-existing
+     --only meal --skip-existing
    ```
 3. Stamps the activation signal (idempotent, set-once):
    ```bash
