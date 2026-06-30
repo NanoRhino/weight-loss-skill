@@ -209,7 +209,7 @@ CONVENTIONS.md §12). It runs automatically from `activation-mark-reminders-set.
    - **Stale jobs** (cron exists but its time doesn't match any current meal time) → remove then recreate.
    - **Legacy jobs** (cron exists and time matches, but `--message` references `daily-notification` or `daily-notification-skill` instead of `notification-composer`) → remove then recreate with the correct `notification-composer` message. This ensures old cron jobs from before the skill split are automatically migrated.
    - **Matching jobs** (time matches AND message references `notification-composer`) → no action.
-4. Also verify weight reminder cron jobs exist — see § "Weight reminders" below. This includes the primary (Sat morning) and next-morning followup (Sun morning). Create any that are missing.
+4. Also verify the weight reminder cron job exists — see § "Weight reminders" below. This is the single weekly primary (Sat morning) weigh-in reminder. Create it if missing. (The Sunday "morning followup" catch-up was retired 2026-06-30 — do NOT create it.)
 5. Also verify the weekly report cron job exists (Sunday 21:00 — see § "Weekly report" below). Create if missing.
 6. **Diet pattern detection** — special handling:
    - Read `health-profile.md > Automation > Pattern Detection Completed`
@@ -288,13 +288,15 @@ bash {baseDir}/scripts/create-reminder.sh \
   --cron "15 18 * * *"
 ```
 
-### Weight reminders (weekly + followup)
+### Weight reminders (weekly)
 
-> **Cadence is weekly by default — one weigh-in per week, not 2×.** Over-frequent scale checks surface day-to-day water-weight noise and demoralize the engaged users a results-based product most wants to keep (an engaged 7-day-streak user told us "weighing 2 times a week… very depressing and not really necessary"). The Sunday followup is a conditional catch-up that only fires if Saturday was missed — it is NOT a second expected weigh-in. If a user explicitly wants more frequent weigh-ins, add days on request; never default above weekly.
+> **Cadence is weekly — one weigh-in per week.** Over-frequent scale checks surface day-to-day water-weight noise and demoralize the engaged users a results-based product most wants to keep (an engaged 7-day-streak user told us "weighing 2 times a week… very depressing and not really necessary"). If a user explicitly wants more frequent weigh-ins, add days on request; never default above weekly.
 
-> ⚠️ **Breakfast fallback:** If user has no breakfast (BREAKFAST_TIME is empty/null), use the **earliest meal time** from `health-profile.md > Meal Schedule` as the reference for all "breakfast time − 30 min" calculations below. For example, if user only eats lunch (12:00) and dinner (18:00), weight primary reminder = 11:30, morning followup = 11:30. The condition for creating weight reminders is that **at least one meal time exists** — not specifically breakfast.
+> **Retired 2026-06-30 — the Sunday "morning followup" catch-up.** Product decision: keep only the single weekly primary weigh-in reminder. Do NOT create a "Weight morning followup" cron. The `weight_morning_followup` pre-send-check type still exists but is no longer reachable from creation; leave it be.
 
-**Primary reminder:** Cron time = breakfast time (or earliest meal) minus **30 min**. Fires Sat.
+> ⚠️ **Breakfast fallback:** If user has no breakfast (BREAKFAST_TIME is empty/null), use the **earliest meal time** from `health-profile.md > Meal Schedule` as the reference for the "breakfast time − 30 min" calculation below. For example, if user only eats lunch (12:00) and dinner (18:00), weight primary reminder = 11:30. The condition for creating the weight reminder is that **at least one meal time exists** — not specifically breakfast.
+
+**Primary reminder (the only weight reminder):** Cron time = breakfast time (or earliest meal) minus **30 min**. Fires Sat.
 
 ```bash
 # Example assumes breakfast at 07:00 → weight cron at 06:30
@@ -302,16 +304,6 @@ bash {baseDir}/scripts/create-reminder.sh \
   --agent <your-agent-id> --channel <channel> --type weight --name "Weight check-in reminder" \
   --message "Run notification-composer for weight." \
   --cron "30 6 * * 6"
-```
-
-**Next-morning followup:** Cron time = breakfast time (or earliest meal) minus **30 min**. Fires Sun (day after primary). Only sends if the user did NOT weigh in yesterday OR today. Pre-send-check uses `weight_morning_followup` type.
-
-```bash
-# Example assumes breakfast at 07:00 → morning followup at 06:30
-bash {baseDir}/scripts/create-reminder.sh \
-  --agent <your-agent-id> --channel <channel> --type weight --name "Weight morning followup" \
-  --message "Run notification-composer for weight_morning_followup." \
-  --cron "30 6 * * 0"
 ```
 
 ### Weekly report (Sunday 9 PM)
