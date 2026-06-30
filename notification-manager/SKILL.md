@@ -239,7 +239,7 @@ The canonical **default meal schedule is `08:30` breakfast / `12:30` lunch / `18
 ```bash
 bash {baseDir}/scripts/batch-create-reminders.sh \
   --agent <id> --channel <ch> --workspace {workspaceDir} \
-  --only meal,weight --skip-existing
+  --only meal --skip-existing
 ```
 
 even before the user has a confirmed Meal Schedule. Onboarding later confirms/overrides meal times one ask at a time (goal weight → diet prefs → confirm meal times); when the user changes a time, `health-profile.md > Meal Schedule` is updated and auto-sync rewrites the crons (stale jobs removed + recreated). A populated Meal Schedule always wins over the default — the fallback only applies when no times exist yet.
@@ -521,10 +521,7 @@ the reminder + signal mechanics):
 1. The coach writes the user's meal times to `health-profile.md > Meal Schedule`
    (user's times if given; else `DEFAULT_MEAL_SCHEDULE` 08:30/12:30/18:30 — do NOT
    hard-code times, reference `batch-create-reminders.sh`).
-2. Creates the 3 meal reminders — **meal only** here. This user has not logged
-   yet (not active), so do NOT create the weekly weight check-in; it is added
-   later, the moment they log their first meal (post-first-meal flow uses
-   `--only meal,weight`). Weight reminders are for active loggers only.
+2. Creates the 3 meal reminders:
    ```bash
    bash {baseDir}/scripts/batch-create-reminders.sh \
      --agent <your-agent-id> --channel twilio --workspace {workspaceDir} \
