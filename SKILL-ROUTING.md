@@ -334,15 +334,17 @@ another skill (e.g., logs food before finishing profile setup).
 >   one-ask-at-a-time across later turns (goal weight → diet prefs → confirm
 >   meal times). The first-meal reply itself may carry exactly ONE soft,
 >   non-gating line (the meal-reminder opt-in) — nothing more.
-> - Default meal reminders (08:30/12:30/18:30 local) are created automatically
->   on first meal via `notification-manager`'s `batch-create-reminders.sh
->   --only meal --skip-existing`, so the user is enrolled without an explicit
->   "set your times" Q&A. P0/P1 still override everything.
+> - Default meal reminders (08:30/12:30/18:30 local) **plus a weekly weight
+>   check-in** are created automatically on first meal via
+>   `notification-manager`'s `batch-create-reminders.sh --only meal,weight
+>   --skip-existing`, so the user is enrolled without an explicit "set your
+>   times" Q&A. (Weight sends are ED-gated at fire time.) P0/P1 still override
+>   everything.
 > - **Hasn't-eaten → reminder-first activation.** If the user has no meal to log
 >   right now ("I haven't eaten yet" / declined the meal ask once), the coach
 >   pivots ONCE (Single-Ask — no nagging) to offering the 3 meal reminders. On
 >   acceptance it writes `health-profile.md > Meal Schedule`, runs
->   `batch-create-reminders.sh --only meal --skip-existing`, and stamps the
+>   `batch-create-reminders.sh --only meal,weight --skip-existing`, and stamps the
 >   activation signal via `notification-manager`'s
 >   `activation-mark-reminders-set.py` — **this counts as activation** (so the
 >   user isn't a dead lead), and the meal reminders then drive the first log. It
