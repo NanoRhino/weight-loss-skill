@@ -180,6 +180,7 @@ I just said?"
 | "我想养成早睡的习惯" | habit-request | habit-builder |
 | "how many calories today" / "今日进度" / "今天还剩多少" | daily-number-query | personal-data-query (text in chat — NOT a link) |
 | "my dashboard" / "show me my charts" / "the website" / "is there an app/dashboard?" / "should I use the dashboard?" / "数据中心" / "网页版" / "我的进度网页" / "有App吗" | dashboard-web-view | dashboard-link (confirm the dashboard exists + send the personal dashboard URL; never deny it) |
+| "link to your site" / "my friend wants to join" / "refer a friend" / "invite/share link" / "推荐链接" / "邀请朋友" / "把链接发我" | referral-invite | referral-link (send the personal referral URL `nanorhino.com/referral/{agentId}`; never reply with a bare domain) |
 
 ---
 
