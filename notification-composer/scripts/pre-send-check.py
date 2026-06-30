@@ -139,6 +139,32 @@ def lifecycle_proactive_count(workspace_dir, local_date):
     return 0
 
 
+def lifecycle_proactive_types(workspace_dir, local_date):
+    """Local read of which proactive meal_types were already sent on `local_date`
+    (engagement.json proactive.sent_types). Returns a list of meal_type strings
+    (empty on any failure / different day). Never raises. Used by the per-slot
+    same-day dedup gate."""
+    if _lifecycle is not None:
+        try:
+            return list(_lifecycle.proactive_types_sent_on(workspace_dir, local_date))
+        except Exception as e:  # noqa: BLE001
+            log(f"proactive_types_sent_on() failed: {e}")
+            return []
+    import subprocess
+    script = os.path.join(_LIFECYCLE_DIR, "lifecycle-check.py")
+    try:
+        out = subprocess.run(
+            ["python3", script, "--workspace-dir", workspace_dir,
+             "--proactive-types-on", local_date],
+            capture_output=True, timeout=10, text=True,
+        )
+        if out.returncode == 0:
+            return [t for t in out.stdout.strip().split(",") if t]
+    except (OSError, subprocess.SubprocessError) as e:
+        log(f"proactive types subprocess failed: {e}")
+    return []
+
+
 def lifecycle_mark_proactive(workspace_dir, local_date, meal_type):
     """Local claim of the global daily proactive slot (engagement.json
     proactive.last_send_date). Best-effort — a failure here must never block a
@@ -987,6 +1013,42 @@ def check_reminders_paused(workspace_dir):
 DAILY_PROACTIVE_CAP = 3
 
 
+# Per-slot same-day dedup applies to every recurring proactive slot. activation
+# and first_meal_nudge are EXEMPT: they are computed touches (1..2) carrying their
+# own MIN_GAP + cap cadence — keyed by nudge index, not a fixed daily slot — so a
+# blanket once-per-type rule would fight that logic. Every other proactive
+# meal_type is a fixed daily slot that must go out at most once per local day.
+SLOT_DEDUP_EXEMPT = {"activation", "first_meal_nudge"}
+
+
+def check_slot_already_sent(workspace_dir, meal_type, tz_offset):
+    """Check 0.6: per-slot same-day dedup — at most ONE proactive nudge per slot
+    (meal_type) per local day → NO_REPLY on the second.
+
+    This is the deterministic backstop the global cap can't provide: a same-slot
+    duplicate pair is 2 messages, under DAILY_PROACTIVE_CAP (3), so the count cap
+    lets it through. Duplicate/leftover crons (e.g. two 'Lunch reminder' jobs) or
+    a single cron double-firing both produce a same-slot pair; this gate drops the
+    second regardless of how many crons fire — it reads the slot record written at
+    the previous send's gate-decision time (proactive.sent_types), not the cron
+    store, so it is immune to the cron-list read failures that let the duplicate
+    crons get created in the first place.
+
+    Runs BEFORE check_engagement_stage (which has a recall-claim side effect) so a
+    suppressed duplicate never bumps the recall counter.
+
+    FAIL-OPEN: resolver/state unavailable → [] → never trap a user in silence
+    (the daily cap still backstops the total)."""
+    if meal_type in SLOT_DEDUP_EXEMPT:
+        return True, None
+    today = get_local_date(tz_offset)
+    already = lifecycle_proactive_types(workspace_dir, today)
+    if meal_type in already:
+        return False, (f"slot dedup — {meal_type} already nudged today ({today}); "
+                       f"suppressing duplicate same-slot nudge")
+    return True, None
+
+
 def check_daily_proactive_cap(workspace_dir, tz_offset):
     """Check 0.5: DAILY_PROACTIVE_CAP proactive messages already sent today →
     NO_REPLY.
@@ -1037,6 +1099,11 @@ def main():
         # recall-claim side effect) so a capped day never bumps the recall counter.
         ("daily_proactive_cap", lambda: check_daily_proactive_cap(
             args.workspace_dir, args.tz_offset)),
+        # Per-slot same-day dedup — also before engagement_stage so a suppressed
+        # duplicate never claims a recall. Catches the same-slot pair the global
+        # cap (3) lets through.
+        ("slot_already_sent", lambda: check_slot_already_sent(
+            args.workspace_dir, args.meal_type, args.tz_offset)),
         ("engagement_stage", lambda: check_engagement_stage(
             args.workspace_dir, args.meal_type, args.tz_offset, out=stage_info)),
         ("health_flags", lambda: check_health_flags(args.workspace_dir, args.meal_type)),

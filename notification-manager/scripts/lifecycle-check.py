@@ -499,6 +499,24 @@ def proactive_sends_on(workspace_dir, local_date):
     return _int0(proactive.get("count", 0))
 
 
+def proactive_types_sent_on(workspace_dir, local_date):
+    """Return the list of proactive meal_types already sent on `local_date`
+    (engagement.json proactive.sent_types, scoped to last_send_date). Empty list
+    on a different day or when nothing is recorded. Read-only; used by
+    pre-send-check's per-slot same-day dedup (at most one nudge per slot per
+    local day — the backstop against duplicate/leftover crons or a single cron
+    double-firing, which the global count cap alone can't catch). Never raises."""
+    workspace_dir = _normalize_path(workspace_dir)
+    data = _load_engagement(workspace_dir)
+    proactive = data.get("proactive")
+    if not isinstance(proactive, dict):
+        return []
+    if proactive.get("last_send_date") != local_date:
+        return []  # different day → nothing sent today
+    types = proactive.get("sent_types")
+    return [t for t in types if isinstance(t, str)] if isinstance(types, list) else []
+
+
 def mark_proactive_sent(workspace_dir, local_date, meal_type):
     """Claim ONE global daily proactive slot. Atomically bump the per-day counter
     proactive.{last_send_date,count,last_send_type,last_send_at} in
@@ -536,10 +554,23 @@ def mark_proactive_sent(workspace_dir, local_date, meal_type):
         proactive = data.get("proactive")
         if not isinstance(proactive, dict):
             proactive = {}
+        same_day = proactive.get("last_send_date") == local_date
         # Roll the counter over on a new local day; otherwise increment.
-        prev = _int0(proactive.get("count", 0)) if proactive.get("last_send_date") == local_date else 0
+        prev = _int0(proactive.get("count", 0)) if same_day else 0
+        # Per-slot same-day record: the SET (deduped list) of meal_types already
+        # sent today. Resets on day rollover. Lets the gate dedupe a SECOND nudge
+        # for a slot that already went out today — duplicate/leftover crons, or a
+        # single cron double-firing — which the global count cap alone cannot
+        # catch (a same-slot pair is 2, under the cap of 3).
+        sent_types = proactive.get("sent_types") if same_day else None
+        if not isinstance(sent_types, list):
+            sent_types = []
+        sent_types = [t for t in sent_types if isinstance(t, str)]
+        if meal_type not in sent_types:
+            sent_types.append(meal_type)
         proactive["last_send_date"] = local_date
         proactive["count"] = prev + 1
+        proactive["sent_types"] = sent_types
         proactive["last_send_type"] = meal_type
         proactive["last_send_at"] = datetime.now(timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
@@ -631,6 +662,8 @@ def main():
     # for pre-send-check when the in-process import isn't available).
     parser.add_argument("--proactive-count-on", default=None, metavar="YYYY-MM-DD",
                         help="Print how many proactive sends happened on this local date and exit")
+    parser.add_argument("--proactive-types-on", default=None, metavar="YYYY-MM-DD",
+                        help="Print comma-separated meal_types already sent on this local date and exit")
     parser.add_argument("--mark-proactive", default=None, metavar="YYYY-MM-DD",
                         help="Bump the daily proactive counter for this local date and exit")
     parser.add_argument("--mark-proactive-type", default="unknown",
@@ -639,6 +672,10 @@ def main():
 
     if args.proactive_count_on:
         print(proactive_sends_on(args.workspace_dir, args.proactive_count_on))
+        return 0
+
+    if args.proactive_types_on:
+        print(",".join(proactive_types_sent_on(args.workspace_dir, args.proactive_types_on)))
         return 0
 
     if args.mark_proactive:
