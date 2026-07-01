@@ -119,8 +119,13 @@ routing-layer pointer to it.
    surfaces** (plugin card, diet-tracking-analysis, personal-data-query). Pick by
    USER.md language:
 
-   - **EN:** `ate {intake} · burned {burn} · target {target} · net ~{abs(balance)} kcal {verdict} today (incl. workout) — target stays {target}`
-   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日净{赤字|盈余|维持} ~{abs} kcal（含运动）— 目标不变，仍是 {target}`
+   **deficit / surplus** (`verdict` ∈ deficit|surplus):
+   - **EN:** `ate {intake} · burned {burn} · target {target} · net ~{abs(balance)} kcal {deficit|surplus} today (incl. workout) — target stays {target}`
+   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日净{赤字|盈余} ~{abs} kcal（含运动）— 目标不变，仍是 {target}`
+
+   **maintenance** (`verdict` == maintenance — natural phrasing, NO `~N kcal` magnitude):
+   - **EN:** `ate {intake} · burned {burn} · target {target} · right around maintenance today (incl. workout) — target stays {target}`
+   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日基本持平（含运动）— 目标不变，仍是 {target}`
 
    `{verdict}` ∈ deficit|surplus|maintenance (from energy-balance.py). **Comma-group
    thousands in the kcal numbers only** (not durations). The "— target stays" /

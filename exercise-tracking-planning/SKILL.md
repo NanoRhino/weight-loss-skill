@@ -53,10 +53,15 @@ Determine which capability to use based on user intent:
    It is a **LOCKED string — byte-for-byte identical across all three**, picked by
    USER.md language:
 
-   - **EN:** `ate {intake} · burned {burn} · target {target} · net ~{abs(balance)} kcal {verdict} today (incl. workout) — target stays {target}`
-   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日净{赤字|盈余|维持} ~{abs} kcal（含运动）— 目标不变，仍是 {target}`
+   **deficit / surplus** (`verdict` ∈ deficit|surplus):
+   - **EN:** `ate {intake} · burned {burn} · target {target} · net ~{abs(balance)} kcal {deficit|surplus} today (incl. workout) — target stays {target}`
+   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日净{赤字|盈余} ~{abs} kcal（含运动）— 目标不变，仍是 {target}`
 
-   `{verdict}` ∈ deficit|surplus|maintenance (from energy-balance.py). Example (EN):
+   **maintenance** (`verdict` == maintenance — natural phrasing, NO `~N kcal` magnitude):
+   - **EN:** `ate {intake} · burned {burn} · target {target} · right around maintenance today (incl. workout) — target stays {target}`
+   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日基本持平（含运动）— 目标不变，仍是 {target}`
+
+   Example (EN deficit):
    `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`.
    **Comma-group thousands in the kcal numbers only** (not durations). The
    "— target stays" / "目标不变，仍是" clause is mandatory; omit the whole line when
@@ -139,9 +144,9 @@ re-implement logging or call `exercise-calc.py save` yourself for user-facing lo
 **Returns:** a single canonical `card` string **plus** a structured
 `energy_balance` object (raw `energy-balance.py` output). **Render the `card`
 verbatim** — it already applies the NET rule, the standard format, and ends with
-the LOCKED net-balance string (EN: *ate {intake} · burned {burn} · target {target}
-· net ~{abs(balance)} kcal {verdict} today (incl. workout) — target stays
-{target}*; zh: *吃了 … — 目标不变，仍是 {target}* — exact strings in the Exercise &
+the LOCKED net-balance string (deficit/surplus carry the `net ~{abs(balance)} kcal
+{verdict}` magnitude; maintenance uses the natural no-magnitude variant *right
+around maintenance* / *今日基本持平* — exact strings for both cases in the Exercise &
 Activity Policy above). This standardizes output and guarantees NET, killing the
 old "logged vs total" formatting drift. If `energy-balance.py` reported
 `data_complete:false` (no plan.json yet), the card omits the net-balance line —
