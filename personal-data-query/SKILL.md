@@ -62,7 +62,11 @@ python3 {exercise-tracking-planning:baseDir}/scripts/energy-balance.py \
 
   > ate {intake} · burned {exercise_burn_net} · target {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today (incl. workout) — target stays {eating_target}
 
+  Example (numbers filled): `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`
+
 - `{deficit|surplus|maintenance}` = the resolver's `verdict`.
+- **Comma-group thousands** in every number (1,200 / 1,404 / 1,006) to match the
+  plugin card and existing card house style ("≈1,474").
 - The **"— target stays {eating_target}"** clause is MANDATORY — never imply the
   eating target moved.
 - Do NOT reword or reorder this line — it must match the plugin card and

@@ -120,8 +120,10 @@ routing-layer pointer to it.
 
    > ate {intake} · burned {exercise_burn_net} · target {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today (incl. workout) — target stays {eating_target}
 
-   The "— target stays {eating_target}" clause is mandatory. Omit the whole line
-   when `data_complete:false` (no `data/plan.json` yet) or `exercise_burn_net == 0`.
+   Example: `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`.
+   **Comma-group thousands** in every number (matches the card house style). The
+   "— target stays {eating_target}" clause is mandatory. Omit the whole line when
+   `data_complete:false` (no `data/plan.json` yet) or `exercise_burn_net == 0`.
 
 ---
 
