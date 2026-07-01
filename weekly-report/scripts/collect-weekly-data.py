@@ -260,10 +260,53 @@ NUTRITION_TOOL_SCHEMA = {
 }
 
 
-def read_plan(workspace_dir):
-    """Extract nutrition targets from PLAN.md / health-profile.md using Claude Haiku.
+def _read_plan_json(workspace_dir):
+    """Read the canonical machine-readable target store data/plan.json (owned by
+    weight-loss-planner). Preferred over PLAN.md — it has tdee_base + a clean
+    numeric target, avoiding both the Bedrock call and the fragile PLAN.md regex
+    (which failed on Chinese keys). Returns a plan dict in this script's shape,
+    or None if plan.json is absent/unreadable (caller falls back)."""
+    p = os.path.join(workspace_dir, "data", "plan.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        with open(p, encoding="utf-8") as f:
+            pj = json.load(f)
+    except (IOError, ValueError):
+        return None
 
-    Falls back to the regex-based extraction (_read_plan_regex) if the Bedrock call fails."""
+    target = pj.get("daily_calorie_target")
+    if target is None:
+        return None  # no usable target → let caller fall back
+
+    plan = {}
+    target = int(target)
+    # Align cal_min with nutrition-calc's ±100 range convention.
+    plan["cal_min"] = [target - 100, target + 100]
+    if pj.get("tdee_base") is not None:
+        plan["tdee"] = int(pj["tdee_base"])
+    if pj.get("bmr") is not None:
+        plan["bmr"] = int(pj["bmr"])
+    if pj.get("daily_deficit") is not None:
+        plan["deficit"] = int(pj["daily_deficit"])
+    if pj.get("weekly_rate_kg") is not None:
+        plan["weight_loss_rate"] = float(pj["weekly_rate_kg"])
+
+    log(f"plan.json nutrition extraction: target={target}, tdee_base={plan.get('tdee')}, "
+        f"source={pj.get('source')}")
+    plan = _fill_macro_defaults(workspace_dir, plan)
+    return plan if plan else None
+
+
+def read_plan(workspace_dir):
+    """Extract nutrition targets, preferring the canonical data/plan.json, then
+    falling back to Claude Haiku over PLAN.md / health-profile.md, then to the
+    regex-based extraction (_read_plan_regex) if the Bedrock call fails."""
+    # Preferred: canonical machine-readable target store.
+    pj = _read_plan_json(workspace_dir)
+    if pj:
+        return pj
+
     plan_path = os.path.join(workspace_dir, "PLAN.md")
     profile_path = os.path.join(workspace_dir, "health-profile.md")
 

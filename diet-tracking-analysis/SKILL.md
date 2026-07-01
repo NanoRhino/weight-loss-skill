@@ -478,6 +478,35 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 
 If fat is ⬆️, you cannot say "脂肪够了". If protein is ⬇️, you cannot say "蛋白质ok". Verify consistency before outputting.
 
+### ②b Net daily balance (ONLY when exercise was logged today)
+
+The daily calorie target and checkpoint above are **intake-vs-target only** — the
+fixed-target rule (exercise never moves the eating target). When the user has ALSO
+logged a workout today, append ONE net-balance line so they see their true deficit
+*including* the workout. This is additive and never changes ①/② numbers.
+
+**When to show:** only when today has exercise logged (the resolver's
+`exercise_burn_net > 0`). On a plain meal-only day, omit it — do NOT add a
+zero-burn line to every meal reply (keeps it non-spammy).
+
+Run the resolver (owned by exercise-tracking-planning):
+```bash
+python3 {exercise-tracking-planning:baseDir}/scripts/energy-balance.py \
+  --data-dir {workspaceDir}/data --date {today}
+```
+- If `data_complete: false` (no `data/plan.json` yet) → **omit the line entirely**
+  (do not fabricate a deficit). If `exercise_burn_net == 0` → omit.
+- Otherwise render, using the resolver fields (`intake`, `exercise_burn_net`,
+  `eating_target`, `balance`, `verdict`), localized to USER.md language:
+
+  > 🏃 净热量：吃 {intake} · 运动消耗 {exercise_burn_net} · 目标 {eating_target} · 今日净{deficit/surplus}约 {|balance|} 大卡（含运动）— 目标仍是 {eating_target}
+
+  English equivalent: *ate {intake} · burned {exercise_burn_net} · target
+  {eating_target} · net ~{|balance|} kcal {deficit/surplus} today (incl. workout)
+  — target stays {eating_target}*.
+- The **"target stays {eating_target}"** clause is mandatory — never imply the
+  eating target moved. `verdict: "maintenance"` → say "about maintenance today".
+
 ### ③ Suggestion (by `suggestion_type`)
 
 This ③ forward beat is REQUIRED on every meal-log reply, and the same "one concrete next step" applies

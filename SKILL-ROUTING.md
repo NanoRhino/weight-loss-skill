@@ -96,6 +96,31 @@ python3 {notification-composer:baseDir}/scripts/leave-manager.py set \
 
 ---
 
+## Exercise & Activity Policy (Global — ALL Skills)
+
+**Whenever exercise, workouts, or calorie burn come up — in any skill — these
+rules hold.** The **authoritative** source is
+`exercise-tracking-planning/SKILL.md > Exercise & Activity Policy`; this is the
+routing-layer pointer to it.
+
+1. **ALWAYS accept and log exercise** — via the `exercise_checkin` plugin tool
+   (text OR fitness-app screenshot). Even casual movement counts.
+2. **NEVER say exercise is "baked into TDEE" / "no need to log it."** The TDEE
+   base is NEAT-only (daily-life movement, not workouts); logged workouts are
+   real additional burn. There is no correct answer that is "don't log."
+3. **Report NET calories, never gross** (net = above resting metabolism).
+4. **The eating target does NOT move when the user exercises** — net-deficit,
+   fixed-target model. The workout improves the true daily balance (shown via the
+   net-balance line) but the calorie target stays put. Never offer "eat-back"
+   unless the user proactively eats more / says they're hungry.
+5. **Surface the unified daily balance** after logging / on a data query, via the
+   `exercise_checkin` card or `exercise-tracking-planning/scripts/energy-balance.py`:
+   *ate X · burned Y · target Z · net ~N kcal deficit today (incl. workout) —
+   target stays Z*. Omit the net-balance line when `data_complete:false`
+   (no `data/plan.json` yet).
+
+---
+
 ## Priority Tiers
 
 Skills are organized into priority tiers. Higher-tier skills take precedence
@@ -192,22 +217,32 @@ I just said?"
 
 Example: "ran for 30 minutes, then ate chicken breast"
 
-**Resolution: Merge — single response, both logged.**
+**Resolution: Merge — single response, both logged via their own plugin tools.**
 
-1. Parse and separate the exercise portion from the food portion
-2. Log the exercise first (call exercise-calc, produce exercise JSON)
-3. Log the food second (call nutrition-calc save, call evaluate)
-4. Combine into one response:
-   - Exercise summary (activity, duration, estimated calories burned)
+1. Call **`exercise_checkin`** for the exercise portion (pass the full user text;
+   the plugin extracts the exercise part, computes NET burn, stores it).
+2. Call **`meal_checkin`** for the food portion (pass the full user text; the
+   plugin extracts the food part, computes calories/macros, evaluates).
+3. Call each tool **exactly once** — the "once per user message" discipline is
+   **per tool** (see Deference/dedup notes). Neither tool double-logs the other's
+   content.
+4. Combine into ONE response (single greeting, chronological order — exercise
+   happened before eating):
+   - Exercise summary (activity, duration, **net** calories burned) — render the
+     `exercise_checkin` card
    - Brief exercise feedback (1 sentence)
-   - Meal details (food items, calories, macros)
-   - Nutrition checkpoint summary
+   - Meal details (food items, calories, macros) + nutrition checkpoint summary
+   - **One** net-balance line (from the `exercise_checkin` card / `energy-balance.py`):
+     *ate X · burned Y · target Z · net ~N kcal deficit today (incl. workout) —
+     target stays Z*
    - Suggestion (if needed)
-5. Do NOT produce two separate response blocks or repeat greetings
+5. Do NOT produce two separate response blocks or repeat greetings.
 
-**Key:** The exercise calorie burn is informational context — it does NOT
-offset the diet checkpoint evaluation. Diet tracking evaluates intake against
-the daily calorie target, not against net calories.
+**Key (fixed-target rule):** The exercise burn improves the user's true daily
+*net balance* (the net-balance line), but it does **NOT** move the eating target
+or offset the diet checkpoint. Diet tracking evaluates intake against the daily
+calorie target, not against net calories. Never tell the user their target went
+up. See the global Exercise & Activity Policy above.
 
 ---
 
@@ -481,9 +516,10 @@ rules to maintain coherence:
    (e.g., exercise happened before eating → exercise summary first)
 3. **One suggestion section** — if both skills want to give suggestions,
    combine them or pick the most impactful one
-4. **Shared context** — exercise calorie burn can be mentioned in the diet
-   section as context ("You burned ~250 kcal running today — your intake
-   target stays the same")
+4. **Shared context** — exercise net burn is surfaced via the net-balance line
+   ("ate X · burned Y · target Z · net ~N kcal deficit today (incl. workout) —
+   target stays Z"), which explicitly keeps the eating target fixed. Do not phrase
+   the burn as extra calories the user may now eat.
 5. **One closing** — a single warm sign-off, not two
 6. **No premature goodnight** — never add "晚安" / "goodnight" / 🌙 / 💤
    or other sleep-related sign-offs unless the **user** initiates it (e.g.,

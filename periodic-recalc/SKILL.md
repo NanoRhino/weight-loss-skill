@@ -132,9 +132,10 @@ If output is `{"should_trigger": true}`:
 | `data/leave.json` | Read | Check if user is on leave |
 | `data/pending-recalc.json` | Read/Write/Delete | Track deferred recalcs |
 | `PLAN.md` | Read/Write | Update calorie target, TDEE, macros |
+| `data/plan.json` | Write | Machine-readable target store (owned by weight-loss-planner) — auto-synced via `planner-calc.py write-plan-json` after PLAN.md is updated |
 | `health-profile.md` | Read | Get activity level, diet_mode, user demographics |
 | `data/meals/*.json` | Read | Analyze actual eating patterns (diet-mode-review) |
-| `weight-loss-planner/scripts/planner-calc.py` | Execute | Recalculate TDEE/calories/macros |
+| `weight-loss-planner/scripts/planner-calc.py` | Execute | Recalculate TDEE/calories/macros; also writes `data/plan.json` |
 
 ## Important Notes
 

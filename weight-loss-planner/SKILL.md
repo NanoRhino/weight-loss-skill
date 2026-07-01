@@ -220,7 +220,22 @@ Once the user confirms the plan presented in Step 2/3, **do NOT re-present the p
 
 1. Silently save the most recently presented Plan Presentation content as `PLAN.md` in the current workspace. The PLAN.md contains only the Plan Presentation content — no macro breakdowns, no diet mode, no meal-related information. **Do NOT mention "Markdown", filenames, or `.md` to the user.**
 2. Save the `bmr` value from `forward-calc` output to `health-profile.md > Body > BMR` (e.g., `- **BMR:** 1434`). This is used by diet-tracking for case_d safety evaluation.
-3. **Run `plan-export`** — read the `plan-export` skill to check if this user's channel requires URL export. If yes, generate HTML and upload; send the URL to the user along with a brief message (e.g., "你的计划已生成，点击查看：[URL]"). If the channel doesn't need URL export, skip silently. Do not mention technical details to the user.
+3. **Write the canonical target store `data/plan.json`** — run `planner-calc.py write-plan-json`. This is the machine-readable copy of the numbers you just calculated (`tdee_base`, `daily_calorie_target`, `daily_deficit`, etc.). PLAN.md is LLM-authored, localized prose and deliberately does NOT contain `tdee_base`; `data/plan.json` is what the unified daily calorie-deficit resolver (`energy-balance.py`) and `weekly-report` read. This skill **owns** `data/plan.json` — always keep it in sync with PLAN.md.
+
+    ```bash
+    python3 {baseDir}/scripts/planner-calc.py write-plan-json \
+      --data-dir {workspaceDir}/data \
+      --weight <kg> --height <cm> --age <years> --sex male|female \
+      --activity <same activity level used for forward-calc> \
+      --target-weight <kg> \
+      --updated-at <current ISO-8601 timestamp> \
+      --source planner-calc
+    ```
+
+    - Pass the **same** inputs you gave `forward-calc`/`reverse-calc` so the numbers match exactly (reuse `--deadline` if the plan was timeline-driven, or `--rate-kg` if the user pinned a specific pace). Never hand-compute these fields.
+    - `--updated-at` is the current timestamp (read it from context — do not invent a date).
+    - `--source planner-calc` here. Use `handoff` when overlaying a TDEE handoff profile, `backfill` only for the one-off migration.
+4. **Run `plan-export`** — read the `plan-export` skill to check if this user's channel requires URL export. If yes, generate HTML and upload; send the URL to the user along with a brief message (e.g., "你的计划已生成，点击查看：[URL]"). If the channel doesn't need URL export, skip silently. Do not mention technical details to the user.
 
 **If the user wants to adjust the plan** after confirmation, help them modify it (go back to Step 3).
 
@@ -237,9 +252,17 @@ When a user reports progress (e.g., "I'm at 70 kg now!"):
 2. Highlight non-weight wins they may have noticed
 3. Recalculate TDEE at the new weight
 4. Present the updated plan
-5. Ask if they want to adjust anything going forward
+5. **Re-run `planner-calc.py write-plan-json`** (Step 4 action 3) so `data/plan.json` reflects the new numbers — the deficit resolver and weekly-report must never read a stale target.
+6. Ask if they want to adjust anything going forward
 
 This keeps the plan alive and adaptive, rather than a static document.
+
+> **Data ownership — `data/plan.json`:** This skill owns the canonical
+> machine-readable target store. Any flow that rewrites PLAN.md / the calorie
+> target **must** also re-run `write-plan-json`: standalone recalculation (above),
+> the re-handoff profile refresh (`--source handoff`), and `periodic-recalc`'s
+> every-4-weeks recompute. See CONVENTIONS.md §3 (ownership) and §7 (the new
+> `plan.json` file is backward-compatible — absent = resolvers fail open).
 
 ---
 

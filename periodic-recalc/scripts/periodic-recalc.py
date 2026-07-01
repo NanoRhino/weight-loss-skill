@@ -23,7 +23,7 @@ import json
 import re
 import subprocess
 import sys
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 
 
@@ -491,6 +491,28 @@ def main():
             json.dump(history, f, indent=2, ensure_ascii=False)
 
         update_plan_md(plan_md, plan_data, update_values, dry_run=False)
+
+        # Step 7b: Keep the canonical machine-readable target store in sync.
+        # data/plan.json is owned by weight-loss-planner and read by the
+        # energy-balance resolver + weekly-report. Reuse the SAME planner-calc
+        # inputs so tdee_base / target match PLAN.md exactly. Best-effort: never
+        # fail the recalc if plan.json can't be written.
+        try:
+            run_planner_calc(planner_calc, [
+                'write-plan-json',
+                '--data-dir', str(Path(args.workspace) / 'data'),
+                '--weight', str(current_weight),
+                '--height', str(height_cm),
+                '--age', str(age),
+                '--sex', sex,
+                '--activity', activity_level,
+                '--target-weight', str(target_weight),
+                '--updated-at', datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                '--source', 'planner-calc',
+            ])
+        except Exception:
+            pass
+
         # Delete pending-recalc.json if it exists
         delete_file(pending_json)
 
