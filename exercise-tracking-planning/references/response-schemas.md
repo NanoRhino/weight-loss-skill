@@ -1,6 +1,6 @@
 # Response Schemas
 
-## Exercise Log Response (`is_exercise_log: true`)
+## Exercise Log Response
 
 Return this whenever the user logs a workout or exercise session. Supports single or multiple activities in one message.
 
@@ -26,7 +26,6 @@ Return this whenever the user logs a workout or exercise session. Supports singl
   "total_calories": 350,
   "feedback": "1-2 sentence goal-aligned comment",
   "risk_alert": null,
-  "is_exercise_log": true,
   "date": "2026-02-28",
   "lang": "en"
 }
@@ -98,7 +97,6 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
   "total_calories": 368,
   "feedback": "Nice 6:00/km pace — ≈368 kcal. Moderate-to-high intensity cardio, right in the efficient fat-burning zone.",
   "risk_alert": null,
-  "is_exercise_log": true,
   "date": "2026-02-28",
   "lang": "en"
 }
@@ -142,7 +140,6 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
   "total_calories": 334,
   "feedback": "Running + stretching is a great combo — ≈334 kcal. Post-run stretching helps with recovery and reduces muscle soreness.",
   "risk_alert": null,
-  "is_exercise_log": true,
   "date": "2026-02-28",
   "lang": "en"
 }
@@ -172,7 +169,6 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
   "total_calories": 350,
   "feedback": "Solid strength session — ≈350 kcal. Keep up the consistency!",
   "risk_alert": null,
-  "is_exercise_log": true,
   "date": "2026-02-28",
   "lang": "en"
 }
@@ -202,7 +198,6 @@ If the parsed date is in the future, ask user to confirm — likely a mistake.
   "total_calories": 315,
   "feedback": "An hour of badminton burns ≈315 kcal — great full-body workout, especially for agility and reflexes.",
   "risk_alert": null,
-  "is_exercise_log": true,
   "date": "2026-02-27",
   "lang": "en"
 }
@@ -333,7 +328,7 @@ Return this when a new training plan is accepted by the user. Store the full obj
 
 ---
 
-## Non-Exercise Response (`is_exercise_log: false`)
+## Non-Exercise Response
 
 Return this for follow-up questions, clarifications, weekly summaries, or general chat.
 
@@ -343,7 +338,6 @@ Return this for follow-up questions, clarifications, weekly summaries, or genera
   "exercise": null,
   "feedback": null,
   "risk_alert": null,
-  "is_exercise_log": false,
   "date": null,
   "lang": "en"
 }
@@ -361,7 +355,6 @@ Weekly summaries use the non-exercise response format with a structured `message
   "exercise": null,
   "feedback": null,
   "risk_alert": null,
-  "is_exercise_log": false,
   "date": null,
   "lang": "en"
 }
