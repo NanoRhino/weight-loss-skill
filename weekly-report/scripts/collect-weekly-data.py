@@ -746,7 +746,7 @@ def main():
     # Find skill scripts (relative to this script's location)
     skills_base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     weight_tracker = find_script(skills_base, "weight-tracking", "weight-tracker.py")
-    exercise_calc = find_script(skills_base, "exercise-tracking-planning", "exercise-calc.py")
+    exercise_calc = find_script(skills_base, "exercise-tracking", "exercise-calc.py")
 
     log(f"Collecting data for {args.start_date} to {args.end_date}")
 

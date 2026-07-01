@@ -3,7 +3,7 @@
 # dependencies = []
 # ///
 """
-Exercise calorie calculator + CRUD for exercise-tracking-planning skill.
+Exercise calorie calculator + CRUD for exercise-tracking skill.
 
 Data file: {data_dir}/exercise.json
 Format: JSON object keyed by date (YYYY-MM-DD), each value contains
