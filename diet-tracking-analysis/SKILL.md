@@ -496,16 +496,18 @@ python3 {exercise-tracking-planning:baseDir}/scripts/energy-balance.py \
 ```
 - If `data_complete: false` (no `data/plan.json` yet) → **omit the line entirely**
   (do not fabricate a deficit). If `exercise_burn_net == 0` → omit.
-- Otherwise render, using the resolver fields (`intake`, `exercise_burn_net`,
-  `eating_target`, `balance`, `verdict`), localized to USER.md language:
+- Otherwise render the **shared net-balance line template** — IDENTICAL on all
+  three surfaces (the `exercise_checkin` plugin card, here, and
+  personal-data-query). Build it from the resolver fields and localize per USER.md
+  language, substituting the numbers:
 
-  > 🏃 净热量：吃 {intake} · 运动消耗 {exercise_burn_net} · 目标 {eating_target} · 今日净{deficit/surplus}约 {|balance|} 大卡（含运动）— 目标仍是 {eating_target}
+  > ate {intake} · burned {exercise_burn_net} · target {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today (incl. workout) — target stays {eating_target}
 
-  English equivalent: *ate {intake} · burned {exercise_burn_net} · target
-  {eating_target} · net ~{|balance|} kcal {deficit/surplus} today (incl. workout)
-  — target stays {eating_target}*.
-- The **"target stays {eating_target}"** clause is mandatory — never imply the
-  eating target moved. `verdict: "maintenance"` → say "about maintenance today".
+  - `{deficit|surplus|maintenance}` = the resolver's `verdict`.
+  - The **"— target stays {eating_target}"** clause is MANDATORY — never imply the
+    eating target moved.
+  - Do NOT reword or reorder this line — it must match the plugin card and
+    personal-data-query byte-for-byte (translation aside).
 
 ### ③ Suggestion (by `suggestion_type`)
 

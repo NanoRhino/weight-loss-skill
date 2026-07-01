@@ -47,9 +47,14 @@ Determine which capability to use based on user intent:
    eats more / says they're hungry — then don't discourage it; otherwise let the
    extra deficit stand silently.)
 5. **Show the unified daily balance.** After logging exercise, surface the
-   net-balance line (from the `exercise_checkin` card / `energy-balance.py`):
-   *ate X · burned Y · target Z · net ~N kcal deficit today (incl. workout) —
-   target stays Z*.
+   net-balance line (from the `exercise_checkin` card / `energy-balance.py`). This
+   is the **shared template — IDENTICAL on all three surfaces** (plugin card,
+   diet-tracking-analysis, personal-data-query), localized per USER.md:
+
+   > ate {intake} · burned {exercise_burn_net} · target {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today (incl. workout) — target stays {eating_target}
+
+   The "— target stays {eating_target}" clause is mandatory; omit the whole line
+   when `data_complete:false` or `exercise_burn_net == 0`.
 
 ---
 
@@ -125,14 +130,16 @@ re-implement logging or call `exercise-calc.py save` yourself for user-facing lo
 `meal_checkin`). It handles multiple activities in one message internally
 (e.g. "ran 30 min then stretched 20"). Do NOT retry or chain calls.
 
-**Returns:** structured exercise data (per-activity NET calories, totals) **and a
-canonical `card` string** for the user. **Render the `card` verbatim** — it
-already applies the NET rule, the standard format, and ends with the net-balance
-line (*ate X · burned Y · target Z · net ~N kcal deficit today (incl. workout) —
-target stays Z*). This standardizes output and guarantees NET, killing the old
-"logged vs total" formatting drift. If `energy-balance.py` reported
-`data_complete:false` (no plan.json yet), the card omits the net-balance line —
-show the logged workout only; do not fabricate a deficit number.
+**Returns:** a single canonical `card` string **plus** a structured
+`energy_balance` object (raw `energy-balance.py` output). **Render the `card`
+verbatim** — it already applies the NET rule, the standard format, and ends with
+the shared net-balance line (*ate {intake} · burned {exercise_burn_net} · target
+{eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today
+(incl. workout) — target stays {eating_target}*). This standardizes output and
+guarantees NET, killing the old "logged vs total" formatting drift. If
+`energy-balance.py` reported `data_complete:false` (no plan.json yet), the card
+omits the net-balance line — show the logged workout only; do not fabricate a
+deficit number.
 
 After rendering the card, add at most **one** short line of goal-aligned feedback.
 
@@ -187,9 +194,15 @@ This is a fallback, not the normal path.
 
 ## Calorie Estimation
 
+> This section documents the deterministic MET engine (`exercise-calc.py`). For
+> user-facing **logging**, go through `exercise_checkin` (above) — the plugin
+> calls this same engine internally, so MET/formula changes ship without a plugin
+> restart. Use `exercise-calc.py` directly only in the manual outage fallback and
+> when estimating burn during **planning** (e.g. projecting a workout's cost).
+
 ### Calculation Script
 
-**Use the exercise-calc script** (`python3 {baseDir}/scripts/exercise-calc.py`) for all calorie estimations instead of computing manually. This ensures consistent and accurate MET lookups and interpolation.
+**Use the exercise-calc script** (`python3 {baseDir}/scripts/exercise-calc.py`) for any manual calorie estimation instead of computing in your head. This ensures consistent and accurate MET lookups and interpolation — the same math the plugin uses.
 
 ```bash
 # Single exercise with speed (running, cycling):
@@ -318,11 +331,16 @@ Read `references/weekly-summary-template.md` for the full template. Summary incl
 
 ## JSON Response Format
 
+> **For logging, the `exercise_checkin` plugin now owns recognition, storage, and
+> the user-facing `card` (render it verbatim — see the Tool section).** The schema
+> below still describes the *manual fallback* logging response and the
+> non-logging surfaces (follow-ups, planning, weekly summaries).
+
 Read `references/response-schemas.md` for the full JSON schema with examples. Two response types:
 
 ### Exercise Log Response (`is_exercise_log: true`)
 
-Returned when user logs an exercise session.
+Manual-fallback logging response (when `exercise_checkin` is unavailable).
 
 ### Non-Exercise Response (`is_exercise_log: false`)
 
@@ -332,7 +350,12 @@ Returned for follow-up questions, general chat, or weekly summaries.
 
 ## Smart Device Data Handling
 
-When user shares device data (screenshot, text paste, or file):
+Fitness-app screenshots (Apple Health / Strava / FitBit / Garmin / Apple Watch)
+are handled by the `exercise_checkin` plugin's vision layer — just pass the image
+paths to the tool. The plugin extracts the fields, **normalizes device calories to
+net** (Apple "Active" vs "Total", Strava gross, etc.), and stores the net value.
+The manual steps below apply only to the outage fallback (device data pasted as
+text you parse yourself):
 
 1. Extract all available fields: activity type, duration, distance, calories, heart rate (avg/max), pace
 2. Present extracted data to user for confirmation: "I see [activity] for [duration], [calories] burned. Does that look right?"

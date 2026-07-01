@@ -114,10 +114,14 @@ routing-layer pointer to it.
    net-balance line) but the calorie target stays put. Never offer "eat-back"
    unless the user proactively eats more / says they're hungry.
 5. **Surface the unified daily balance** after logging / on a data query, via the
-   `exercise_checkin` card or `exercise-tracking-planning/scripts/energy-balance.py`:
-   *ate X · burned Y · target Z · net ~N kcal deficit today (incl. workout) —
-   target stays Z*. Omit the net-balance line when `data_complete:false`
-   (no `data/plan.json` yet).
+   `exercise_checkin` card or `exercise-tracking-planning/scripts/energy-balance.py`.
+   The net-balance line is a **shared template — IDENTICAL on all three surfaces**
+   (plugin card, diet-tracking-analysis, personal-data-query), localized per USER.md:
+
+   > ate {intake} · burned {exercise_burn_net} · target {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today (incl. workout) — target stays {eating_target}
+
+   The "— target stays {eating_target}" clause is mandatory. Omit the whole line
+   when `data_complete:false` (no `data/plan.json` yet) or `exercise_burn_net == 0`.
 
 ---
 
@@ -232,9 +236,10 @@ Example: "ran for 30 minutes, then ate chicken breast"
      `exercise_checkin` card
    - Brief exercise feedback (1 sentence)
    - Meal details (food items, calories, macros) + nutrition checkpoint summary
-   - **One** net-balance line (from the `exercise_checkin` card / `energy-balance.py`):
-     *ate X · burned Y · target Z · net ~N kcal deficit today (incl. workout) —
-     target stays Z*
+   - **One** net-balance line — the shared template (see global Exercise & Activity
+     Policy above): *ate {intake} · burned {exercise_burn_net} · target
+     {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today
+     (incl. workout) — target stays {eating_target}*
    - Suggestion (if needed)
 5. Do NOT produce two separate response blocks or repeat greetings.
 
@@ -516,10 +521,10 @@ rules to maintain coherence:
    (e.g., exercise happened before eating → exercise summary first)
 3. **One suggestion section** — if both skills want to give suggestions,
    combine them or pick the most impactful one
-4. **Shared context** — exercise net burn is surfaced via the net-balance line
-   ("ate X · burned Y · target Z · net ~N kcal deficit today (incl. workout) —
-   target stays Z"), which explicitly keeps the eating target fixed. Do not phrase
-   the burn as extra calories the user may now eat.
+4. **Shared context** — exercise net burn is surfaced via the shared net-balance
+   line (exact template in the global Exercise & Activity Policy above), which
+   explicitly keeps the eating target fixed ("— target stays {eating_target}"). Do
+   not phrase the burn as extra calories the user may now eat.
 5. **One closing** — a single warm sign-off, not two
 6. **No premature goodnight** — never add "晚安" / "goodnight" / 🌙 / 💤
    or other sleep-related sign-offs unless the **user** initiates it (e.g.,
