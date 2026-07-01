@@ -613,7 +613,7 @@ section（错格式），下游正则匹配的是 `- **Onboarding Completed:**` 
 - **Pattern Detection Completed:** —
 ```
 
-**注：** health-profile.md 中许多字段在引导期先置为 `—`，稍后由其他技能填充（例：`Diet Mode` 和 `Meal Schedule` 由 weight-loss-planner 设置，`Fitness Level` / `Fitness Goal` 由 exercise-tracking-planning 设置）。仅填写用户在引导期实际提供的字段。
+**注：** health-profile.md 中许多字段在引导期先置为 `—`，稍后由其他技能填充（例：`Diet Mode` 和 `Meal Schedule` 由 weight-loss-planner 设置，`Fitness Level` / `Fitness Goal` 由 exercise-tracking 设置）。仅填写用户在引导期实际提供的字段。
 
 ### 文件 3：health-preferences.md — 累积的偏好
 
@@ -637,7 +637,7 @@ section（错格式），下游正则匹配的是 `- **Onboarding Completed:**` 
 
 每条记录格式：`- [YYYY-MM-DD] 偏好描述`（用 now.py 输出中的 `date`）
 
-> **注：** `health-preferences.md` 从用户引导期透露的信息起步。随时间推移，其他技能（meal-planner、diet-tracking、exercise-tracking-planning、restaurant-meal-finder 等）会在后续对话中检测并追加新偏好。
+> **注：** `health-preferences.md` 从用户引导期透露的信息起步。随时间推移，其他技能（meal-planner、diet-tracking、exercise-tracking、restaurant-meal-finder 等）会在后续对话中检测并追加新偏好。
 
 ---
 

@@ -9,7 +9,7 @@ python3 {baseDir}/scripts/analyze-weight-trend.py analyze \
   --data-dir {workspaceDir}/data \
   --weight-script {weight-tracking:baseDir}/scripts/weight-tracker.py \
   --nutrition-script {diet-tracking-analysis:baseDir}/scripts/nutrition-calc.py \
-  --exercise-script {exercise-tracking-planning:baseDir}/scripts/exercise-calc.py \
+  --exercise-script {exercise-tracking:baseDir}/scripts/exercise-calc.py \
   --plan-file {workspaceDir}/PLAN.md \
   --health-profile {workspaceDir}/health-profile.md \
   --tz-offset {tz_offset} \
