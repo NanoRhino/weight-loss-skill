@@ -117,7 +117,16 @@ When a user logs exercise, the `exercise-calc.py` script computes both **gross**
 
 **Net calories** is the correct value to use when considering exercise's contribution to the daily energy budget, because BMR is already included in the TDEE base calculation. Using gross calories would double-count the resting component.
 
-Exercise calories are **informational by default** — the daily calorie target is set from TDEE_base minus deficit, and does not automatically increase when the user exercises. The net exercise calories should be communicated to the user (e.g., "You burned an extra ~250 kcal running today") so they understand their total energy picture.
+Exercise is **always logged and always credited to the daily energy balance** —
+it is never "baked into TDEE" or something to skip logging (the TDEE base is
+NEAT-only, i.e. everyday movement, not workouts). What stays fixed is the *eating
+target*: it is set from TDEE_base minus the deficit and does **not** auto-increase
+on exercise days (net-deficit, fixed-target model — no eat-back by default). The
+net exercise calories are still reported to the user (e.g., "You burned an extra
+~250 kcal running today") and feed the unified net-balance number
+(`energy-balance.py`: expenditure = TDEE_base + net burn), so the user sees their
+true deficit for the day while their calorie target holds steady. See
+`exercise-tracking-planning/SKILL.md > Exercise & Activity Policy` (authoritative).
 
 **Exercise calorie eat-back policy:** If the user proactively eats more or says they're hungry after exercise, they may use the extra exercise calories — this is fine and should not be discouraged. However, if the user does not eat more or mention hunger, do NOT suggest that they should eat back the exercise calories. Let the extra deficit stand silently.
 

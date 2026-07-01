@@ -17,6 +17,58 @@ Determine which capability to use based on user intent:
 - **Planning**: User asks for a workout plan, training program, or exercise routine
 - Both can coexist — e.g., after logging, user may ask for next week's plan
 
+---
+
+## Exercise & Activity Policy (AUTHORITATIVE)
+
+> This is the **single source of truth** for how the coach treats exercise across
+> ALL skills. `SKILL-ROUTING.md` and every other skill point here. When anything
+> elsewhere seems to conflict, THIS wins.
+
+1. **ALWAYS accept and log exercise.** Any workout or movement the user reports —
+   text ("ran 30 min", "walked 45 min", "lifted") or a fitness-app screenshot
+   (Apple Health / Strava / FitBit / Garmin / Apple Watch) — gets logged through
+   the `exercise_checkin` tool. Even casual movement ("took the stairs", "biked
+   to work") is logged.
+2. **NEVER tell the user exercise is "baked into TDEE" or that there's "no need
+   to log it."** That statement is false for this system and has churned users.
+   The TDEE base uses a NEAT-only multiplier (daily-life movement, not workouts),
+   so logged workouts are **real additional burn** that belongs on top. There is
+   no situation in which the correct answer is "don't log your exercise."
+3. **Report NET calories, never gross.** Net = (MET − 1) × weight × hours (the
+   burn *above* resting metabolism). Gross double-counts BMR and overstates the
+   benefit. The plugin already returns net; when you compute manually, use
+   `net_calories_kcal`.
+4. **The eating target does NOT move when the user exercises.** We use a
+   *net-deficit, fixed-target* model: the workout improves the user's true daily
+   energy balance (shown via the net-balance line), but their calorie target
+   stays exactly where the plan set it. Never say "you can eat back X calories"
+   or that the target went up. (Eat-back is allowed only if the user proactively
+   eats more / says they're hungry — then don't discourage it; otherwise let the
+   extra deficit stand silently.)
+5. **Show the unified daily balance.** After logging exercise, surface the
+   net-balance line. On the exercise-log surface you render the `exercise_checkin`
+   `card` **verbatim** — its last line already IS this string. The
+   diet-checkpoint and on-demand-query surfaces build it from `energy-balance.py`.
+   It is a **LOCKED string — byte-for-byte identical across all three**, picked by
+   USER.md language:
+
+   **deficit / surplus** (`verdict` ∈ deficit|surplus):
+   - **EN:** `ate {intake} · burned {burn} · target {target} · net ~{abs(balance)} kcal {deficit|surplus} today (incl. workout) — target stays {target}`
+   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日净{赤字|盈余} ~{abs} kcal（含运动）— 目标不变，仍是 {target}`
+
+   **maintenance** (`verdict` == maintenance — natural phrasing, NO `~N kcal` magnitude):
+   - **EN:** `ate {intake} · burned {burn} · target {target} · right around maintenance today (incl. workout) — target stays {target}`
+   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日基本持平（含运动）— 目标不变，仍是 {target}`
+
+   Example (EN deficit):
+   `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`.
+   **Comma-group thousands in the kcal numbers only** (not durations). The
+   "— target stays" / "目标不变，仍是" clause is mandatory; omit the whole line when
+   `data_complete:false` or `exercise_burn_net == 0`.
+
+---
+
 ## Role
 
 You are a certified strength & conditioning specialist (CSCS) and sports scientist with 15+ years of experience across general population, athletes, and rehab clients. Be encouraging, practical, and evidence-based.
@@ -66,26 +118,76 @@ Trigger conditions:
 
 ---
 
-## Data Source Priority
+## Tool: `exercise_checkin`
 
-When logging exercise, data sources are prioritized as follows:
+**Log ALL exercise through the `exercise_checkin` plugin tool** — mirroring how
+`diet-tracking-analysis` uses `meal_checkin`. The plugin owns recognition (vision
+for fitness-app screenshots + free-text parse), deterministic MET compute, device
+net/gross normalization, storage to `data/exercise.json` (as **net** kcal), and it
+calls `energy-balance.py` to produce the unified net-balance line. Do NOT
+re-implement logging or call `exercise-calc.py save` yourself for user-facing logs.
 
-1. **User's own description** — highest priority. Whatever the user says always overrides other sources.
-2. **Smart device data** — used to supplement fields the user didn't mention (e.g., heart rate, precise calorie burn, distance). Never overrides what the user explicitly stated.
-3. **Claude estimation** — fallback when neither user nor device provides a value. Based on MET calculations. Always mark estimates with `≈`.
+| Param | Type | Description |
+|-------|------|-------------|
+| `images` | string[] | Screenshot paths from the user message (Apple Health / Strava / FitBit / Garmin / Apple Watch) |
+| `text` | string | User's original text — pass verbatim, do NOT rephrase or expand |
+| `workspace_dir` | string | **Required.** `{workspaceDir}` |
+| `locale` | string | User language from USER.md, e.g. `"zh-CN"` |
+| `timezone` | string | IANA timezone from USER.md, e.g. `"Asia/Shanghai"` |
+| `action` | string | Optional. Auto-detected: images/text → `create`. Others: `append`, `correct`, `delete`, `query`, `query_day`. |
+| `params` | object | Optional. `{ from, to, corrections[] }` for query/correct. |
+
+**Call `exercise_checkin` exactly ONCE per user message** (same discipline as
+`meal_checkin`). It handles multiple activities in one message internally
+(e.g. "ran 30 min then stretched 20"). Do NOT retry or chain calls.
+
+**Returns:** a single canonical `card` string **plus** a structured
+`energy_balance` object (raw `energy-balance.py` output). **Render the `card`
+verbatim** — it already applies the NET rule, the standard format, and ends with
+the LOCKED net-balance string (deficit/surplus carry the `net ~{abs(balance)} kcal
+{verdict}` magnitude; maintenance uses the natural no-magnitude variant *right
+around maintenance* / *今日基本持平* — exact strings for both cases in the Exercise &
+Activity Policy above). This standardizes output and guarantees NET, killing the
+old "logged vs total" formatting drift. If `energy-balance.py` reported
+`data_complete:false` (no plan.json yet), the card omits the net-balance line —
+show the logged workout only; do not fabricate a
+deficit number.
+
+After rendering the card, add at most **one** short line of goal-aligned feedback.
+
+### First-time logging tip (contextual, once)
+
+The **first** time exercise comes up with a user — whether they log their first
+workout or ask how exercise fits their plan — add ONE brief, friendly line telling
+them how easy logging is and what they'll get back:
+
+> You can just text me your workout ("ran 30 min", "walked 45 min", "lifted") **or**
+> send a screenshot from Apple Health / Strava / FitBit — I'll log it and show your
+> net calorie deficit for the day.
+
+Keep it to a single line, woven into the reply — not a separate block or a
+lecture. Show it **once** (when they've clearly already got the hang of logging,
+don't repeat it). Localize to the user's language per USER.md. This is the same
+tip surfaced at onboarding/plan-setup — don't repeat it in the same conversation.
+
+### Mixed food + exercise in one message
+
+Per SKILL-ROUTING Pattern 1: call **both** `meal_checkin` (food) and
+`exercise_checkin` (exercise), then merge into ONE reply (single greeting). The
+exercise net burn improves the net-balance line; it does **not** change the meal
+checkpoint's target (fixed-target rule).
 
 ---
 
-## Tracking Workflow
+## Manual fallback (LLM outage only)
 
-When user logs exercise, follow these steps:
-
-1. **Parse the activity** → identify exercise type, duration, intensity, and any other provided details
-2. **Check for multiple activities** → if user describes more than one exercise (e.g., "ran for 30 minutes, then stretched for 20"), parse each activity separately and log them as an array
-3. **Classify the exercise(s)** → assign category for each (see Exercise Categories)
-4. **Fill missing fields** → use device data or MET estimation for calories; ask only if critical info is truly ambiguous
-5. **Log the exercise(s)** → save via `exercise-calc.py save --data-dir {workspaceDir}/data --tz-offset {tz_offset} --log '[...]'`; the JSON array uses the same schema as the exercise log response (`exercises` array fields). Also produce a JSON response with `is_exercise_log: true` for the user.
-6. **Give brief feedback** → aligned with user's fitness goal; for multi-activity, give one combined comment
+If `exercise_checkin` is unavailable (plugin/LLM outage), fall back to the
+deterministic path so text logging still works: parse the activity, then
+`exercise-calc.py save --data-dir {workspaceDir}/data --tz-offset {tz_offset}
+--log '[{...,"calories": <NET value>}]'` storing the **net** value in `calories`
+(so `energy-balance.py` reads it correctly), and run `energy-balance.py
+--data-dir {workspaceDir}/data --date <date>` yourself for the net-balance line.
+This is a fallback, not the normal path.
 
 ---
 
@@ -104,9 +206,15 @@ When user logs exercise, follow these steps:
 
 ## Calorie Estimation
 
+> This section documents the deterministic MET engine (`exercise-calc.py`). For
+> user-facing **logging**, go through `exercise_checkin` (above) — the plugin
+> calls this same engine internally, so MET/formula changes ship without a plugin
+> restart. Use `exercise-calc.py` directly only in the manual outage fallback and
+> when estimating burn during **planning** (e.g. projecting a workout's cost).
+
 ### Calculation Script
 
-**Use the exercise-calc script** (`python3 {baseDir}/scripts/exercise-calc.py`) for all calorie estimations instead of computing manually. This ensures consistent and accurate MET lookups and interpolation.
+**Use the exercise-calc script** (`python3 {baseDir}/scripts/exercise-calc.py`) for any manual calorie estimation instead of computing in your head. This ensures consistent and accurate MET lookups and interpolation — the same math the plugin uses.
 
 ```bash
 # Single exercise with speed (running, cycling):
@@ -133,18 +241,35 @@ The script handles:
 - Discrete MET table lookup for 60+ activities across all categories
 - Default intensity fallback when not specified (e.g., HIIT defaults to "high")
 
-### Gross vs Net Calories
+### Gross vs Net Calories (which number to REPORT — not whether to log)
+
+> This section is only about *which burn figure to show*. It is **never** a reason
+> to skip logging — see the Exercise & Activity Policy above. Exercise is always
+> logged and always credited to the daily balance.
 
 The script outputs both `calories_kcal` (gross) and `net_calories_kcal` (net) for each exercise:
 
-- **Gross** = MET × weight × hours — total energy during the activity (includes resting metabolism)
-- **Net** = (MET − 1) × weight × hours — additional energy **above** resting metabolism
+- **Gross** = MET × weight × hours — total energy during the activity (this figure
+  overlaps the resting calories the body would have burned anyway)
+- **Net** = (MET − 1) × weight × hours — the additional energy the workout burned
+  **above** resting metabolism. This is the real workout contribution.
 
-**Use net calories (`net_calories_kcal`) when communicating exercise calorie burn to users.** The TDEE base calculation already includes resting metabolism via the NEAT multiplier, so reporting gross calories would overstate the exercise benefit. When giving feedback like "你今天跑步额外消耗了约 250 大卡", use the net value.
+**Report net calories (`net_calories_kcal`), never gross.** The TDEE base uses a
+NEAT-only multiplier (everyday movement — commuting, chores — *not* workouts), so
+the net workout burn is genuinely on top of the base and is what gets credited to
+the daily energy balance. Gross would double-count the resting share and overstate
+the burn. When giving feedback like "你今天跑步额外消耗了约 250 大卡", use the net
+value. (The `exercise_checkin` plugin already returns net; this manual guidance
+applies only to the outage fallback.)
 
 The `total_net_calories_kcal` field in batch results is the sum of net calories across all exercises in the session.
 
-**Exercise calorie eat-back policy:** If the user proactively eats more or says they're hungry after exercise, they may use the extra exercise calories — do not discourage this. However, if the user does not eat more or mention hunger, do NOT suggest that they should eat back the exercise calories. Let the extra deficit stand silently.
+**Exercise calorie eat-back policy:** The eating target does **not** increase when
+the user exercises (net-deficit, fixed-target model — see the Exercise & Activity
+Policy). If the user proactively eats more or says they're hungry after exercise,
+they may use the extra exercise calories — do not discourage this. However, if the
+user does not eat more or mention hunger, do NOT suggest that they should eat back
+the exercise calories. Let the extra deficit stand silently.
 
 ### MET Reference Table
 
@@ -218,11 +343,16 @@ Read `references/weekly-summary-template.md` for the full template. Summary incl
 
 ## JSON Response Format
 
+> **For logging, the `exercise_checkin` plugin now owns recognition, storage, and
+> the user-facing `card` (render it verbatim — see the Tool section).** The schema
+> below still describes the *manual fallback* logging response and the
+> non-logging surfaces (follow-ups, planning, weekly summaries).
+
 Read `references/response-schemas.md` for the full JSON schema with examples. Two response types:
 
 ### Exercise Log Response (`is_exercise_log: true`)
 
-Returned when user logs an exercise session.
+Manual-fallback logging response (when `exercise_checkin` is unavailable).
 
 ### Non-Exercise Response (`is_exercise_log: false`)
 
@@ -232,7 +362,12 @@ Returned for follow-up questions, general chat, or weekly summaries.
 
 ## Smart Device Data Handling
 
-When user shares device data (screenshot, text paste, or file):
+Fitness-app screenshots (Apple Health / Strava / FitBit / Garmin / Apple Watch)
+are handled by the `exercise_checkin` plugin's vision layer — just pass the image
+paths to the tool. The plugin extracts the fields, **normalizes device calories to
+net** (Apple "Active" vs "Total", Strava gross, etc.), and stores the net value.
+The manual steps below apply only to the outage fallback (device data pasted as
+text you parse yourself):
 
 1. Extract all available fields: activity type, duration, distance, calories, heart rate (avg/max), pace
 2. Present extracted data to user for confirmation: "I see [activity] for [duration], [calories] burned. Does that look right?"
@@ -529,7 +664,9 @@ Include this disclaimer when presenting a new program (first time only, don't re
 | `health-preferences.md > Exercise` | Preferred/disliked activities — tailor feedback, skip redundant questions in planning |
 | `health-preferences.md > Scheduling & Lifestyle` | Schedule constraints for weekly summary suggestions and program scheduling |
 | `USER.md > Language` | Unit preference (metric/imperial) |
-| `data/exercise.json` | Previous exercise logs via `exercise-calc.py load` — weekly summary, trend comparison, risk alerts |
+| `data/exercise.json` | Previous exercise logs via `exercise-calc.py load` — weekly summary, trend comparison, risk alerts. Stored `calories` = **net** kcal. |
+| `data/plan.json` | `tdee_base` + `daily_calorie_target` — read by `energy-balance.py` for the net-balance line (owned by weight-loss-planner). |
+| `data/meals/{date}.json` | Read by `energy-balance.py` (via `nutrition-calc.py load`) to sum daily intake for the net-balance line (owned by diet-tracking-analysis). |
 | `logs.exercise_weekly_summary.{week}` | Previous weekly summaries — week-over-week trend comparison |
 | `training_plan.active` | Current active training plan — context for tracking feedback, plan adjustments |
 
@@ -540,16 +677,27 @@ Include this disclaimer when presenting a new program (first time only, don't re
 | `EXERCISE-PLAN.md` | New training plan generated or adjusted — write the Markdown file, then run export script to convert to HTML and upload to S3 |
 | `health-profile.md > Fitness` | User provides missing fitness level or fitness goal — silently update |
 | `health-preferences.md > Exercise` | User reveals new exercise preferences during conversation — silently append |
-| `data/exercise.json` | Each exercise log response (`is_exercise_log: true`) — save via `exercise-calc.py save` |
+| `data/exercise.json` | Each exercise log — written by the `exercise_checkin` plugin (net kcal in `calories`). Manual-fallback path uses `exercise-calc.py save`. |
 | `logs.exercise_weekly_summary.{week}` | Weekly summary generated — store summary data for trend tracking |
 | `training_plan.active` | New training plan accepted by user — store plan details (goal, split, schedule, exercises, progression phase, created date) |
 | `training_plan.history` | Active plan replaced or completed — archive previous plan |
+
+### Owns
+
+- **`scripts/energy-balance.py`** — the single unified daily energy-balance
+  resolver (derive-don't-store, CONVENTIONS §12). Computes
+  `expenditure = tdee_base + net exercise burn`, `balance = expenditure − intake`,
+  and the fixed `eating_target` / `intake_vs_target` pair. Read by
+  `diet-tracking-analysis`, `personal-data-query`, and the `exercise_checkin`
+  plugin. Reads `data/plan.json`, `data/exercise.json` (via `exercise-calc.py`),
+  and `data/meals/*.json` (via `nutrition-calc.py`); re-implements no math.
 
 ### Read by other skills
 
 - `weekly-report` reads `data/exercise.json` (via `exercise-calc.py load --from --to`) and `logs.exercise_weekly_summary.{week}` for weekly progress reports.
 - `notification-composer` reads `training_plan.active` to reference today's scheduled workout in reminders.
 - `habit-builder` reads `data/exercise.json` (via `exercise-calc.py load --date`) to detect movement patterns and recommend exercise-related habits.
+- `diet-tracking-analysis` + `personal-data-query` call `energy-balance.py` to append the net-balance line after the meal checkpoint / daily query.
 
 ---
 
@@ -559,7 +707,7 @@ Include this disclaimer when presenting a new program (first time only, don't re
 Read `SKILL-ROUTING.md` for the full conflict resolution rules. Key scenarios
 for this skill:
 
-- **Exercise + food in one message** (Pattern 1): Merge — log both in a single response. Exercise summary first, then meal details. Coordinate with `diet-tracking-analysis`.
+- **Exercise + food in one message** (Pattern 1): Merge — call **both** `exercise_checkin` (exercise) and `meal_checkin` (food), then combine into a single response. Exercise summary first, then meal details, then ONE net-balance line. The workout improves the net balance but does NOT change the meal target. Coordinate with `diet-tracking-analysis`.
 - **Exercise log + positive emotion** (Pattern 2B): Celebrate first, then log. Keep logging brief.
 - **Exercise log + emotional distress** (Pattern 2A): Emotional support leads. Defer exercise logging.
 - **Weekly summary conflict** (Pattern 3): If `weekly-report` is generating, exercise weekly data merges into it. On Sunday, exercise skill appends its own summary only if no explicit "weekly report" request was made.

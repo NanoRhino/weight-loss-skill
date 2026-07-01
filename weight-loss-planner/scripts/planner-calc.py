@@ -20,6 +20,8 @@ Commands:
   reverse-calc     — Full reverse calculation: timeline → rate → deficit → target.
   maintenance-tdee — Recalculate TDEE at goal weight for maintenance phase.
   unit-convert     — Convert between imperial and metric units.
+  write-plan-json  — Compute + write data/plan.json (canonical machine-readable
+                     TDEE_base + calorie target store; owned by weight-loss-planner).
 
 Usage:
   python3 planner-calc.py bmi --weight 80 --height 178
@@ -33,6 +35,9 @@ Usage:
   python3 planner-calc.py reverse-calc --weight 85 --height 178 --age 35 --sex male --activity moderately_active --target-weight 70 --deadline 2027-06-01 --mode balanced
   python3 planner-calc.py maintenance-tdee --goal-weight 70 --height 178 --age 36 --sex male --activity moderately_active
   python3 planner-calc.py unit-convert --value 170 --from lbs --to kg
+  python3 planner-calc.py write-plan-json --data-dir /path/to/data \\
+      --weight 85 --height 178 --age 35 --sex male --activity lightly_active \\
+      --target-weight 70 --updated-at 2026-07-01T12:00:00Z
 """
 
 import argparse
@@ -407,6 +412,92 @@ def unit_convert(value: float, from_unit: str, to_unit: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Canonical plan.json store (owned by weight-loss-planner)
+# ---------------------------------------------------------------------------
+
+def build_plan_json(weight_kg: float, height_cm: float, age: int, sex: str,
+                    activity: str, target_weight_kg: float,
+                    updated_at: str, source: str = "planner-calc",
+                    deadline: str = None, rate_kg: float = None,
+                    goal: str = "lose_fat", tz_offset: int = None) -> dict:
+    """Compute the canonical machine-readable target store `data/plan.json`.
+
+    Reuses the same TDEE / calorie-target math as forward-calc / reverse-calc
+    (no new formulas) and projects it onto the flat plan.json schema that the
+    energy-balance resolver and weekly-report read. `tdee_base` here is the NEAT
+    TDEE (BMR × activity multiplier) — the same value used everywhere else — and
+    is deliberately the machine-readable number kept OUT of the LLM-authored,
+    localized PLAN.md.
+
+    Schema (all fields always present):
+      tdee_base            int   — NEAT TDEE = round(BMR × multiplier)
+      bmr                  int   — Mifflin-St Jeor BMR
+      activity_level       str   — e.g. "lightly_active"
+      activity_multiplier  float — the NEAT multiplier for that level
+      daily_calorie_target int   — eating target (deficit applied, floor-clamped)
+      daily_deficit        int   — tdee_base − daily_calorie_target
+      goal                 str   — "lose_fat" (weight-loss default)
+      weekly_rate_kg       float — realized weekly loss rate (post-clamp)
+      updated_at           str   — ISO-8601 timestamp (passed in by caller)
+      source               str   — "planner-calc" | "handoff" | "backfill"
+    """
+    bmr = calc_bmr_mifflin(weight_kg, height_cm, age, sex)
+    multiplier = ACTIVITY_MULTIPLIERS.get(activity, ACTIVITY_MULTIPLIERS["lightly_active"])
+    tdee_info = calc_tdee(bmr, activity)
+    tdee_base = tdee_info["tdee"]
+
+    # Derive target + realized rate via the existing forward/reverse math so the
+    # numbers match what the user was shown. Reverse when a deadline is given.
+    if deadline:
+        calc = reverse_calc(weight_kg, height_cm, age, sex, activity,
+                            target_weight_kg, deadline, tz_offset=tz_offset)
+        daily_cal = calc["safe_daily_cal"]
+        weekly_rate = calc["safe_rate_kg"]
+    elif rate_kg is not None:
+        # Explicit rate (e.g. periodic-recalc "keep previous pace"): apply it,
+        # then clamp to the safety floor exactly like forward_calc does.
+        cal_info = calc_calorie_target(tdee_base, rate_kg)
+        daily_cal = cal_info["daily_cal"]
+        weekly_rate = rate_kg
+        floor = calc_safety_floor(bmr)
+        if daily_cal < floor:
+            daily_cal = floor
+            weekly_rate = round((tdee_base - floor) / 1100, 2)
+    else:
+        calc = forward_calc(weight_kg, height_cm, age, sex, activity,
+                            target_weight_kg, tz_offset=tz_offset)
+        daily_cal = calc["daily_cal"]
+        weekly_rate = calc["rate_kg_per_week"]
+
+    daily_cal = int(round(daily_cal))
+    daily_deficit = int(tdee_base - daily_cal)
+
+    return {
+        "tdee_base": int(tdee_base),
+        "bmr": int(round(bmr)),
+        "activity_level": activity,
+        "activity_multiplier": multiplier,
+        "daily_calorie_target": daily_cal,
+        "daily_deficit": daily_deficit,
+        "goal": goal,
+        "weekly_rate_kg": weekly_rate,
+        "updated_at": updated_at,
+        "source": source,
+    }
+
+
+def write_plan_json(data_dir: str, plan: dict) -> str:
+    """Write the plan dict to {data_dir}/plan.json (pretty JSON). Returns path."""
+    import os
+    if data_dir and not os.path.exists(data_dir):
+        os.makedirs(data_dir, exist_ok=True)
+    path = os.path.join(data_dir, "plan.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(plan, f, indent=2, ensure_ascii=False)
+    return path
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -523,6 +614,29 @@ def main():
     p.add_argument("--to", dest="to_unit", required=True,
                    choices=["lbs", "kg", "in", "cm"])
 
+    # --- write-plan-json ---
+    p = sub.add_parser("write-plan-json",
+                       help="Compute + write the canonical data/plan.json target store")
+    p.add_argument("--data-dir", required=True, help="Path to the workspace data/ directory")
+    p.add_argument("--weight", type=float, required=True, help="Current weight kg")
+    p.add_argument("--height", type=float, required=True, help="Height cm")
+    p.add_argument("--age", type=int, required=True)
+    p.add_argument("--sex", choices=["male", "female"], required=True)
+    p.add_argument("--activity", required=True,
+                   choices=list(ACTIVITY_MULTIPLIERS.keys()))
+    p.add_argument("--target-weight", type=float, required=True, help="Goal weight kg")
+    p.add_argument("--updated-at", required=True,
+                   help="ISO-8601 timestamp for the updated_at field (caller supplies)")
+    p.add_argument("--source", default="planner-calc",
+                   choices=["planner-calc", "handoff", "backfill"])
+    p.add_argument("--goal", default="lose_fat")
+    p.add_argument("--deadline", default=None,
+                   help="YYYY-MM-DD — use reverse-calc math (timeline-driven)")
+    p.add_argument("--rate-kg", type=float, default=None,
+                   help="Explicit weekly loss rate (kg); overrides recommended rate")
+    p.add_argument("--tz-offset", type=int, default=None,
+                   help="Timezone offset from UTC in seconds")
+
     args = parser.parse_args()
     if not args.cmd:
         parser.print_help()
@@ -592,6 +706,18 @@ def main():
 
     elif args.cmd == "unit-convert":
         result = unit_convert(args.value, args.from_unit, args.to_unit)
+
+    elif args.cmd == "write-plan-json":
+        plan = build_plan_json(
+            weight_kg=args.weight, height_cm=args.height, age=args.age,
+            sex=args.sex, activity=args.activity,
+            target_weight_kg=args.target_weight,
+            updated_at=args.updated_at, source=args.source,
+            deadline=args.deadline, rate_kg=args.rate_kg, goal=args.goal,
+            tz_offset=getattr(args, 'tz_offset', None),
+        )
+        path = write_plan_json(args.data_dir, plan)
+        result = {"action": "wrote_plan_json", "path": path, "plan": plan}
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
