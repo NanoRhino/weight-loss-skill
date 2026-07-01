@@ -381,7 +381,7 @@ def cmd_save(args):
     # Recalculate total calories
     total = 0
     for ex in day["exercises"]:
-        cal = ex.get("calories") or ex.get("calories_burned") or ex.get("total_calories") or 0
+        cal = ex.get("calories") or ex.get("calories_kcal") or ex.get("calories_burned") or ex.get("total_calories") or 0
         total += cal
     day["total_calories"] = total
 
@@ -455,7 +455,7 @@ def cmd_delete(args):
             print(json.dumps({"action": "deleted_day", "date": args.date, "removed": removed}, ensure_ascii=False))
         else:
             # Recalculate total
-            total = sum(ex.get("calories") or ex.get("calories_burned") or ex.get("total_calories") or 0 for ex in exercises)
+            total = sum(ex.get("calories") or ex.get("calories_kcal") or ex.get("calories_burned") or ex.get("total_calories") or 0 for ex in exercises)
             day["total_calories"] = total
             save_data(args.data_dir, data)
             print(json.dumps({
@@ -504,7 +504,7 @@ def cmd_update(args):
     exercises[args.index] = updated
 
     # Recalculate total
-    total = sum(ex.get("calories") or ex.get("calories_burned") or ex.get("total_calories") or 0 for ex in exercises)
+    total = sum(ex.get("calories") or ex.get("calories_kcal") or ex.get("calories_burned") or ex.get("total_calories") or 0 for ex in exercises)
     day["total_calories"] = total
 
     save_data(args.data_dir, data)
