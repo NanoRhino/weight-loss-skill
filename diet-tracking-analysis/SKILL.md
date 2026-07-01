@@ -1,6 +1,6 @@
 ---
 name: diet-tracking-analysis
-version: 3.6.0
+version: 3.6.1
 description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user sends a photo, logs food, describes a meal, mentions what they're about to eat or drink, or sets a calorie target. Also trigger for past-tense reports ('I had...', 'I ate...'). Even casual mentions ('grabbing a coffee') should trigger. NOT for general behavioral patterns without specific food (e.g. 'I skip breakfast', '我喝水很少') — defer to habit-builder."
 metadata:
   openclaw:
@@ -411,13 +411,18 @@ to confirm. But you now show it via the **consolidated day card**, NOT by re-emi
 per-meal ① card + standalone ② block. **One card per reply, not one card per edit** — N
 corrections must read as N steps toward a correct day, not N churny full re-logs.
 
-**ALWAYS output, in this exact order (nothing else):**
+**ALWAYS output BOTH parts, in this exact order (nothing else). The `✏️` line is line 1 and is NOT optional:**
 
 1. ✏️ One short line naming what changed AND the delta — e.g. "✏️ Updated — fudge bar now 40 kcal (−15)."
-   If the user changed a number, the delta (±) is mandatory; it is the whole point of the correction.
+   If the user changed a number, the delta (±) is mandatory; it is the whole point of the correction —
+   it is your proof to the user that you understood the change.
    For a **delete**, this line states plainly what is no longer counted (e.g. "✏️ Removed lunch (−540).").
 2. A blank line, then the **CANONICAL DAY CARD** above (all meals + total + progress + `✅ locked in`
    framing), recomputed from the returned `evaluation` / `existing_meals`.
+
+⚠️ **A correction reply that starts with `✅ Locked in` (i.e. skips the `✏️` delta line) is WRONG.**
+The day card alone shows the new number but hides WHAT you changed and by how much. ALWAYS lead with
+the `✏️` line, THEN the card — never drop it, never merge it into the card header. This is a HARD rule.
 
 That is the whole reply — do NOT also append the ① meal card or the ② block; the day card
 supersedes them on corrections. Keep it tight. Run Round 1.5 `verify-meal` on the corrected
@@ -454,6 +459,15 @@ repeatedly. Never ask twice for the same item.
 **Only skip re-logging when confident it is the same item.** A different food, a clearly larger/
 second helping the user is flagging as extra, or any genuine new item → log normally (this
 short-circuit does not apply).
+
+**Backstop — if you DID append and the plugin caught the duplicate.** As a safety net, `meal_checkin`
+now refuses to double-log at the data layer: if a `create`/`append` result comes back with a
+non-empty `duplicate_skipped` array (each entry `{ food_name, meal_name, existing_calories }`), those
+items were NOT added — the day is already correct. Render them exactly like the short-circuit above:
+lead with `✓ Already counted — {food_name} is in your {meal_name} ({existing_calories} kcal).` (one
+line per skipped item), a blank line, then the **CANONICAL DAY CARD**. Do NOT apologize and do NOT
+re-add. If the user clearly meant a genuine second serving, they can say so and you log it as a new
+item then (correction / second-serving path).
 
 ---
 
