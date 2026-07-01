@@ -93,8 +93,8 @@ when conflicts arise.
 |------|--------|-------------|
 | **P0 — Safety** | `emotional-support` (Category 5: escalation signals) | Crisis intervention. Overrides everything. |
 | **P1 — Emotional** | `emotional-support` (Categories 1-4, 6-9) | Emotional presence takes priority over data collection. |
-| **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking-planning` (tracking mode) | Recording what the user did. |
-| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-tracking-planning` (planning mode), `habit-builder` | Designing programs and plans. |
+| **P2 — Data Logging** | `diet-tracking-analysis`, `exercise-tracking` | Recording what the user did. |
+| **P3 — Planning** | `weight-loss-planner`, `meal-planner`, `restaurant-meal-finder`, `exercise-planning`, `habit-builder` | Designing programs and plans. |
 | **P4 — Reporting** | `weekly-report`, `notification-manager`, `notification-composer` | Summaries and proactive outreach. |
 | **P5 — Onboarding** | `user-onboarding-profile` | Profile building (only at start). |
 
@@ -234,7 +234,7 @@ report) or Sunday (exercise auto-summary).
 1. `weekly-report` is the primary owner of weekly summaries
 2. Exercise weekly data (total sessions, duration, calories burned, WHO
    comparison) is incorporated into the weekly report as a section
-3. `exercise-tracking-planning` does NOT produce a separate weekly summary
+3. `exercise-tracking` does NOT produce a separate weekly summary
    if `weekly-report` is already generating one
 4. On **Sunday** specifically: if the user sends a message that triggers
    exercise tracking AND it's Sunday, the exercise skill appends its

@@ -67,7 +67,7 @@
 | `notification-composer` | Reads `check-strategy` output and `habits.active` to weave pact check-ins into meal conversations. For `strict: true` habits, gives detailed calorie feedback and proactive meal-log nudges. |
 | `weight-tracking` | Source of weight data. This skill reads only — never writes to `data/weight.json`. |
 | `diet-tracking-analysis` | Source of meal data. This skill reads only — never writes to `data/meals/`. |
-| `exercise-tracking-planning` | Source of exercise data. This skill reads only — never writes to `data/exercise.json`. |
+| `exercise-tracking` | Source of exercise data. This skill reads only — never writes to `data/exercise.json`. |
 | `emotional-support` | Takes priority (P1) when user shows distress about weight gain. This skill defers. |
 | `weight-loss-planner` | Owns PLAN.md. This skill reads the plan but never modifies it. Strategies are temporary overlays. |
 
