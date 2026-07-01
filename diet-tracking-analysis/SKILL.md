@@ -99,7 +99,7 @@ Two cases where `meal_checkin` returns without logging a meal:
 - `action: "not_food_image"` — the plugin's intent classifier decided this isn't a food/meal photo.
 - `action: "food_unrecognizable"` — the vision pipeline saw food but couldn't extract identifiable dishes.
 
-In both cases: call the `image` tool to look at the photo yourself. Then reply based on what you see — route to `weight-tracking`, `exercise-tracking`, or another skill if the image maps to one; if it's food but unclear, describe what you see and ask the user to confirm so they can log it with text; otherwise answer conversationally.
+In both cases: call the `image` tool to look at the photo yourself. Then reply based on what you see — route to `weight-tracking`, `exercise-tracking`, `exercise-planning`, or another skill if the image maps to one; if it's food but unclear, describe what you see and ask the user to confirm so they can log it with text; otherwise answer conversationally.
 
 ---
 
