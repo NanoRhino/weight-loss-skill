@@ -77,7 +77,8 @@ def _clear_holiday_asked(data_dir):
 # 但 stage 的 frozen 状态必须同步进 lifecycle DB,这样 lifecycle-stage plugin
 # 才能注入 frozen=true 让 agent 在请假期不催打卡。双写过渡:leave.json + DB。
 
-LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
+# 2026-07-01 重命名过渡:新名 DATA_API_URL 优先,老名 LIFECYCLE_API_URL 兼容
+LIFECYCLE_API = os.environ.get("DATA_API_URL") or os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
 
 
 def _account_id_from_data_dir(data_dir):

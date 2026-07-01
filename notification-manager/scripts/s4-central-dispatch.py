@@ -26,7 +26,8 @@ import sys
 import urllib.request
 import urllib.error
 
-LIFECYCLE_API = os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
+# 2026-07-01 重命名过渡:新名 DATA_API_URL 优先,老名 LIFECYCLE_API_URL 兼容
+LIFECYCLE_API = os.environ.get("DATA_API_URL") or os.environ.get("LIFECYCLE_API_URL", "http://127.0.0.1:3100")
 
 
 def log(msg):

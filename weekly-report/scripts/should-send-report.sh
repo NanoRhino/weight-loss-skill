@@ -32,7 +32,8 @@ fi
 # 2. Check lifecycle stage from lifecycle API (single source of truth).
 #    Stage >= 3 (recall/inactive) → no weekly report. Fail-open to stage 1 on error.
 #    account_id derived from workspace dir name: workspace-wechat-dm-<acc> → <acc>
-LIFECYCLE_API="${LIFECYCLE_API_URL:-http://127.0.0.1:3100}"
+# 2026-07-01 重命名过渡:新名 DATA_API_URL 优先,老名 LIFECYCLE_API_URL 兼容
+LIFECYCLE_API="${DATA_API_URL:-${LIFECYCLE_API_URL:-http://127.0.0.1:3100}}"
 ACC=$(basename "$WORKSPACE" | sed -E 's/^workspace-//; s/^(wechat|wecom)-dm-//')
 STAGE=$(curl -s --max-time 3 "$LIFECYCLE_API/v1/lifecycle/state/$ACC" 2>/dev/null \
   | python3.11 -c "import sys,json; print(json.load(sys.stdin).get('stage',1))" 2>/dev/null || echo "1")
