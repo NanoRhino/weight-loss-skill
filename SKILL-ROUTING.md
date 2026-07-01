@@ -523,6 +523,31 @@ web view, not the word "data".
 
 ---
 
+### Pattern 12: Meal Correction / Duplicate Add (diet-tracking — anti-churn)
+
+**Trigger:** User corrects/deletes an already-logged meal, or sends an
+"add / also had / I also ate X" that names an item **already logged today**.
+
+**Resolution: one consolidated day card, never re-log a duplicate.**
+
+1. **After a correction/update/delete** → emit ONE consolidated CANONICAL DAY CARD
+   (the `✏️` delta line + full-day card: all meals + total + progress), **not** a
+   repeated per-edit ①②③ card. N edits = N steps toward a correct day, not N churny
+   full re-logs. Ties to the global goal **"one coherent response per message"** (§ intro
+   above): the reply shows trustworthy full-day state so the user stops re-asking.
+2. **Add of an already-present item** → do NOT create/append (the plugin blindly
+   concatenates → double-log). Call the READ-ONLY `meal_checkin({ action: "query_day" })`
+   and reply `✓ Already counted — {food} is in your {meal_name} ({kcal})` + the
+   CANONICAL DAY CARD. This is the **"Never duplicate"** rule (§ Skill Cross-Reference)
+   applied to text adds. If it's ambiguous (possible second serving), ask ONCE per the
+   **Single-Ask Rule (Global)** below — or just log it — never nag.
+
+Authoritative detail: `diet-tracking-analysis/SKILL.md` § "Reply format after a
+correction" + § "Already-counted short-circuit". The day-card structure is shared
+with `personal-data-query`'s `query_day` render — do not drift a new variant.
+
+---
+
 ## Response Merge Rules
 
 When two skills co-execute in a single response, follow these formatting

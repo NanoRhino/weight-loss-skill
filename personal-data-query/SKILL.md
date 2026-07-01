@@ -1,6 +1,6 @@
 ---
 name: personal-data-query
-version: 1.0.0
+version: 1.1.0
 description: "Query personal health and diet data. Use when user asks about today's intake, daily progress, calorie summary, or 'how am I doing today'. Trigger phrases: 'how many calories today', 'what did I eat', 'today's progress', '今天吃了多少', '今天还剩多少', '今日进度', '今天怎么样了'. Do NOT trigger for logging food or recording weight — those go to diet-tracking-analysis and weight-tracking respectively."
 metadata:
   openclaw:
@@ -24,6 +24,12 @@ Format result per the response schema below.
 ---
 
 ## Response Schema
+
+> **This full-day render is the CANONICAL DAY CARD.** It is reused (same sections, same
+> order: progress bar → macros → produce → "Meals logged:" list) by the post-correction
+> and "already-counted" flows in `diet-tracking-analysis/SKILL.md`. Keep the two in sync;
+> reply LANGUAGE comes from USER.md (CONVENTIONS §10) — the placeholders here carry this
+> file's existing convention, not a hardcoded language.
 
 📊 今日摄入：
 🔥 XXX/TARGET kcal
