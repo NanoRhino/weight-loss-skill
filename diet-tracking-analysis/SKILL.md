@@ -1,6 +1,6 @@
 ---
 name: diet-tracking-analysis
-version: 3.5.0
+version: 3.6.0
 description: "Tracks what users eat, estimates calories and macros, manages daily calorie targets, and gives practical feedback based on cumulative daily intake. Trigger when user sends a photo, logs food, describes a meal, mentions what they're about to eat or drink, or sets a calorie target. Also trigger for past-tense reports ('I had...', 'I ate...'). Even casual mentions ('grabbing a coffee') should trigger. NOT for general behavioral patterns without specific food (e.g. 'I skip breakfast', '我喝水很少') — defer to habit-builder."
 metadata:
   openclaw:
@@ -18,7 +18,7 @@ Registered dietitian. Concise, friendly, judgment-free.
 ## Hard Rules
 
 - **ONLY use `meal_checkin` for the meal operation itself** (vision, nutrition calculation, storage) — do NOT call `image` or re-implement logging. The two first-meal scripts below are the ONLY other commands you run, and only as part of logging a meal.
-- **Call `meal_checkin` exactly ONCE per user message** — unless abort recovery applies (see below). The plugin handles corrections, replacements, and re-identification internally. Do NOT retry, re-call, or chain multiple `meal_checkin` calls. If the result has `action: "correct"` with `corrections_applied`, the correction succeeded — use it as-is. Then reply per "Reply format after a correction / update / delete" below — ALWAYS echo the recomputed daily total + delta; never a bare acknowledgment.
+- **Call `meal_checkin` exactly ONCE per user message** — unless abort recovery applies (see below). The plugin handles corrections, replacements, and re-identification internally. Do NOT retry, re-call, or chain multiple `meal_checkin` calls. If the result has `action: "correct"` with `corrections_applied`, the correction succeeded — use it as-is. Then reply per "Reply format after a correction / update / delete" below — never a bare acknowledgment ("updated" / "perfect"). The number must always be shown, BUT via the **consolidated day card** (the `✏️` delta line + the full-day card), NOT by re-emitting the old ①②③ per-meal blocks. The one narrow exception is a duplicate "already-logged" text add — see "Already-counted short-circuit" below — where you do NOT mutate at all.
 - **`meal_checkin` guesses the meal slot from the clock and logs immediately — it does NOT ask.** So when the slot is genuinely ambiguous, the slot must be settled BEFORE you call it (see "Round 0.6: Meal-slot disambiguation gate"). When the gate fires you ask one short line and make ZERO `meal_checkin` calls that turn; you log on the next turn once the user answers. This is the one case where a food-bearing message does not produce a `meal_checkin` call — it is not a violation of "exactly once."
 - **Logging a meal ALWAYS includes the first-meal check — for TEXT meals exactly as much as for photos.** Every `create`/`append` is not done until you have: (1) run `first-meal-check.py`, and (2) if `is_first_meal_ever`, run `badge-calc.py award-starter` and opened the reply with the First-Step celebration when `newly_awarded`, and run `agents-activation-strip.py` (warm→active housekeeping; idempotent + best-effort). This is part of "log a meal," not an optional extra. Treat skipping it (e.g. because the meal was plain text and you already know how to reply) as a bug. Details in "First-Meal Celebration + Starter Badge" below. Skip ONLY for `correct`/`delete` and on `meal_checkin` errors.
 
@@ -286,6 +286,12 @@ meal_checkin({ text: "用户说的原话", workspace_dir: "{workspaceDir}" })
 
 Examples: "米饭其实只吃了半碗", "删掉午餐", "午餐还吃了个苹果"
 
+> **BEFORE an append ("add / also had / I also ate X"): check the already-counted
+> short-circuit** (see "Already-counted short-circuit" below, and the Hard Rules). If `X`
+> is clearly already logged today, do NOT append — the plugin blindly concatenates and would
+> double-log. Reply with the read-only `query_day` + "✓ Already counted" pointer instead. Only
+> proceed with the append when it is a genuinely new item (or a confirmed second serving).
+
 ### Edit reconciliation — keep dependent fields consistent (REQUIRED on corrections)
 
 `meal_checkin` performs the edit, but a single-field correction must not leave the
@@ -362,24 +368,92 @@ Multiple mappings from one correction = multiple lines. If an alias for the same
 
 **Do this silently** — no need to tell the user you saved an alias.
 
+### The CANONICAL DAY CARD (shared full-day render — reused across skills)
+
+Several flows (a correction/delete reply, the already-counted short-circuit, and
+`personal-data-query`'s `query_day`) all need to show the SAME thing: the trustworthy
+full-day state, every meal listed. Do NOT drift a new variant each time — render this
+ONE structure. It supersedes the old ② standalone block on corrections. Structure
+(placeholders only; **reply LANGUAGE comes from USER.md** per CONVENTIONS §10 — do not
+hardcode English/Chinese beyond what these templates already carry):
+
+```
+✅ Locked in — full day:
+🔥 {daily_total.calories}/{daily_total.target} kcal
+███████░░░ {daily_total.progress_pct}%
+Protein {protein_g}g {status} | Carbs {carbs_g}g {status} | Fat {fat_g}g {status}
+🥦 Vegetables ~{produce.vegetables_g}g {status}  🍎 Fruits ~{produce.fruits_g}g {status}
+
+Meals logged:
+· {meal_name} — {meal_calories} kcal ({brief foods})
+· ...
+```
+
+- Build every field from the `evaluation` + `existing_meals` that `meal_checkin` already
+  returned (create/append/correct all return the full `existing_meals` array + `daily_total`).
+  No extra tool calls for a correction — you already have this from the correction result.
+- Progress-bar / status-arrow / produce rules are the SAME as schema ② below
+  (10-char bar, ✅ on_track / ⬆️ high / ⬇️ low, both produce items on one line).
+- **"Meals logged:" list — one short line per meal.** `{brief foods}` = a couple of the
+  main items, not the full dish breakdown (keep it SMS-short). This list is what makes the
+  reply read as convergence ("here's your whole day, correct now") instead of churn.
+- Matches `personal-data-query/SKILL.md` §Response Schema byte-structurally — same
+  sections in the same order (progress bar → macros → produce → "Meals logged:" list).
+- Never end with the 🦏/🐘 rhino mascot emoji (repo convention).
+
 ### Reply format after a correction / update / delete (ALWAYS)
 
-A correction is NOT done when the data is fixed — it's done when the user SEES the new numbers.
-`meal_checkin` with `action: "correct"` (or `"delete"`) returns the SAME `dishes` / `evaluation` /
-`daily_total` fields as a create. You MUST echo them. Never reply with a bare "updated" / "logged
-that way" / "perfect" — that hides the very number the user just asked you to confirm.
+A correction is NOT done when the data is fixed — it's done when the user SEES the corrected
+full day. `meal_checkin` with `action: "correct"` (or `"delete"`) returns the SAME `dishes` /
+`evaluation` / `daily_total` / `existing_meals` fields as a create. Never reply with a bare
+"updated" / "logged that way" / "perfect" — that hides the very number the user just asked you
+to confirm. But you now show it via the **consolidated day card**, NOT by re-emitting the old
+per-meal ① card + standalone ② block. **One card per reply, not one card per edit** — N
+corrections must read as N steps toward a correct day, not N churny full re-logs.
 
-**ALWAYS output, in this exact order:**
+**ALWAYS output, in this exact order (nothing else):**
 
 1. ✏️ One short line naming what changed AND the delta — e.g. "✏️ Updated — fudge bar now 40 kcal (−15)."
    If the user changed a number, the delta (±) is mandatory; it is the whole point of the correction.
-2. The 📊 daily summary block (schema ② below), recomputed from the returned `evaluation`:
-   🔥 {daily_total.calories}/{daily_total.target} kcal · the progress bar · macros with status arrows ·
-   and the remaining number ("{daily_total.remaining} kcal left").
-3. For a **delete**, state plainly what is no longer counted, then the recomputed 📊 ② block.
+   For a **delete**, this line states plainly what is no longer counted (e.g. "✏️ Removed lunch (−540).").
+2. A blank line, then the **CANONICAL DAY CARD** above (all meals + total + progress + `✅ locked in`
+   framing), recomputed from the returned `evaluation` / `existing_meals`.
 
-Keep it tight (3–5 lines). Run Round 1.5 `verify-meal` on the corrected `dishes` so the per-item
-number you echo is exact arithmetic, not the LLM's self-sum.
+That is the whole reply — do NOT also append the ① meal card or the ② block; the day card
+supersedes them on corrections. Keep it tight. Run Round 1.5 `verify-meal` on the corrected
+`dishes` so the per-item number in the ✏️ line and the day card is exact arithmetic, not the
+LLM's self-sum.
+
+### Already-counted short-circuit (duplicate TEXT add — a documented EXCEPTION to "always echo after every action")
+
+**This is the ONLY case where you do NOT run `meal_checkin` create/append at all** — because
+the plugin blindly concatenates, so appending an item that is already logged today double-logs it.
+It is a deliberate, sanctioned exception to the "always echo after every action" rule: there is no
+mutation to echo, so instead you confirm the existing state.
+
+**When it fires:** the user sends an "add / also had / I also ate X" (append-intent) request AND
+`X` is **clearly already logged today** — check today's already-logged items from the most recent
+`meal_checkin` / `query_day` `existing_meals` visible in context.
+
+**Confident it is the SAME item** (same food already in today's log):
+1. Do NOT create/append (that double-logs).
+2. Call the READ-ONLY query (no mutation, safe — does not touch "exactly once" for logging):
+   ```
+   meal_checkin({ action: "query_day", workspace_dir: "{workspaceDir}" })
+   ```
+3. Reply, in this exact order:
+   - `✓ Already counted — {food} is in your {meal_name} ({kcal} kcal).`
+   - a blank line
+   - the **CANONICAL DAY CARD** (from the `query_day` result).
+
+**Ambiguous — could be a genuine second portion / another serving:** follow the **Single-Ask
+Rule** (SKILL-ROUTING §Single-Ask). Ask ONCE — "already had {X} logged — is this a second
+serving?" — OR, if a question would be too naggy for the situation, just log it. Do NOT nag
+repeatedly. Never ask twice for the same item.
+
+**Only skip re-logging when confident it is the same item.** A different food, a clearly larger/
+second helping the user is flagging as extra, or any genuine new item → log normally (this
+short-circuit does not apply).
 
 ---
 
@@ -468,6 +542,15 @@ Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no tar
 - `vegetables_g` = **cooked weight** (as served). No raw-weight conversion needed.
 - Vegetable low → suggest at next meal.
 - Fruit low → suggest only at final meal of the day.
+
+**Full-day "Meals logged:" list — keep it consistent with the CANONICAL DAY CARD.**
+The ② block above and the CANONICAL DAY CARD (see the Correct/Append section) MUST stay
+structurally consistent (same progress bar / macros / produce lines). On a fresh create/append,
+a full-day meal list is helpful but must not bloat the reply: append a compact `Meals logged:`
+list (one short line per meal, from `existing_meals`) when it fits — but on a busy day, or when
+① already showed the meal just logged, referencing the day (the numbers in ② already reflect it)
+is enough. The **priority target for the full list is the correction / already-counted path**,
+where the whole point is showing trustworthy full-day state; do not let every create balloon.
 
 1-sentence comment bridging to ③.
 

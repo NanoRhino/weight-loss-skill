@@ -1,0 +1,38 @@
+{
+  "skill_name": "diet-tracking-analysis",
+  "notes": "Behavioral evals for the correction-churn fix (v3.6.0). Deterministic arithmetic is covered separately by tests/test_edit_reconcile.py; these two cases exercise LLM reply shape, not math. Same prompt/expectations format as other skills' evals.json.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "correction-emits-consolidated-day-card",
+      "prompt": "[SYSTEM: locale.json lang=en. PLAN.md: 1400 kcal/day. Today already logged via existing_meals: breakfast 320 kcal (oatmeal), lunch 540 kcal (chicken sub). meal_checkin returns action:\"correct\", the fudge bar in an afternoon snack corrected 55->40 kcal, evaluation.daily_total {calories: 885, target: 1400, progress_pct: 63}, existing_meals now [breakfast 320, lunch 540, snack 25].]\nUser: the fudge bar was actually 40 calories",
+      "expected_output": "A single consolidated day card: one ✏️ delta line, then the CANONICAL DAY CARD listing ALL meals. NOT a repeated per-meal ①②③ card, and NOT a bare 'updated'.",
+      "expectations": [
+        "Opens with ONE short ✏️ line naming the change AND the signed delta (e.g. 'fudge bar now 40 kcal (−15)')",
+        "Then a blank line, then the consolidated CANONICAL DAY CARD (✅ Locked in — full day framing)",
+        "Day card shows recomputed daily total 885/1400 kcal, a 10-char progress bar, macros with status arrows, and the produce line",
+        "Day card includes a 'Meals logged:' list with one short line per meal (breakfast, lunch, snack)",
+        "Does NOT re-emit the old ① per-meal card or a standalone ② block in addition to the day card (exactly one card)",
+        "Does NOT reply with a bare acknowledgment ('updated' / 'perfect') that hides the number",
+        "Does NOT end with the 🦏/🐘 rhino mascot emoji",
+        "Uses English (from USER.md)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "already-logged-add-short-circuits-to-query-day",
+      "prompt": "[SYSTEM: locale.json lang=en. PLAN.md: 1400 kcal/day. existing_meals visible in context: breakfast 320 kcal (oatmeal + banana), lunch 540 kcal (chicken sub). The user already logged rice with lunch is NOT the case here — instead: today lunch already contains 'white rice — 174 kcal'.]\nUser: also add rice",
+      "expected_output": "Recognizes rice is already logged today, does NOT create/append (no double-log). Calls the READ-ONLY query_day and replies with a '✓ Already counted' pointer + the CANONICAL DAY CARD.",
+      "expectations": [
+        "Does NOT call meal_checkin create/append (would blindly concatenate and double-log the rice)",
+        "Calls meal_checkin({ action: \"query_day\", workspace_dir: ... }) — the read-only path",
+        "Replies with a '✓ Already counted — rice is in your lunch (~174 kcal)' style pointer naming the meal slot",
+        "Then a blank line, then the CANONICAL DAY CARD (full-day state, all meals listed)",
+        "Daily total is unchanged from before the request (no rice added on top)",
+        "If it were genuinely ambiguous (possible second serving) it would ask ONCE per Single-Ask, not nag — but here it is clearly the same item, so it short-circuits without asking",
+        "Does NOT end with the 🦏/🐘 rhino mascot emoji",
+        "Uses English (from USER.md)"
+      ]
+    }
+  ]
+}
