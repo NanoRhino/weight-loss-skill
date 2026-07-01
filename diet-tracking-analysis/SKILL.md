@@ -187,7 +187,7 @@ For any turn that outputs the ①② breakdown (create / append / detail-bearing
      "produce": { "vegetables_g": <produce.vegetables_g>, "vegetables_status": "<produce.vegetable_status>", "fruits_g": <produce.fruits_g>, "fruits_status": "<produce.fruit_status>" }
    }
    ```
-   - `status` values are `on_track` / `high` / `low`, taken verbatim from the `meal_checkin` evaluation. The template renders fixed labels (今日累计/蔬菜/水果/蛋白质/碳水/脂肪 in zh, Today/Veg/Fruit/Protein/Carbs/Fat in en) according to `lang` — do not convert these yourself.
+   - `status` values are `on_track` / `high` / `low`, taken verbatim from the `meal_checkin` evaluation. The template renders fixed labels (当日累计/蔬菜/水果/蛋白质/碳水/脂肪 in zh, Today/Veg/Fruit/Protein/Carbs/Fat in en) according to `lang` — do not convert these yourself.
    - ⚠️ **Produce field naming**: `meal_checkin` returns produce status as **singular** (`vegetable_status`, `fruit_status`), but the card schema requires **plural** (`vegetables_status`, `fruits_status`). Map: `produce.vegetable_status` → card `produce.vegetables_status`; `produce.fruit_status` → card `produce.fruits_status`. If the source value is `null` (no veg target for this meal, or fruit not yet evaluated because this is not the final meal), pass `null` through — do not invent or omit.
    - **`lang`**: read from USER.md `locale`. If locale starts with `en` → `"en"`; otherwise → `"zh"` (default). Omit to default zh.
    - **`meal_label`** must match `lang`:

@@ -100,7 +100,7 @@
       </div>
       <div class="heroR">
         <div class="row">
-          <div class="t" id="dailyLabel">今日累计</div>
+          <div class="t" id="dailyLabel">当日累计</div>
           <div class="v"><b id="dcal"></b><span> / <span id="dtarget"></span></span></div>
         </div>
         <div class="bar"><div class="fill" id="fill"></div></div>
@@ -124,7 +124,7 @@
 
   // i18n: 标签按 D.lang 切换("en" → 英文,其余/缺省 → 中文)。数据值/单位 g/kcal 国际通用,不切。
   const I18N = {
-    zh: { daily: "今日累计", veg: "蔬菜", fruit: "水果", protein: "蛋白质", carbs: "碳水", fat: "脂肪" },
+    zh: { daily: "当日累计", veg: "蔬菜", fruit: "水果", protein: "蛋白质", carbs: "碳水", fat: "脂肪" },
     en: { daily: "Daily Intake", veg: "Veg",  fruit: "Fruit", protein: "Protein", carbs: "Carbs", fat: "Fat" },
   };
   const L = I18N[D.lang === "en" ? "en" : "zh"];
