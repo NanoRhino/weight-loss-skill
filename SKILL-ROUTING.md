@@ -115,15 +115,20 @@ routing-layer pointer to it.
    unless the user proactively eats more / says they're hungry.
 5. **Surface the unified daily balance** after logging / on a data query, via the
    `exercise_checkin` card or `exercise-tracking-planning/scripts/energy-balance.py`.
-   The net-balance line is a **shared template — IDENTICAL on all three surfaces**
-   (plugin card, diet-tracking-analysis, personal-data-query), localized per USER.md:
+   The net-balance line is a **LOCKED string — byte-for-byte identical on all three
+   surfaces** (plugin card, diet-tracking-analysis, personal-data-query). Pick by
+   USER.md language:
 
-   > ate {intake} · burned {exercise_burn_net} · target {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today (incl. workout) — target stays {eating_target}
+   - **EN:** `ate {intake} · burned {burn} · target {target} · net ~{abs(balance)} kcal {verdict} today (incl. workout) — target stays {target}`
+   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日净{赤字|盈余|维持} ~{abs} kcal（含运动）— 目标不变，仍是 {target}`
 
-   Example: `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`.
-   **Comma-group thousands** in every number (matches the card house style). The
-   "— target stays {eating_target}" clause is mandatory. Omit the whole line when
-   `data_complete:false` (no `data/plan.json` yet) or `exercise_burn_net == 0`.
+   `{verdict}` ∈ deficit|surplus|maintenance (from energy-balance.py). **Comma-group
+   thousands in the kcal numbers only** (not durations). The "— target stays" /
+   "目标不变，仍是" clause is mandatory. Omit the whole line when `data_complete:false`
+   (no `data/plan.json`) or `exercise_burn_net == 0`. On the exercise-log surface
+   you render the plugin's `card` verbatim (don't rebuild it); the two direct-call
+   surfaces build these strings from energy-balance.py output. Exact wording lives
+   in those two SKILL.md sections + the plugin.
 
 ---
 
@@ -238,10 +243,10 @@ Example: "ran for 30 minutes, then ate chicken breast"
      `exercise_checkin` card
    - Brief exercise feedback (1 sentence)
    - Meal details (food items, calories, macros) + nutrition checkpoint summary
-   - **One** net-balance line — the shared template (see global Exercise & Activity
-     Policy above): *ate {intake} · burned {exercise_burn_net} · target
-     {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today
-     (incl. workout) — target stays {eating_target}*
+   - **One** net-balance line — the LOCKED string (exact EN/zh in the global
+     Exercise & Activity Policy above). On this mixed surface the exercise part is
+     the plugin `card` (rendered verbatim), whose last line already IS that string;
+     do not add a second one.
    - Suggestion (if needed)
 5. Do NOT produce two separate response blocks or repeat greetings.
 

@@ -47,15 +47,19 @@ Determine which capability to use based on user intent:
    eats more / says they're hungry — then don't discourage it; otherwise let the
    extra deficit stand silently.)
 5. **Show the unified daily balance.** After logging exercise, surface the
-   net-balance line (from the `exercise_checkin` card / `energy-balance.py`). This
-   is the **shared template — IDENTICAL on all three surfaces** (plugin card,
-   diet-tracking-analysis, personal-data-query), localized per USER.md:
+   net-balance line. On the exercise-log surface you render the `exercise_checkin`
+   `card` **verbatim** — its last line already IS this string. The
+   diet-checkpoint and on-demand-query surfaces build it from `energy-balance.py`.
+   It is a **LOCKED string — byte-for-byte identical across all three**, picked by
+   USER.md language:
 
-   > ate {intake} · burned {exercise_burn_net} · target {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today (incl. workout) — target stays {eating_target}
+   - **EN:** `ate {intake} · burned {burn} · target {target} · net ~{abs(balance)} kcal {verdict} today (incl. workout) — target stays {target}`
+   - **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日净{赤字|盈余|维持} ~{abs} kcal（含运动）— 目标不变，仍是 {target}`
 
-   Example: `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`.
-   **Comma-group thousands** in every number (matches the card house style). The
-   "— target stays {eating_target}" clause is mandatory; omit the whole line when
+   `{verdict}` ∈ deficit|surplus|maintenance (from energy-balance.py). Example (EN):
+   `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`.
+   **Comma-group thousands in the kcal numbers only** (not durations). The
+   "— target stays" / "目标不变，仍是" clause is mandatory; omit the whole line when
    `data_complete:false` or `exercise_burn_net == 0`.
 
 ---
@@ -135,12 +139,13 @@ re-implement logging or call `exercise-calc.py save` yourself for user-facing lo
 **Returns:** a single canonical `card` string **plus** a structured
 `energy_balance` object (raw `energy-balance.py` output). **Render the `card`
 verbatim** — it already applies the NET rule, the standard format, and ends with
-the shared net-balance line (*ate {intake} · burned {exercise_burn_net} · target
-{eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today
-(incl. workout) — target stays {eating_target}*). This standardizes output and
-guarantees NET, killing the old "logged vs total" formatting drift. If
-`energy-balance.py` reported `data_complete:false` (no plan.json yet), the card
-omits the net-balance line — show the logged workout only; do not fabricate a
+the LOCKED net-balance string (EN: *ate {intake} · burned {burn} · target {target}
+· net ~{abs(balance)} kcal {verdict} today (incl. workout) — target stays
+{target}*; zh: *吃了 … — 目标不变，仍是 {target}* — exact strings in the Exercise &
+Activity Policy above). This standardizes output and guarantees NET, killing the
+old "logged vs total" formatting drift. If `energy-balance.py` reported
+`data_complete:false` (no plan.json yet), the card omits the net-balance line —
+show the logged workout only; do not fabricate a
 deficit number.
 
 After rendering the card, add at most **one** short line of goal-aligned feedback.

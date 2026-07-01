@@ -496,22 +496,24 @@ python3 {exercise-tracking-planning:baseDir}/scripts/energy-balance.py \
 ```
 - If `data_complete: false` (no `data/plan.json` yet) → **omit the line entirely**
   (do not fabricate a deficit). If `exercise_burn_net == 0` → omit.
-- Otherwise render the **shared net-balance line template** — IDENTICAL on all
-  three surfaces (the `exercise_checkin` plugin card, here, and
-  personal-data-query). Build it from the resolver fields and localize per USER.md
-  language, substituting the numbers:
+- Otherwise render the **LOCKED net-balance string** — byte-for-byte identical to
+  the `exercise_checkin` plugin card and personal-data-query. Build it from the
+  resolver fields; pick the string by USER.md language:
 
-  > ate {intake} · burned {exercise_burn_net} · target {eating_target} · net ~{abs(balance)} kcal {deficit|surplus|maintenance} today (incl. workout) — target stays {eating_target}
+  **EN:** `ate {intake} · burned {burn} · target {target} · net ~{abs(balance)} kcal {verdict} today (incl. workout) — target stays {target}`
 
-  Example (numbers filled): `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`
+  **zh:** `吃了 {intake} · 运动消耗 {burn} · 目标 {target} · 今日净{赤字|盈余|维持} ~{abs} kcal（含运动）— 目标不变，仍是 {target}`
 
-  - `{deficit|surplus|maintenance}` = the resolver's `verdict`.
-  - **Comma-group thousands** in every number (1,200 / 1,404 / 1,006) to match the
-    plugin card and existing card house style ("≈1,474").
-  - The **"— target stays {eating_target}"** clause is MANDATORY — never imply the
-    eating target moved.
-  - Do NOT reword or reorder this line — it must match the plugin card and
-    personal-data-query byte-for-byte (translation aside).
+  Example (EN, numbers filled): `ate 1,200 · burned 300 · target 1,404 · net ~950 kcal deficit today (incl. workout) — target stays 1,404`
+
+  - Field map: `{intake}`=intake, `{burn}`=exercise_burn_net, `{target}`=eating_target,
+    `{abs(balance)}`/`{abs}`=abs(balance), `{verdict}`=resolver's `verdict`
+    (`deficit`|`surplus`|`maintenance`; zh map: deficit→赤字, surplus→盈余,
+    maintenance→维持).
+  - **Comma-group thousands** in the kcal numbers only (1,200 / 1,404 / 1,006) —
+    NOT durations. Matches the plugin card + card house style ("≈1,474").
+  - Do NOT reword, reorder, or drop the "— target stays"/"目标不变，仍是" clause.
+    Must match the plugin card + personal-data-query byte-for-byte.
 
 ### ③ Suggestion (by `suggestion_type`)
 
