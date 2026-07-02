@@ -626,6 +626,34 @@ python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py check \
 
 若对话中用户提到严重健康情况（糖尿病、心脏病、进食障碍、孕期等），温和地建议其咨询医生。不要拒绝提供帮助——只在画像的 `health_flags` 中标记即可。
 
+### 医生医嘱 / 诊断 / 用药限制 — 当轮立即落盘（确定性 · 遵从 · 任意轮次）
+
+> **背景：** 我们是营养师，**不扮演医生**。当用户报告**医生的医嘱、诊断、医学饮食限制或用药**（例：「医生说我有蛋白尿，让我蛋白质别吃太多」「肾功能不好，要低蛋白饮食」「医生让我限盐」「查出脂肪肝」），这是**支配性规则（GOVERNING RULE）**——教练必须捕获并遵从，它会**覆盖默认的高蛋白教练策略**。镜像「限制一旦说出口，当轮立即落盘」模式。
+
+**医嘱一旦说出口，当轮立即落盘——在你回复之前。** 用 `save-medical.py`（见下）把它写入 `health-profile.md > ## Medical`（结构化、去重、幂等），再组织回复，这样医嘱能跨轮保留并被 `diet-tracking-analysis` 读取遵从。
+
+```bash
+python3 {baseDir}/scripts/save-medical.py --workspace {workspaceDir} \
+  [--condition "<诊断/病症，如 proteinuria>"] \
+  [--directive "<医生饮食医嘱，如 keep protein moderate>"] \
+  [--protein-cap "<数字如 60 g/day | moderate | None>"] \
+  [--other-limit "<其他限制，如 low sodium>"] \
+  --tz-offset {tz_offset}
+```
+
+- 至少传一个 `--condition` / `--directive` / `--protein-cap` / `--other-limit`；可一次传多个（一条医嘱常含多项）。
+- `--protein-cap` 是**机器可读**字段：数字（如 `60 g/day`）、`moderate`、或 `None`。当医生说「蛋白质别多吃 / 适量」时存 `moderate`；给了具体克数就存那个数字。**不要自己编医学数字**——用户没给具体数值时只存 `moderate`，不要臆测克数。
+- 模糊时先澄清 **一个** 问题再存（例：「医生是说完全不能吃盐，还是少盐？」）。
+
+**读回一句简短确认**（语言遵循 `USER.md` 权威——用用户自己的语言，不要推断）。**只确认「已记录并会遵守」，不要给医学建议、不要开处方式的数字。** 例：
+
+> "记下了——你医生让蛋白质适量，我会把你的计划控制在这个范围内。✔"
+> （英文）"Got it — noting your doctor's guidance to keep protein moderate. I'll keep your plan within that. ✔"
+
+**若用户报告了肾脏类红旗信号（蛋白尿 / 肾病 / CKD）但没给具体医嘱：** 记录该病症（`--condition`），并**问用户医生的具体指导**，或建议其向医生确认合适的蛋白质水平——**绝不自己猜一个医学数字**。
+
+**所有权：** `health-profile.md > ## Medical` section 由本技能（user-onboarding-profile）拥有 schema 与写入逻辑，唯一写入方式是 `save-medical.py`（见 `docs/CONVENTIONS.md` §3 数据所有权）。`diet-tracking-analysis` 只读该 section 以遵从医嘱。**不要手写这段 Markdown。**
+
 ## 画像输出格式
 
 用户未提供的字段用 `—`。绝不编造数据。
@@ -683,6 +711,14 @@ python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py check \
 - **Diet Mode:** —
 - **Food Restrictions:** [list or None]
 
+## Medical
+<!-- Doctor-reported. GOVERNING RULES — the coach is a nutritionist and obeys these; never override. -->
+- **Reported Conditions:** None
+- **Doctor Dietary Directives:** None
+- **Protein Cap:** None
+- **Other Limits:** None
+- **Source:** user-reported from their doctor
+
 ## Meal Schedule
 - **Meals per Day:** [2 or 3]
 - **Breakfast:** —
@@ -707,6 +743,8 @@ python3 {dashboard-link:baseDir}/scripts/dashboard-tip-gate.py check \
 ```
 
 **注：** health-profile.md 中许多字段在引导期先置为 `—`，稍后由其他技能填充（例：`Diet Mode` 和 `Meal Schedule` 由 weight-loss-planner 设置，`Fitness Level` / `Fitness Goal` 由 exercise-tracking-planning 设置）。仅填写用户在引导期实际提供的字段。
+
+**注（`## Medical`）：** 该 section 默认全为 `None`，只在用户报告医生医嘱/诊断/用药限制时由 `save-medical.py` 填充（可发生在任意轮次，不限引导期——见上方「医生医嘱 / 诊断 / 用药限制」）。它是支配性规则，被 `diet-tracking-analysis` 读取遵从。**绝不手写**这段 Markdown，也不要在引导期凭空填写。
 
 ### 文件 3：health-preferences.md — 累积的偏好
 
