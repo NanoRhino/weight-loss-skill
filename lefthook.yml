@@ -25,15 +25,22 @@ pre-commit:
         fi
 
 pre-push:
+  parallel: true
   commands:
-    schema-tests:
-      # 优先跑父仓 backend-service 的 vitest 完整测(27 case,含 workspace 模板 +
-      # workspace-manager.ts 依赖检查),那是**契约的唯一真源**。
-      # 独立 clone 场景通过 SKILL_ROOT env 指到本地路径,避开"父仓子模块指针没 bump"漂移。
-      # 找不到父仓 clone 走 fallback pytest(20 case,只测 SKILL.md 字段/section),
-      # 至少保住核心契约。
+    # 本仓 pytest:154 case,覆盖每个 skill 的计算/判定纯函数
+    # (streak/weight-tracker/planner/nutrition/badge/exercise/trend + onboarding schema)
+    skill-tests:
+      run: python3 -m pytest tests/ -q
+      fail_text: |
+        ❌ skill 单测失败,禁止 push。
+        修法:`python3 -m pytest tests/ -v` 看哪些 case 挂。
+        改 skill/scripts/*.py 里的公式/判定/归一化时,请配对更新 tests/test_*.py。
+
+    # 父仓 vitest:onboarding SKILL.md schema 契约(下游 skills 引用的字段/section)
+    # 通过 SKILL_ROOT env 指到本地 clone,避免"父仓子模块指针没 bump 读老版本"漂移。
+    # 找不到父仓 clone 时静默 skip(本仓 tests/test_onboarding_schema.py 20 case 覆盖核心)。
+    parent-onboarding-contract:
       run: |
-        # 猜父仓路径:兄弟目录常规 layout
         PARENT_CANDIDATES=(
           "$(dirname "$(pwd)")/backend-service/.openclaw-user-service"
           "$HOME/backend-service/.openclaw-user-service"
@@ -45,11 +52,10 @@ pre-push:
             exit $?
           fi
         done
-        echo "→ 未找到父仓,走轻量 pytest fallback"
-        python3 -m pytest tests/ -q
+        echo "→ 未找到父仓 clone,skip(本仓 pytest 已覆盖核心 schema)"
+        exit 0
       fail_text: |
-        ❌ SKILL.md schema 单测失败,禁止 push。
-        修法:先看跑的是哪套(找到父仓走 vitest 27 case,否则 pytest 20 case)。
-        如果确实要改字段名(rename),需同步更新所有下游 skills 里的引用
-        (weight-loss-planner / meal-tracker / diet-pattern-detection ...),
-        然后更新 tests/test_onboarding_schema.py 里的 REQUIRED_FIELDS。
+        ❌ 父仓 onboarding schema 测挂了。
+        如果改了 user-onboarding-profile/SKILL.md 字段名,需同步更新下游 skills
+        里的引用(weight-loss-planner / meal-tracker / diet-pattern-detection ...)
+        然后到 backend-service 更新 tests/onboarding.test.ts 的 REQUIRED_FIELDS。
