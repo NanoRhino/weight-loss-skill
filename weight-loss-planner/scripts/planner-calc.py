@@ -31,6 +31,7 @@ Usage:
   python3 planner-calc.py macro-targets --weight 80 --cal 1800 --mode balanced
   python3 planner-calc.py safety-floor --bmr 1742
   python3 planner-calc.py recommend-rate --to-lose-kg 15
+  python3 planner-calc.py recommend-rate --to-lose-kg 60 --body-weight-kg 136
   python3 planner-calc.py forward-calc --weight 85 --height 178 --age 35 --sex male --activity moderately_active --target-weight 70 --mode balanced
   python3 planner-calc.py reverse-calc --weight 85 --height 178 --age 35 --sex male --activity moderately_active --target-weight 70 --deadline 2027-06-01 --mode balanced
   python3 planner-calc.py maintenance-tdee --goal-weight 70 --height 178 --age 36 --sex male --activity moderately_active
@@ -81,10 +82,15 @@ DIET_MODE_FAT = {
 }
 
 # Rate recommendation table: (min_kg, max_kg) → (rate_low, rate_high, default)
+# NOTE: the largest (>25 kg) bucket's high + default are RAISED at runtime by
+# recommend_rate() when a body weight is supplied — up to 1% of current body
+# weight per week (see max_weekly_rate_kg). A heavier body can safely lose
+# faster; the max(BMR, 1000) calorie floor downstream is still the HARD limit,
+# so this only speeds up users who actually have the TDEE headroom for it.
 RATE_TABLE = [
     (0,   10,  0.2, 0.5, 0.35),   # < 10 kg to lose
     (10,  25,  0.5, 0.7, 0.6),    # 10–25 kg
-    (25, 9999, 0.5, 1.0, 0.7),    # > 25 kg
+    (25, 9999, 0.5, 1.0, 0.7),    # > 25 kg (high/default scale to 1%/wk of body weight)
 ]
 
 ABSOLUTE_CALORIE_MINIMUM = 1000
@@ -157,9 +163,32 @@ def calc_safety_floor(bmr: float) -> int:
     return max(round(bmr), ABSOLUTE_CALORIE_MINIMUM)
 
 
-def recommend_rate(to_lose_kg: float) -> dict:
+def max_weekly_rate_kg(body_weight_kg: float = None) -> float:
+    """Upper OFFER ceiling on the weekly loss rate: up to 1% of current body
+    weight per week, never below the historical 1.0 kg/wk cap.
+
+    This is an OFFER, not a forced pace — the max(BMR, 1000) calorie floor
+    downstream is the HARD limit and always wins. A low-TDEE user gets clamped
+    right back to their floor-limited rate (unchanged from before); only a
+    high-TDEE / high-body-weight user with real deficit headroom can actually
+    reach a faster pace here.
+    """
+    base = 1.0
+    if body_weight_kg:
+        return round(max(base, body_weight_kg * 0.01), 2)
+    return base
+
+
+def recommend_rate(to_lose_kg: float, body_weight_kg: float = None) -> dict:
     for min_kg, max_kg, lo, hi, default in RATE_TABLE:
         if min_kg <= to_lose_kg < max_kg:
+            # Largest (>25 kg) bucket: raise the ceiling + default to 1%/wk of
+            # body weight when it's known. Heavier bodies can safely lose
+            # faster; the safety floor still clamps the realized rate.
+            if max_kg >= 9999 and body_weight_kg:
+                one_pct = round(body_weight_kg * 0.01, 2)
+                hi = max(hi, one_pct)
+                default = max(default, one_pct)
             return {
                 "to_lose_kg": round(to_lose_kg, 1),
                 "rate_low_kg": lo,
@@ -259,7 +288,7 @@ def forward_calc(weight_kg: float, height_cm: float, age: int, sex: str,
     tdee = tdee_info["tdee"]
 
     to_lose = round(weight_kg - target_weight_kg, 1)
-    rate_info = recommend_rate(to_lose)
+    rate_info = recommend_rate(to_lose, body_weight_kg=weight_kg)
     rate = rate_info["rate_default_kg"]
 
     cal_info = calc_calorie_target(tdee, rate)
@@ -328,8 +357,11 @@ def reverse_calc(weight_kg: float, height_cm: float, age: int, sex: str,
 
     required_rate = round(to_lose / available_weeks, 2)
 
-    # Safety checks
-    rate_safe = required_rate <= 1.0
+    # Safety checks. The rate ceiling scales with body weight (up to 1%/wk),
+    # consistent with recommend_rate; the calorie floor below is still the
+    # hard limit and clamps the realized rate for low-TDEE users.
+    max_offer_rate = max_weekly_rate_kg(weight_kg)
+    rate_safe = required_rate <= max_offer_rate
     floor = calc_safety_floor(bmr)
     cal_info = calc_calorie_target(tdee, required_rate)
     daily_cal = cal_info["daily_cal"]
@@ -340,7 +372,7 @@ def reverse_calc(weight_kg: float, height_cm: float, age: int, sex: str,
     safe_daily_cal = daily_cal
     safe_weeks = available_weeks
     if not rate_safe:
-        safe_rate = 1.0
+        safe_rate = max_offer_rate
     if not cal_safe:
         max_deficit = tdee - floor
         safe_rate = min(safe_rate, round(max_deficit / 1100, 2))
@@ -563,6 +595,9 @@ def main():
     # --- recommend-rate ---
     p = sub.add_parser("recommend-rate", help="Recommend weekly loss rate")
     p.add_argument("--to-lose-kg", type=float, required=True)
+    p.add_argument("--body-weight-kg", type=float, default=None,
+                   help="Current body weight (kg). When given, the >25 kg "
+                        "bucket's high + default scale to 1%%/wk of body weight.")
 
     # --- forward-calc ---
     p = sub.add_parser("forward-calc", help="Full forward calculation")
@@ -681,7 +716,8 @@ def main():
                   "absolute_minimum": ABSOLUTE_CALORIE_MINIMUM}
 
     elif args.cmd == "recommend-rate":
-        result = recommend_rate(args.to_lose_kg)
+        result = recommend_rate(args.to_lose_kg,
+                                getattr(args, "body_weight_kg", None))
 
     elif args.cmd == "forward-calc":
         result = forward_calc(

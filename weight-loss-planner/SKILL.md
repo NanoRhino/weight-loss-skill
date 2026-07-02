@@ -138,13 +138,15 @@ Default to the **midpoint** of the recommended range unless user preference, age
 |---|---|---|---|
 | < 10 kg / < 20 lbs | 0.2–0.5 kg/week (0.5–1.0 lbs) | 0.35 kg (0.75 lbs) | Closer to goal weight, slower is more sustainable and preserves muscle |
 | 10–25 kg / 20–50 lbs | 0.5–0.7 kg/week (1.0–1.5 lbs) | 0.6 kg (1.25 lbs) | Standard healthy range for moderate loss |
-| > 25 kg / > 50 lbs | 0.5–1.0 kg/week (1.0–2.0 lbs) | 0.7 kg (1.5 lbs) | Higher starting weight supports faster initial loss; taper as you progress |
+| > 25 kg / > 50 lbs | up to **1% of body weight / week** | ~1% of body weight (min 0.7 kg) | A heavier body can safely lose faster — a 136 kg / 300 lb user can carry ~1.3 kg (2.9 lb)/week, tapering as they progress. `planner-calc.py` computes this automatically; the safety floor still clamps it. |
+
+`recommend-rate` / `forward-calc` derive the >25 kg default from body weight (pass `--body-weight-kg`; `forward-calc` does it for you). This is an **offer, not a mandate** — the `max(BMR, 1000)` floor is the hard limit, so a low-TDEE user is clamped right back to the same floor-limited pace they'd have had at 0.7. Only users with real deficit headroom actually go faster.
 
 #### Safety Guardrails
 
 **Priority rule:** Calorie floor always takes precedence. The floor is **max(BMR, 1,000 kcal/day)** — never eat below what the body burns at rest, with an absolute minimum of 1,000 kcal for nutrient adequacy. If the math pushes intake below the floor, clamp to the floor first, then back-calculate the maximum safe weekly rate from there.
 
-- Weekly loss rate should not exceed 1 kg / 2 lbs per week for extended periods (>2 weeks)
+- Weekly loss rate should not exceed **~1% of body weight per week** (for most people ≈ 0.7–1.0 kg / 1.5–2 lbs; a heavier body can safely support more, e.g. ~1.3 kg / 2.9 lb at 136 kg / 300 lb). The calorie floor below still overrides this — never chase a faster number by eating under the floor. To go faster safely, **add activity** (more movement raises TDEE → a bigger deficit at the same food floor), never cut food below the floor.
 - Daily calorie intake must not go below **max(BMR, 1,000 kcal/day)** — if the math pushes below this floor, flag it clearly, set intake to the floor, and adjust the rate/timeline accordingly. See `references/formulas.md` for detailed floor calculation.
 - **Below-BMR compliance is checked weekly, not per-meal.** During daily tracking, per-meal checkpoints evaluate calorie/macro balance against the daily target. Whether the user is consistently eating below the calorie floor is assessed once per week via the `weekly-low-cal-check` command in `diet-tracking-analysis`. This avoids noisy day-to-day alerts while still catching sustained under-eating.
 - If the user's target BMI would be below 18.5, express concern and suggest they discuss with a healthcare provider
