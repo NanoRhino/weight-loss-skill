@@ -27,10 +27,29 @@ pre-commit:
 pre-push:
   commands:
     schema-tests:
-      run: python3 -m pytest tests/ -q
+      # 优先跑父仓 backend-service 的 vitest 完整测(27 case,含 workspace 模板 +
+      # workspace-manager.ts 依赖检查),那是**契约的唯一真源**。
+      # 独立 clone 场景通过 SKILL_ROOT env 指到本地路径,避开"父仓子模块指针没 bump"漂移。
+      # 找不到父仓 clone 走 fallback pytest(20 case,只测 SKILL.md 字段/section),
+      # 至少保住核心契约。
+      run: |
+        # 猜父仓路径:兄弟目录常规 layout
+        PARENT_CANDIDATES=(
+          "$(dirname "$(pwd)")/backend-service/.openclaw-user-service"
+          "$HOME/backend-service/.openclaw-user-service"
+        )
+        for parent in "${PARENT_CANDIDATES[@]}"; do
+          if [ -f "$parent/tests/onboarding.test.ts" ] && command -v npx >/dev/null; then
+            echo "→ 找到父仓,跑完整 vitest:$parent"
+            cd "$parent" && SKILL_ROOT="$(pwd)/../../weight-loss-skill" npx vitest run tests/onboarding.test.ts
+            exit $?
+          fi
+        done
+        echo "→ 未找到父仓,走轻量 pytest fallback"
+        python3 -m pytest tests/ -q
       fail_text: |
         ❌ SKILL.md schema 单测失败,禁止 push。
-        修法:`python3 -m pytest tests/ -v` 看哪些字段/section 被误改。
-        如果确实要改字段名(rename),需同时更新所有下游 skills 里的引用
-        (weight-loss-planner / meal-tracker / diet-pattern-detection ...)
-        然后再更新 tests/test_onboarding_schema.py 里的 REQUIRED_FIELDS。
+        修法:先看跑的是哪套(找到父仓走 vitest 27 case,否则 pytest 20 case)。
+        如果确实要改字段名(rename),需同步更新所有下游 skills 里的引用
+        (weight-loss-planner / meal-tracker / diet-pattern-detection ...),
+        然后更新 tests/test_onboarding_schema.py 里的 REQUIRED_FIELDS。
