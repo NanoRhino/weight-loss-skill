@@ -56,6 +56,112 @@ def get_recent_weights(data_dir, tz_offset, limit=14):
     return readings[-limit:]
 
 
+# ── Weight-milestone ladder integration (owned by reward-engine) ─────────────
+
+_LB_PER_KG = 2.2046226218
+
+
+def _norm_unit(u):
+    u = (u or "").lower().strip()
+    if u in ("kg", "公斤", "千克", "斤", "jin"):
+        return "kg"
+    if u in ("lb", "lbs", "pound", "pounds", "磅"):
+        return "lb"
+    return u or "kg"
+
+
+def _conv(value, from_u, to_u):
+    from_u, to_u = _norm_unit(from_u), _norm_unit(to_u)
+    if from_u == to_u:
+        return round(value, 1)
+    if from_u == "kg" and to_u == "lb":
+        return round(value * _LB_PER_KG, 1)
+    if from_u == "lb" and to_u == "kg":
+        return round(value / _LB_PER_KG, 1)
+    return round(value, 1)
+
+
+def _first_last_weights(data_dir):
+    """Return (first_reading, last_reading) as {value, unit} dicts, or (None, None)."""
+    raw = load_json(os.path.join(data_dir, "weight.json"))
+    if not raw:
+        return None, None
+    keys = sorted(raw.keys())
+
+    def _r(k):
+        v = raw[k]
+        val = v.get("value", v) if isinstance(v, dict) else v
+        unit = v.get("unit", "kg") if isinstance(v, dict) else "kg"
+        return {"value": float(val), "unit": unit}
+    return _r(keys[0]), _r(keys[-1])
+
+
+def _parse_unit_pref(health_profile, fallback_unit):
+    """Preferred display unit from health-profile.md, else the weight's own unit."""
+    if health_profile and os.path.exists(health_profile):
+        try:
+            content = open(health_profile, encoding="utf-8").read()
+            m = re.search(r"Unit Preference[:\s*]*[:：]?\s*\**\s*(kg|公斤|lb|lbs|磅|斤)",
+                          content, re.IGNORECASE)
+            if m:
+                return _norm_unit(m.group(1))
+        except OSError:
+            pass
+    return _norm_unit(fallback_unit)
+
+
+def _parse_goal_weight(plan_file, health_profile, target_unit):
+    """Parse goal/target weight (converted to target_unit) from health-profile.md
+    then PLAN.md. Returns float or None."""
+    pat = re.compile(
+        r"(?:target weight|goal weight|goal|目标体重|目标)[^\d\n]{0,12}?"
+        r"(\d+(?:\.\d+)?)\s*(kg|公斤|千克|lb|lbs|磅|斤)?",
+        re.IGNORECASE)
+    for path in (health_profile, plan_file):
+        if not path or not os.path.exists(path):
+            continue
+        try:
+            content = open(path, encoding="utf-8").read()
+        except OSError:
+            continue
+        m = pat.search(content)
+        if m:
+            val = float(m.group(1))
+            unit = m.group(2)
+            if _norm_unit(unit or "") == "kg" and (unit or "").strip() in ("斤",):
+                val = val * 0.5
+            src_unit = _norm_unit(unit) if unit else target_unit
+            return _conv(val, src_unit, target_unit)
+    return None
+
+
+def milestone_check(data_dir, tz_offset, plan_file, health_profile):
+    """Run reward-engine's weight-milestone-calc.py against the current weigh-in.
+    Returns the parsed dict (or None if it can't be computed / script missing)."""
+    first, last = _first_last_weights(data_dir)
+    if not first or not last:
+        return None
+    unit = _parse_unit_pref(health_profile, last["unit"])
+    start = _conv(first["value"], first["unit"], unit)
+    current = _conv(last["value"], last["unit"], unit)
+    goal = _parse_goal_weight(plan_file, health_profile, unit)
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    skills_root = os.path.dirname(os.path.dirname(script_dir))
+    ms_script = os.path.join(skills_root, "reward-engine", "scripts",
+                             "weight-milestone-calc.py")
+    if not os.path.exists(ms_script):
+        return None
+
+    cmd = ["python3", ms_script, "check", "--data-dir", data_dir,
+           "--start", str(start), "--current", str(current),
+           "--unit", unit, "--tz-offset", str(tz_offset)]
+    if goal is not None:
+        cmd += ["--goal", str(goal)]
+    result, _err = run_script(cmd)
+    return result
+
+
 def get_strategy_status(data_dir, tz_offset):
     """Check if there's an active weight-gain strategy."""
     tz = timezone(timedelta(seconds=tz_offset))
@@ -143,13 +249,27 @@ def main():
     strategy = get_strategy_status(args.data_dir, args.tz_offset)
     last_intervention = get_last_intervention(args.data_dir)
 
+    context = {
+        "recent_weights": recent,
+        "active_strategy": strategy,
+        "last_intervention_date": last_intervention,
+    }
+
+    # Weight-loss milestone ladder — only on a genuine new weigh-in ("created"),
+    # never on a correction ("updated"), mirroring reward-engine's "don't run on
+    # corrections" rule. Non-fatal: any failure just omits the key.
+    if save_result.get("action") == "created":
+        try:
+            ms = milestone_check(args.data_dir, args.tz_offset,
+                                 args.plan_file, args.health_profile)
+            if ms is not None:
+                context["milestone"] = ms
+        except Exception:
+            pass  # never let milestone detection break a weight save
+
     print(json.dumps({
         "save": save_result,
-        "context": {
-            "recent_weights": recent,
-            "active_strategy": strategy,
-            "last_intervention_date": last_intervention,
-        },
+        "context": context,
     }, indent=2, ensure_ascii=False))
 
 

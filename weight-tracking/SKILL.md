@@ -51,10 +51,24 @@ Returns:
     "recent_weights": [...],
     "plan": { "target_weight": 55.0, "tdee": 1916, "calorie_target": 1800 },
     "active_strategy": { "active": false },
-    "last_intervention_date": null
+    "last_intervention_date": null,
+    "milestone": {
+      "newly_crossed": true,
+      "milestone": { "id": "first_chunk", "kind": "first_chunk", "amount": 5,
+                     "unit": "lb", "target_weight": 205.0, "lost_so_far": 5.5,
+                     "message_en": "First 5 lb down — the hardest part…",
+                     "message_zh": "减掉第一个 5 磅——…" },
+      "also_crossed": [], "all_celebrated": ["first_chunk"]
+    }
   }
 }
 ```
+
+`context.milestone` is present only on a **new** weigh-in (`save.action:
+"created"`, never a correction). It is computed by reward-engine's
+`weight-milestone-calc.py` (see reward-engine SKILL.md § Weight-loss milestone
+ladder). `newly_crossed: false` on the very first weigh-in ever (silent
+backfill — never celebrate history).
 
 ### Save only — `weight-tracker.py save`
 
@@ -122,6 +136,21 @@ See `references/crud-operations.md` for: `delete`, `update`, `set-unit`.
      ```
      调用成功后，再输出询问文本（如"要不要一起看看原因？"）。
    - **用户视角优先**：不只看科学趋势，也想想用户看到这个数字会怎么想。涨了半斤用户会慌、平台期一周不动用户会焦虑、好不容易降下来又反弹用户会沮丧——回应他们的感受，不是冷冰冰确认一个数字
+5. **Milestone celebration (positive exception to "don't comment unprompted").**
+   If `context.milestone.newly_crossed` is `true`, the user just crossed a
+   weight-loss milestone — **celebrate it warmly and specifically** in the same
+   reply, right after the "Logged ✓" confirmation. Use
+   `context.milestone.milestone.message_en` / `message_zh` (pick per
+   `USER.md > Language` — never select language yourself) as the seed, in your
+   own warm voice. Keep it to 1–2 sentences; don't stack it on top of a trend
+   intervention (if step 4 also fires, the celebration leads and the
+   trend-concern waits — a milestone is a win, not a moment to worry). This is
+   the deliberate exception to "never comment on weight changes unprompted"
+   below: milestones are the good news the user is here for. `newly_crossed:
+   false` (including the first-ever weigh-in's silent backfill) → say nothing
+   about milestones. Examples of the tone: "🎉 First 5 lb down — the hardest
+   part is behind you." / "Welcome to Onederland — you're under 200! 🎈" /
+   "Halfway there 💪". (No 🦏.)
 
 ### User Asks for Trend / History
 
@@ -135,7 +164,7 @@ See `references/crud-operations.md`.
 ## Interaction Guidelines
 
 - **Record weight whenever mentioned.** Not limited to scheduled days. "今天早上74.5", "刚称了一下79" → call `save`. Exception: past/hypothetical ("我以前80公斤").
-- **Never comment on weight changes unprompted.** Just log and confirm. Emotional reactions → `emotional-support` skill.
+- **Never comment on weight changes unprompted.** Just log and confirm. Emotional reactions → `emotional-support` skill. **One exception:** a newly-crossed weight milestone (`context.milestone.newly_crossed: true`) — celebrate that (see Workflow step 5).
 - **Always display in preferred unit**, rounded to 1 decimal.
 - **Accept any common unit**: kg, lb, lbs, 斤 (=0.5 kg), 公斤.
 - **Fasting tag**: if user mentions empty stomach / morning weigh-in → note `fasting: true` in context.

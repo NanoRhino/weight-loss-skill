@@ -2,8 +2,11 @@
 name: reward-engine
 version: 1.0.0
 description: >
-  Calculates cumulative calorie-target achievement days and badge level.
-  Called BY other skills (diet-tracking-analysis) after meal check-in — not a standalone skill.
+  Calculates cumulative calorie-target achievement days and badge level, PLUS
+  the weight-loss milestone ladder (first 5 lb / 5% / every 10 lb / Onederland /
+  10% / halfway / goal). Called BY other skills (diet-tracking-analysis after
+  meal check-in for badges; weight-tracking after a weigh-in for milestones) —
+  not a standalone skill.
   
   WHEN to call:
   - diet-tracking-analysis: after meal_checkin returns successfully (action: create/append).
@@ -117,6 +120,67 @@ A separate, ONE-TIME starter badge awarded the moment the user logs their **firs
 Defined in `scripts/badge-calc.py` as `STARTER_BADGE`.
 
 
+
+## Weight-Loss Milestone Ladder (the *scale*, not the calorie badge)
+
+A second, independent ladder that celebrates **weight** milestones — the good
+news users actually joined for. Where `badge-calc.py` rewards the *behavior*
+(eating on target), `weight-milestone-calc.py` rewards *scale progress*.
+Text-only (like the starter badge — no milestone card images exist yet).
+
+**Script:** `scripts/weight-milestone-calc.py`
+
+```bash
+# On a weigh-in — detect + persist the newly-crossed milestone:
+python3 {baseDir}/scripts/weight-milestone-calc.py check \
+  --data-dir {workspaceDir}/data \
+  --start <first weight> --current <latest weight> --goal <goal weight> \
+  --unit lb|kg --tz-offset {tz_offset}
+
+# For hope-first framing — the NEXT upcoming milestone (no write):
+python3 {baseDir}/scripts/weight-milestone-calc.py next \
+  --start <start> --current <current> --goal <goal> --unit lb|kg
+```
+
+**Ladder (shared cross-repo contract — celebrate each ONCE, deduped):**
+first **5 lb / 2.5 kg** lost · **5%** of start weight · every **10 lb / 5 kg**
+(10/20/30…) · **"Onederland"** = crossing under 200 lb (lb-unit only; start ≥ 200
+& goal < 200) · **10%** of start weight · **halfway** to goal · **goal reached**.
+If several fire on one weigh-in, the single **most significant** is surfaced and
+the rest are still marked celebrated so they never re-fire.
+
+**`check` output** (see weight-tracking SKILL.md for the surfacing rule):
+```json
+{ "newly_crossed": true,
+  "milestone": { "id": "onederland", "kind": "onederland", "amount": null,
+                 "unit": "lb", "target_weight": 199.99, "lost_so_far": 11.0,
+                 "message_en": "Welcome to Onederland — you're under 200 lb!",
+                 "message_zh": "体重进入「1 字头」——已经低于 200 磅！" },
+  "also_crossed": ["pct_5"], "all_celebrated": ["first_chunk","pct_5","onederland"] }
+```
+- **First run backfills silently** (`backfilled: true`, nothing surfaced) so a
+  mid-journey user is never spammed with historical milestones (补算不补发).
+- `message_en`/`message_zh` are seeds — the caller delivers in the user's
+  language per `USER.md` (this skill does NO language selection, CONVENTIONS §10).
+
+**Who calls it:**
+- `weight-tracking` (via `save-and-check.py`) runs `check` on every new weigh-in
+  (never on a correction) and returns it as `context.milestone`.
+- `weight-loss-planner` / any hope-first framing may run `next` to lead with the
+  near-term win instead of the far completion date.
+
+### Data Storage — `data/weight-milestones.json` (owned by reward-engine)
+
+```json
+{ "initialized": true,
+  "celebrated": ["first_chunk", "pct_5", "onederland"],
+  "last_checked": "2026-07-02" }
+```
+reward-engine **owns** this file (CONVENTIONS §3). Sibling to `data/badges.json`
+— kept separate because the two ladders are independent (behavior vs. scale) and
+have different write triggers. Backward-compatible: absent = `initialized:false`
+→ the next `check` backfills silently. `celebrated` is the dedup set of
+milestone ids; only `weight-milestone-calc.py` writes it.
 
 ## Badge Image Generation
 
