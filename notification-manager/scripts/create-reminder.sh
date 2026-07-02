@@ -49,6 +49,16 @@ STATE_DIR="$(resolve_state_dir)"
 # a user with no reminders. Single source of truth — change here only.
 DEFAULT_TZ="America/New_York"
 
+# Model for reminder cron turns. Reminders are short notification-composer
+# formatting tasks, not open-ended coaching — so they run on a cheaper model
+# than the coach's interactive default (Opus 4.6). This sets the per-cron
+# payload.model ONLY; it does NOT touch interactive/inbound-SMS turns, which
+# keep the agent's default model. See agent-architecture-review-2026-07-02.md
+# (L1 fix #2, "cron 降级模型"). Bedrock Sonnet 4.6 on the same account/provider
+# as the working Opus default. Override via CRON_REMINDER_MODEL (empty = inherit
+# agent default). Single source of truth — change here only.
+CRON_REMINDER_MODEL="${CRON_REMINDER_MODEL-amazon-bedrock/arn:aws:bedrock:us-east-1:969644818405:inference-profile/global.anthropic.claude-sonnet-4-6}"
+
 AGENT=""
 NAME=""
 MESSAGE=""
@@ -362,6 +372,12 @@ else
     --to "$TO"
   )
 
+fi
+
+# Pin the reminder-composition model (see CRON_REMINDER_MODEL above). Applies to
+# both delivery branches; empty value opts out and inherits the agent default.
+if [[ -n "$CRON_REMINDER_MODEL" ]]; then
+  CMD+=(--model "$CRON_REMINDER_MODEL")
 fi
 
 if [[ -n "$AT" ]]; then
