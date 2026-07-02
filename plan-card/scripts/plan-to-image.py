@@ -213,6 +213,12 @@ STRINGS = {
         "sample_formula": "The pattern: protein (6 oz) + complex carb (1 cup) + vegetables (unlimited) + fat (1 tbsp)",
         "goal_reached": "Goal Reached",
         "weeks_from": "~{w} weeks from today",
+        # Hope-first timeline: lead with the near-term milestone, not the far
+        # completion date (folded into one de-emphasized note so the tile keeps
+        # the original 3-line height — no page overflow).
+        "sec_first_target": "First Target",
+        "first_target_value": "−{amt}",
+        "first_target_note": "≈ {w} wks · goal est. {m}, not a deadline",
         "unlock_title": "Reply with your goal weight<br>to unlock your completion date",
         "remember": "Remember",
         "maintain_focus": "Consistency beats perfection — show up daily",
@@ -274,7 +280,9 @@ STRINGS = {
         "md_surplus": "Daily calorie surplus: ~{v} {cu}",
         "md_rate_loss": "Weekly loss rate: ~{v}",
         "md_rate_gain": "Weekly gain rate: ~{v}",
-        "md_completion": "Estimated completion: {v}",
+        "md_first_target": "First target: −{amt} (~{w} weeks) — one win at a time",
+        "md_completion": "Estimated goal date: ~{v} — an estimate, not a deadline "
+                         "(loss is usually faster early; recalculated as you go)",
         "md_unlock": "Estimated completion: reply with your goal weight "
                      "to unlock your completion date",
         "expl_lose": "This pace keeps your energy up while the scale keeps "
@@ -372,6 +380,10 @@ STRINGS = {
         "sample_formula": "搭配公式：蛋白质 150g + 主食 1 碗 + 蔬菜不限量 + 油脂 1 勺",
         "goal_reached": "达成目标",
         "weeks_from": "距今约 {w} 周",
+        # 先给近期里程碑，把完成日期折进一行降级备注（保持原来三行高度，不溢出）。
+        "sec_first_target": "第一个目标",
+        "first_target_value": "−{amt}",
+        "first_target_note": "约 {w} 周 · 目标预计 {m}，不是死线",
         "unlock_title": "回复你的目标体重<br>解锁预计完成日期",
         "remember": "记住",
         "maintain_focus": "持续比完美更重要——每天坚持就好",
@@ -431,7 +443,9 @@ STRINGS = {
         "md_surplus": "每日热量盈余：约 {v} {cu}",
         "md_rate_loss": "每周减脂速度：约 {v}",
         "md_rate_gain": "每周增重速度：约 {v}",
-        "md_completion": "预计完成：{v}",
+        "md_first_target": "第一个目标：−{amt}（约 {w} 周）——一次拿下一个",
+        "md_completion": "预计达成目标：约 {v}——这是估算，不是死线"
+                         "（前期通常掉得更快，之后会随进度重新计算）",
         "md_unlock": "预计完成：回复你的目标体重，解锁预计完成日期",
         "expl_lose": "这个节奏既能让体重稳步下降，又不至于饿得没精神——"
                      "坚持得下去才是关键。",
@@ -662,10 +676,13 @@ def compute_plan(profile: dict, tdee: dict, locale: dict) -> dict:
 
     if intent == "lose":
         if goal is not None:
-            # Step-3 pace table via planner-calc recommend-rate.
+            # Step-3 pace table via planner-calc recommend-rate. Pass body
+            # weight so the >25 kg bucket scales its default to ~1%/wk (a
+            # heavier body can safely lose faster); the safety floor below
+            # still clamps the realized rate.
             to_lose = round(weight - goal, 1)
-            rate = run_planner("recommend-rate",
-                               "--to-lose-kg", to_lose)["rate_default_kg"]
+            rate = run_planner("recommend-rate", "--to-lose-kg", to_lose,
+                               "--body-weight-kg", weight)["rate_default_kg"]
         else:
             # No goal yet: most conservative pace-table default.
             to_lose = None
@@ -959,6 +976,27 @@ def fmt_date_label(d: date, lang: str) -> str:
     return d.strftime("%B %d, %Y").upper()
 
 
+def compute_first_target(plan: dict, units: str) -> dict:
+    """The near-term 'first target' for hope-first framing: the first milestone
+    (5 lb / 2.5 kg, capped at the goal) + rough weeks to reach it at the plan's
+    pace. Mirrors reward-engine's milestone ladder first rung. Returns None when
+    there's no usable pace/goal (caller falls back to the plain completion tile)."""
+    to_lose_kg = plan.get("to_lose_kg")
+    rate = plan.get("rate_kg_per_week")
+    if not to_lose_kg or not rate or rate <= 0:
+        return None
+    if units == "imperial":
+        chunk_kg = 5 / 2.205
+        target_kg = min(chunk_kg, to_lose_kg)
+        amt = "{} lb".format(min(5, round(to_lose_kg * 2.205)))
+    else:
+        chunk_kg = 2.5
+        target_kg = min(chunk_kg, to_lose_kg)
+        amt = "{:g} kg".format(min(2.5, round(to_lose_kg, 1)))
+    weeks = max(1, round(target_kg / rate))
+    return {"amt": amt, "weeks": weeks}
+
+
 # ---------------------------------------------------------------------------
 # HTML rendering
 # ---------------------------------------------------------------------------
@@ -1168,14 +1206,32 @@ def build_template_vars(plan: dict, profile: dict, locale: dict,
             "</div>"
         )
     elif plan.get("estimated_completion"):
+        # Hope-first: lead the tile with the near-term FIRST TARGET, not the far
+        # completion month. The full goal date is kept as a small, de-emphasized
+        # estimate note ("an estimate, not a deadline") — the plan-card analogue
+        # of the GLP-1 drop-the-countdown precedent above.
         timeline_label = s["sec_timeline"]
-        timeline_html = (
-            '<div class="goal-tile">'
-            f'<div class="goal-label">{s["goal_reached"]}</div>'
-            f'<div class="goal-value">{fmt_month_year(plan["estimated_completion"], lang, short=True)}</div>'
-            f'<div class="goal-note">{s["weeks_from"].format(w=round(plan["weeks"]))}</div>'
-            "</div>"
-        )
+        ft = compute_first_target(plan, units)
+        if ft:
+            note = s["first_target_note"].format(
+                w=ft["weeks"],
+                m=fmt_month_year(plan["estimated_completion"], lang, short=True))
+            timeline_html = (
+                '<div class="goal-tile">'
+                f'<div class="goal-label">{s["sec_first_target"]}</div>'
+                f'<div class="goal-value">{s["first_target_value"].format(amt=ft["amt"])}</div>'
+                f'<div class="goal-note">{note}</div>'
+                "</div>"
+            )
+        else:
+            # No usable pace → fall back to the plain completion tile.
+            timeline_html = (
+                '<div class="goal-tile">'
+                f'<div class="goal-label">{s["goal_reached"]}</div>'
+                f'<div class="goal-value">{fmt_month_year(plan["estimated_completion"], lang, short=True)}</div>'
+                f'<div class="goal-note">{s["weeks_from"].format(w=round(plan["weeks"]))}</div>'
+                "</div>"
+            )
     elif plan.get("timeline_locked"):
         timeline_label = s["sec_timeline"]
         timeline_html = (
@@ -1387,6 +1443,11 @@ def build_plan_markdown(plan: dict, profile: dict, locale: dict) -> str:
         key = "md_rate_gain" if intent == "gain" else "md_rate_loss"
         lines.append(f"• {s[key].format(v=fmt_rate_md(plan['rate_kg_per_week'], units, lang))}")
     if plan.get("estimated_completion"):
+        # Hope-first: first-target line leads; the goal date follows as a
+        # de-emphasized estimate ("not a deadline").
+        ft = compute_first_target(plan, units)
+        if ft:
+            lines.append(f"• {s['md_first_target'].format(amt=ft['amt'], w=ft['weeks'])}")
         lines.append(f"• {s['md_completion'].format(v=fmt_month_year(plan['estimated_completion'], lang))}")
     elif plan.get("timeline_locked"):
         lines.append(f"• {s['md_unlock']}")

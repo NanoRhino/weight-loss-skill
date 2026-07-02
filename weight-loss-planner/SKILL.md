@@ -171,22 +171,33 @@ Present the plan following this exact structure. Use bullet points (•), not ta
 
 **[Safety floor explanation]** — Omit. Do not mention BMR or TDEE values to the user.
 
+**[Next milestone — LEAD WITH THIS, mandatory]** — Before the numbers, open the plan on the **next win**, not the finish line. This is the first thing the user reads after the info block. State:
+  • The **next milestone** on the ladder from where they are now — for a fresh plan that's the **first ~5 lb / 2–3 kg** (or ~5% of body weight). Get the exact one from reward-engine's helper:
+    ```bash
+    python3 {skillsDir}/reward-engine/scripts/weight-milestone-calc.py next \
+      --start <current weight> --current <current weight> --goal <goal weight> --unit lb|kg
+    ```
+  • **When they'll hit it + a near-term scale target** — roughly "about −[X] by the end of [this month]" using the weekly rate (rate × ~4 weeks). Small, close, believable.
+  • Optionally one non-scale win they'll feel in ~2 weeks (more energy, looser clothes, less bloating).
+
 **[Plan details block]** — "你的计划：" followed by bullet list:
 • 每日热量目标：[X,XXX] 大卡
 • 每日热量缺口：约 [XXX] 大卡
 • 每周减脂速度：约 [X.X] kg / [X.X] 斤
-• 预计完成：[具体月份 + 年份] — single date only. If the user gave a target weight range, use the upper bound (easier target) as the completion date. Mention the lower bound as a follow-on milestone in the rate explanation if relevant.
+• 预计达成目标（估算）：[具体月份 + 年份] —— reframe as an **estimate, not a deadline**. Present it plainly and de-emphasized (it comes AFTER the milestone lead, never first). Add a short qualifier: *"loss is usually faster early on and I re-check the numbers every few weeks, so treat this as a starting estimate, not a deadline."* If the user gave a target weight range, use the upper bound (easier target) as the estimate; mention the lower bound as a later milestone if relevant.
 
 > **Note:** Do NOT include per-meal split or macro targets (protein/fat/carb) at this stage. Those will be calculated after the user accepts the plan and chooses a diet mode.
 
-**[Rate explanation]** — 1–2 sentences explaining why this rate was chosen. Frame from the user's perspective — what they'll experience, not nutrition theory. If activity level is low/sedentary, mention that adding exercise would help speed up progress. Do NOT mention TDEE or BMR by name. Use *italics* for emphasis where appropriate.
+**[Rate explanation]** — 1–2 sentences explaining why this rate was chosen. Frame from the user's perspective — what they'll experience, not nutrition theory. Do NOT mention TDEE or BMR by name. Use *italics* for emphasis where appropriate. If the user wants to go **faster**, steer to **more activity, not less food** (see the framing law below).
 
-> 🚦 **Near-term milestone first (mandatory for large remaining loss):** When the amount to lose is large and the healthy-pace timeline runs to multiple years, **never** lead with the raw total ("that's 149 lb to lose") or the multi-year horizon framed as "a long road" — that discourages instead of motivating. Always anchor on the **near-term win** first: what they'll notice within ~2 weeks beyond the scale (more energy, looser clothes, less bloating), and the first concrete milestone (first ~5 lb / 2–3 kg, or ~5% body weight, within ~6–8 weeks). The full total and completion date stay in the plan details block, stated plainly — not dramatized.
+> 🚦 **FRAMING LAW — lead with the next milestone, never the far endpoint (DEFAULT for everything).** This governs BOTH the plan presentation above AND **any** ad-hoc moment a horizon comes up — especially the direct question *"how long until I reach my goal weight / when will I hit my goal?"* (see the dedicated section below). A single faraway date ("80 lb ≈ 114 weeks ≈ September 2028") reads as despair. So:
 >
-> ❌ Don't: "That's 149 lb to lose. At your current pace you're looking at roughly 4–5 years, which is a long road."
-> ✅ Do: "We'll take this one win at a time — most people feel lighter and more energetic within the first couple of weeks. Let's aim at the first small target: about 5 lb off in roughly 6 weeks, then we line up the next one."
+> 1. **Never lead with the far endpoint or total.** Don't open with "that's 149 lb to lose" or "roughly 4–5 years / a long road." Lead with the **next milestone** (first ~5 lb / 2–3 kg or ~5% body weight for a fresh start; otherwise the next rung — use `weight-milestone-calc.py next`) **plus a near-term scale target** ("by the end of the month ≈ −X").
+> 2. **The far date is details only, and always an estimate.** When you do state the completion date, reframe it: *"loss is usually faster early, I recalc every few weeks — a starting estimate, not a deadline."* Never dramatize it.
+> 3. **"Want to go faster?" → move more, not eat less.** More activity raises the burn, which safely allows a bigger deficit at the **same food floor**. Never point them below the calorie floor. (The pace itself is an offer — a heavier body can safely lose up to ~1%/week; see Rate Guidelines.)
 >
-> This applies here, and to **any** moment in conversation where a large remaining loss or long timeline first comes up — not just the formal plan presentation.
+> ❌ Don't: "That's 149 lb to lose. At your current pace you're looking at roughly 4–5 years, which is a long road." / "80 lb to go — about September 2028."
+> ✅ Do: "One win at a time — most people feel lighter and more energetic within the first couple of weeks. First target: about 5 lb off by the end of the month, then we line up the next one." (Full estimate: ~[month year], and that usually moves in as you go.)
 
 **[Follow-up question]** — Ask whether the user accepts this plan:
 "Does this pace feel right, or would you like to adjust?"
@@ -197,7 +208,7 @@ If activity data was assumed or missing, also invite the user to share their exe
 - Round numbers for readability (e.g., "~1,700 kcal" not "1,697 kcal")
 - Single rounded value for daily calorie target
 - Maximum one emoji (at the end of the closing line)
-- No phased milestones — present as a single plan
+- **Milestone-first, one plan.** Keep it a single plan (no multi-phase roadmap dump), but **present it milestone-first** — open on the next milestone + near-term target (per the Framing Law), with the completion date as a de-emphasized estimate. Do NOT lead with, or dramatize, the far date.
 
 **Note:** TDEE will decrease as weight drops. The plan will be recalculated every 4 weeks or when weight drops by 4 kg, whichever comes first — but don't present this to the user upfront. Handle recalculations as they come.
 
@@ -206,13 +217,13 @@ If activity data was assumed or missing, also invite the user to share their exe
 ### Step 3: Let User Adjust the Plan
 
 The user may want to:
-- **Speed up** → increase the weekly rate (recalculate calories; enforce safety floors)
+- **Speed up** → **first steer to activity, not less food** (per the Framing Law): more movement raises the burn so a bigger deficit fits at the *same* food floor. If they still want a faster pace, increase the weekly rate (recalculate calories; enforce safety floors — a heavier body can safely go up to ~1%/week, see Rate Guidelines). Never take the target below the calorie floor to chase a faster number.
 - **Slow down** → decrease the rate (recalculate; explain that slower is often more sustainable)
 - **Change the goal weight** → recalculate everything
 
 > 🚦 **HARD RULE — never LOWER today's calorie target on a day the user is already over it.** If the user asks to lower their daily calorie target (or you're inclined to tighten it) AND they are already at/over today's target — today's running `daily_total.progress_pct` ≥ 100%, or you can plainly see they've already eaten past it today — do **NOT** change the target today. Acknowledge the intent warmly and **defer the new (lower) target to tomorrow**: e.g. *"Love that you want to push harder — let's lock the new target in starting tomorrow. No point moving the goalposts mid-day when today's already in motion."* Lowering mid-day only widens a gap they can't close today and sets them up to "fail" against a target they never had a chance to hit — the opposite of building confidence. This applies **only to lowering into an already-blown day**: **raising** a target (e.g. the user is undereating and needs more) is fine anytime, and lowering is fine on any day they are still under target. When you defer, still confirm the number you'll switch to and that it starts tomorrow — then apply it on the next day's recalculation.
 
-Each adjustment triggers a recalculation. After recalculating, **re-present the updated plan using the full Plan Presentation format defined in Step 2** (Opening → Body metrics → Safety floor → Plan details → Rate explanation → Follow-up question). Do NOT use abbreviated summaries or comparison tables — always show the complete plan so the user can confirm with full context. Repeat until the user is satisfied. If they push for an unsafe rate, stand firm kindly — health first, always.
+Each adjustment triggers a recalculation. After recalculating, **re-present the updated plan using the full Plan Presentation format defined in Step 2** (Opening → Body metrics → **Next milestone lead** → Plan details → Rate explanation → Follow-up question). Do NOT use abbreviated summaries or comparison tables — always show the complete plan so the user can confirm with full context. Repeat until the user is satisfied. If they push for an unsafe rate, stand firm kindly — health first, always.
 
 ---
 
@@ -247,6 +258,42 @@ Once the user confirms the plan presented in Step 2/3, **do NOT re-present the p
 
 ---
 
+## Ad-hoc: "How long until I reach my goal weight?"
+
+This direct question — *"how long until I hit my goal?"*, *"when will I reach my
+goal weight?"*, *"how many weeks/months to X?"* — is the single most common way
+the horizon comes up, and answering it with one faraway date ("80 lb ≈ 114 weeks
+≈ September 2028") is exactly the despair trap. **The Framing Law applies here in
+full.** This is a quick, warm answer — do NOT regenerate the whole plan.
+
+1. **Gather (silently):** current weight (`data/weight.json`, latest), goal
+   weight (`health-profile.md` / `PLAN.md`), unit, and the current pace
+   (`data/plan.json > weekly_rate_kg`, or from `PLAN.md`).
+2. **Get the next milestone:**
+   ```bash
+   python3 {skillsDir}/reward-engine/scripts/weight-milestone-calc.py next \
+     --start <first-ever weight> --current <current weight> --goal <goal> --unit lb|kg
+   ```
+3. **Lead with the next win, not the endpoint.** Open on the next milestone +
+   a near-term scale target: *"You're about [remaining] from your next milestone
+   — [milestone]. At your pace that's roughly [N] weeks, and you'll be down about
+   −[X] by the end of the month."*
+4. **Give the full estimate only after, and reframe it.** *"All the way to [goal]
+   is a rough estimate of ~[month year] — but loss is usually faster early and I
+   recheck the numbers every few weeks, so it's a starting estimate, not a
+   deadline."* Never make this the lead or dramatize it.
+5. **If they want it sooner → move more, not eat less.** *"The safe way to speed
+   it up is adding activity — that raises your burn so the same eating target
+   goes further. I'd never have you eat below your floor."*
+
+> ✅ "You're ~3 lb from your first milestone (5 lb down) — about 3 weeks away,
+> and roughly −5 lb by month's end. Full goal's a rough ~next spring, and that
+> usually pulls in as you go. Want to talk about nudging the pace with a bit more
+> movement?"
+> ❌ "You have 80 lb to lose, so about 114 weeks — around September 2028."
+
+---
+
 ## Progress Check-In & Continuation
 
 **Cross-session continuity:** Claude does not retain memory between conversations. When a user returns to check in or report progress, read their `PLAN.md` and `health-profile.md` from the workspace to pick up where they left off. If these files don't exist, ask for their current weight and goal to reconstruct context.
@@ -255,7 +302,7 @@ When a user reports progress (e.g., "I'm at 70 kg now!"):
 1. Celebrate genuinely — acknowledge the effort, not just the number
 2. Highlight non-weight wins they may have noticed
 3. Recalculate TDEE at the new weight
-4. Present the updated plan
+4. Present the updated plan (milestone-first per the Framing Law — lead with the next milestone, not the completion date)
 5. **Re-run `planner-calc.py write-plan-json`** (Step 4 action 3) so `data/plan.json` reflects the new numbers — the deficit resolver and weekly-report must never read a stale target.
 6. Ask if they want to adjust anything going forward
 

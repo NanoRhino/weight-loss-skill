@@ -81,7 +81,10 @@ Plan **content** follows `user-onboarding-profile/SKILL.md > Step 3：生成并
 - A **single** daily calorie target — never a band.
 - Daily calorie deficit (~XXX).
 - Weekly loss rate.
-- A **single** completion month + year.
+- **Hope-first timeline:** the timeline tile leads with the near-term **first
+  target** (first 5 lb / 2.5 kg + rough weeks), not the far date. The single
+  completion month + year is kept as a small, de-emphasized estimate note
+  ("an estimate, not a deadline") — never the lead.
 
 **Card-only macro override (approved):** the Step-3 "no macros at plan
 stage" rule is explicitly overridden for the CARD — it additionally shows
@@ -104,8 +107,10 @@ of 2,010 — a "target" above the user's shown burn reads as broken).
 unchanged) still provides the **methodology** on top of the anchored TDEE:
 
 - **Pace:** Step-3 pace table via `recommend-rate` when `goal_weight_kg`
-  is present (<10 kg → 0.35 kg/wk default; 10–25 kg → 0.6; >25 kg → 0.7);
-  0.35 kg/wk default without a goal.
+  is present (<10 kg → 0.35 kg/wk default; 10–25 kg → 0.6; >25 kg → up to
+  **1%/wk of body weight**, passed via `--body-weight-kg`, floored at 0.7);
+  0.35 kg/wk default without a goal. The safety floor still clamps the
+  realized rate, so only high-TDEE users actually go faster.
 - **Target:** `calorie-target` → daily target = handoff
   `tdee.recommended` − deficit.
 - **Floor:** `safety-floor` → max(handoff BMR, 1000). If the target falls
@@ -162,7 +167,10 @@ unchanged) still provides the **methodology** on top of the anchored TDEE:
    (breakfast/lunch/dinner) + a snack-ideas line + the plate-formula
    footer, derived from `references/meal-templates.md` (selection rules
    below; pure rules, no LLM).
-8. **Timeline** — completion month tile, or the goal-weight unlock box.
+8. **Timeline** — **first-target tile** (leads with "First Target −5 lb ·
+   ≈N wks", with the full goal date demoted to a small "est. … — not a
+   deadline" note), or the goal-weight unlock box when no goal is set. This
+   reuses the GLP-1 drop-the-countdown precedent: the far date never leads.
    When the input carries `qr`, the SMSTO QR claim block (QR + short
    localized scan prompt) renders here, below the tile/box.
 9. **Your first week** — ONE merged block (replaces the former separate
@@ -222,9 +230,11 @@ SVG factory) is embedded as a data-URI image — no PIL, no binary deps.
 
 Mirrors the Step-3 presentation so downstream skills work unchanged:
 user info block (height / weight / goal weight / age / sex / colloquial
-activity) → "Your Plan"/"你的计划" with the four elements → 1–2 sentence
-pace explanation (no TDEE/BMR jargon). **No macros, no meal split** —
-the card-only macro override does not apply to PLAN.md.
+activity) → "Your Plan"/"你的计划" with the plan elements (daily target,
+deficit, weekly rate, then a **first-target line that leads** and the goal
+date demoted to an "estimate, not a deadline" note) → 1–2 sentence pace
+explanation (no TDEE/BMR jargon). **No macros, no meal split** — the
+card-only macro override does not apply to PLAN.md.
 
 Localized (en/zh) like the card. The calorie-target line stays parseable
 in both languages (`Daily calorie target:` / `每日热量目标：` — matched by
