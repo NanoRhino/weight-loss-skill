@@ -400,6 +400,12 @@ Meals logged:
 - **"Meals logged:" list — one short line per meal.** `{brief foods}` = a couple of the
   main items, not the full dish breakdown (keep it SMS-short). This list is what makes the
   reply read as convergence ("here's your whole day, correct now") instead of churn.
+- **Mark planned (not-yet-eaten) meals.** For any meal in `existing_meals` whose record is
+  flagged not-yet-eaten (`eaten: false`), append a **`(planned)`** tag to its line — e.g.
+  `· Dinner (planned) — {meal_calories} kcal ({brief foods})` — so the user can see at a glance
+  it's a plan, not an eaten total. When they actually eat it, the new log **replaces** that
+  planned entry rather than adding a second one. Meals with `eaten: true` (the default) render
+  with no tag.
 - Matches `personal-data-query/SKILL.md` §Response Schema byte-structurally — same
   sections in the same order (progress bar → macros → produce → "Meals logged:" list).
 - Never end with the 🦏/🐘 rhino mascot emoji (repo convention).
@@ -534,6 +540,11 @@ If `context_clues` is present and non-null in meal_checkin result, naturally wea
 · {dish_name} — {total_g}g — {calories} kcal
 
 Use the `verify-meal` output here — its totals are exact arithmetic, not the LLM's self-summed figures.
+
+**Planned vs eaten (`meal_detection.eaten`) — mark plans clearly.** When `meal_detection.eaten` is `false`, this is a meal the user is *going to* eat, not one they've already eaten. Do NOT render it as a finished log — instead:
+- Tag the meal-name line with a **`(planned)`** marker instead of "logged!" — e.g. `📝 Dinner (planned)` — and add ONE short line making explicit it's a plan, not yet an eaten total (e.g. "This is your plan for dinner — I haven't counted it as eaten yet.").
+- Say that when they actually eat it, they just send it again (text or photo) and that **replaces** this plan — it does NOT add a second dinner (so the day doesn't double-count).
+- When `meal_detection.eaten` is `true` (the normal/default case), render as above with no `(planned)` tag.
 
 **Weight display:** If user reported weight, use that. Otherwise, sum all ingredients (including oil/condiments) and round to nearest 10g (cooked weight is estimated anyway, no point in single-digit precision).
 
@@ -716,6 +727,12 @@ Driven purely by `evaluation.recent_overshoot_count` (overshoot days in last 7):
 - **1 day** → Gentle nudge, "been over a couple times recently, watch out."
 - **2+ days** → Serious: state consequences + analyze cause + actionable plan. No consolation.
 - User shows negative emotion → empathy first, defer to emotional-support (P1).
+
+**Large SINGLE-day overshoot OR user names the cause — ONE forward tip, not pure cheerleading.** When today is a *big* single-day overshoot (today's `daily_total.progress_pct` well over target — roughly **≥130%**) OR the user diagnoses the cause themselves ("carbs are my problem", "I know it was the drinks", "I kept snacking"), do NOT stop at consolation ("one rough day, back at it tomorrow"). That empty-cheerleading reply ignores the pattern the user just named. Instead:
+- **Acknowledge without shame** — one warm, non-judgmental line. Never guilt, never "you blew it," never a lecture. One rough day does not undo their progress.
+- **Add exactly ONE concrete, forward structural tip for TOMORROW**, tied to what actually drove today — and **reflect the user's own words when they self-diagnosed**. E.g. *"you said carbs — tomorrow, leading with protein first tends to crowd them out"* or *"the sugary drinks stacked up — capping those is the single biggest lever."* ONE tip, not a list, not a lecture.
+- **Tomorrow-facing only — this does NOT override the eat-more rule.** Because they are already over target today, do NOT suggest eating anything more today to "balance it out" (the ③ "already over target → don't add food today" rule still holds). The tip is a lever for *tomorrow*, framed as forward help, never as making up for today.
+- If the user's message carries real distress/self-criticism (not just a factual "it was the carbs"), **emotional-support (P1) still leads** — empathy first, and this structural tip waits until they've been heard (or the next day).
 
 ### Photo Reference Object
 
