@@ -222,6 +222,7 @@ I just said?"
 | "how many calories today" / "今日进度" / "今天还剩多少" | daily-number-query | personal-data-query (text in chat — NOT a link) |
 | "my dashboard" / "show me my charts" / "the website" / "is there an app/dashboard?" / "should I use the dashboard?" / "数据中心" / "网页版" / "我的进度网页" / "有App吗" | dashboard-web-view | dashboard-link (confirm the dashboard exists + send the personal dashboard URL; never deny it) |
 | "link to your site" / "my friend wants to join" / "refer a friend" / "invite/share link" / "推荐链接" / "邀请朋友" / "把链接发我" | referral-invite | referral-link (send the personal referral URL `nanorhino.com/referral/{agentId}`; never reply with a bare domain) |
+| "how much does this cost" / "is it free" / "do I have to pay" / "what's the price" / "subscription?" / "多少钱" / "收费吗" / "免费吗" / "怎么收费" / "订阅" | pricing-question | pricing-inquiry (philosophy → quote THEIR $10/lb total; mention the $500 cap ONLY if it would exceed $500 → reassure; yields to emotional-support — see Pattern 13) |
 
 ---
 
@@ -545,6 +546,34 @@ web view, not the word "data".
 Authoritative detail: `diet-tracking-analysis/SKILL.md` § "Reply format after a
 correction" + § "Already-counted short-circuit". The day-card structure is shared
 with `personal-data-query`'s `query_day` render — do not drift a new variant.
+
+---
+
+### Pattern 13: Pricing Question (informational — yields to emotion)
+
+**Trigger:** User asks about cost, price, payment, subscription, "is it free",
+"how much do I pay" ("多少钱", "收费吗", "免费吗", "订阅").
+
+**Resolution: `pricing-inquiry` answers, but it is low-urgency and never overrides.**
+
+1. **Emotion first (P0/P1).** If the same message also carries distress
+   ("I can't afford this and I'm failing anyway") → `emotional-support` LEADS;
+   answer the money question briefly and warmly *after* meeting the emotion,
+   never with a sales frame.
+2. **The canonical terms are fixed.** `pricing-inquiry` quotes the user's projected
+   total at `$10/lb lost`, free until results, no subscription/app/upfront/card, and
+   **no "free trial"** (never invent a trial length or monthly fee — known hallucination).
+   The **$500 cap is real but NOT led with**: mention it only when the projected total
+   would exceed $500 (a "$500 cap" scares users who never pictured paying that much).
+3. **"No app" must not deny the dashboard.** A pricing answer says "no app to buy,"
+   but the web dashboard EXISTS — if the user also asks about an app/dashboard/site,
+   hand that half to `dashboard-link` and confirm the dashboard (see Pattern 11 #3).
+4. **Personalize when possible.** Quote the user's own projected total from their
+   goal (`health-profile.md`), not just the flat rate; if no goal is set, give the
+   rate and offer to size it — don't fabricate a number.
+
+**Key:** informational and honest, never pushy. It answers a question; it doesn't
+sell.
 
 ---
 
