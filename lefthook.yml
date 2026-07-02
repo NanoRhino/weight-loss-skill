@@ -1,8 +1,12 @@
-# Git hook 配置 — Skill 子模块 baseline。
-# 主要是 markdown(SKILL.md)+ Python 辅助脚本,无统一 lint/test 工具。
+# Git hook 配置 — Skill 子模块。
+# 2026-07-02 补 pytest schema 单测(tests/),保护 SKILL.md 里下游 skills 依赖
+# 的字段/section 契约不被无意破坏。
+#
 # 注意:本仓也作为 backend-service 的子模块(.openclaw-user-service/skills),但子模块
 # 操作走父仓 git 命令时不触发本 hook;只有 ~/weight-loss-skill 独立 clone 里直接
-# commit/push 才触发。
+# commit/push 才触发——本 pre-push 就是保护那个场景。
+# backend-service 那边 tests/onboarding.test.ts 有更全的检查(依赖父仓 workspace/
+# 和 workspace-manager.ts),两处互补。
 
 pre-commit:
   parallel: true
@@ -19,3 +23,14 @@ pre-commit:
           echo "⚠️  存在尾部空白"
           exit 1
         fi
+
+pre-push:
+  commands:
+    schema-tests:
+      run: python3 -m pytest tests/ -q
+      fail_text: |
+        ❌ SKILL.md schema 单测失败,禁止 push。
+        修法:`python3 -m pytest tests/ -v` 看哪些字段/section 被误改。
+        如果确实要改字段名(rename),需同时更新所有下游 skills 里的引用
+        (weight-loss-planner / meal-tracker / diet-pattern-detection ...)
+        然后再更新 tests/test_onboarding_schema.py 里的 REQUIRED_FIELDS。
