@@ -381,7 +381,7 @@ hardcode English/Chinese beyond what these templates already carry):
 ✅ Locked in — full day:
 🔥 {daily_total.calories}/{daily_total.target} kcal
 ███████░░░ {daily_total.progress_pct}%
-Protein {protein_g}g {status} | Carbs {carbs_g}g {status} | Fat {fat_g}g {status}
+Protein {protein_g}g {protein-token — see ② Protein rendering} | Carbs {carbs_g}g {status} | Fat {fat_g}g {status}
 🥦 Vegetables ~{produce.vegetables_g}g {status}  🍎 Fruits ~{produce.fruits_g}g {status}
 
 Meals logged:
@@ -394,6 +394,9 @@ Meals logged:
   No extra tool calls for a correction — you already have this from the correction result.
 - Progress-bar / status-arrow / produce rules are the SAME as schema ② below
   (10-char bar, ✅ on_track / ⬆️ high / ⬇️ low, both produce items on one line).
+  The protein slot uses the achievement-first Protein rendering (💪 solid on
+  on_track/high, no ⬇️ debt arrow on low) — never frame the corrected day as a
+  protein debt.
 - **"Meals logged:" list — one short line per meal.** `{brief foods}` = a couple of the
   main items, not the full dish breakdown (keep it SMS-short). This list is what makes the
   reply read as convergence ("here's your whole day, correct now") instead of churn.
@@ -540,7 +543,7 @@ Use the `verify-meal` output here — its totals are exact arithmetic, not the L
 📊 So far today:
 🔥 {daily_total.calories}/{daily_total.target} kcal
 ███████░░░ {daily_total.progress_pct}%
-Protein {protein_g}g [status] | Carbs {carbs_g}g [status] | Fat {fat_g}g [status]
+Protein {protein_g}g [protein-token — see Protein rendering below] | Carbs {carbs_g}g [status] | Fat {fat_g}g [status]
 
 **Calorie progress bar rules:**
 - Fixed 10 chars: `█` = filled, `░` = remaining
@@ -549,6 +552,13 @@ Protein {protein_g}g [status] | Carbs {carbs_g}g [status] | Fat {fat_g}g [status
 - >100%: all 10 filled + show surplus `(+{overflow})` + `⚠️`
 
 Status: ✅ on_track | ⬆️ high | ⬇️ low. Cumulative actuals only, no target numbers (except calorie progress bar).
+
+**Protein rendering (achievement-first — special-cased, overrides the generic arrow for the protein slot ONLY):**
+Protein is a **floor you build toward and celebrate**, not a daily debt. There is no such thing as "behind on protein." Render the protein token by `status.protein` (contract unchanged — you still read `status.protein` ∈ {low, on_track, high} and `protein_g` as-is):
+- `on_track` → `Protein {protein_g}g 💪 solid` — celebrate it plainly, they hit the floor.
+- `high` → `Protein {protein_g}g 💪 solid` — extra protein is a win on a weight-loss plan; NEVER frame it as "too much."
+- `low` → `Protein {protein_g}g` with **NO ⬇️ debt arrow** — an unfinished floor is a forward opportunity, not a failure or a shortfall. Any nudge to build toward it lives in ③, at most ONCE per day, and never as the day's closing line (see ③ Protein guidance).
+Carbs and Fat keep the generic ✅ / ⬆️ / ⬇️ arrows above — only the protein slot is reframed.
 
 **CN produce (REQUIRED — never omit either item):**
 🥦 Vegetables: ~{produce.vegetables_g}g {produce.vegetables_status}  🍎 Fruits: ~{produce.fruits_g}g {produce.fruits_status}
@@ -573,7 +583,9 @@ where the whole point is showing trustworthy full-day state; do not let every cr
 - ⬇️ low → must say "偏少/不够/偏低". NEVER say "够了/达标/充足".
 - ✅ on_track → may say "达标/合适/刚好/够了".
 
-If fat is ⬆️, you cannot say "脂肪够了". If protein is ⬇️, you cannot say "蛋白质ok". Verify consistency before outputting.
+If fat is ⬆️, you cannot say "脂肪够了". Verify consistency before outputting.
+
+**Protein is the exception to the "low → 偏少/不够" scold.** The rule above governs carbs / fat / calories. For **protein**, never phrase `low` as 偏少/不够/欠/落后/"gap to close"/"behind on protein" — reframe per the Protein rendering rule (a floor you build toward, celebrated). You must still be truthful — do NOT claim the floor is already met when `status.protein == low` ("protein done/达标") — but say it **forward** ("还有空间，今天可以再往蛋白质靠一靠" / "room to build toward your protein today"), never **backward** ("你蛋白质不够/落下了"). `on_track` / `high` protein → celebrate ("蛋白质很棒 💪" / "protein's solid 💪"). See the ③ once-per-day cap below.
 
 ### ②b Net daily balance (ONLY when exercise was logged today)
 
@@ -629,11 +641,23 @@ to budget questions and short acknowledgments ("got it", "ok", a 👍): don't an
 
 **Staying within calorie target is the #1 priority.** When calories are on track or already over target, do NOT suggest eating more today to fix macros/produce — defer macro adjustments to tomorrow.
 
+**Protein guidance — surface AT MOST ONCE PER DAY, and only when actionable.** Protein is a floor to *reach and celebrate*, never a debt to *pay down* — and the repetition is what kills confidence: every meal card nagging "close the protein gap" turns a floor into a chore. So:
+- Raise protein as a forward move only when it is **actionable** — i.e. earlier in the day (breakfast/lunch, or any pre-final meal) AND the user still has BOTH calorie runway (`daily_total.remaining` leaves real room) AND appetite (they have NOT said they're full/done). At dinner, or once calories are on-track/over, do NOT ask them to add protein today — carry it to tomorrow.
+- **Once per day only.** If protein was already surfaced today (by you or a reminder), do not raise it again — log the meal, celebrate what's there, move on. Repeat protein nudges read as nagging (Single-Ask spirit).
+- **Never let a protein shortfall be the CLOSING line on a calorie-on-track day.** When `status.calories` is `on_track` (or the day is done / over target), the end-of-day close MUST land on a **win** — the calorie target they hit, a solid protein day, a streak — never "but you're low on protein." A day where they nailed calories is a good day; do not end it on a debt.
+- **Framing, always:** "solid protein today 💪" when `on_track`/`high`; when `low` and actionable, ONE forward, optional line ("if you're still hungry at lunch, a palm of chicken gets you there") — never "you're behind / short / need to close the gap."
+
+**GLP-1 / "I'm full" branch — celebrate, do NOT push food.** If the user is on a GLP-1 (`on_glp1: true`, readable from `PROFILE.md` / `health-profile.md`) OR signals appetite suppression / fullness ("I'm full", "can't eat any more", "no appetite", "the shot kills my hunger", or declining more food), then a low protein number is **expected, not a miss**:
+- Do NOT suggest an extra shake, snack, or meal to "hit protein." Pushing food on an appetite-suppressed user is exactly the failure mode this reframe fixes.
+- Acknowledge the appetite honestly and **let their appetite lead** — celebrate what they actually ate. Low intake here is the plan working, not a shortfall.
+- Keep protein as a gentle *quality* steer for WHEN they do eat ("when you do eat, make it protein-first so what comes off stays fat, not muscle") — never a *quantity* push to eat more right now.
+- This mirrors the GLP-1 plan-card framing (protein floor as the hero, "hit it even when you're not hungry", "eat to appetite, watch the trend", muscle-preservation over a scale countdown). Tone: reassuring and appetite-led.
+
 **Calorie budget for suggestions (CRITICAL):** Budget choice is governed by the No-Assumption Policy above.
 - **Default (no estimation opt-in):** use `daily_total.remaining` (= `suggestion_budget.remaining`, computed from actual logged intake) for ③ advice. Unlogged meals are unknown — never silently fold assumed calories into your numbers or advice. When `missing_meals` is non-empty, keep the suggestion conservative and pair it with the unlogged-meals note below.
 - **Estimation enabled (explicit opt-in only):** use `suggestion_budget.remaining_if_assumed`, and ALWAYS label it as an estimate that counts unlogged meals at normal portions. If `remaining_if_assumed` ≤ 50, tell user the estimated budget is nearly used up and suggest only very light options or nothing extra. If `remaining_if_assumed` < 0, explicitly tell user the estimated budget is already exceeded.
 
-Give ONE unified meal/food suggestion that addresses ALL gaps together — check every status field (protein, carbs, fat, vegetables, fruits) and synthesize a single concrete recommendation that covers all deficits at once. Do NOT list separate bullet points for each nutrient. Use `recent_foods` and user preferences for examples. No bare calorie numbers.
+Give ONE unified meal/food suggestion that addresses ALL gaps together — check every status field (protein, carbs, fat, vegetables, fruits) and synthesize a single concrete recommendation that covers all deficits at once. Do NOT list separate bullet points for each nutrient. Use `recent_foods` and user preferences for examples. No bare calorie numbers. (**Protein is gated by the Protein guidance rule above** — fold it into this suggestion only when protein is actionable AND hasn't already been surfaced today, and always as a celebrated floor, never a debt; on a GLP-1 / "I'm full" day, do not push food for it.)
 
 **Unlogged meals (REQUIRED):** If `evaluation.missing_meals` is non-empty, append ONE short note AFTER ③ suggestion:
 - List every meal in `missing_meals`
