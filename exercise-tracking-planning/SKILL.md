@@ -377,6 +377,16 @@ text you parse yourself):
 
 ---
 
+<!-- INJECT-END -->
+<!--
+  Everything ABOVE this marker is auto-injected into every model call by the
+  exercise-tracker plugin (its initOnce() reads the file up to this marker only).
+  Everything BELOW is on-demand reference: the coach reads this full SKILL.md
+  when a user actually requests a workout PROGRAM. Keep the always-applied
+  exercise-TRACKING rules above the marker; keep the rare PLANNING flow below.
+  Rationale + rollback: token-optimization-plan-2026-07-02.md 改动二.
+-->
+
 # Part 2: Exercise Planning
 
 ## When Planning Triggers
